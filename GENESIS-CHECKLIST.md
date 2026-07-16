@@ -31,14 +31,18 @@ Nothing here is faked. A step is ✅ only when its artifact exists and independe
   plus the recording; ≥2 mirrors byte-verify (`make verify-mirror`).
 
 ### 3. Enroll ≥3 independent external verifiers (⏳ real-world)
-- [ ] Issue **one single-use challenge per separately-vetted operator** (this is what makes them count as *distinct* —
-  the crypto can't, since a fresh key is free). Record who got which nonce, out of band.
-- [ ] Three unaffiliated operators, on three different machines, each run `kits/verifier/ --challenge <their-nonce>`
-  against the published artifacts and send us a signed `verifier-attestation.json`.
-- **Proof:** three attestations that each pass `kits/verifier/check-attestation.mjs --challenge <the-nonce-we-issued>`
-  (challenge binding + whole-body signature + **complete** canonical corpus, byte-matching, no missing/extra artifact +
-  conformant verdicts) under **distinct** verifier keys, one per issued challenge. Honest scope: the kit proves
-  execution + freshness + tamper-evidence; distinctness comes from the one-challenge-per-party issuance. (Kill-gate K4.)
+- [ ] For **each** separately-vetted operator, `mint-challenge.mjs` a **fresh challenge corpus** (K bundles, secret
+  coin-flip revocations, K≥8 so 2^-K is negligible) + a **private answer key**. Hand them the public corpus + nonce;
+  keep the answer key. Record who got which challenge, out of band (this is what makes them count as *distinct*).
+- [ ] Three unaffiliated operators, on three different machines, each run
+  `kits/verifier/verify-kit.mjs --challenge <their-nonce> --challenge-dir <their-corpus>` and send us a signed
+  `verifier-attestation.json`.
+- **Proof:** three attestations that each pass
+  `kits/verifier/check-attestation.mjs --challenge <nonce> --secret <that operator's answer key>` — the decisive gate
+  being that their verdicts on the fresh, **never-published** bundles match the answer key exactly (a non-executor must
+  guess all K). Under **distinct** verifier keys, one challenge each. Honest scope: this proves *actual verification was
+  performed* on un-precomputable inputs (not the exact binary, not Sybil-resistance — distinctness is the
+  one-challenge-per-party issuance). (Kill-gate K4.)
 
 ### 4. Stand up witnesses on independent infra (⏳ real-world)
 - [ ] ≥3 `witnessd` run by separate operators (TLS-fronted); a relying party assembles a quorum certificate over the

@@ -58,6 +58,28 @@ else
   echo "  ✓ witness correctly refused a duplicated custodian part (mislabeled operator_id + reused key)"
 fi
 
+echo "== NEGATIVE: one physical key aliased via base64 padding to fake a distinct signer → the witness MUST fail loudly =="
+# The sharper version of the copy attack (M9 review): re-sign custodian 1's key into slot N under a NON-canonical
+# base64 string (drop the '=' padding). It decodes to the SAME key, so it is NOT a distinct signer — the witness must
+# reject it even though the raw strings differ. Uses only custodian 1's PUBLIC data, but a genuine attacker would hold
+# the key; here we prove the *check* catches the alias regardless of who holds it.
+ALIAS="$WORK/alias"
+cp -r "$DRY" "$ALIAS"
+DRY="$DRY" N="$N" ALIAS="$ALIAS" node -e '
+  const {readFileSync,writeFileSync}=require("fs");
+  // Take custodian 1s record; strip the trailing "=" from its pubkey base64 (still decodes to the identical key),
+  // relabel it operator_id N, and drop the signature (the witness must reject on the DUPLICATE-KEY check BEFORE it
+  // ever trusts a signature — a key alias is not a distinct signer even with a perfect signature).
+  const one=JSON.parse(readFileSync(process.env.DRY+"/operator-1.json","utf8"));
+  const b={...one.body, operator_id:Number(process.env.N), pubkey_spki_b64:one.body.pubkey_spki_b64.replace(/=+$/,"")};
+  writeFileSync(process.env.ALIAS+"/operator-"+process.env.N+".json", JSON.stringify({body:b, sig_ed25519_b64:one.sig_ed25519_b64},null,2)+"\n");
+'
+if node kits/ceremony/witness.mjs --dir "$ALIAS" >/dev/null 2>&1; then
+  echo "FAIL: witness accepted a base64-padding alias of an existing key as a distinct custodian — quorum forgeable"; exit 1
+else
+  echo "  ✓ witness correctly refused a base64-aliased duplicate key (canonicalized key identity)"
+fi
+
 echo
 echo "ceremony-dry-run OK — choreography rehearses; the transcript is witness-reproducible; a skipped step (or a"
 echo "copied part) fails loudly. TEST-ROOT only. The real recorded ceremony (air-gapped shares) is in kits/ceremony/RUNBOOK.md."

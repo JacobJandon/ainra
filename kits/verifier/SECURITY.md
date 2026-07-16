@@ -27,15 +27,20 @@ how to run it in isolation and confirm it behaves.
   (`make diff` in the main repo), so "does my SDK agree with the spec" is answerable without trusting us.
 
 ## What a valid result proves (and doesn't)
-- A passing run proves *your* SDK, on *your* machine, produced the conformant verdicts on the given artifacts —
-  root dark — **and** that you did so in response to the specific single-use challenge the maintainer issued (the
-  attestation is bound to that nonce, so it can't be pre-manufactured or replayed). It does **not** ask you to trust
-  our infrastructure: the artifacts are hashed into your attestation, and we re-check those hashes against the
-  canonical published corpus when we collect it.
-- It does **not** prove you are a *distinct* person. A fresh Ed25519 key is free, so the crypto cannot be Sybil-proof.
-  Distinctness is out of band: the maintainer issues **one** challenge per separately-vetted party, so two attestations
-  under two challenges we handed to two different people count as two verifiers — the cryptography enforces execution
-  and freshness, the issuance process enforces distinctness.
+- A passing **execution-bound** run (`--challenge-dir` + the maintainer's `--secret` answer key) proves that a party
+  holding key *K*, answering the challenge we issued, **correctly verified `K` fresh bundles whose revocation state we
+  never published** — i.e. they actually *performed* AINRA verification, root dark. Because the answers were a secret
+  coin flip, a party who did not verify must guess all `K` (success `2^-K`). It does **not** ask you to trust our
+  infrastructure: the challenge corpus is hashed into your attestation and we re-check it against exactly what we minted.
+- Precise limits, stated plainly (an earlier version of this kit over-claimed "the cryptography enforces execution" —
+  corrected, see the main repo `DECISIONS.md` D-024):
+  - It does **not** prove you ran our exact `@ainra/sdk` *binary* — a conformant reimplementation that computes the
+    correct verdicts would also pass. What it proves is that *some* correct AINRA verification was performed on inputs
+    you could not have precomputed. (Binding the specific binary would need TEE/ZK attestation — out of scope here.)
+  - It does **not** prove you are a *distinct* person. A fresh Ed25519 key is free, so the crypto cannot be Sybil-proof.
+    Distinctness is out of band: the maintainer mints **one** challenge per separately-vetted party.
+  - A *conformance-only* attestation (no `--challenge-dir`) proves only agreement on the public sample verdicts and is
+    explicitly marked non-counting; the collector refuses to certify it, and refuses to certify at all without `--secret`.
 - If any check fails, the kit exits nonzero and writes **no** attestation. A failure is a finding — please report it
   (see the main repo's `SECURITY.md`).
 

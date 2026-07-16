@@ -55,7 +55,11 @@ present === required
 // A file count alone is forgeable: a no-show can be papered over by `cp operator-4.json operator-5.json`. So every
 // record must (a) claim to BE custodian K (its filename binds to body.operator_id) and (b) carry a DISTINCT public
 // key — a duplicated file collides on both, so a skipped custodian cannot be hidden by copying another's part.
-const seenKeys = new Map(); // pubkey_spki_b64 → the k that first used it
+// The distinct-key identity is the CANONICAL key (decoded → re-exported DER), never the raw base64 STRING: a lenient
+// base64 decoder treats `<spki>` and `<spki-without-padding>` (or with added whitespace) as the SAME key but DIFFERENT
+// strings, so a raw-string Set would let ONE physical key pose as N "distinct" custodians. Canonicalizing first shuts
+// that alias (M9 review, D-024 round 2).
+const seenKeys = new Map(); // canonical-DER-hex → the k that first used it
 for (let k = 1; k <= required; k++) {
   let rec;
   try { rec = JSON.parse(readFileSync(`${dir}/operator-${k}.json`, "utf8")); }
@@ -63,13 +67,18 @@ for (let k = 1; k <= required; k++) {
   const b = rec.body;
   // (a) the record must identify itself as custodian k (binds operator_id ↔ filename).
   if (b.operator_id !== k) { fail(`operator-${k}.json claims operator_id ${JSON.stringify(b.operator_id)} — mislabeled or a copied part`); continue; }
-  // (b) no two custodians may share a public key (a duplicated part reuses a key → the ceremony is not k-of-n).
-  if (seenKeys.has(b.pubkey_spki_b64)) { fail(`custodian ${k}: duplicate public key — same key as custodian ${seenKeys.get(b.pubkey_spki_b64)} (not distinct signers)`); continue; }
-  seenKeys.set(b.pubkey_spki_b64, k);
+  // parse the key ONCE, and derive its canonical identity (re-exported DER) — fail closed if it will not parse.
+  let pub, keyId;
+  try {
+    pub = createPublicKey({ key: Buffer.from(b.pubkey_spki_b64 || "", "base64"), format: "der", type: "spki" });
+    keyId = pub.export({ type: "spki", format: "der" }).toString("hex");
+  } catch { fail(`custodian ${k}: unparseable public key`); continue; }
+  // (b) no two custodians may share a public key (compared canonically, so padding/whitespace aliases collide too).
+  if (seenKeys.has(keyId)) { fail(`custodian ${k}: duplicate public key — same key as custodian ${seenKeys.get(keyId)} (not distinct signers)`); continue; }
+  seenKeys.set(keyId, k);
   // signature under the custodian's own key
   let sigOk = false;
   try {
-    const pub = createPublicKey({ key: Buffer.from(b.pubkey_spki_b64, "base64"), format: "der", type: "spki" });
     sigOk = edVerify(null, Buffer.from(canonicalJSON(b)), pub, Buffer.from(rec.sig_ed25519_b64, "base64"));
   } catch { /* sigOk stays false */ }
   // the reveal opens the commit

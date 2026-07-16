@@ -3,45 +3,67 @@
 
 Become **independent verifier #N**. In under 10 minutes, on your own machine, you prove — using **only the published
 `@ainra/sdk`** — that AINRA's core promise holds: a genuine agent passport verifies with the **root offline**, a
-revoked one is rejected, and a *forged* all-clear status can't un-revoke it. You emit a **signed attestation** we can
-count as evidence **without trusting your word**.
+revoked one is rejected, and a *forged* all-clear status can't un-revoke it. Then you verify a **fresh challenge
+corpus** the maintainer minted for you, and emit a **signed attestation** we can count as evidence **without trusting
+your word** — and, critically, **that a party who never ran a verifier cannot fabricate**.
 
 This kit imports nothing but `@ainra/sdk` (its public `Verifier`) and Node built-ins. No internal AINRA crates, no
 network calls (when run against local artifacts), **no telemetry**.
 
+## Why a "challenge corpus" (and not just a nonce)
+
+The three sample checks below run against a **static, published** corpus whose correct verdicts are public. So an
+attestation that merely reports them proves *agreement*, not *execution*: anyone who knows the public answers could
+assert them without running anything. (An earlier version of this kit over-claimed here — see `DECISIONS.md` D-024.)
+
+To make the attestation actually require verification, the maintainer hands you a **fresh challenge corpus**: `K`
+bundles whose revocation state is a **secret coin flip**, minted just for your challenge and **never published**. You
+verify each one root-dark and report your verdicts. You can only report the correct set **by verifying** — a party who
+guesses succeeds with probability `2^-K`. The maintainer checks your verdicts against a **private answer key** you
+never see.
+
 ## Quickstart (≤ 10 min)
 
-Requires Node 18+ (built-in `crypto`, `zlib`). First, **ask the maintainer for a `CHALLENGE`** — a single-use nonce
-they issue to you personally (e.g. `a1b2c3…`). Your attestation is bound to it, so it can't be pre-manufactured or
-replayed. From this directory:
+Requires Node 18+ (built-in `crypto`, `zlib`). The maintainer sends you **(1)** a single-use challenge **nonce**, and
+**(2)** a `challenge/` directory (`directory.json`, `roots.json`, `challenge.json`, and `K` `bundle-*.json`). From this
+directory:
 
 ```sh
-npm install                              # installs @ainra/sdk (see the note below for the published package)
-node verify-kit.mjs --challenge <NONCE>  # verifies the bundled sample-artifacts/ and writes verifier-attestation.json
+npm install                                                          # installs @ainra/sdk (see the note below)
+node verify-kit.mjs --challenge <NONCE> --challenge-dir /path/to/challenge
 ```
 
-You'll see three checks, all of which must pass:
+You'll see the three sample checks, then the execution binding — verdicts on the fresh bundles:
 
 ```
 ✓ genuine passport (root dark) → valid
 ✓ revoked passport             → invalid:revoked
 ✓ forged all-clear status      → invalid:stale_status
-✓ wrote a signed attestation → verifier-attestation.json
+execution binding — verifying 8 FRESH challenge bundles root-dark (nonce …):
+  · bundle-0.json → valid
+  · bundle-1.json → invalid:revoked
+  …
+✓ wrote a signed EXECUTION-BOUND attestation → verifier-attestation.json
 ```
 
-Then send us `verifier-attestation.json`. We (or anyone) confirm it **without trusting you** — the maintainer re-runs
-the check with the *same* nonce they issued:
+Then send us `verifier-attestation.json`. We confirm it **without trusting you** — the decisive gate is that your
+fresh-bundle verdicts match the private answer key:
 
 ```sh
-node check-attestation.mjs --attestation verifier-attestation.json --challenge <NONCE>
-# → ATTESTATION VALID — genuine external-verifier result
+node check-attestation.mjs --attestation verifier-attestation.json --challenge <NONCE> --secret <answer-key.json>
+# → ATTESTATION VALID (EXECUTION-BOUND) — correctly verified K fresh bundles whose answers we never published
 ```
 
-**What the attestation proves — and doesn't.** A valid attestation proves a party holding key *K* ran the real
-`@ainra/sdk` against the *complete* canonical corpus and answered the nonce we issued: **execution + freshness +
-tamper-evidence**. A fresh keypair is free, so the cryptography alone is *not* Sybil-proof — it can't prove you're a
-distinct person. Operator distinctness is established **out of band**: we issue **one** challenge per separately-vetted
-party. See **SECURITY.md** and `GENESIS-CHECKLIST.md §3`.
+`--secret` is **required** — without the answer key, execution cannot be checked and the collector refuses to certify
+(fail closed). Running `verify-kit.mjs` **without** `--challenge-dir` produces a *conformance-only* attestation that is
+explicitly marked non-counting.
+
+**What a pass proves — and doesn't.** It proves a party holding key *K*, answering the challenge we issued, **correctly
+verified `K` fresh bundles whose answers we never published** — i.e. they **actually performed AINRA verification**
+(not merely asserted public constants). It does **not** prove they used our exact `@ainra/sdk` *binary* vs. a
+conformant reimplementation, and a fresh keypair is free so it is **not** Sybil-proof. Operator distinctness is
+established **out of band**: we mint **one** challenge per separately-vetted party. See **SECURITY.md** and
+`GENESIS-CHECKLIST.md §3`.
 
 ### Installing the published SDK
 The bundled `package.json` uses a local path dependency so the kit runs inside this repo. As a stranger, replace it
@@ -51,7 +73,7 @@ with the published package and reinstall:
 "dependencies": { "@ainra/sdk": "^0.1.0" }
 ```
 
-## What the three checks mean
+## What the three sample checks mean
 - **Genuine, root dark** — the verifier holds only the signed **directory** + the two **root public keys** (never a
   root secret). It verifies a real passport → `valid`. This is the §29 "outsider verifies from public artifacts".
 - **Revoked** — the same passport after revocation → `invalid` with reason `revoked` (the status list, authenticated
@@ -60,23 +82,28 @@ with the published package and reinstall:
   fresh, *without* re-signing. A conformant verifier rejects it → `invalid:stale_status`. If your SDK returned
   `valid` here, that would be a revocation bypass — the kit fails loudly and writes no attestation.
 
-## Running against a LIVE registrar (the real external run)
-Point the kit at any directory holding a registrar's published `directory.json` + `roots.json` + a `bundle-*.json`
-(e.g. output of `make genesis-local`, or fetched from a registrar's `/present` + a mirror's directory), and pass the
-current time:
+These are a **demonstration** of the core promise; the fresh challenge corpus is what makes your attestation *evidence*.
+
+## For maintainers: minting a challenge
+`mint-challenge.mjs` is the maintainer's side (it needs a running `registrar-box`; `tools/verifier-kit-smoke.sh` shows
+the full flow):
 
 ```sh
-node verify-kit.mjs --artifacts /path/to/artifacts --now $(date +%s) --challenge <NONCE> --out my-attestation.json
+node mint-challenge.mjs --registrar <url> --now <unix> --count 8 --out ./challenge --secret ./answer-key.json --nonce <NONCE>
 ```
 
+It issues `K` fresh lineages, revokes a **secret** random subset, records the ground-truth verdicts (with the real SDK)
+into `answer-key.json` (**keep private**), and writes the public `./challenge` you hand the verifier. Use a `K` large
+enough that `2^-K` is negligible for your bar (8 → 1/256; 16 → 1/65536).
+
 ## The attestation (what we collect)
-`verifier-attestation.json` is a JSON `{body, sig_ed25519_b64}` where `body` records: the **challenge** we issued you,
-your **Ed25519 public key**, the **SHA-256 of every artifact** you verified, your **verdicts**, the **SDK version**,
-and a **timestamp**. The Ed25519 signature covers the **whole body** (recursive canonical JSON — nested objects
-included). `check-attestation.mjs` verifies that signature under your key, confirms the challenge is the exact nonce we
-issued, requires **every** artifact in the canonical set to be present and byte-matching (an empty or partial corpus
-fails closed), rejects any extra artifact, and confirms the verdicts. Three separately-vetted strangers producing
-three challenge-bound attestations from three machines satisfies the §29 "≥3 external verifiers" bar — with no trust in
-any of them (distinctness comes from the one-challenge-per-party issuance, not the crypto).
+`verifier-attestation.json` is `{body, sig_ed25519_b64}` whose `body` records: the **challenge** nonce, an
+`execution_bound` flag, your **Ed25519 public key**, the SHA-256 of the sample corpus, your sample **verdicts**, and —
+the evidence — the **hashes of the fresh challenge corpus** and your **per-bundle verdicts** on it. The signature
+covers the **whole body** (recursive canonical JSON — nested objects included). `check-attestation.mjs` verifies the
+signature, confirms the challenge matches the answer key, requires the sample corpus complete + byte-matching, and —
+decisively — requires the challenge corpus byte-identical to what we minted **and every fresh-bundle verdict to equal
+the private answer key**. `K` separately-vetted strangers producing `K` execution-bound attestations from `K` machines
+satisfies the §29 "≥3 external verifiers" bar — with no trust in any of them, and no way to fake having verified.
 
 See **SECURITY.md** for how to run this isolated.

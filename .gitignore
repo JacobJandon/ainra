@@ -40,6 +40,10 @@ kits/**/*.local
 **/verifier-attestation*.json
 **/soak-report*.json
 **/ceremony-transcript*.json
+# verifier challenge minting: the private ANSWER KEY must never be committed; challenge corpora are generated
+**/challenge-secret*.json
+**/answer-key*.json
+kits/verifier/challenge/
 
 # built TypeScript outputs (all dist/ are tsc build products)
 **/dist/

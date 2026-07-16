@@ -12,6 +12,15 @@
 // signature, recomputes the artifact hashes against the canonical published set, and confirms the verdicts.
 //
 //   node verify-kit.mjs --artifacts <dir> [--now <unix>] [--out verifier-attestation.json]
+//                       [--challenge-dir <dir>]   ← REQUIRED to count as an external verifier (see below)
+//
+// EXECUTION BINDING (--challenge-dir): the checks above run against a STATIC corpus whose correct verdicts are public,
+// so their presence in an attestation proves agreement, NOT that you ran anything. To make the attestation actually
+// require verification, the maintainer hands you a FRESH challenge corpus (mint-challenge.mjs): K bundles whose
+// revocation state is a secret coin flip. This kit verifies each one root-dark and records your verdicts; you can
+// only report the correct set BY VERIFYING. The maintainer checks them against a private answer key (a forger who
+// never ran a verifier must guess all K → 2^-K). Without --challenge-dir the attestation is conformance-only and does
+// NOT count as an external verifier.
 //
 // The kit imports nothing but @ainra/sdk (the public Verifier) and Node built-ins. No internal crates, no telemetry.
 
@@ -31,6 +40,7 @@ const outPath = arg("out", "verifier-attestation.json");
 // attestation un-pre-manufacturable and non-replayable. Distinctness of *operators* is still out of band (the
 // maintainer issues one challenge per separately-vetted party) — the crypto proves execution + freshness, not Sybil.
 const challenge = arg("challenge", "");
+const challengeDir = arg("challenge-dir", ""); // a FRESH maintainer-minted corpus (mint-challenge.mjs); binds execution
 const read = (f) => readFileSync(`${dir}/${f}`, "utf8");
 const readJson = (f) => JSON.parse(read(f));
 const sha256 = (s) => createHash("sha256").update(s).digest("hex");
@@ -97,12 +107,43 @@ if (!allPass) {
   process.exit(1);
 }
 
+// ── EXECUTION BINDING — verify the maintainer's FRESH challenge corpus (the part a non-executor cannot fake) ────────
+let challengeBlock = null; // { nonce, now, corpus_sha256, verdicts } when --challenge-dir is given
+if (challengeDir) {
+  const cread = (f) => readFileSync(`${challengeDir}/${f}`, "utf8");
+  const cjson = (f) => JSON.parse(cread(f));
+  const chal = cjson("challenge.json");
+  if (challenge && chal.nonce !== challenge) {
+    console.error(`\nFAIL: --challenge ${challenge} does not match the challenge corpus nonce ${chal.nonce}`);
+    process.exit(2);
+  }
+  const croots = cjson("roots.json");
+  const cverifier = Verifier.fromDirectoryB64(cjson("directory.json"), croots.root_ed25519, croots.root_slh);
+  if (!cverifier) { console.error("\nFAIL: challenge directory not trust-anchored by its roots"); process.exit(2); }
+  const cnow = Number(chal.now);
+  console.log(`\nexecution binding — verifying ${chal.bundles.length} FRESH challenge bundles root-dark (nonce ${chal.nonce}):`);
+  const cverdicts = chal.bundles.map((f) => {
+    const v = asStr(cverifier.verify(cjson(f), cnow));
+    console.log(`  · ${f} → ${v}`);
+    return v;
+  });
+  // hash the WHOLE challenge corpus we verified (binds us to the maintainer's exact fresh bundles, not our own).
+  const cfiles = ["directory.json", "roots.json", "challenge.json", ...chal.bundles];
+  const ccorpus = Object.fromEntries(cfiles.map((f) => [f, sha256(cread(f))]));
+  challengeBlock = { nonce: chal.nonce, now: cnow, corpus_sha256: ccorpus, verdicts: cverdicts };
+} else {
+  console.log("\n⚠ no --challenge-dir given: this attestation is CONFORMANCE-ONLY and will NOT count as an external");
+  console.log("  verifier (the static verdicts above are public and could be asserted without running anything).");
+}
+
 // Emit a signed attestation. The verifier's OWN fresh Ed25519 key signs the body (standard node:crypto — no bespoke
-// crypto). We collect it later without trusting their word: verify the signature + recompute the artifact hashes.
+// crypto). We collect it later without trusting their word: verify the signature, recompute the corpus hashes, and —
+// decisively — check the challenge verdicts against a private answer key the verifier never saw.
 const { publicKey, privateKey } = generateKeyPairSync("ed25519");
 const body = {
   kind: "ainra/verifier-attestation/v1",
-  challenge, // the maintainer-issued nonce — the collector accepts only an attestation carrying a challenge it issued
+  challenge: challengeBlock ? challengeBlock.nonce : challenge, // the challenge this attestation answers
+  execution_bound: challengeBlock !== null, // true only when a fresh challenge corpus was verified
   verifier_pubkey_spki_b64: publicKey.export({ type: "spki", format: "der" }).toString("base64"),
   sdk: (() => {
     try {
@@ -119,11 +160,15 @@ const body = {
     "bundle-revoked.json": sha256(read("bundle-revoked.json")),
   },
   verdicts: { valid: asStr(vValid), revoked: asStr(vRevoked), forged: asStr(vForged) },
+  // the execution-bound evidence: our verdicts on the maintainer's fresh, unpublished challenge corpus.
+  challenge_now: challengeBlock ? challengeBlock.now : null,
+  challenge_corpus_sha256: challengeBlock ? challengeBlock.corpus_sha256 : null,
+  challenge_verdicts: challengeBlock ? challengeBlock.verdicts : null,
 };
 const sig = edSign(null, Buffer.from(canonicalJSON(body)), privateKey).toString("base64");
 const attestation = { body, sig_ed25519_b64: sig };
 writeFileSync(outPath, JSON.stringify(attestation, null, 2) + "\n");
 
-console.log(`\n✓ all three verdicts conformant — wrote a signed attestation → ${outPath}`);
+console.log(`\n✓ wrote a signed ${challengeBlock ? "EXECUTION-BOUND" : "conformance-only"} attestation → ${outPath}`);
 console.log("  Send it to the AINRA maintainers; they verify it without trusting you:");
-console.log("    node check-attestation.mjs --attestation " + outPath + " --canonical " + dir);
+console.log("    node check-attestation.mjs --attestation " + outPath + " --challenge " + (challengeBlock ? challengeBlock.nonce : "<nonce>") + " --secret <the challenge answer key> --canonical " + dir);

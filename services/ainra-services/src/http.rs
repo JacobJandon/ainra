@@ -32,7 +32,10 @@ pub fn http_request(
     stream.flush()?;
     let mut raw = String::new();
     stream.read_to_string(&mut raw)?;
-    Ok(raw.splitn(2, "\r\n\r\n").nth(1).unwrap_or("").to_string())
+    Ok(raw
+        .split_once("\r\n\r\n")
+        .map(|(_, b)| b.to_string())
+        .unwrap_or_default())
 }
 pub fn http_get(addr: &str, path: &str) -> std::io::Result<String> {
     http_request(addr, "GET", path, None)

@@ -16,10 +16,10 @@ code cannot fake — M8 delivers the machinery + the local proof and leaves the 
 | Logged-before-valid (unlogged credential rejected) | ✓ | every passport carries a real RFC 6962 inclusion proof to a delegate-signed checkpoint; `not_logged` on tamper (vectors + `make demo`) |
 | Offline / external verify (root dark) | ✓ | `make genesis-local` stage 3 — the 5-line SDK verifies holding only the directory + roots; `ainra-verify` is air-gappable (F9) |
 | Revocation fails closed (< 60 s freshness class) | ✓ (local) / external (p95×3-region×14d) | `make genesis-local` stage 4 revoke → INVALID + forged all-clear → INVALID; the *p95 < 60 s across three regions for 14 days* soak is the external column |
-| **Injected log fork caught by witnesses, not us** | ✓ (in-process) / external (independent operators) | `make genesis-local` stage 5 / `make drill` — a witness QUORUM (k-of-N) with **real independent keys** refuses the fork; it cannot reach quorum (D-021). The witnesses run **in one process** here; independently-*operated* witnesses on separate infra (the witness-network transport) is the external column |
-| **Outsider forks the root from public artifacts alone** | ✓ (machinery) / external (3rd-party infra) | `make repro` rebuilds every artifact byte-for-byte from source; `make verify-mirror` + any mirror verifies with the root dark. An *independent* party doing this on *their* infra is the external column |
-| **≥3 external verifiers** | external / pending | the SDK + `ainra-verify` + the P0 differential are three *independent implementations*; three *independent operators* running them is the external column (kill-gate K4) |
-| Recorded in-person ceremony + 14-day soak | external / pending | `make genesis-local` is the rehearsal + transcript; the recorded ceremony + soak are scheduled real-world events |
+| **Injected log fork caught by witnesses, not us** | ✓ (in-proc + networked) / external (independent operators) | `make drill` (in-proc) + **`make drill-networked`** (N `witnessd` over HTTP, distinct keys) refuse the fork; k stays the relying party's (D-021). Witnesses run by *separate operators* on separate infra is the external column — machinery: `kits/witness/` |
+| **Outsider forks the root from public artifacts alone** | ✓ (machinery) / external (3rd-party infra) | `make repro` rebuilds every artifact byte-for-byte; `make verify-mirror` byte-verifies any mirror root-dark. An *independent* party rebuilding on *their* infra is the external column (GENESIS-CHECKLIST §0) |
+| **≥3 external verifiers** | ⏳ external (machinery ready) | **`kits/verifier/`** lets any stranger verify root-dark + reject revoked/forged with only `@ainra/sdk` and emit a **signed attestation** we collect without trusting them (`check-attestation.mjs`). Bar = 3 attestations, distinct keys, 3 machines (kill-gate K4; GENESIS-CHECKLIST §3) |
+| Recorded in-person ceremony + 14-day soak | ⏳ external (machinery ready) | ceremony: **`kits/ceremony/RUNBOOK.md`** + `make ceremony-dry-run` (witness-reproducible transcript). Soak: **`kits/soak/`** + `make soak-smoke` (measured p95, signed report, SLO fail-closed). The recorded ceremony + the 14-day/3-region run are the scheduled events (GENESIS-CHECKLIST §2, §5) |
 
 ## Non-functional (N1–N12, MTS §4) — laptop-checkable subset
 
@@ -37,10 +37,18 @@ code cannot fake — M8 delivers the machinery + the local proof and leaves the 
 ## How to reproduce the local proof
 
 ```
-make genesis-local     # boots the whole world; writes genesis-out/transcript.json + artifact hashes
-make repro             # proves the published artifacts rebuild byte-for-byte from source
+make genesis-local        # boots the whole world; writes genesis-out/transcript.json + artifact hashes
+make repro                # proves the published artifacts rebuild byte-for-byte from source
 make verify-mirror MIRROR=<dir>   # any third party byte-verifies a mirror, root dark
+# M9 machinery for the external events (each proven at smoke scale; see GENESIS-CHECKLIST.md for the real runbook):
+make verifier-kit-smoke   # kits/verifier — external verifier attestation
+make ceremony-dry-run     # kits/ceremony — witness-reproducible ceremony rehearsal
+make soak-smoke           # kits/soak — measured revocation p95, signed report
+make drill-networked      # kits/witness — quorum over HTTP, fork refused
 ```
+
+The ordered runbook that turns these into "prototype DONE" — the recorded ceremony, ≥3 external verifiers, the
+14-day/3-region soak — is **[GENESIS-CHECKLIST.md](../GENESIS-CHECKLIST.md)**, with the artifact that proves each row.
 
 The transcript (`genesis-out/transcript.json`) records the ceremony roots, the two registrars, every passport's
 verdict before/after revocation, the forged-status rejection, the witness-quorum fork-catch, and a SHA-256 of every

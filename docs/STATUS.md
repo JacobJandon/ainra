@@ -1,5 +1,5 @@
 <!-- SPDX-License-Identifier: Apache-2.0 OR MIT -->
-# STATUS — AINRA reference implementation (M1 · M2 · M3 · M4 · M5 · M6 · M7 · M8 done — the full ladder)
+# STATUS — AINRA reference implementation (M1–M8 ladder done · M9 = committed + CI + stranger-runnable kits)
 
 Honest state of the tree. If it says green, `make` proves it; if it says M6+, the code does not pretend otherwise.
 Prime directive: **nothing fake, ever** (brief §0). Toolchain: Rust 1.96, Node 26, `ml-dsa 0.0.4` / `slh-dsa 0.0.3`
@@ -11,7 +11,7 @@ A stranger clones, runs `make test && make vectors && make diff`, all green in <
 
 | Target | What it does | State |
 |---|---|---|
-| `make test` | `cargo test --release --workspace` — **99 tests** (core unit incl. directory + property + frost + ceremony + registrar + service) | ✅ green |
+| `make test` | `cargo test --release --workspace` — **104 tests** (core unit incl. directory + property + frost + ceremony + registrar + service + networked-quorum regression) | ✅ green |
 | `make vectors` | regenerate **660 passport + 24 delegate-revocation + 17 delta + 9 directory** CC0 vectors + self-check | ✅ green |
 | `make vectors-check` | replay ALL three committed corpora back through ainra-core | ✅ green |
 | `make diff` | differential (below) — verdicts **684/684**, canon 10/10 + 4/4, delta 17/17, **directory 9/9** | ✅ green |
@@ -26,6 +26,10 @@ A stranger clones, runs `make test && make vectors && make diff`, all green in <
 | `make mirror` / `make verify-mirror` | **M7** byte-verify a mirror against the manifest (fail-closed on tamper/missing/extra/symlink/subdir-manifest); 2 mirrors proven | ✅ green |
 | `make check-freeze` | **M7** the normative docs (Standard · MTS · DESIGN) are frozen; drift fails | ✅ green |
 | `make genesis-local` | **M8** the whole stack on one laptop (§29/N9): dual root → 2 distinct registrar classes → issue+log → 5-line verify root-dark → revoke/forge fail closed → witness-quorum fork caught → transcript | ✅ green |
+| `make verifier-kit-smoke` | **M9** a stranger verifies root-dark + rejects revoked/forged with only `@ainra/sdk` → signed attestation, collected without trusting them | ✅ green |
+| `make ceremony-dry-run` | **M9** N custodians rehearse the commit-reveal choreography; real dual-root ceremony (TEST-ROOT); a witness recomputes the transcript hash; a skipped step fails loud | ✅ green |
+| `make soak-smoke` | **M9** revocation-propagation instrument: 3 vantage points, p50/95/99 into a hash-chained log, signed report, SLO computed + fail-closed | ✅ green |
+| `make drill-networked` | **M9** the witness quorum over HTTP — N independently-keyed `witnessd` processes; injected fork refused; k stays the relying party's (D-021 transport) | ✅ green |
 | `node tools/s7-lint.mjs` / `license-check.mjs` | neutrality + license gates | ✅ green, 0 hits |
 
 ## What is REAL and green
@@ -187,6 +191,21 @@ keys** (now id-derived, cryptographically distinct); hardcoded ports + swallowed
 the run silently (now a pre-flight port check + post-launch `kill -0` liveness); and the DoD overclaimed the
 in-process witnesses (now marked ✓-in-process / external-operators, per D-021). See D-023. **This completes the MTS
 §27 milestone ladder M1–M8.**
+
+**M9 — committed, public-ready, executable by strangers.** The tree is now a real **git repository scoped to the
+project** (not `$HOME`), with a strict `.gitignore` (no secrets — the TEST registrar reload-seeds are excluded — no
+`target/`, `node_modules/`, `dist/`, run-outputs), dual-license (Apache-2.0 OR MIT) + **CC0** vectors, and 15
+milestone-mapped commits. **Acceptance proven:** a fresh `git clone` runs `make test && make diff && make
+genesis-local` green. **CI** (`.github/workflows/ci.yml`) runs every gate on push — fmt/clippy/test(release)/vectors,
+the 684/684 differential, wedge, **integration** (drill/testbed/genesis-local), **reproducibility** (repro +
+verify-mirror tamper), check-freeze, fuzz, S7/license/N7. Four **kits** let outsiders run the pending real-world DoD
+events without us: **`kits/verifier/`** (verify root-dark + reject revoked/forged with only `@ainra/sdk` → a signed
+attestation we collect without trusting the submitter), **`kits/ceremony/`** (the 5-of-9 RUNBOOK + a witness-
+reproducible dry-run that fails loud on a skipped step), **`kits/soak/`** (revocation-propagation measured into a
+signed, hash-chained, tamper-evident report — SLO computed, never asserted, fail-closed), and **`kits/witness/`** (the
+quorum over HTTP — D-021's transport, `witnessd` now with distinct per-address keys). N7 preserved: any traction
+metric is opt-in/count-only in the kit layer, never in `ainra-core` or the SDK. The ordered "how we declare done"
+runbook is `GENESIS-CHECKLIST.md`; the honest ✓-vs-⏳ table is `docs/DOD.md`. See D-024.
 
 **M4 adversarial review** (workflow, 5 dimensions): the HIGH/MEDIUM sdk-ts parity gaps flagged were **already fixed
 before the verify pass** (a re-read refuted them) — malformed revoked-delegate fingerprints now decode+length-check

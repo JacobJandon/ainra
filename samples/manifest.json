@@ -1,0 +1,38 @@
+{
+  "rendered": [
+    {
+      "kind": "delegated",
+      "sides": {
+        "cover": "passport-delegated-cover.svg",
+        "data": "passport-delegated-data.svg",
+        "stamps": "passport-delegated-stamps.svg"
+      },
+      "verdict": {
+        "verdict": "valid"
+      }
+    },
+    {
+      "kind": "revoked",
+      "sides": {
+        "cover": "passport-revoked-cover.svg",
+        "data": "passport-revoked-data.svg",
+        "stamps": "passport-revoked-stamps.svg"
+      },
+      "verdict": {
+        "reason": "revoked",
+        "verdict": "invalid"
+      }
+    },
+    {
+      "kind": "valid",
+      "sides": {
+        "cover": "passport-valid-cover.svg",
+        "data": "passport-valid-data.svg",
+        "stamps": "passport-valid-stamps.svg"
+      },
+      "verdict": {
+        "verdict": "valid"
+      }
+    }
+  ]
+}

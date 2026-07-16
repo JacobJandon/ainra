@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AINRA — the agent passport</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=Inter:wght@400;500;600&family=B612+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --green:#1A6B4E;--green-br:#57C08F;--ink:#0B1220;--ink2:#111B30;--paper:#F5F6F3;--card:#FFFFFF;
+  --line:#E2E5DF;--muted:#5A6372;--cool:#98A1B3;
+  --display:'Bricolage Grotesque','Inter',sans-serif;--body:'Inter',system-ui,sans-serif;--mono:'B612 Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);-webkit-font-smoothing:antialiased}
+.wrap{max-width:1240px;margin:0 auto;padding:0 32px}
+a{color:inherit}
+
+/* hero */
+.hero{background:var(--ink);color:#E7EAF0;position:relative;overflow:hidden}
+.hero::before{content:"";position:absolute;inset:0;opacity:.5;pointer-events:none;
+  background:repeating-radial-gradient(circle at 112% -10%,rgba(87,192,143,.10) 0 2px,transparent 2px 13px),
+             repeating-radial-gradient(circle at -12% 120%,rgba(87,192,143,.07) 0 2px,transparent 2px 13px)}
+.hero .wrap{position:relative;padding:30px 32px 68px}
+.top{display:flex;align-items:center;gap:12px;font-family:var(--mono);font-size:11px;letter-spacing:.16em;color:var(--cool)}
+.top .sig{width:26px;height:26px;flex:none}
+.top b{color:#E7EAF0;font-weight:700}
+.top a{margin-left:auto;color:var(--green-br);text-decoration:none;font-size:10.5px}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.24em;color:var(--green-br);text-transform:uppercase;margin:56px 0 18px}
+h1{font-family:var(--display);font-weight:800;letter-spacing:-.03em;line-height:1.02;margin:0;
+  font-size:clamp(2.4rem,6.4vw,4.6rem);max-width:16ch}
+h1 em{font-style:normal;color:var(--green-br)}
+.sub{margin:24px 0 0;font-size:clamp(1.05rem,2vw,1.35rem);line-height:1.5;color:#B9C1CF;max-width:60ch}
+.cta{margin-top:34px;display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+.btn{font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:.08em;border-radius:9px;padding:13px 22px;text-decoration:none;transition:.15s}
+.btn.p{background:var(--green-br);color:var(--ink)}
+.btn.p:hover{background:#7fd3aa}
+.btn.s{border:1px solid rgba(255,255,255,.22);color:#E7EAF0}
+.btn.s:hover{border-color:rgba(255,255,255,.5)}
+.tag{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:var(--cool)}
+
+/* the book */
+.book{background:var(--paper);padding:74px 0 40px}
+.lede{max-width:70ch;margin:0 0 6px}
+.lede .k{font-family:var(--mono);font-size:11px;letter-spacing:.16em;color:var(--green);text-transform:uppercase}
+.lede h2{font-family:var(--display);font-weight:700;letter-spacing:-.025em;font-size:clamp(1.7rem,3.4vw,2.5rem);margin:10px 0 12px;line-height:1.08}
+.lede p{color:var(--muted);font-size:16px;line-height:1.62;margin:0}
+.lede p code{font-family:var(--mono);font-size:.86em;background:var(--card);border:1px solid var(--line);border-radius:4px;padding:1px 5px}
+.spread{display:flex;flex-direction:column;gap:40px;margin-top:44px}
+.page{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:32px;align-items:center}
+.page:nth-child(even){grid-template-columns:260px minmax(0,1fr)}
+.page:nth-child(even) .frame{order:2}
+.page:nth-child(even) .cap{order:1}
+@media(max-width:860px){.page,.page:nth-child(even){grid-template-columns:1fr}.page:nth-child(even) .frame,.page:nth-child(even) .cap{order:0}}
+.page .frame{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;
+  box-shadow:0 1px 2px rgba(11,18,32,.05),0 30px 60px -34px rgba(11,18,32,.30);transition:transform .3s,box-shadow .3s}
+.page .frame:hover{transform:translateY(-4px);box-shadow:0 1px 2px rgba(11,18,32,.05),0 40px 70px -34px rgba(26,107,78,.32)}
+.page img{width:100%;height:auto;display:block;border-radius:9px}
+.page .cap{display:flex;flex-direction:column;gap:8px}
+.page .cap .n{font-family:var(--mono);font-size:10.5px;letter-spacing:.18em;color:var(--green)}
+.page .cap b{font-family:var(--display);font-size:22px;font-weight:700;letter-spacing:-.02em;color:var(--ink)}
+.page .cap span{font-size:14px;color:var(--muted);line-height:1.55}
+.page .cap code{font-family:var(--mono);font-size:.84em;background:var(--paper);border:1px solid var(--line);border-radius:4px;padding:1px 5px;color:var(--ink)}
+.badge{margin-top:34px;display:inline-flex;align-items:center;gap:10px;font-family:var(--mono);font-size:11px;letter-spacing:.06em;
+  color:var(--green);border:1.5px solid var(--green);border-radius:8px;padding:9px 15px}
+.badge i{width:7px;height:7px;border-radius:50%;background:var(--green);flex:none}
+
+/* different by design */
+.diff{padding:20px 0 96px;background:var(--paper)}
+.diff h3{font-family:var(--display);font-weight:700;letter-spacing:-.02em;font-size:clamp(1.5rem,3vw,2.1rem);margin:0 0 6px}
+.diff .note{color:var(--muted);font-size:15px;max-width:62ch;margin:0 0 34px;line-height:1.6}
+.cols{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+@media(max-width:860px){.cols{grid-template-columns:1fr}}
+.col{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:26px}
+.col .k{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--green);text-transform:uppercase;display:block;margin-bottom:12px}
+.col h4{font-size:18px;font-weight:700;letter-spacing:-.015em;margin:0 0 8px}
+.col p{font-size:14.5px;color:var(--muted);line-height:1.6;margin:0}
+.col .vs{margin-top:14px;font-family:var(--mono);font-size:11px;letter-spacing:.04em;color:var(--muted);border-top:1px dashed var(--line);padding-top:12px}
+.col .vs b{color:var(--ink)}
+footer{background:var(--ink);color:var(--cool);font-family:var(--mono);font-size:11px;letter-spacing:.06em;padding:22px 0}
+footer .wrap{display:flex;gap:16px;flex-wrap:wrap;align-items:center}
+footer a{color:var(--green-br);text-decoration:none}
+footer .sp{margin-left:auto}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <g id="sig">
+    <path d="M 98.4 33.5 A 48 48 0 1 0 78.5 13.6" fill="none" stroke="#E7EAF0" stroke-width="3" stroke-linecap="round"/>
+    <path d="M 80.6 11.5 L 83.4 18.5 L 76.4 15.7 Z" fill="#E7EAF0"/>
+    <circle cx="56" cy="56" r="36" stroke="#E7EAF0" stroke-width="1.2" fill="none"/>
+    <circle cx="56" cy="56" r="26" stroke="#E7EAF0" stroke-width="1.6" fill="none"/>
+    <ellipse cx="56" cy="56" rx="11" ry="26" stroke="#E7EAF0" stroke-width="1" fill="none"/>
+    <line x1="30" y1="56" x2="82" y2="56" stroke="#E7EAF0" stroke-width="1.1"/>
+    <path d="M56 30 a26 26 0 0 1 26 26" stroke="#57C08F" stroke-width="3" stroke-linecap="round" fill="none"/>
+    <circle cx="56" cy="56" r="2.4" fill="#E7EAF0"/>
+  </g>
+</defs></svg>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="top">
+      <span class="sig" aria-hidden="true"><svg viewBox="0 0 112 112"><use href="#sig"/></svg></span>
+      <b>AINRA</b><span>AGENT IDENTITY &amp; NAMING REGISTRY AUTHORITY</span>
+      <a href="/landing">The standard ↗</a>
+    </div>
+    <div class="eyebrow">The agent passport</div>
+    <h1>One passport every AI agent can carry. <em>Verifiable by anyone. Owned by no one.</em></h1>
+    <p class="sub">A real, post-quantum-signed, transparency-logged credential — issued by a registrar, narrowed
+      through delegation, revocable in seconds. Below is a genuine specimen: three faces of one book, every value
+      cryptographically real. Verify it yourself, offline, in a browser.</p>
+    <div class="cta">
+      <a class="btn p" href="#book">See the book ↓</a>
+      <a class="btn s" href="/">Verify it live →</a>
+      <span class="tag">SPECIMEN · registrar is a placeholder</span>
+    </div>
+  </div>
+</header>
+
+<section class="book" id="book">
+  <div class="wrap">
+    <div class="lede">
+      <span class="k">One specimen · three faces</span>
+      <h2>An agent identity you can hold in your hand.</h2>
+      <p>This is <code>ainra:registrar-07:acme:support-bot@1.0.0</code> — a support agent that received its
+        authority through a two-hop delegation chain (<code>owner → support-desk → support-bot</code>), each hop
+        signed by <em>both</em> parties and written to the transparency log. Nothing here is mocked: the keys are
+        real Ed25519&nbsp;+&nbsp;ML-DSA-65, the inclusion proofs are real RFC&nbsp;6962, the verdict is computed by
+        the real verifier.</p>
+    </div>
+
+    <div class="spread">
+      <div class="page">
+        <div class="frame"><img src="passport-delegated-cover.svg" alt="Passport cover — AINRA agent identity passport, specimen"></div>
+        <div class="cap"><span class="n">FACE 1 · COVER</span><b>The book.</b><span>Sigil, wordmark, and the document number
+          <code>AP-09A-DCD</code> — the outward face of the credential.</span></div>
+      </div>
+      <div class="page">
+        <div class="frame"><img src="passport-delegated-data.svg" alt="Passport data page — lineage, operator, keys, MRZ, verdict"></div>
+        <div class="cap"><span class="n">FACE 2 · DATA PAGE</span><b>Who it is, what it may do.</b><span>Lineage, operator,
+          registrar, assurance, hybrid key fingerprint — and the machine-readable zone a scanner reads in one pass.</span></div>
+      </div>
+      <div class="page">
+        <div class="frame"><img src="passport-delegated-stamps.svg" alt="Passport endorsements — issuance, log inclusion, dual-signed delegation hops"></div>
+        <div class="cap"><span class="n">FACE 3 · ENDORSEMENTS &amp; LOG</span><b>Every event, anchored.</b><span>Issuance,
+          transparency-log inclusion, and each dual-signed delegation hop — stamped, signed, and rooted at the checkpoint.</span></div>
+      </div>
+    </div>
+
+    <div class="badge"><i></i> VERDICT: VALID · computed live by the reference verifier · re-verifiable by anyone</div>
+  </div>
+</section>
+
+<section class="diff">
+  <div class="wrap">
+    <h3>Different by design.</h3>
+    <p class="note">The field is crowded with agent-identity — enterprise machine-identity retrofits,
+      chain-coupled payment tokens, and CA-style bot signatures. AINRA is the one piece none of them is: a
+      <b>neutral root</b>. It records who an agent is and whether it's valid — never money, never a score.</p>
+    <div class="cols">
+      <div class="col">
+        <span class="k">Neutral</span>
+        <h4>Facts, never scores.</h4>
+        <p>The root asserts identity, authority class, and validity. It never rates, ranks, or prices anyone —
+          reputation is left to the market, on top.</p>
+        <div class="vs">vs. reputation-scored KYA &amp; chain-native tokens: <b>no bureau, no coin, no lock-in.</b></div>
+      </div>
+      <div class="col">
+        <span class="k">Durable</span>
+        <h4>Post-quantum from day one.</h4>
+        <p>Every credential is hybrid-signed Ed25519&nbsp;+&nbsp;ML-DSA-65; the root is hash-based SLH-DSA. When
+          classical curves fall, these passports still verify.</p>
+        <div class="vs">vs. classical-only PKI &amp; bot-auth: <b>built for the next decade, not the last one.</b></div>
+      </div>
+      <div class="col">
+        <span class="k">Yours</span>
+        <h4>Free, offline, forkable.</h4>
+        <p>Verification is a small library with zero network calls and zero telemetry. The rules and the code are
+          open; if we ever misbehave, you can fork the root from public artifacts.</p>
+        <div class="vs">vs. metered identity SaaS: <b>no bill to verify, no permission to leave.</b></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>AINRA — AGENT IDENTITY &amp; NAMING REGISTRY AUTHORITY</span>
+    <span>· SPECIMEN DATA · registrar is a placeholder</span>
+    <span class="sp"><a href="/">Live verify →</a></span>
+  </div>
+</footer>
+
+</body>
+</html>

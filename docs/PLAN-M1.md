@@ -1,0 +1,18 @@
+# PLAN — Milestone M1 (`ainra-core` skeleton, schemas, vectors v1, CI/fuzz scaffolding)
+**Spec:** MTS §27 (M1 wk1–2), brief §4. Order of implementation = brief §4. Stop at M1 DoD; do not start M2 without confirmation.
+
+1. **Repo + toolchain** — exact monorepo layout (done); Cargo workspace; Rust 1.96 pinned; dual Apache-2.0/MIT headers; vectors CC0; `make test && make vectors && make diff` is the acceptance bar.
+2. **`ainra-core` invariants** — `#![forbid(unsafe_code)]`, no I/O, no network deps, `thiserror` error taxonomy, no `unwrap` outside tests. Every public fn carries a `// Spec: MTS §x` reference.
+3. **Name grammar** — `ainra:{registrar}:{operator}:{lineage}@{semver}` + `did:ainra:...`. Lowercase `[a-z0-9-]`, labels 1–63, NFC-normalize then reject non-ASCII (homoglyph defense), semver 1–3 fields. Property: `parse ∘ format = identity`. Reasons: `name_malformed`.
+4. **Verdict + closed reason enum** — `VALID | INVALID{reason}` with the exact 15 reason strings from brief §2; these strings are referenced by the vectors, so they are frozen.
+5. **Schemas + serde** — Passport (SD-JWT-VC claim set), DelegationLink, Mandate, TokenStatusList, Checkpoint, InclusionProof, Directory. Forbidden-field rejection at parse (any PII-shaped / `score` / `price` field → `schema_violation`).
+6. **Canonical encoder** — one canonical UTF-8 serializer in core (sorted keys, minimal JSON), golden-file tested; the JWS signing input. TS must byte-match (P-5).
+7. **Hybrid sign/verify** — Ed25519 (ed25519-dalek) + ML-DSA-65 (RustCrypto ml-dsa), **both mandatory**; missing/invalid either ⇒ `alg_downgrade`/`sig_invalid`. SLH-DSA-SHA2-128s verify + a clearly-labeled TEST-ROOT signer for fixtures. Size-conformance asserts (§3): 32/64, 1952/4032/3309, 32/7856.
+8. **RFC 6962 Merkle** — leaf `0x00`/node `0x01` prefixes over SHA-256; inclusion-proof verify → signed checkpoint; a minimal in-crate test log writer to build fixtures. `not_logged` / `checkpoint_invalid`.
+9. **Delegation-chain evaluator** — effective authority = ∩ of all links; `granted ⊆ parent.effective`, `exp ≤ parent.exp`, both link sigs valid; widening impossible **by construction**, then property-tested (`chain_widening` / `chain_expired`).
+10. **Mandate evaluator** — grant/revoke first-class; revoking a mandate ⇒ whole subtree INVALID (`mandate_revoked`); ceiling enforcement (`ceiling_exceeded`).
+11. **TSL codec + freshness** — bitstring (1 bit/lineage) + zlib per draft-21; signed delta records + fresh-head; F1 ≤30s / F2 ≤5min / F3 ≤24h, all fail closed (`stale_status` / `revoked`).
+12. **Vectors v1** — `tools/vector-gen` (seeded, deterministic) emits ≥500 CC0 JSON vectors: happy path per class×tier; every INVALID reason ≥10×; homoglyph names; time boundaries; downgrade set; delegation depth 1–64 incl. widenings; mandate subtree revocations; tampered proofs/checkpoints.
+13. **`sdk-ts` (verify-only)** — mirrors core verify; @noble/{curves,hashes,post-quantum}; ≤5-line quickstart that runs; byte-matches the canonical encoder (P-5).
+14. **`tools/diff-harness`** — runs every vector through ainra-core, sdk-ts, and the P0 cli-node (via an adapter for its older format — never edit P0 logic); exits nonzero unless 3-way verdict+reason agreement = 100%.
+15. **Tests + CI + docs** — proptest P-1..P-5; cargo-fuzz targets (name/passport/TSL/proof) + 5-min CI smoke; CI gates §7 (fmt, clippy -D, size asserts, S7 linter, license header, cargo-deny, npm audit, no-network core, reproducible build); `cargo bench` → generated `BENCHMARKS.md`; honest `STATUS.md`. M2/M3 dirs are compile-only scaffolds returning `NotImplemented`.

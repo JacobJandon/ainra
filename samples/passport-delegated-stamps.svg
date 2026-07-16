@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 560" width="704" height="448" font-family="'B612 Mono',ui-monospace,monospace">
+
+  <defs>
+    <g id="ainra-sigil">
+      <path d="M 98.4 33.5 A 48 48 0 1 0 78.5 13.6" fill="none" stroke="#0B1220" stroke-width="3" stroke-linecap="round"/>
+      <path d="M 95.8 29.2 L 98.7 27.2 M 91.7 23.9 L 94.3 21.5 M 86.9 19.2 L 89.1 16.6" stroke="#0B1220" stroke-width="1" opacity=".5"/>
+      <path d="M 80.6 11.5 L 83.4 18.5 L 76.4 15.7 Z" fill="#0B1220"/>
+      <circle cx="79.6" cy="14.2" r="1.1" fill="#F5F6F3"/>
+      <circle cx="56" cy="56" r="36" stroke="#0B1220" stroke-width="1.2" fill="none"/>
+      <circle cx="56" cy="56" r="26" stroke="#0B1220" stroke-width="1.6" fill="none"/>
+      <ellipse cx="56" cy="56" rx="11" ry="26" stroke="#0B1220" stroke-width="1" fill="none"/>
+      <line x1="30" y1="56" x2="82" y2="56" stroke="#0B1220" stroke-width="1.1"/>
+      <path d="M33.5 43 h45 M33.5 69 h45" stroke="#0B1220" stroke-width="0.8" opacity="0.6"/>
+      <path d="M56 30 a26 26 0 0 1 26 26" stroke="#1A6B4E" stroke-width="3" stroke-linecap="round" fill="none"/>
+      <circle cx="56" cy="56" r="2.4" fill="#0B1220"/>
+    </g>
+    <g id="ainra-sigil-lt">
+      <path d="M 98.4 33.5 A 48 48 0 1 0 78.5 13.6" fill="none" stroke="#E7EAF0" stroke-width="3" stroke-linecap="round"/>
+      <path d="M 95.8 29.2 L 98.7 27.2 M 91.7 23.9 L 94.3 21.5 M 86.9 19.2 L 89.1 16.6" stroke="#E7EAF0" stroke-width="1" opacity=".5"/>
+      <path d="M 80.6 11.5 L 83.4 18.5 L 76.4 15.7 Z" fill="#E7EAF0"/>
+      <circle cx="79.6" cy="14.2" r="1.1" fill="#0B1220"/>
+      <circle cx="56" cy="56" r="36" stroke="#E7EAF0" stroke-width="1.2" fill="none"/>
+      <circle cx="56" cy="56" r="26" stroke="#E7EAF0" stroke-width="1.6" fill="none"/>
+      <ellipse cx="56" cy="56" rx="11" ry="26" stroke="#E7EAF0" stroke-width="1" fill="none"/>
+      <line x1="30" y1="56" x2="82" y2="56" stroke="#E7EAF0" stroke-width="1.1"/>
+      <path d="M33.5 43 h45 M33.5 69 h45" stroke="#E7EAF0" stroke-width="0.8" opacity="0.6"/>
+      <path d="M56 30 a26 26 0 0 1 26 26" stroke="#57C08F" stroke-width="3" stroke-linecap="round" fill="none"/>
+      <circle cx="56" cy="56" r="2.4" fill="#E7EAF0"/>
+    </g>
+  </defs>
+
+<rect x="0" y="0" width="880" height="560" rx="14" fill="#FFFFFF" stroke="#E2E5DF"/>
+<text x="440" y="320" text-anchor="middle" font-family="'Bricolage Grotesque','Inter',sans-serif" font-weight="800" font-size="150" fill="none" stroke="#0B1220" stroke-opacity="0.04" transform="rotate(-14 440 280)">AINRA</text>
+<line x1="0" y1="56" x2="880" y2="56" stroke="#E2E5DF"/>
+<svg x="30" y="12" width="34" height="34" viewBox="0 0 112 112"><use href="#ainra-sigil"/></svg><text x="74" y="28" font-weight="700" font-size="13" letter-spacing="2" fill="#0B1220">ENDORSEMENTS &amp; LOG</text><text x="74" y="43" font-size="8.5" letter-spacing="1.2" fill="#5A6372">4 STAMPS · EVERY EVENT SIGNED · ANCHORED TO THE TRANSPARENCY LOG</text>
+<text x="850" y="26" text-anchor="end" font-size="10.5" letter-spacing="1.2" fill="#5A6372">DOC AP-72F-B1F</text><text x="850" y="43" text-anchor="end" font-size="9" letter-spacing="2" fill="#1A6B4E">SPECIMEN</text>
+<g transform="rotate(-0.8 230 119)">
+<rect x="30" y="78" width="400" height="82" rx="8" fill="none" stroke="#1A6B4E" stroke-width="1.7" stroke-opacity="0.85"/>
+<rect x="32" y="80" width="396" height="78" rx="7" fill="none" stroke="#1A6B4E" stroke-width="0.5" stroke-opacity="0.4"/>
+<text x="48" y="104" font-size="14" font-weight="700" letter-spacing="2.4" fill="#1A6B4E">ISSUED</text>
+<text x="414" y="104" text-anchor="end" font-size="9" letter-spacing="0.8" fill="#5A6372">11 APR 2026</text>
+<text x="48" y="128" font-size="11.5" letter-spacing="0.8" fill="#0B1220">BY REGISTRAR-07</text>
+<text x="48" y="146" font-size="9.5" letter-spacing="0.8" fill="#5A6372">HYBRID SIGNED · ED25519 + ML-DSA-65</text>
+</g>
+<g transform="rotate(1.2000000000000002 650 119)">
+<rect x="450" y="78" width="400" height="82" rx="8" fill="none" stroke="#1A6B4E" stroke-width="1.7" stroke-opacity="0.85"/>
+<rect x="452" y="80" width="396" height="78" rx="7" fill="none" stroke="#1A6B4E" stroke-width="0.5" stroke-opacity="0.4"/>
+<text x="468" y="104" font-size="14" font-weight="700" letter-spacing="2.4" fill="#1A6B4E">LOGGED</text>
+<text x="834" y="104" text-anchor="end" font-size="9" letter-spacing="0.8" fill="#5A6372">AINRA-LOG/REGISTRAR-07</text>
+<text x="468" y="128" font-size="11.5" letter-spacing="0.8" fill="#0B1220">LEAF #3 · TREE SIZE 6</text>
+<text x="468" y="146" font-size="9.5" letter-spacing="0.8" fill="#5A6372">RFC 6962 INCLUSION · SLH-DSA CHECKPOINT</text>
+</g>
+<g transform="rotate(-0.8 230 219)">
+<rect x="30" y="178" width="400" height="82" rx="8" fill="none" stroke="#0B1220" stroke-width="1.7" stroke-opacity="0.85"/>
+<rect x="32" y="180" width="396" height="78" rx="7" fill="none" stroke="#0B1220" stroke-width="0.5" stroke-opacity="0.4"/>
+<text x="48" y="204" font-size="14" font-weight="700" letter-spacing="2.4" fill="#0B1220">DELEGATED</text>
+<text x="414" y="204" text-anchor="end" font-size="9" letter-spacing="0.8" fill="#5A6372">EXPIRES 11 APR 2027 · DUAL-KEY SIGNED</text>
+<text x="48" y="228" font-size="11.5" letter-spacing="0.8" fill="#0B1220">OWNER → SUPPORT-DESK</text>
+<text x="48" y="246" font-size="9.5" letter-spacing="0.8" fill="#5A6372">GRANTED READ:TICKETS, REPLY:TICKET</text>
+</g>
+<g transform="rotate(1.2000000000000002 650 219)">
+<rect x="450" y="178" width="400" height="82" rx="8" fill="none" stroke="#0B1220" stroke-width="1.7" stroke-opacity="0.85"/>
+<rect x="452" y="180" width="396" height="78" rx="7" fill="none" stroke="#0B1220" stroke-width="0.5" stroke-opacity="0.4"/>
+<text x="468" y="204" font-size="14" font-weight="700" letter-spacing="2.4" fill="#0B1220">DELEGATED</text>
+<text x="834" y="204" text-anchor="end" font-size="9" letter-spacing="0.8" fill="#5A6372">EXPIRES 11 APR 2027 · DUAL-KEY SIGNED</text>
+<text x="468" y="228" font-size="11.5" letter-spacing="0.8" fill="#0B1220">SUPPORT-DESK → SUPPORT-BOT</text>
+<text x="468" y="246" font-size="9.5" letter-spacing="0.8" fill="#5A6372">GRANTED READ:TICKETS</text>
+</g>
+<line x1="30" y1="514" x2="850" y2="514" stroke="#E2E5DF" stroke-dasharray="2 3"/>
+<text x="30" y="534" font-size="9" letter-spacing="1.4" fill="#5A6372">CHECKPOINT ROOT</text><text x="170" y="534" font-size="11" letter-spacing="0.6" fill="#1A6B4E">gkPDHEcqqPRbTrPQY-UIiBd9XfT9v4HbOQvvP39ZmwE</text>
+</svg>

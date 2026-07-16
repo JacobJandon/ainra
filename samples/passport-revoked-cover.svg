@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 560" width="704" height="448" font-family="'B612 Mono',ui-monospace,monospace">
+
+  <defs>
+    <g id="ainra-sigil">
+      <path d="M 98.4 33.5 A 48 48 0 1 0 78.5 13.6" fill="none" stroke="#0B1220" stroke-width="3" stroke-linecap="round"/>
+      <path d="M 95.8 29.2 L 98.7 27.2 M 91.7 23.9 L 94.3 21.5 M 86.9 19.2 L 89.1 16.6" stroke="#0B1220" stroke-width="1" opacity=".5"/>
+      <path d="M 80.6 11.5 L 83.4 18.5 L 76.4 15.7 Z" fill="#0B1220"/>
+      <circle cx="79.6" cy="14.2" r="1.1" fill="#F5F6F3"/>
+      <circle cx="56" cy="56" r="36" stroke="#0B1220" stroke-width="1.2" fill="none"/>
+      <circle cx="56" cy="56" r="26" stroke="#0B1220" stroke-width="1.6" fill="none"/>
+      <ellipse cx="56" cy="56" rx="11" ry="26" stroke="#0B1220" stroke-width="1" fill="none"/>
+      <line x1="30" y1="56" x2="82" y2="56" stroke="#0B1220" stroke-width="1.1"/>
+      <path d="M33.5 43 h45 M33.5 69 h45" stroke="#0B1220" stroke-width="0.8" opacity="0.6"/>
+      <path d="M56 30 a26 26 0 0 1 26 26" stroke="#1A6B4E" stroke-width="3" stroke-linecap="round" fill="none"/>
+      <circle cx="56" cy="56" r="2.4" fill="#0B1220"/>
+    </g>
+    <g id="ainra-sigil-lt">
+      <path d="M 98.4 33.5 A 48 48 0 1 0 78.5 13.6" fill="none" stroke="#E7EAF0" stroke-width="3" stroke-linecap="round"/>
+      <path d="M 95.8 29.2 L 98.7 27.2 M 91.7 23.9 L 94.3 21.5 M 86.9 19.2 L 89.1 16.6" stroke="#E7EAF0" stroke-width="1" opacity=".5"/>
+      <path d="M 80.6 11.5 L 83.4 18.5 L 76.4 15.7 Z" fill="#E7EAF0"/>
+      <circle cx="79.6" cy="14.2" r="1.1" fill="#0B1220"/>
+      <circle cx="56" cy="56" r="36" stroke="#E7EAF0" stroke-width="1.2" fill="none"/>
+      <circle cx="56" cy="56" r="26" stroke="#E7EAF0" stroke-width="1.6" fill="none"/>
+      <ellipse cx="56" cy="56" rx="11" ry="26" stroke="#E7EAF0" stroke-width="1" fill="none"/>
+      <line x1="30" y1="56" x2="82" y2="56" stroke="#E7EAF0" stroke-width="1.1"/>
+      <path d="M33.5 43 h45 M33.5 69 h45" stroke="#E7EAF0" stroke-width="0.8" opacity="0.6"/>
+      <path d="M56 30 a26 26 0 0 1 26 26" stroke="#57C08F" stroke-width="3" stroke-linecap="round" fill="none"/>
+      <circle cx="56" cy="56" r="2.4" fill="#E7EAF0"/>
+    </g>
+  </defs>
+
+<defs><pattern id="dots" width="24" height="24" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.4" fill="#57C08F" fill-opacity="0.07"/></pattern></defs>
+<rect x="0" y="0" width="880" height="560" rx="16" fill="#0B1220"/>
+<rect x="0" y="0" width="880" height="560" rx="16" fill="url(#dots)"/>
+<rect x="16" y="16" width="848" height="528" rx="12" fill="none" stroke="#E7EAF0" stroke-opacity="0.16"/>
+<text x="440" y="86" text-anchor="middle" font-size="12" letter-spacing="5" fill="#98A1B3">AGENT IDENTITY PASSPORT</text>
+<svg x="353" y="128" width="174" height="174" viewBox="0 0 112 112"><use href="#ainra-sigil-lt"/></svg>
+<text x="440" y="378" text-anchor="middle" font-family="'Bricolage Grotesque','Inter',sans-serif" font-weight="800" font-size="72" letter-spacing="3" fill="#E7EAF0">AINRA</text>
+<text x="440" y="406" text-anchor="middle" font-size="10.5" letter-spacing="4" fill="#98A1B3">AGENT IDENTITY &amp; NAMING REGISTRY AUTHORITY</text>
+<line x1="300" y1="442" x2="580" y2="442" stroke="#E7EAF0" stroke-opacity="0.18"/>
+<text x="440" y="474" text-anchor="middle" font-size="14" letter-spacing="3" fill="#57C08F">AP-09E-387</text>
+<text x="440" y="500" text-anchor="middle" font-size="10" letter-spacing="2.4" fill="#98A1B3">ainra:registrar-07:acme:data-export@2.0.0</text>
+<text x="440" y="534" text-anchor="middle" font-size="9" letter-spacing="4" fill="#5A6372">SPECIMEN</text>
+</svg>

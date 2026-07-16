@@ -25,6 +25,7 @@ const cycles = A("cycles") ? Number(A("cycles")) : null;
 const durationSec = A("duration-sec") ? Number(A("duration-sec")) : null;
 const pollMs = Number(A("poll-ms", "150"));
 const sloP95Sec = Number(A("slo-p95-sec", "60"));
+const challenge = A("challenge", ""); // a run identifier the collector pins out of band (binds the log + report)
 if (!registrar || !now || !A("directory") || !A("roots")) {
   console.error("usage: soak.mjs --registrar <url> --directory <f> --roots <f> --now <unix> [...]");
   process.exit(2);
@@ -65,7 +66,7 @@ async function presentVerdict(sub, verifier) {
 
 const measurements = []; // {vantage, latency_ms}
 const startWall = Date.now();
-logEntry({ ts: new Date(startWall).toISOString(), event: "soak-start", registrar, vantages, host: process.env.HOSTNAME || "local", now, slo_p95_sec: sloP95Sec });
+logEntry({ ts: new Date(startWall).toISOString(), event: "soak-start", challenge, registrar, vantages, host: process.env.HOSTNAME || "local", now, slo_p95_sec: sloP95Sec });
 
 let cycle = 0;
 const keepGoing = () => (cycles !== null ? cycle < cycles : (Date.now() - startWall) / 1000 < durationSec);
@@ -126,6 +127,7 @@ const sloPass = p95Sec < sloP95Sec && overall.misses === 0;
 
 const reportBody = {
   kind: "ainra/soak-report/v1",
+  challenge, // pinned out of band by the collector; also stamped in the log's soak-start entry (binds log↔report)
   host: process.env.HOSTNAME || "local",
   registrar, vantages, now,
   wall_start: new Date(startWall).toISOString(), wall_end: new Date().toISOString(),
@@ -133,11 +135,16 @@ const reportBody = {
   slo: { revocation_p95_sec: sloP95Sec, measured_p95_sec: Number.isFinite(p95Sec) ? Number(p95Sec.toFixed(3)) : null, pass: sloPass },
   overall, per_vantage: perVantage,
   log_head_hash: prevHash, // the tip of the append-only hash chain (verifiable against soak-log.jsonl)
-  note: "All latencies MEASURED (wall-clock revoke→observed-INVALID); nothing hardcoded. Local vantage points measure single-host latency; a real 3-region soak measures regional propagation.",
+  note: "All latencies MEASURED (wall-clock revoke→observed-INVALID); nothing hardcoded. Local vantage points measure single-host latency; a real 3-region soak measures regional propagation. A THIRD PARTY must pin the SLO + the expected challenge/key out of band — a self-signed report proves internal consistency + tamper-evidence, not that the operator didn't fabricate the run.",
 };
 const { publicKey, privateKey } = generateKeyPairSync("ed25519");
-const sortedStringify = (o) => JSON.stringify(o, Object.keys(o).sort());
-const sig = edSign(null, Buffer.from(sortedStringify(reportBody)), privateKey).toString("base64");
+// FULL recursive canonical JSON (an array replacer would drop nested keys — the slo/overall/per_vantage objects).
+function canonicalJSON(v) {
+  if (v === null || typeof v !== "object") return JSON.stringify(v);
+  if (Array.isArray(v)) return "[" + v.map(canonicalJSON).join(",") + "]";
+  return "{" + Object.keys(v).sort().map((k) => JSON.stringify(k) + ":" + canonicalJSON(v[k])).join(",") + "}";
+}
+const sig = edSign(null, Buffer.from(canonicalJSON(reportBody)), privateKey).toString("base64");
 const report = { body: reportBody, reporter_pubkey_spki_b64: publicKey.export({ type: "spki", format: "der" }).toString("base64"), sig_ed25519_b64: sig };
 writeFileSync(`${outDir}/soak-report.json`, JSON.stringify(report, null, 2) + "\n");
 

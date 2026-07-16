@@ -64,7 +64,10 @@ has ever touched a network, the ceremony is void; start over with fresh hardware
 
 ## 7. Reveal, transcript, publish
 - After the directory is signed, custodians **reveal** their contributions on camera; the witness confirms each
-  `SHA-256(reveal) == commit` and each signature (`kits/ceremony/witness.mjs` does this in the dry-run).
+  `SHA-256(reveal) == commit` and each signature (`kits/ceremony/witness.mjs` does this in the dry-run). The witness
+  also binds each part to its slot — `operator-K.json` must claim `operator_id K` — and requires every custodian's
+  public key to be **distinct**, so a no-show cannot be papered over by copying another custodian's part (a file
+  count alone would miss that; the copy collides on both the slot id and the key).
 - The coordinator writes the **transcript** (roots' fingerprints, accredited registrars, the drills, `verified_at`)
   and its **SHA-256** (`transcript.json` + `transcript.sha256`, exactly as the `ceremony` bin emits).
 - **Independent hash:** the witness (and anyone with the published transcript) recomputes `SHA-256(transcript.json)`
@@ -85,6 +88,7 @@ has ever touched a network, the ceremony is void; start over with fresh hardware
 | Every custodian committed + revealed, cross-read | on camera | `operator.mjs` × N + `witness.mjs` verify commit-reveal + sig |
 | Transcript is witness-reproducible | independent recompute + recording | `witness.mjs` recomputes `SHA-256(transcript.json)` == published |
 | A skipped step is caught | ceremony halts on camera | `make ceremony-dry-run` negative test: skip a custodian → witness FAILS |
+| A no-show can't be faked | distinct custodians, on camera | `make ceremony-dry-run` negative test: copy a part over a no-show → witness FAILS (slot/key collision) |
 | Public artifacts, root dark | published dir/roots/transcript + mirrors | `make verify-mirror` byte-verifies; `make genesis-local` verifies root-dark |
 
 The **only** thing the dry-run cannot rehearse is the physical air-gap + real entropy of § 5 — by design. Everything

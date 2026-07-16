@@ -15,12 +15,32 @@ echo "== install the verifier kit (SDK-only dependency) =="
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 OUT="$WORK/verifier-attestation.json"
+# The maintainer issues a fresh single-use CHALLENGE per verifier (here, random). The attestation is bound to it.
+CHALLENGE="$(node -e 'console.log(require("crypto").randomBytes(16).toString("hex"))')"
 
-echo "== run the kit: verify root-dark + reject revoked + reject forged =="
-node kits/verifier/verify-kit.mjs --out "$OUT"
+echo "== run the kit: verify root-dark + reject revoked + reject forged (challenge $CHALLENGE) =="
+node kits/verifier/verify-kit.mjs --out "$OUT" --challenge "$CHALLENGE"
 
 echo "== collect: verify the attestation without trusting the verifier =="
-node kits/verifier/check-attestation.mjs --attestation "$OUT"
+node kits/verifier/check-attestation.mjs --attestation "$OUT" --challenge "$CHALLENGE"
+
+echo "== ADVERSARIAL: forged attestations must be REJECTED (M9 review regressions) =="
+# (a) empty corpus + correct challenge, signed with a fresh key (attacker never ran the SDK) → must be REJECTED.
+FORGED="$WORK/forged.json"
+CHALLENGE="$CHALLENGE" FORGED="$FORGED" node -e '
+  const {generateKeyPairSync, sign} = require("crypto"); const {writeFileSync} = require("fs");
+  const canon = (v)=>v===null||typeof v!=="object"?JSON.stringify(v):Array.isArray(v)?"["+v.map(canon).join(",")+"]":"{"+Object.keys(v).sort().map(k=>JSON.stringify(k)+":"+canon(v[k])).join(",")+"}";
+  const {publicKey,privateKey}=generateKeyPairSync("ed25519");
+  const body={kind:"ainra/verifier-attestation/v1",challenge:process.env.CHALLENGE,verifier_pubkey_spki_b64:publicKey.export({type:"spki",format:"der"}).toString("base64"),sdk:"forged",now:1776729600,artifacts_sha256:{},verdicts:{valid:"valid",revoked:"invalid:revoked",forged:"invalid:stale_status"}};
+  writeFileSync(process.env.FORGED, JSON.stringify({body, sig_ed25519_b64: sign(null, Buffer.from(canon(body)), privateKey).toString("base64")}));
+'
+if node kits/verifier/check-attestation.mjs --attestation "$FORGED" --challenge "$CHALLENGE" >/dev/null 2>&1; then
+  echo "FAIL: an attestation with an EMPTY corpus was accepted — fail-open"; exit 1
+else echo "  ✓ empty-corpus forgery rejected (never ran the SDK → no valid attestation)"; fi
+# (b) the genuine attestation replayed against a DIFFERENT challenge → REJECTED (non-replayable).
+if node kits/verifier/check-attestation.mjs --attestation "$OUT" --challenge "different-challenge" >/dev/null 2>&1; then
+  echo "FAIL: attestation accepted under the wrong challenge — replayable"; exit 1
+else echo "  ✓ wrong-challenge replay rejected"; fi
 
 echo
-echo "verifier-kit-smoke OK — a stranger can produce a valid, self-verifying attestation with only @ainra/sdk."
+echo "verifier-kit-smoke OK — a challenge-bound attestation is valid; empty-corpus + replayed forgeries fail closed."

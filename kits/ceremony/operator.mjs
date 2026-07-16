@@ -30,7 +30,12 @@ if (!id || !out) {
 mkdirSync(out, { recursive: true });
 
 const sha256hex = (b) => createHash("sha256").update(b).digest("hex");
-const sortedStringify = (o) => JSON.stringify(o, Object.keys(o).sort());
+// FULL recursive canonical JSON (matches witness.mjs) — an array replacer would drop nested keys from the preimage.
+function canonicalJSON(v) {
+  if (v === null || typeof v !== "object") return JSON.stringify(v);
+  if (Array.isArray(v)) return "[" + v.map(canonicalJSON).join(",") + "]";
+  return "{" + Object.keys(v).sort().map((k) => JSON.stringify(k) + ":" + canonicalJSON(v[k])).join(",") + "}";
+}
 
 // TEST-ROOT throwaway identity + entropy contribution (never a real ceremony share).
 const { publicKey, privateKey } = generateKeyPairSync("ed25519");
@@ -45,6 +50,6 @@ const body = {
   reveal_hex: nonce.toString("hex"), // published at REVEAL time (after the on-camera cross-read)
   warning: "TEST-ROOT — not a real threshold share; see RUNBOOK.md for the real air-gapped step",
 };
-const sig = edSign(null, Buffer.from(sortedStringify(body)), privateKey).toString("base64");
+const sig = edSign(null, Buffer.from(canonicalJSON(body)), privateKey).toString("base64");
 writeFileSync(`${out}/operator-${id}.json`, JSON.stringify({ body, sig_ed25519_b64: sig }, null, 2) + "\n");
 console.log(`operator ${id}: committed ${commit.slice(0, 16)}… (TEST-ROOT) → ${out}/operator-${id}.json`);

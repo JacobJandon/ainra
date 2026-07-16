@@ -46,6 +46,18 @@ else
   echo "  ✓ witness correctly refused the ceremony missing custodian $N"
 fi
 
+echo "== NEGATIVE: paper over a no-show by COPYING another custodian's part → the witness MUST fail loudly =="
+# A file count alone would be fooled by `cp operator-1.json operator-N.json` (still N files). The witness must catch
+# it: the copy carries operator_id 1 (≠ N) AND reuses custodian 1's public key (not a distinct signer).
+DUP="$WORK/dup"
+cp -r "$DRY" "$DUP"
+cp "$DUP/operator-1.json" "$DUP/operator-$N.json"
+if node kits/ceremony/witness.mjs --dir "$DUP" >/dev/null 2>&1; then
+  echo "FAIL: witness accepted a custodian's part copied over a no-show — quorum is forgeable by file count"; exit 1
+else
+  echo "  ✓ witness correctly refused a duplicated custodian part (mislabeled operator_id + reused key)"
+fi
+
 echo
-echo "ceremony-dry-run OK — choreography rehearses; the transcript is witness-reproducible; a skipped step fails"
-echo "loudly. TEST-ROOT only. The real recorded ceremony (air-gapped shares) is in kits/ceremony/RUNBOOK.md."
+echo "ceremony-dry-run OK — choreography rehearses; the transcript is witness-reproducible; a skipped step (or a"
+echo "copied part) fails loudly. TEST-ROOT only. The real recorded ceremony (air-gapped shares) is in kits/ceremony/RUNBOOK.md."

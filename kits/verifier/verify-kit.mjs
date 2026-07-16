@@ -26,10 +26,22 @@ function arg(name, def) {
 }
 const dir = arg("artifacts", new URL("./sample-artifacts", import.meta.url).pathname);
 const outPath = arg("out", "verifier-attestation.json");
+// A maintainer-issued, single-use CHALLENGE (nonce) the verifier signs into the attestation. Without it, a body of
+// all-public data could be hand-authored or replayed; binding to a fresh challenge the collector issued makes the
+// attestation un-pre-manufacturable and non-replayable. Distinctness of *operators* is still out of band (the
+// maintainer issues one challenge per separately-vetted party) — the crypto proves execution + freshness, not Sybil.
+const challenge = arg("challenge", "");
 const read = (f) => readFileSync(`${dir}/${f}`, "utf8");
 const readJson = (f) => JSON.parse(read(f));
 const sha256 = (s) => createHash("sha256").update(s).digest("hex");
-const sortedStringify = (o) => JSON.stringify(o, Object.keys(o).sort());
+// FULL recursive canonical JSON — sorts keys at EVERY level and includes ALL of them. (An array replacer to
+// JSON.stringify is a per-level allowlist that silently DROPS nested keys, so the signature would not cover
+// artifacts_sha256 or verdicts — that footgun is why this is spelled out.)
+function canonicalJSON(v) {
+  if (v === null || typeof v !== "object") return JSON.stringify(v);
+  if (Array.isArray(v)) return "[" + v.map(canonicalJSON).join(",") + "]";
+  return "{" + Object.keys(v).sort().map((k) => JSON.stringify(k) + ":" + canonicalJSON(v[k])).join(",") + "}";
+}
 
 // `now` for freshness: the sample bundles carry their issued-at in meta.json; a live run passes --now (real time).
 let now = Number(arg("now", "0"));
@@ -90,6 +102,7 @@ if (!allPass) {
 const { publicKey, privateKey } = generateKeyPairSync("ed25519");
 const body = {
   kind: "ainra/verifier-attestation/v1",
+  challenge, // the maintainer-issued nonce — the collector accepts only an attestation carrying a challenge it issued
   verifier_pubkey_spki_b64: publicKey.export({ type: "spki", format: "der" }).toString("base64"),
   sdk: (() => {
     try {
@@ -107,7 +120,7 @@ const body = {
   },
   verdicts: { valid: asStr(vValid), revoked: asStr(vRevoked), forged: asStr(vForged) },
 };
-const sig = edSign(null, Buffer.from(sortedStringify(body)), privateKey).toString("base64");
+const sig = edSign(null, Buffer.from(canonicalJSON(body)), privateKey).toString("base64");
 const attestation = { body, sig_ed25519_b64: sig };
 writeFileSync(outPath, JSON.stringify(attestation, null, 2) + "\n");
 

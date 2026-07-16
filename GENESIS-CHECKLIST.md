@@ -31,10 +31,14 @@ Nothing here is faked. A step is ✅ only when its artifact exists and independe
   plus the recording; ≥2 mirrors byte-verify (`make verify-mirror`).
 
 ### 3. Enroll ≥3 independent external verifiers (⏳ real-world)
-- [ ] Three unaffiliated operators, on three different machines, each run `kits/verifier/` against the published
-  artifacts and send us a signed `verifier-attestation.json`.
-- **Proof:** three attestations that each pass `kits/verifier/check-attestation.mjs` (signature + canonical artifact
-  hashes + conformant verdicts) under **distinct** verifier keys. (Kill-gate K4.)
+- [ ] Issue **one single-use challenge per separately-vetted operator** (this is what makes them count as *distinct* —
+  the crypto can't, since a fresh key is free). Record who got which nonce, out of band.
+- [ ] Three unaffiliated operators, on three different machines, each run `kits/verifier/ --challenge <their-nonce>`
+  against the published artifacts and send us a signed `verifier-attestation.json`.
+- **Proof:** three attestations that each pass `kits/verifier/check-attestation.mjs --challenge <the-nonce-we-issued>`
+  (challenge binding + whole-body signature + **complete** canonical corpus, byte-matching, no missing/extra artifact +
+  conformant verdicts) under **distinct** verifier keys, one per issued challenge. Honest scope: the kit proves
+  execution + freshness + tamper-evidence; distinctness comes from the one-challenge-per-party issuance. (Kill-gate K4.)
 
 ### 4. Stand up witnesses on independent infra (⏳ real-world)
 - [ ] ≥3 `witnessd` run by separate operators (TLS-fronted); a relying party assembles a quorum certificate over the
@@ -45,8 +49,9 @@ Nothing here is faked. A step is ✅ only when its artifact exists and independe
 ### 5. Run the 14-day / 3-region soak (⏳ real-world)
 - [ ] `kits/soak/` running from ≥3 regions against the live registrar/mirrors for 14 days; revocation **p95 < 60 s**.
 - **Proof:** signed `soak-report.json` per region + the append-only hash-chained logs, all passing
-  `kits/soak/verify-log.mjs`, with the SLO **computed from the data** (never asserted). A `BREACH` is recorded
-  honestly and blocks the declaration.
+  `kits/soak/verify-log.mjs --slo-p95-sec 60 --challenge <nonce-we-pinned>`, with the target SLO and challenge
+  **pinned by the collector out of band** (never read from the report) and the verdict **recomputed from the data** —
+  a re-signed `PASS` over a breaching log is rejected. A `BREACH` is recorded honestly and blocks the declaration.
 
 ### 6. Declare (⏳ — gated on 2–5)
 - [ ] The DoD table below is all ✅ with an independently-verifiable artifact per row. The founding table convenes

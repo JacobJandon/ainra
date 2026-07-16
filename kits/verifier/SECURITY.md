@@ -14,8 +14,8 @@ how to run it in isolation and confirm it behaves.
 ## Run it isolated
 - Use a throwaway container or VM with no inbound ports and only outbound HTTPS if you fetch live artifacts:
   ```sh
-  # example: a disposable container, no secrets mounted
-  docker run --rm -v "$PWD":/kit -w /kit node:22-alpine sh -c 'npm install && node verify-kit.mjs'
+  # example: a disposable container, no secrets mounted (NONCE = the challenge the maintainer issued you)
+  docker run --rm -v "$PWD":/kit -w /kit node:22-alpine sh -c 'npm install && node verify-kit.mjs --challenge <NONCE>'
   ```
 - Nothing here needs root, secrets, or your real identity. The signing key is a **fresh throwaway** Ed25519 key
   generated per run; if you want a stable verifier identity across runs, keep your key material outside the container
@@ -28,8 +28,14 @@ how to run it in isolation and confirm it behaves.
 
 ## What a valid result proves (and doesn't)
 - A passing run proves *your* SDK, on *your* machine, produced the conformant verdicts on the given artifacts —
-  root dark. It does **not** ask you to trust our infrastructure: the artifacts are hashed into your attestation, and
-  we re-check those hashes against the canonical published corpus when we collect it.
+  root dark — **and** that you did so in response to the specific single-use challenge the maintainer issued (the
+  attestation is bound to that nonce, so it can't be pre-manufactured or replayed). It does **not** ask you to trust
+  our infrastructure: the artifacts are hashed into your attestation, and we re-check those hashes against the
+  canonical published corpus when we collect it.
+- It does **not** prove you are a *distinct* person. A fresh Ed25519 key is free, so the crypto cannot be Sybil-proof.
+  Distinctness is out of band: the maintainer issues **one** challenge per separately-vetted party, so two attestations
+  under two challenges we handed to two different people count as two verifiers — the cryptography enforces execution
+  and freshness, the issuance process enforces distinctness.
 - If any check fails, the kit exits nonzero and writes **no** attestation. A failure is a finding — please report it
   (see the main repo's `SECURITY.md`).
 

@@ -1,0 +1,25 @@
+# SPDX-License-Identifier: Apache-2.0 OR MIT
+[package]
+name = "ainra-cli-rs"
+description = "ainra — the reference AINRA command line. Drives the live pipeline (registrar-box engine over ainra-core: real hybrid signing, transparency-log inclusion, signed status deltas). Offline + persistent; no daemon required. Also builds the fictional seed registry and re-verifies exports with the core verifier (third-party check)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[dependencies]
+ainra-core = { path = "../ainra-core" }
+ainra-services = { path = "../../services/ainra-services" }
+serde = { workspace = true, features = ["std"] }
+serde_json = { workspace = true, features = ["std"] }
+rand_chacha = { version = "0.3", default-features = false }
+rand_core = { workspace = true }
+
+[[bin]]
+name = "ainra"
+path = "src/main.rs"

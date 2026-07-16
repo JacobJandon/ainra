@@ -1,0 +1,23 @@
+{
+  "by_outcome": {
+    "alg_downgrade": 24,
+    "ceiling_exceeded": 24,
+    "chain_expired": 24,
+    "chain_widening": 24,
+    "checkpoint_invalid": 72,
+    "expired": 24,
+    "mandate_revoked": 24,
+    "name_malformed": 24,
+    "not_logged": 72,
+    "not_yet_valid": 24,
+    "revoked": 24,
+    "schema_violation": 48,
+    "sig_invalid": 48,
+    "stale_status": 24,
+    "unknown_registrar": 24,
+    "valid": 180
+  },
+  "count": 684,
+  "note": "CC0 conformance vectors. Each is a real signed credential + expected verdict. Regenerate with `make vectors`.",
+  "version": "v1"
+}

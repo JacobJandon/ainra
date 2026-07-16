@@ -1,0 +1,7 @@
+{
+  "accept": 3,
+  "count": 9,
+  "note": "CC0 directory conformance vectors. Real dual-root signing; expected computed by ainra-core::directory::Directory::accredit. Regenerate with `make vectors`.",
+  "reject": 6,
+  "version": "v1-directory"
+}

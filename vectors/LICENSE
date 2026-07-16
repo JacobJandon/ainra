@@ -1,0 +1,13 @@
+CC0 1.0 Universal — Public Domain Dedication
+
+The AINRA conformance vectors in this directory (vectors/**) are dedicated to
+the public domain under the Creative Commons CC0 1.0 Universal Public Domain
+Dedication. To the extent possible under law, the AINRA reference
+implementation maintainers have waived all copyright and related or neighboring
+rights to these conformance vectors.
+
+Full text: https://creativecommons.org/publicdomain/zero/1.0/legalcode
+
+Rationale (MTS §23, Standard 0.6): anyone must be able to claim conformance to
+AINRA without asking permission. The vectors are the conformance definition;
+they are therefore CC0, not Apache/MIT.

@@ -1,0 +1,21 @@
+# SPDX-License-Identifier: Apache-2.0 OR MIT
+[package]
+name = "ainra-vector-gen"
+description = "Deterministic generator + replay checker for the CC0 conformance vectors (vectors/v1). Emits real signed credentials + the expected verdict for every closed reason; the corpus is what sdk-ts and the P0 CLI are diffed against."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "ainra-vector-gen"
+path = "src/main.rs"
+
+[dependencies]
+ainra-core = { path = "../../crates/ainra-core" }
+serde = { workspace = true, features = ["std"] }
+serde_json = { workspace = true, features = ["std"] }
+rand_core = { workspace = true }
+rand_chacha = { version = "0.3", default-features = false }

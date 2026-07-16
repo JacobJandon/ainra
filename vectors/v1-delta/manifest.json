@@ -1,0 +1,7 @@
+{
+  "accept": 4,
+  "count": 17,
+  "note": "CC0 delta/fresh-head conformance vectors. Real crypto; expected accept/reason computed by ainra-core::status. Regenerate with `make vectors`.",
+  "reject": 13,
+  "version": "v1-delta"
+}

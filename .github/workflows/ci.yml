@@ -18,6 +18,9 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: cargo fmt --all -- --check
       - run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+      # --release is REQUIRED (this is `make test`): a debug build stack-overflows the crypto-heavy
+      # `registrar::tests::issue_then_verify_valid` (large unoptimized ML-DSA/SLH-DSA stack frames), which is NOT a
+      # bug — the optimized release frames fit the default thread stack. Never switch this to a debug build.
       - run: cargo test --release --workspace --all-features
       # Replay the committed CC0 corpora (fast, no regeneration) — the generator holding itself honest.
       - run: cargo run --release -q -p ainra-vector-gen -- --check vectors/v1 --min 500
@@ -87,3 +90,42 @@ jobs:
       - uses: dtolnay/rust-toolchain@1.96
       - uses: Swatinem/rust-cache@v2
       - run: ./tools/fuzz-smoke.sh
+
+  integration:
+    name: end-to-end (drill · testbed · genesis-local)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.96
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      # M6 witness quorum catches an injected fork; M5 wedge accepts VALID + rejects revoked/forged; M8 whole stack
+      # (dual root → 2 distinct registrar classes → verify root-dark → revoke/forge fail closed → fork caught).
+      - run: make drill
+      - run: make testbed
+      - run: make genesis-local
+
+  reproducibility:
+    name: reproducible builds + mirror byte-verify (M7)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.96
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      # Rebuild the 729-file spec artifact set from source into a fresh temp tree twice; assert committed == rebuild.
+      - run: make repro
+      # A mirror must byte-verify; a tampered mirror must FAIL closed (regression for the M7 review).
+      - run: make mirror OUT=build/ci-mirror
+      - run: make verify-mirror MIRROR=build/ci-mirror
+      - name: verify-mirror fails closed on tamper
+        run: |
+          printf 'x' >> build/ci-mirror/vectors/v1-directory/directory-valid-2.json
+          if make verify-mirror MIRROR=build/ci-mirror; then
+            echo "verify-mirror accepted a TAMPERED mirror — fail-closed broken"; exit 1
+          fi
+          echo "verify-mirror correctly rejected the tampered mirror"

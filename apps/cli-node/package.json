@@ -1,0 +1,8 @@
+{
+  "name": "ainra",
+  "version": "0.1.0",
+  "description": "AINRA reference implementation — agent passports: issue, verify, revoke, log. Real Ed25519; no dependencies.",
+  "bin": { "ainra": "bin/ainra.js" },
+  "engines": { "node": ">=16" },
+  "license": "Apache-2.0"
+}

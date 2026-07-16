@@ -4,12 +4,41 @@
 //! JSON strings and the core does the deciding.
 
 use std::io::{BufRead, BufReader, Read, Write};
-use std::net::TcpListener;
+use std::net::{TcpListener, TcpStream};
 
 pub struct Request {
     pub method: String,
     pub path: String,
     pub body: String,
+}
+
+/// A minimal blocking HTTP/1.1 CLIENT (std::net only) so the service daemons can talk to each other — e.g. a relying
+/// party fetching cosignatures from a NETWORKED witness quorum (D-021 transport). Returns the response body. This is
+/// dumb transport: it carries no trust; the caller decides security by verifying the signatures it fetched. TLS is a
+/// reverse-proxy/deployment concern, not built in here (matching the daemons' local-by-default posture).
+pub fn http_request(
+    addr: &str,
+    method: &str,
+    path: &str,
+    body: Option<&str>,
+) -> std::io::Result<String> {
+    let mut stream = TcpStream::connect(addr)?;
+    let b = body.unwrap_or("");
+    let req = format!(
+        "{method} {path} HTTP/1.1\r\nHost: {addr}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{b}",
+        b.len()
+    );
+    stream.write_all(req.as_bytes())?;
+    stream.flush()?;
+    let mut raw = String::new();
+    stream.read_to_string(&mut raw)?;
+    Ok(raw.splitn(2, "\r\n\r\n").nth(1).unwrap_or("").to_string())
+}
+pub fn http_get(addr: &str, path: &str) -> std::io::Result<String> {
+    http_request(addr, "GET", path, None)
+}
+pub fn http_post(addr: &str, path: &str, body: &str) -> std::io::Result<String> {
+    http_request(addr, "POST", path, Some(body))
 }
 
 /// Serve until the process is killed. `handler(req) -> (status_code, json_body)`.

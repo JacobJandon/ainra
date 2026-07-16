@@ -19,7 +19,15 @@ fn main() {
     let addr = std::env::args()
         .nth(1)
         .unwrap_or_else(|| "127.0.0.1:4883".to_string());
-    let mut rng = ChaCha20Rng::seed_from_u64(0x717E_0001);
+    // Derive the witness key from its address (FNV-1a) so a quorum of witnessd processes on different ports get
+    // cryptographically DISTINCT keys — independent witnesses, never one key under many addresses (cf. the M8
+    // registrar fix). A real deployment seeds from an operator-held key on separate infrastructure.
+    let mut seed = 0xcbf2_9ce4_8422_2325u64;
+    for byte in addr.bytes() {
+        seed ^= u64::from(byte);
+        seed = seed.wrapping_mul(0x0000_0100_0000_01b3);
+    }
+    let mut rng = ChaCha20Rng::seed_from_u64(seed);
     let witness = Mutex::new(Witness::new(crypto::TestDelegate::generate(&mut rng)));
 
     serve(&addr, move |req: &Request| {

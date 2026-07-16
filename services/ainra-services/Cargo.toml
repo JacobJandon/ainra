@@ -43,3 +43,7 @@ path = "src/bin/registrar_box.rs"
 [[bin]]
 name = "scale-proof"
 path = "src/bin/scale_proof.rs"
+
+[[bin]]
+name = "witness-quorum-drill"
+path = "src/bin/witness_quorum_drill.rs"

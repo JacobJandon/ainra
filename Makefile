@@ -132,6 +132,11 @@ ceremony-dry-run:
 soak-smoke:
 	bash tools/soak-smoke.sh $(or $(CYCLES),20)
 
+# M9 — Networked witness quorum (D-021 transport): N witnessd processes over HTTP; relying party collects
+# cosignatures + refuses a fork; k stays the relying party's argument.
+drill-networked:
+	bash tools/drill-networked.sh $(or $(N),5) $(or $(K),3)
+
 # M7 — reproducibility + mirrors + docs freeze.
 # Prove the published artifact set rebuilds byte-for-byte (twice, and == committed); emit MANIFEST.sha256.
 repro:

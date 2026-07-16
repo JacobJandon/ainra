@@ -353,3 +353,57 @@ fn statusd_publish_verify_and_fail_closed() {
     tampered.sig_ed25519 = "AAAA".to_string();
     assert!(verify_publication(&key, &tampered, now + 10, Freshness::F2, 0).is_err());
 }
+
+/// M9 (D-021 transport): a QuorumCertificate assembled from cosignatures FETCHED over the network is the same type
+/// as an in-process one — it carries NO threshold field, so a fetched cert cannot "claim threshold: 0" to
+/// self-certify a fork. The relying party always supplies its own k, and `certified` refuses k = 0. This pins the
+/// M6 HIGH fix across the network transport (the wire cannot lower k).
+#[test]
+fn a_fetched_cert_cannot_self_certify_the_relying_party_owns_k() {
+    let mut rng = ChaCha20Rng::seed_from_u64(0x0D71_0000);
+    // 5 witnesses whose public keys a relying party trusts (its roster); the RP's own policy is k = 3.
+    let keys: Vec<crypto::TestDelegate> = (0..5)
+        .map(|_| crypto::TestDelegate::generate(&mut rng))
+        .collect();
+    let roster: BTreeSet<[u8; 32]> = keys.iter().map(|k| k.public()).collect();
+    let rp_k = 3usize;
+
+    // A fork checkpoint an equivocating log wants certified. It assembles a certificate from whatever cosignatures it
+    // could gather over the wire — here, zero (honest witnesses refuse), or one traitor.
+    let forked = ainra_core::checkpoint::Checkpoint {
+        origin: "ainra-log/registrar-07".into(),
+        tree_size: 11,
+        root: [0x77u8; 32],
+    };
+    let msg = forked.signing_bytes().unwrap();
+    let assembled = |f: usize| QuorumCertificate {
+        origin: forked.origin.clone(),
+        tree_size: forked.tree_size,
+        root: forked.root,
+        cosigners: keys[..f]
+            .iter()
+            .map(|k| (k.public(), k.sign(&msg)))
+            .collect(),
+    };
+
+    // No matter what the wire delivered, the RP's k = 3 governs. A fork with 0 or 1 cosign cannot certify.
+    assert!(
+        !assembled(0).certified(&forked, &roster, rp_k),
+        "zero-cosign fork must never certify"
+    );
+    assert!(
+        !assembled(1).certified(&forked, &roster, rp_k),
+        "one traitor cannot reach k = 3"
+    );
+    // Even if a relying party is tricked into passing k = 0, `certified` refuses it — no self-certification path.
+    assert!(
+        !assembled(0).certified(&forked, &roster, 0),
+        "k = 0 must never certify a fork"
+    );
+    // The certificate has no `threshold` field for the wire to set — the type itself forbids it (this line would not
+    // compile if a threshold field existed): construct one and confirm certification still needs the RP's k.
+    assert!(
+        assembled(3).certified(&forked, &roster, rp_k),
+        "3 real cosigns at k = 3 certifies (sanity)"
+    );
+}

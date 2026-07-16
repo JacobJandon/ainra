@@ -1,0 +1,45 @@
+# SPDX-License-Identifier: Apache-2.0 OR MIT
+[package]
+name = "ainra-services"
+description = "AINRA M2 reference services over ainra-core: logd (append-only transparency log + signed checkpoints + inclusion/consistency proofs), statusd (Token Status List publisher), witnessd (consistency cosigner + fork alarm). All security logic lives in ainra-core; these are thin daemons. Production logd swaps in Tessera (D-011)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[dependencies]
+ainra-core = { path = "../../crates/ainra-core" }
+serde = { workspace = true, features = ["std"] }
+serde_json = { workspace = true, features = ["std"] }
+rand_chacha = { version = "0.3", default-features = false }
+rand_core = { workspace = true }
+sha2 = { workspace = true }
+
+[[bin]]
+name = "logd"
+path = "src/bin/logd.rs"
+
+[[bin]]
+name = "statusd"
+path = "src/bin/statusd.rs"
+
+[[bin]]
+name = "witnessd"
+path = "src/bin/witnessd.rs"
+
+[[bin]]
+name = "pipeline-demo"
+path = "src/bin/pipeline_demo.rs"
+
+[[bin]]
+name = "registrar-box"
+path = "src/bin/registrar_box.rs"
+
+[[bin]]
+name = "scale-proof"
+path = "src/bin/scale_proof.rs"

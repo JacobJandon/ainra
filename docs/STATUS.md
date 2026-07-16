@@ -26,7 +26,7 @@ A stranger clones, runs `make test && make vectors && make diff`, all green in <
 | `make mirror` / `make verify-mirror` | **M7** byte-verify a mirror against the manifest (fail-closed on tamper/missing/extra/symlink/subdir-manifest); 2 mirrors proven | ✅ green |
 | `make check-freeze` | **M7** the normative docs (Standard · MTS · DESIGN) are frozen; drift fails | ✅ green |
 | `make genesis-local` | **M8** the whole stack on one laptop (§29/N9): dual root → 2 distinct registrar classes → issue+log → 5-line verify root-dark → revoke/forge fail closed → witness-quorum fork caught → transcript | ✅ green |
-| `make verifier-kit-smoke` | **M9** a stranger verifies root-dark + rejects revoked/forged with only `@ainra/sdk` → signed attestation, collected without trusting them | ✅ green |
+| `make verifier-kit-smoke` | **M9** a stranger verifies root-dark + rejects revoked/forged + verifies a fresh secret-coin-flip challenge corpus with only `@ainra/sdk` → **execution-bound** attestation certified against a private answer key; hand-authored/wrong-answer/replay/answer-key-less all fail closed | ✅ green |
 | `make ceremony-dry-run` | **M9** N custodians rehearse the commit-reveal choreography; real dual-root ceremony (TEST-ROOT); a witness recomputes the transcript hash; a skipped step fails loud | ✅ green |
 | `make soak-smoke` | **M9** revocation-propagation instrument: 3 vantage points, p50/95/99 into a hash-chained log, signed report, SLO computed + fail-closed | ✅ green |
 | `make drill-networked` | **M9** the witness quorum over HTTP — N independently-keyed `witnessd` processes; injected fork refused; k stays the relying party's (D-021 transport) | ✅ green |
@@ -196,16 +196,20 @@ in-process witnesses (now marked ✓-in-process / external-operators, per D-021)
 project** (not `$HOME`), with a strict `.gitignore` (no secrets — the TEST registrar reload-seeds are excluded — no
 `target/`, `node_modules/`, `dist/`, run-outputs), dual-license (Apache-2.0 OR MIT) + **CC0** vectors, and 15
 milestone-mapped commits. **Acceptance proven:** a fresh `git clone` runs `make test && make diff && make
-genesis-local` green. **CI** (`.github/workflows/ci.yml`) runs every gate on push — fmt/clippy/test(release)/vectors,
-the 684/684 differential, wedge, **integration** (drill/testbed/genesis-local), **reproducibility** (repro +
-verify-mirror tamper), check-freeze, fuzz, S7/license/N7. Four **kits** let outsiders run the pending real-world DoD
-events without us: **`kits/verifier/`** (verify root-dark + reject revoked/forged with only `@ainra/sdk` → a signed
-attestation we collect without trusting the submitter), **`kits/ceremony/`** (the 5-of-9 RUNBOOK + a witness-
-reproducible dry-run that fails loud on a skipped step), **`kits/soak/`** (revocation-propagation measured into a
-signed, hash-chained, tamper-evident report — SLO computed, never asserted, fail-closed), and **`kits/witness/`** (the
-quorum over HTTP — D-021's transport, `witnessd` now with distinct per-address keys). N7 preserved: any traction
-metric is opt-in/count-only in the kit layer, never in `ainra-core` or the SDK. The ordered "how we declare done"
-runbook is `GENESIS-CHECKLIST.md`; the honest ✓-vs-⏳ table is `docs/DOD.md`. See D-024.
+genesis-local` green (re-proven after every kit change). **CI** (`.github/workflows/ci.yml`) runs every gate on push —
+fmt/clippy/test(release)/vectors, the 684/684 differential, wedge, **integration** (drill/testbed/genesis-local),
+**reproducibility** (repro + verify-mirror tamper), check-freeze, fuzz, S7/license/N7. Four **kits** let outsiders run
+the pending real-world DoD events without us: **`kits/verifier/`** (verify root-dark + reject revoked/forged with only
+`@ainra/sdk`, then verify a **fresh challenge corpus** with secret coin-flip revocations → an **execution-bound**
+signed attestation the maintainer certifies against a private answer key, so a party who never verified can't fake it),
+**`kits/ceremony/`** (the 5-of-9 RUNBOOK + a witness-reproducible dry-run that fails loud on a skipped step **or a
+copied/aliased custodian part**), **`kits/soak/`** (revocation-propagation measured into a signed, hash-chained,
+tamper-evident report — SLO **pinned by the collector**, never read from the report, fail-closed), and
+**`kits/witness/`** (the quorum over HTTP — D-021's transport, `witnessd` now with distinct per-address keys). Each kit
+was **twice adversarially reviewed** (two workflow rounds; round 2 caught 2 self-review bypasses — a base64-alias
+quorum forge and an attestation that proved agreement not execution — both fixed, see D-024). N7 preserved: any
+traction metric is opt-in/count-only in the kit layer, never in `ainra-core` or the SDK. The ordered "how we declare
+done" runbook is `GENESIS-CHECKLIST.md`; the honest ✓-vs-⏳ table is `docs/DOD.md`. See D-024.
 
 **M4 adversarial review** (workflow, 5 dimensions): the HIGH/MEDIUM sdk-ts parity gaps flagged were **already fixed
 before the verify pass** (a re-read refuted them) — malformed revoked-delegate fingerprints now decode+length-check

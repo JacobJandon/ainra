@@ -1,0 +1,23 @@
+CC0 1.0 Universal — Public Domain Dedication
+
+The AINRA conformance vectors and other artifacts explicitly marked CC0 in this
+repository (the contents of `vectors/` and files whose SPDX header reads
+`SPDX-License-Identifier: CC0-1.0`) are dedicated to the public domain.
+
+To the extent possible under law, the AINRA authors have waived all copyright and
+related or neighboring rights to these artifacts. You can copy, modify, distribute,
+and use them, even for commercial purposes, all without asking permission.
+
+These artifacts are provided "as is", without warranty of any kind.
+
+The full legal text of the Creative Commons CC0 1.0 Universal Public Domain
+Dedication applies and is available at:
+
+    https://creativecommons.org/publicdomain/zero/1.0/legalcode
+
+SPDX-License-Identifier: CC0-1.0
+
+Rationale: the conformance vectors are the shared, ownable-by-no-one test corpus a
+second implementation checks itself against (charter: assets legally unownable;
+vectors CC0). Source CODE in this repository is licensed Apache-2.0 OR MIT (see
+LICENSE-APACHE and LICENSE-MIT); only the marked data artifacts are CC0.

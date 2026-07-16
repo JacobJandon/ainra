@@ -1,0 +1,89 @@
+# SPDX-License-Identifier: Apache-2.0 OR MIT
+# AINRA CI — hard gates (MTS §28). Mirrors `make ci`. The acceptance bar (`make test && make vectors && make diff`)
+# is the `differential` job; the rest are hygiene + neutrality gates that also block merge.
+name: CI
+on:
+  push:
+  pull_request:
+
+jobs:
+  rust:
+    name: fmt · clippy · test · vectors-replay
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.96
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo fmt --all -- --check
+      - run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+      - run: cargo test --release --workspace --all-features
+      # Replay the committed CC0 corpora (fast, no regeneration) — the generator holding itself honest.
+      - run: cargo run --release -q -p ainra-vector-gen -- --check vectors/v1 --min 500
+      - run: cargo run --release -q -p ainra-vector-gen -- --check-delta vectors/v1-delta
+      - run: cargo run --release -q -p ainra-vector-gen -- --check-directory vectors/v1-directory
+
+  differential:
+    name: 3-way differential (core · sdk-ts · P0)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.96
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: cd packages/sdk-ts && npm ci && npm run build
+      # Regenerate BOTH corpora deterministically so a drift between code and committed vectors is caught, then diff.
+      - run: cargo run --release -q -p ainra-vector-gen -- --out vectors/v1 --min 500
+      - run: cargo run --release -q -p ainra-vector-gen -- --delta-out vectors/v1-delta
+      - run: cargo run --release -q -p ainra-vector-gen -- --directory-out vectors/v1-directory
+      - run: git diff --exit-code -- vectors/v1 vectors/v1-delta vectors/v1-directory || (echo "committed vectors differ from regenerated (nondeterminism?)" && exit 1)
+      - run: node tools/diff-harness/run.mjs
+
+  wedge:
+    name: verifier wedge (@ainra/middleware fail-closed)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.96
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      # Build the SDK, install + build the middleware (file: dep on the SDK), run the fail-closed gate tests.
+      - run: cd packages/sdk-ts && npm ci && npm run build
+      - run: cd packages/middleware && npm install && npm run build && npm test
+
+  neutrality-and-hygiene:
+    name: S7 · license · no-network · npm-audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: S7 neutrality (no real company names in code/fixtures)
+        run: node tools/s7-lint.mjs
+      - name: License headers (Apache-2.0 OR MIT)
+        run: node tools/license-check.mjs
+      - name: Docs freeze (normative docs unchanged — M7)
+        run: make check-freeze
+      - name: ainra-core has no network / IO / clock
+        run: |
+          if grep -rnE "std::net|std::fs|reqwest|hyper|ureq|tokio|std::process|SystemTime|Instant|std::env" crates/ainra-core/src/; then
+            echo "ainra-core must be a pure library (N7) — network/IO/clock reference found"; exit 1
+          fi
+          echo "ainra-core clean: no net/fs/clock/env"
+      - name: SDK dependency audit
+        run: cd packages/sdk-ts && npm ci && npm audit --audit-level=high
+
+  fuzz-smoke:
+    name: fuzz smoke (parsers never panic)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.96
+      - uses: Swatinem/rust-cache@v2
+      - run: ./tools/fuzz-smoke.sh

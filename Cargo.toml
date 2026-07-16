@@ -1,0 +1,60 @@
+# AINRA monorepo — Rust workspace.
+# Spec: MTS §23 (build vs buy), §10 ADR-010 (languages). ainra-core is the product; everything else is thin glue.
+[workspace]
+resolver = "2"
+members = [
+    "crates/ainra-core",
+    "crates/ainra-cli-rs",     # M3: the `ainra` reference CLI (offline + persistent, over core+services)
+    "crates/ainra-ceremony",   # M4: FROST 5-of-9 root ceremony (signing side; never in the verify path)
+    "tools/vector-gen",
+    "services/ainra-services", # M2: logd + statusd + witnessd; M3: registrar-box (thin over ainra-core)
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.96"
+license = "Apache-2.0 OR MIT"
+authors = ["AINRA reference implementation maintainers"]
+repository = "https://example.invalid/ainra"       # placeholder; no real URLs (Charter S7)
+
+[workspace.dependencies]
+# Cryptography — ONLY audited libraries (MTS §3, §24 BOM). No bespoke primitives, ever.
+ed25519-dalek = { version = "2", default-features = false, features = ["alloc", "rand_core"] }
+# ml-dsa/slh-dsa 0.0.x gate a pkcs8-only import behind only `alloc` (crate bug), so we take their default feature
+# set (alloc + pkcs8) which compiles cleanly. DECISIONS D-006. FIPS 204 / FIPS 205 (RustCrypto).
+ml-dsa = { version = "0.0.4" }
+slh-dsa = { version = "0.0.3" }
+sha2 = { version = "0.10", default-features = false }
+signature = { version = "2", default-features = false }
+rand_core = { version = "0.6", default-features = false }
+# Encoding
+serde = { version = "1", default-features = false, features = ["alloc", "derive"] }
+serde_json = { version = "1", default-features = false, features = ["alloc"] }
+base64ct = { version = "1", default-features = false, features = ["alloc"] }
+flate2 = { version = "1" }              # zlib for Token Status List (draft-21)
+thiserror = "1"
+# Test-only
+proptest = "1"
+hex = "0.4"
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"          # reproducible-build friendliness (MTS §24)
+
+# Optimize DEPENDENCIES even in dev/test builds. SLH-DSA-SHA2-128s signing is ~seconds/op when the crypto crates
+# are compiled unoptimized; this makes `cargo test` (which builds in the dev profile) sign fast while our own crates
+# stay unoptimized (fast incremental compiles, good backtraces). Deps compile once and cache.
+[profile.dev.package."*"]
+opt-level = 3
+# The signature crates are SHA2-bound; single codegen unit lets the hash inline like the release build does.
+[profile.dev.package.slh-dsa]
+opt-level = 3
+codegen-units = 1
+[profile.dev.package.sha2]
+opt-level = 3
+codegen-units = 1
+[profile.dev.package.ml-dsa]
+opt-level = 3
+codegen-units = 1

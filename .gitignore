@@ -1,0 +1,45 @@
+# --- build outputs (regenerated; never committed) ---
+/target
+**/target
+**/node_modules
+packages/sdk-ts/dist
+**/*.rs.bk
+Cargo.lock.orig
+.DS_Store
+/tmp
+BENCHMARKS.md.tmp
+
+# --- generated run outputs (produced by make targets; not source) ---
+genesis-out/
+*-out/
+/build/
+apps/cli-node/.ainra
+
+# --- generated registrar demo state: contains TEST reload SEEDS (key-deriving). NEVER commit key material. ---
+apps/registrar-explorer/data/
+**/registrar.secret
+
+# --- secrets of any kind (defense in depth; no real secrets should ever exist in this repo) ---
+*.secret
+*.key
+*.pem
+.env
+.env.*
+*.keystore
+
+# --- fuzz: keep seed corpora + targets, ignore crash artifacts + build ---
+fuzz/target/
+fuzz/artifacts/
+fuzz/corpus/**/crash-*
+fuzz/corpus/**/leak-*
+fuzz/corpus/**/timeout-*
+
+# --- M9 kit run-outputs (evidence artifacts are generated, not committed) ---
+kits/**/out/
+kits/**/*.local
+**/verifier-attestation*.json
+**/soak-report*.json
+**/ceremony-transcript*.json
+
+# built TypeScript outputs (all dist/ are tsc build products)
+**/dist/

@@ -1,0 +1,39 @@
+# S7 denylist — real company/product names that must NEVER appear as placeholder data in AINRA code or fixtures
+# (Charter S7 / brief §0). Registrars are registrar-NN; operators are acme / globex / operator-NN placeholders.
+# One name per line; matched case-insensitively on word boundaries. Comments start with '#'.
+#
+# Scope note: this scans authored CODE + FIXTURES, not the landscape/spec docs — those legitimately cite standards
+# bodies and prior art (Google AP2, Cloudflare Web Bot Auth, W3C, IETF, FIPS, Tessera) as technical references,
+# which is analysis, not impersonation.
+microsoft
+windows
+google
+gmail
+chrome
+android
+apple
+iphone
+amazon
+meta
+facebook
+instagram
+whatsapp
+linkedin
+twitter
+netflix
+stripe
+visa
+mastercard
+paypal
+coinbase
+oracle
+salesforce
+adobe
+nvidia
+samsung
+disney
+walmart
+tesla
+spotify
+airbnb
+uber

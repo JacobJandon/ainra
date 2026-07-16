@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AINRA console — live verify (local)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Inter:wght@400;500;600&family=B612+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{--green:#1A6B4E;--green-br:#57C08F;--ink:#0B1220;--paper:#F5F6F3;--card:#FFFFFF;--line:#E2E5DF;--muted:#5A6372;
+  --display:'Bricolage Grotesque','Inter',sans-serif;--body:'Inter',system-ui,sans-serif;--mono:'B612 Mono',ui-monospace,monospace}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body)}
+header{background:var(--ink);color:#E7EAF0;padding:18px 0}
+header .wrap{display:flex;align-items:center;gap:14px}
+header b{font-family:var(--mono);font-size:12px;letter-spacing:.14em}
+header span{font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:#98A1B3}
+header a{color:var(--green-br);font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-decoration:none;margin-left:auto}
+.wrap{max-width:1180px;margin:0 auto;padding:0 24px}
+main{padding:36px 0 80px}
+h1{font-family:var(--display);font-weight:800;font-size:clamp(1.4rem,3vw,2rem);letter-spacing:-.02em;margin:0 0 6px}
+.lede{color:var(--muted);font-size:14.5px;max-width:70ch;line-height:1.6;margin:0 0 30px}
+.lede code{font-family:var(--mono);background:var(--card);border:1px solid var(--line);border-radius:4px;padding:1px 5px}
+.spec{display:grid;grid-template-columns:minmax(320px,520px) 1fr;gap:28px;margin-bottom:44px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px}
+@media(max-width:900px){.spec{grid-template-columns:1fr}}
+.pages img{width:100%;height:auto;display:block;border-radius:10px;border:1px solid var(--line)}
+.tabs{display:flex;gap:6px;margin-bottom:10px}
+.tabs button{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.08em;border:1px solid var(--line);border-radius:6px;padding:6px 12px;color:var(--muted);background:var(--paper);cursor:pointer}
+.tabs button[aria-pressed="true"]{background:var(--green);border-color:var(--green);color:#fff}
+.panel h2{font-family:var(--mono);font-size:12px;letter-spacing:.12em;color:var(--green);text-transform:uppercase;margin:0 0 4px}
+.panel .sub{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.04em;margin-bottom:16px;word-break:break-all}
+.field{margin-bottom:12px}
+.field label{display:block;font-family:var(--mono);font-size:9px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase;margin-bottom:5px}
+select{font-family:var(--mono);font-size:12px;padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:var(--paper);color:var(--ink);width:100%;max-width:430px}
+.hint{font-size:12.5px;color:var(--muted);margin-top:6px;line-height:1.5;min-height:2.6em}
+.go{font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:.08em;border:none;border-radius:8px;padding:11px 22px;background:var(--green);color:#fff;cursor:pointer;margin-top:6px}
+.go:hover{background:#15593F}
+.out{margin-top:18px;border-top:1px dashed var(--line);padding-top:16px;min-height:64px}
+.verdict{font-family:var(--mono);font-size:13px;font-weight:700;letter-spacing:.06em;display:inline-block;padding:6px 13px;border-radius:6px;border:2px solid}
+.v-valid{color:var(--green);border-color:var(--green)}
+.v-invalid{color:var(--muted);border-color:var(--muted)}
+.meta{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.06em;margin-top:9px}
+footer{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.06em;border-top:1px solid var(--line);padding:18px 0}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <b>AINRA CONSOLE</b><span>LOCAL · 127.0.0.1 · ZERO TELEMETRY</span>
+  <a href="/landing">LANDING ↗</a>
+</div></header>
+<main><div class="wrap">
+  <h1>Live verify — real credentials, real verifier</h1>
+  <p class="lede">Each specimen below is a genuinely signed passport (Ed25519 + ML-DSA-65, RFC 6962 log inclusion,
+    SLH-DSA checkpoint). Pick a tamper switch and press VERIFY: the server mutates the presentation and runs the
+    actual <code>packages/sdk-ts</code> verifier — the verdict you see is computed live, never canned. Every failure
+    maps to one closed machine reason.</p>
+  <div id="specs"></div>
+</div></main>
+<footer><div class="wrap">AINRA — AGENT IDENTITY &amp; NAMING REGISTRY AUTHORITY · SPECIMEN DATA · make console</div></footer>
+<script>
+const state = {};
+async function boot(){
+  const r = await fetch('/api/samples'); const {samples, tampers} = await r.json();
+  const root = document.getElementById('specs');
+  for(const s of samples){
+    const id = s.kind;
+    state[id] = {side:'data'};
+    const opts = tampers.filter(t=>!t.onlyFor||t.onlyFor===s.kind)
+      .map(t=>`<option value="${t.id}" data-hint="${t.hint.replace(/"/g,'&quot;')}">${t.label}</option>`).join('');
+    const el = document.createElement('div'); el.className='spec'; el.innerHTML = `
+      <div class="pages">
+        <div class="tabs">
+          ${['cover','data','stamps'].map(side=>`<button data-k="${id}" data-side="${side}" aria-pressed="${side==='data'}">${side.toUpperCase()}</button>`).join('')}
+        </div>
+        <img id="img-${id}" src="${s.sides.data}" alt="${id} passport page">
+      </div>
+      <div class="panel">
+        <h2>${id} specimen</h2>
+        <div class="sub">${s.sub} · ${s.tier}</div>
+        <div class="field"><label>Tamper switch</label>
+          <select id="t-${id}">${opts}</select>
+          <div class="hint" id="h-${id}"></div>
+        </div>
+        <button class="go" data-k="${id}">VERIFY ▸</button>
+        <div class="out" id="out-${id}"></div>
+      </div>`;
+    root.appendChild(el);
+    const sel = el.querySelector(`#t-${id}`);
+    const hint = el.querySelector(`#h-${id}`);
+    const setHint = ()=>{hint.textContent = sel.selectedOptions[0].dataset.hint;};
+    sel.addEventListener('change', setHint); setHint();
+  }
+  root.addEventListener('click', async e=>{
+    const b = e.target.closest('button'); if(!b) return;
+    const k = b.dataset.k; if(!k) return;
+    if(b.dataset.side){
+      state[k].side = b.dataset.side;
+      document.getElementById('img-'+k).src = `/samples/passport-${k}-${b.dataset.side}.svg`;
+      b.parentElement.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed', x===b?'true':'false'));
+      return;
+    }
+    const tamper = document.getElementById('t-'+k).value;
+    const out = document.getElementById('out-'+k);
+    out.innerHTML = '<span class="meta">verifying…</span>';
+    const r = await fetch('/api/verify',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({kind:k,tamper})});
+    const d = await r.json();
+    if(d.error){ out.innerHTML = `<span class="meta">error: ${d.error}</span>`; return; }
+    const ok = d.verdict.verdict==='valid';
+    out.innerHTML = `<span class="verdict ${ok?'v-valid':'v-invalid'}">${ok?'{"verdict":"valid"}':`{"verdict":"invalid","reason":"${d.verdict.reason}"}`}</span>
+      <div class="meta">verified in ${d.verify_micros} µs · sdk-ts · tamper: ${d.tamper}</div>`;
+  });
+}
+boot();
+</script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+{
+  "name": "@ainra/middleware",
+  "version": "0.1.0",
+  "description": "AINRA verifier middleware \u2014 a fail-closed gate (Connect/Express + framework-agnostic) that verifies an AINRA passport on a request, over @ainra/sdk. The verification wedge: local, offline, ~5-line integration.",
+  "license": "Apache-2.0 OR MIT",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@ainra/sdk": "file:../sdk-ts"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "typescript": "^5.6.0"
+  }
+}

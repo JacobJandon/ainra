@@ -1,0 +1,36 @@
+# SPDX-License-Identifier: Apache-2.0 OR MIT
+# Standalone cargo-fuzz crate (its own workspace; not built by the main workspace). MTS §28 targets: the SD-JWT
+# parser, the TSL codec, and the canonical encoder. Run with: cargo +nightly fuzz run <target>
+[package]
+name = "ainra-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+ainra-core = { path = "../crates/ainra-core" }
+serde_json = "1"
+
+[[bin]]
+name = "passport"
+path = "fuzz_targets/passport.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "tsl"
+path = "fuzz_targets/tsl.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "canon"
+path = "fuzz_targets/canon.rs"
+test = false
+doc = false
+
+[workspace]

@@ -1,0 +1,30 @@
+# SPDX-License-Identifier: Apache-2.0 OR MIT
+[package]
+name = "ainra-ceremony"
+description = "AINRA root ceremony — the SIGNING side (never in the verify path). Runs FROST 5-of-9 threshold Ed25519 (audited ZF frost-ed25519, RFC 9591) paired with an SLH-DSA-SHA2-128s ceremony root, produces the dual-root-signed genesis directory + delegate certificates, and emits a replayable transcript. The threshold root emits standard RFC 8032 signatures, so ainra-core verifies them with plain Ed25519 — a verifier cannot tell the root is thresholdized."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[dependencies]
+ainra-core = { path = "../ainra-core" }
+frost-ed25519 = { version = "3" }
+rand_chacha = { version = "0.3", default-features = false }
+rand_core = { workspace = true }
+serde = { workspace = true, features = ["std"] }
+serde_json = { workspace = true, features = ["std"] }
+sha2 = { workspace = true }
+
+[[bin]]
+name = "ceremony"
+path = "src/bin/ceremony.rs"
+
+[[bin]]
+name = "accredit"
+path = "src/bin/accredit.rs"

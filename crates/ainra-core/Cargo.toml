@@ -1,0 +1,32 @@
+# SPDX-License-Identifier: Apache-2.0 OR MIT
+[package]
+name = "ainra-core"
+description = "AINRA reference verify/issue core: types, canonical encoding, hybrid sign/verify, chain evaluator, TSL codec, RFC 6962 proof verify. No I/O, no network."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+sha2 = { workspace = true }
+base64ct = { workspace = true }
+flate2 = { workspace = true }
+# Cryptography — only audited libraries (MTS §3, §24). No bespoke primitives.
+ed25519-dalek = { workspace = true }
+ml-dsa = { workspace = true }
+slh-dsa = { workspace = true }
+signature = { workspace = true }
+rand_core = { workspace = true }
+
+[dev-dependencies]
+proptest = { workspace = true }
+hex = { workspace = true }
+rand_chacha = { version = "0.3", default-features = false }   # seeded CSPRNG for reproducible crypto-test keys

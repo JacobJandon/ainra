@@ -122,6 +122,11 @@ genesis-local:
 verifier-kit-smoke:
 	bash tools/verifier-kit-smoke.sh
 
+# M9 — Ceremony dry-run: rehearse the operator choreography on N 'machines', run the real dual-root ceremony
+# (TEST-ROOT), and an independent witness recomputes the transcript hash + verifies every custodian; fails loud.
+ceremony-dry-run:
+	bash tools/ceremony-dry-run.sh $(or $(N),5)
+
 # M7 — reproducibility + mirrors + docs freeze.
 # Prove the published artifact set rebuilds byte-for-byte (twice, and == committed); emit MANIFEST.sha256.
 repro:

@@ -1,0 +1,20 @@
+{
+  "name": "ainra-verifier-kit",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Become an independent AINRA verifier: verify a passport with the root dark, reject a revoked and a forged one, and emit a signed attestation. Uses ONLY the published @ainra/sdk.",
+  "license": "Apache-2.0 OR MIT",
+  "bin": {
+    "ainra-verify-kit": "verify-kit.mjs",
+    "ainra-check-attestation": "check-attestation.mjs"
+  },
+  "scripts": {
+    "verify": "node verify-kit.mjs",
+    "check": "node check-attestation.mjs"
+  },
+  "dependencies": {
+    "@ainra/sdk": "file:../../packages/sdk-ts"
+  },
+  "comment": "A stranger installs the PUBLISHED package instead: replace the dependency with \"@ainra/sdk\": \"^0.1.0\" and `npm install`. The kit imports only @ainra/sdk's public Verifier — never any internal crate or the sdk source."
+}

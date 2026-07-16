@@ -1,0 +1,116 @@
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+// AINRA External Verifier Kit — become "external verifier #N".
+//
+// This runs a stranger's OWN machine against a set of published AINRA artifacts (a directory + roots + bundles) and
+// proves, using ONLY the published @ainra/sdk, that:
+//   1. a genuine passport verifies VALID with the ROOT DARK (we hold only the directory + roots, never the root key),
+//   2. a revoked passport verifies INVALID with reason `revoked`,
+//   3. a FORGED all-clear status verifies INVALID with reason `stale_status` (the presenter cannot un-revoke it).
+// It then emits `verifier-attestation.json` — signed by the verifier's own fresh Ed25519 key — recording their
+// public key, the SHA-256 of every artifact they checked, their verdicts, the SDK version, and a timestamp. We can
+// collect that attestation as evidence WITHOUT trusting the verifier's word: `check-attestation.mjs` verifies the
+// signature, recomputes the artifact hashes against the canonical published set, and confirms the verdicts.
+//
+//   node verify-kit.mjs --artifacts <dir> [--now <unix>] [--out verifier-attestation.json]
+//
+// The kit imports nothing but @ainra/sdk (the public Verifier) and Node built-ins. No internal crates, no telemetry.
+
+import { readFileSync, writeFileSync } from "node:fs";
+import { createHash, generateKeyPairSync, sign as edSign } from "node:crypto";
+import { deflateSync } from "node:zlib";
+import { Verifier } from "@ainra/sdk";
+
+function arg(name, def) {
+  const i = process.argv.indexOf(`--${name}`);
+  return i >= 0 && i + 1 < process.argv.length ? process.argv[i + 1] : def;
+}
+const dir = arg("artifacts", new URL("./sample-artifacts", import.meta.url).pathname);
+const outPath = arg("out", "verifier-attestation.json");
+const read = (f) => readFileSync(`${dir}/${f}`, "utf8");
+const readJson = (f) => JSON.parse(read(f));
+const sha256 = (s) => createHash("sha256").update(s).digest("hex");
+const sortedStringify = (o) => JSON.stringify(o, Object.keys(o).sort());
+
+// `now` for freshness: the sample bundles carry their issued-at in meta.json; a live run passes --now (real time).
+let now = Number(arg("now", "0"));
+if (!now) {
+  try { now = readJson("meta.json").now; } catch { now = Math.floor(Date.now() / 1000); }
+}
+
+const directory = readJson("directory.json");
+const roots = readJson("roots.json");
+const bundleValid = readJson("bundle-valid.json");
+const bundleRevoked = readJson("bundle-revoked.json");
+
+// Build the verifier ROOT DARK — it holds only the published directory + the two root public keys, never a secret.
+const verifier = Verifier.fromDirectoryB64(directory, roots.root_ed25519, roots.root_slh);
+if (!verifier) {
+  console.error("FAIL: the directory is not trust-anchored by the given roots (untrusted directory)");
+  process.exit(2);
+}
+
+// Forge an all-clear status from the revoked bundle (the attack every verifier must reject): rewrite the status
+// bitmap to all-zero (nobody revoked) + re-stamp it fresh, WITHOUT re-signing. Standard zlib; self-contained.
+function forgeAllClear(bundle) {
+  const forged = structuredClone(bundle);
+  const nBytes = Math.ceil(Number(bundle.status_len) / 8);
+  forged.status_list = deflateSync(Buffer.alloc(nBytes)).toString("base64url");
+  forged.status_issued_at = now;
+  forged.freshness = "F1";
+  return forged;
+}
+const bundleForged = forgeAllClear(bundleRevoked);
+
+// Run the three checks with the real SDK.
+const vValid = verifier.verify(bundleValid, now);
+const vRevoked = verifier.verify(bundleRevoked, now);
+const vForged = verifier.verify(bundleForged, now);
+
+const checks = [
+  { name: "genuine passport (root dark)", expect: "valid", got: vValid },
+  { name: "revoked passport", expect: "invalid:revoked", got: vRevoked },
+  { name: "forged all-clear status", expect: "invalid:stale_status", got: vForged },
+];
+const asStr = (v) => (v.verdict === "valid" ? "valid" : `invalid:${v.reason}`);
+let allPass = true;
+console.log(`AINRA verifier kit — artifacts: ${dir} · now: ${now} · sdk-verify (root dark)\n`);
+for (const c of checks) {
+  const got = asStr(c.got);
+  const ok = got === c.expect;
+  allPass = allPass && ok;
+  console.log(`  ${ok ? "✓" : "✗"} ${c.name} → ${got} (expected ${c.expect})`);
+}
+if (!allPass) {
+  console.error("\nFAIL: a conformant AINRA verifier must produce all three verdicts above. No attestation written.");
+  process.exit(1);
+}
+
+// Emit a signed attestation. The verifier's OWN fresh Ed25519 key signs the body (standard node:crypto — no bespoke
+// crypto). We collect it later without trusting their word: verify the signature + recompute the artifact hashes.
+const { publicKey, privateKey } = generateKeyPairSync("ed25519");
+const body = {
+  kind: "ainra/verifier-attestation/v1",
+  verifier_pubkey_spki_b64: publicKey.export({ type: "spki", format: "der" }).toString("base64"),
+  sdk: (() => {
+    try {
+      return JSON.parse(readFileSync(new URL("./node_modules/@ainra/sdk/package.json", import.meta.url), "utf8")).version;
+    } catch {
+      return "unknown";
+    }
+  })(),
+  now,
+  artifacts_sha256: {
+    "directory.json": sha256(read("directory.json")),
+    "roots.json": sha256(read("roots.json")),
+    "bundle-valid.json": sha256(read("bundle-valid.json")),
+    "bundle-revoked.json": sha256(read("bundle-revoked.json")),
+  },
+  verdicts: { valid: asStr(vValid), revoked: asStr(vRevoked), forged: asStr(vForged) },
+};
+const sig = edSign(null, Buffer.from(sortedStringify(body)), privateKey).toString("base64");
+const attestation = { body, sig_ed25519_b64: sig };
+writeFileSync(outPath, JSON.stringify(attestation, null, 2) + "\n");
+
+console.log(`\n✓ all three verdicts conformant — wrote a signed attestation → ${outPath}`);
+console.log("  Send it to the AINRA maintainers; they verify it without trusting you:");
+console.log("    node check-attestation.mjs --attestation " + outPath + " --canonical " + dir);

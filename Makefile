@@ -1,6 +1,6 @@
 # AINRA — the acceptance bar (MTS §28, brief §8): a stranger clones, runs `make test && make vectors && make diff`,
 # and everything is green in under 10 minutes on a laptop.
-.PHONY: all test vectors vectors-check diff fmt clippy fuzz-smoke bench sdk-build sdk-test ci clean status console samples drill explorer demo scale ceremony testbed wedge-build wedge-test repro mirror verify-mirror check-freeze freeze genesis-local
+.PHONY: all test vectors vectors-check diff fmt clippy fuzz-smoke bench sdk-build sdk-test ci clean status console samples drill explorer demo scale ceremony testbed wedge-build wedge-test repro mirror verify-mirror check-freeze freeze genesis-local verifier-kit-smoke ceremony-dry-run soak-smoke drill-networked
 
 all: fmt clippy test vectors diff
 
@@ -116,6 +116,11 @@ status:
 # verify → revoke → forged rejected → witness-quorum fork caught → transcript. Artifacts land in genesis-out/.
 genesis-local:
 	bash tools/genesis-local.sh "$(or $(OUT),genesis-out)"
+
+# M9 — External Verifier Kit smoke: a stranger verifies root-dark + rejects revoked/forged with ONLY the
+# published @ainra/sdk, and emits a signed attestation we collect without trusting them.
+verifier-kit-smoke:
+	bash tools/verifier-kit-smoke.sh
 
 # M7 — reproducibility + mirrors + docs freeze.
 # Prove the published artifact set rebuilds byte-for-byte (twice, and == committed); emit MANIFEST.sha256.

@@ -1,0 +1,13 @@
+{
+  "name": "ainra-soak-harness",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Measure AINRA revocation-propagation latency from >=3 vantage points into an append-only, hash-chained log; render a live status page + a signed tamper-evident soak-report from the REAL measurements. No hardcoded latencies.",
+  "license": "Apache-2.0 OR MIT",
+  "bin": { "ainra-soak": "soak.mjs" },
+  "dependencies": {
+    "@ainra/sdk": "file:../../packages/sdk-ts"
+  },
+  "comment": "A vantage point is a real AINRA verifier (published @ainra/sdk) that polls a registrar and times when a revocation becomes visible. For a real 3-region soak, run one process per region against the registrar's public URL; the report is generated from what each region actually measured."
+}

@@ -127,6 +127,11 @@ verifier-kit-smoke:
 ceremony-dry-run:
 	bash tools/ceremony-dry-run.sh $(or $(N),5)
 
+# M9 — Soak instrument smoke: real registrar, issue+revoke, measure propagation from 3 vantage points into a
+# hash-chained log, signed report + SLO flag (fail closed). Real soak = same instrument, --duration-sec + regions.
+soak-smoke:
+	bash tools/soak-smoke.sh $(or $(CYCLES),20)
+
 # M7 — reproducibility + mirrors + docs freeze.
 # Prove the published artifact set rebuilds byte-for-byte (twice, and == committed); emit MANIFEST.sha256.
 repro:

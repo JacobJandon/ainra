@@ -1,5 +1,6 @@
 <!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Claim & Reach — AINRA</title><meta name="description" content="Claim existing agents by proving control — by key, wallet, or domain — and make them safely reachable. Provenance preserved; the root never carries a message.">
+<style>
 :root{
   --ink:#0B1220; --ink-2:#111B30; --paper:#F5F6F3; --card:#FFFFFF;
   --green:#1A6B4E; --green-br:#57C08F; --muted:#5A6372; --line:#E2E5DF;
@@ -66,10 +67,10 @@ nav{position:sticky;top:0;z-index:50;background:rgba(245,246,243,.86);backdrop-f
 
 /* passport — right of hero, full data */
 .pass-wrap{perspective:1600px;display:flex;justify-content:center}
-.passport{width:min(500px,100%);background:var(--card);border:1px solid var(--line);border-radius:12px;
+.passport{width:min(560px,100%);background:var(--card);border:1px solid var(--line);border-radius:12px;
   box-shadow:0 1px 2px rgba(11,18,32,.05),0 22px 52px -24px rgba(11,18,32,.22);
   position:relative;overflow:hidden;transition:box-shadow .25s ease;will-change:transform}
-.passport::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.45;
+.passport::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.16;
   background:repeating-radial-gradient(circle at 118% -18%,rgba(26,107,78,.05) 0 2px,transparent 2px 10px),
              repeating-radial-gradient(circle at -18% 118%,rgba(26,107,78,.05) 0 2px,transparent 2px 10px)}
 .pass-wm{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;
@@ -138,7 +139,7 @@ section{padding:92px 0}
 .do-cell .not b{color:var(--green)}
 
 .dark{background:var(--ink);color:#E7EAF0;position:relative}
-.dark::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.4;
+.dark::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.13;
   background:repeating-radial-gradient(circle at 112% -22%,rgba(87,192,143,.09) 0 2px,transparent 2px 11px)}
 .dark .eyebrow{color:var(--green-br)}
 .dark .sec-head .lede{color:#98A1B3}
@@ -289,7 +290,7 @@ section{padding:92px 0}
 .faq details p{margin-top:12px;color:var(--muted);font-size:15px;max-width:56ch}
 
 .cta-final{background:var(--ink);color:#fff;border-radius:20px;padding:68px 32px;text-align:center;position:relative;overflow:hidden}
-.cta-final::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.35;
+.cta-final::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.12;
   background:repeating-radial-gradient(circle at 110% -30%,rgba(87,192,143,.12) 0 2px,transparent 2px 10px)}
 .cta-final h2{font-size:clamp(1.9rem,4.4vw,2.9rem);font-weight:760;letter-spacing:-.032em;line-height:1.08}
 .cta-final p{color:rgba(255,255,255,.62);margin:16px auto 30px;max-width:34em;font-size:16px}
@@ -313,8 +314,8 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
 .status .live i{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2.4s infinite}
 @media(max-width:760px){.foot{grid-template-columns:1fr 1fr}}
 
-.rv{opacity:0;transform:translateY(14px)}
-.rv.in{opacity:1;transform:none;transition:opacity .5s ease,transform .5s ease}
+.rv{opacity:0;transform:translateY(22px)}
+.rv.in{opacity:1;transform:none;transition:opacity .7s cubic-bezier(.16,.84,.34,1),transform .7s cubic-bezier(.16,.84,.34,1)}
 @media(prefers-reduced-motion:reduce){
   *{animation:none!important;transition:none!important}
   .rv,.t-line{opacity:1!important;transform:none!important}
@@ -420,4 +421,4 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
     </div>
   </div>
 </footer>
-<script>(function(){const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}}),{threshold:.12});document.querySelectorAll('.rv').forEach(el=>io.observe(el));const b=document.getElementById('burger'),n=document.getElementById('navLinks');if(b&&n)b.addEventListener('click',()=>{const o=n.classList.toggle('open');b.setAttribute('aria-expanded',o)});const f=document.getElementById('ctaForm');if(f){f.addEventListener('submit',e=>{e.preventDefault();const em=document.getElementById('ctaEmail');if(!em.value||!em.value.includes('@')){em.focus();return;}e.target.style.display='none';const ok=document.getElementById('ctaOk');if(ok)ok.style.display='block';});}})();</script></body></html>
+<script>(function(){const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}}),{threshold:.12});document.querySelectorAll('.rv').forEach(function(el){try{var g=[].slice.call(el.parentElement.children).filter(function(c){return c.classList.contains('rv')});el.style.transitionDelay=(Math.min(g.indexOf(el),6)*70)+'ms';}catch(e){}io.observe(el);});const b=document.getElementById('burger'),n=document.getElementById('navLinks');if(b&&n)b.addEventListener('click',()=>{const o=n.classList.toggle('open');b.setAttribute('aria-expanded',o)});const f=document.getElementById('ctaForm');if(f){f.addEventListener('submit',e=>{e.preventDefault();const em=document.getElementById('ctaEmail');if(!em.value||!em.value.includes('@')){em.focus();return;}e.target.style.display='none';const ok=document.getElementById('ctaOk');if(ok)ok.style.display='block';});}})();</script></body></html>

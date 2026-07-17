@@ -42,6 +42,10 @@ const patterns = DENY.map((n) => {
   const esc = n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   return { name: n, re: new RegExp(`(?<![.\\w])${esc}(?![\\w])`, "i") };
 });
+// Narrow, documented allowlist: a denied token that is unmistakably a technical construct, not placeholder DATA
+// impersonating a product. Only `<meta …>` (the HTML tag) so far — a tool that renders HTML (e.g. the genesis board)
+// is not impersonating the company "Meta". Keep this list tiny and specific; never allow a bare brand word.
+const FIXTURE_ALLOW = [{ name: "meta", re: /<meta[\s/>]/i }];
 let hits = 0;
 for (const dir of SCAN_DIRS) {
   for (const file of walk(path.join(ROOT, dir))) {
@@ -49,10 +53,10 @@ for (const dir of SCAN_DIRS) {
     const text = fs.readFileSync(file, "utf8");
     text.split("\n").forEach((line, i) => {
       for (const p of patterns) {
-        if (p.re.test(line)) {
-          hits++;
-          console.error(`  S7 HIT ${path.relative(ROOT, file)}:${i + 1}  "${p.name}"  ${line.trim().slice(0, 80)}`);
-        }
+        if (!p.re.test(line)) continue;
+        if (FIXTURE_ALLOW.some((a) => a.name === p.name && a.re.test(line))) continue;
+        hits++;
+        console.error(`  S7 HIT ${path.relative(ROOT, file)}:${i + 1}  "${p.name}"  ${line.trim().slice(0, 80)}`);
       }
     });
   }

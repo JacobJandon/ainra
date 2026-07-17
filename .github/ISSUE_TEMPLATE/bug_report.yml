@@ -1,0 +1,51 @@
+# SPDX-License-Identifier: Apache-2.0 OR MIT
+name: Bug report
+description: Something is broken or behaves incorrectly (NOT an exploitable security bug — those go to SECURITY.md).
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. **First, the security gate below** — if your finding lets a revoked or forged passport
+        verify VALID, breaks the both-signatures-or-invalid rule, forges a witness quorum, or mishandles key material,
+        it is a **security vulnerability**: do **not** file it here — follow [SECURITY.md](../../SECURITY.md).
+  - type: checkboxes
+    id: not-security
+    attributes:
+      label: Security gate
+      options:
+        - label: This is NOT an exploitable security vulnerability (if unsure, treat it as one and use SECURITY.md).
+          required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version / commit
+      description: Output of `git rev-parse --short HEAD` (or the release tag).
+      placeholder: e.g. 6bf0457 / v0.1.0
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Reproduction
+      description: The exact commands you ran and what happened. Prefer a `make` target or a minimal command.
+      placeholder: |
+        $ make preflight
+        ... (paste the relevant output)
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected vs actual
+      description: What you expected, and what actually happened.
+    validations:
+      required: true
+  - type: textarea
+    id: env
+    attributes:
+      label: Environment
+      description: Output of `make doctor` (or Rust/Node/OS versions). See TOOLCHAIN.md for the supported set.
+      placeholder: rustc 1.96 · node 22 · Linux
+    validations:
+      required: false

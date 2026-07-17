@@ -87,8 +87,9 @@ been done for you (no remote exists, nothing is pushed) — that is deliberate.
 
 1. **Final green from a clean clone.** `git clone . /tmp/ainra-check && cd /tmp/ainra-check && make preflight` → the
    board must read **ALL GREEN**, and `make audit` → **AUDIT OK**. (M11 keeps this true; re-run if in doubt.)
-2. **Set the owner.** One repo-wide find/replace: `<owner>` → your GitHub org/user (it appears only in the README CI
-   badge). Commit it.
+2. **Set the owner.** One repo-wide find/replace: `<owner>` → your GitHub org/user. The functional placeholders are the
+   README CI badge and `.github/ISSUE_TEMPLATE/config.yml` (security + question links); a single find/replace covers
+   both (and the prose mentions in docs read correctly too). Commit it.
 3. **Tag the first release.** `make release` (refuses a dirty tree or a red preflight; writes `dist/` + a checksum
    manifest), then `git tag -s v0.1.0 -m "AINRA v0.1.0"` (or `-a` if you're not signing yet). See `CHANGELOG.md`.
 4. **Create the empty public repo** on GitHub under `<owner>/ainra`. Do NOT initialize it with a README/license (this

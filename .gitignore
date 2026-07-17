@@ -50,3 +50,6 @@ kits/verifier/challenge/
 
 # stray build artifact (never commit)
 *.zip
+
+# generated board output (render with: make genesis-status)
+genesis-board*.html

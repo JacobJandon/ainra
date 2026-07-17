@@ -19,9 +19,9 @@ AINRA is a **neutral root**: the bar is high and the rules are mechanical, on pu
 Requires Rust `1.96` (pinned in `rust-toolchain.toml`) and Node 18+.
 
 ```sh
+make preflight      # the one-command board a reviewer expects green: build+test · diff · genesis-local · kit smokes · S7 · license · repro
+make audit          # the publish gate: S7 (incl. commit messages) · license headers · gitleaks over full history
 make ci             # fmt · clippy -D warnings · test (release) · vectors · diff · sdk-test · S7 · license · N7 · fuzz
-make diff           # the 3-way differential must stay 684/684 (core · sdk-ts · P0)
-make genesis-local  # the whole-stack end-to-end must stay green
 ```
 CI (`.github/workflows/ci.yml`) runs all gates on every push/PR, including `make repro`, `make verify-mirror`,
 `make check-freeze`, and the end-to-end integration. **`make test` uses `--release` deliberately** — a debug build

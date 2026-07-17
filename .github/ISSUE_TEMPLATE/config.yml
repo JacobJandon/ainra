@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: Apache-2.0 OR MIT
+# Blank issues are disabled so every report lands in a template — and, most importantly, so a security finding is
+# routed to the PRIVATE path instead of being disclosed in a public issue.
+blank_issues_enabled: false
+contact_links:
+  - name: 🔒 Security vulnerability (revocation bypass, forged passport verifying VALID, quorum forgery, key handling)
+    url: https://github.com/<owner>/ainra/security/policy
+    about: >-
+      STOP — do NOT open a public issue. Exploitable findings go through the private path in SECURITY.md
+      (fail-closed posture; every milestone is adversarially reviewed). Disclosing a live bypass publicly harms users.
+  - name: 💬 Questions / how do I run this?
+    url: https://github.com/<owner>/ainra/blob/main/README.md
+    about: Start with the README, the kit QUICKSTART/DEPLOY/RUNBOOK files, and docs/STATUS.md.

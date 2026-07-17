@@ -1,8 +1,8 @@
 # AINRA — Master Technical Specification v1.0
 **09 July 2026 · Production-grade specification for the working prototype ("Genesis") and its migration path**
-**Internal engineering document.** Technology and ecosystem names permitted; Charter rule S7 (placeholder registrars only, e.g. `registrar-07`) applies to every example and test fixture. No invented data: figures are either measured in-environment (marked **[measured]**), verified against published standards (marked with RFC/FIPS), carried from the July-2026 field sweeps (Campaign §6), or explicitly marked **[estimate]**.
+**Engineering companion specification** to the public Standard. Names only technologies and standards bodies (RFCs, FIPS, IETF/NIST/FIDO work) — never commercial third parties, per Charter rule S7, which also mandates placeholder registrars only (e.g. `registrar-07`) in every example and test fixture. No invented data: figures are either measured in-environment (marked **[measured]**), verified against published standards (marked with RFC/FIPS), carried from July-2026 field research, or explicitly marked **[estimate]**.
 
-**Provenance.** Consolidates: Standard v5.0, Campaign §1–7 (incl. field sweeps 6.1–6.5), Doctrine, P0 CLI v0.1.0 (shipped, tamper-tested), P1 Prototype Specification (09 Jul 2026), landing v1–v11 decisions, and all prior drafts. Where this document contradicts an earlier one, **this document wins and the change is logged below**.
+**Provenance.** Consolidates: the public Standard v5.0, July-2026 field research, Doctrine, P0 CLI v0.1.0 (shipped, tamper-tested), P1 Prototype Specification (09 Jul 2026), and all prior drafts. Where this document contradicts an earlier one, **this document wins and the change is logged below**.
 
 ---
 
@@ -68,7 +68,7 @@ The gap AINRA fills: a **facts-only, vendor-neutral root** — standardized *inp
 | N11 | Maintainability | ≤ 1 kLoC bespoke security-critical code; two-maintainer rule; reproducible builds |
 | N12 | Upgradeability | Algorithm agility via root-signed policy objects; deprecation windows ≥ 180 days |
 
-## 5. Competitive Landscape Analysis (condensed; full dossiers: Campaign §6)
+## 5. Competitive Landscape Analysis (condensed, by pattern — no commercial third parties named)
 
 **Clusters.** (a) *Payment-adjacent KYA*: token-based agent auth accepted across major bot managers; bureau scoring layered on top; the flagship I-D explicitly disclaims defining agent identity "in its entirety" — our interoperability door. (b) *CA/PKI*: an incumbent markets an agent passport with DNS-anchored policy records — root-aspirant via existing DNS trust. (c) *Chain-native*: agent registries at 10⁵ scale; composite identity+wallet platforms. (d) *Platform IdPs*: enterprise agent IDs inside existing directories. (e) *Proof-of-personhood*: zk human-delegation at 10⁷-user scale → maps to our A1. (f) *Venues*: NIST CAISI agent-standards initiative; FIDO agentic-auth WG; IETF drafts (ANS; KYA/pay profiles). **Posture:** align and profile, never re-implement; the root federates the clusters that today integrate pairwise.
 
@@ -276,8 +276,8 @@ BOM (verify-path): @noble/{curves,hashes,post-quantum} (MIT, audited); ed25519-d
 
 | # | Risk | L×I | Trigger | Mitigation / owner |
 |---|---|---|---|---|
-| 1 | Adoption fails (root conferred to no one) | M×H | K-gates (K1 15 Aug; K2 31 Oct) | Campaign pivot ladder; tech stays useful as conformance suite |
-| 2 | Proto-root with scores entrenches first | M×H | field standings (K3 AMBER) | interop posture: accept their tokens as inputs; facts-vs-scores positioning |
+| 1 | Adoption fails (root conferred to no one) | M×H | no external conferral by the gate dates | pivot ladder (authorship-only → verifier-middleware → honest archive); tech stays useful as a conformance suite |
+| 2 | Proto-root with scores entrenches first | M×H | a scoring incumbent reaches root scale first | interop posture: accept their tokens as inputs; facts-vs-scores positioning |
 | 3 | SD-JWT VC churn | M×L | draft-17+ breaking | vct pin; claim-level migration |
 | 4 | Threshold-PQ never matures | M×M | §31 watch | ceremony cadence acceptable indefinitely; SLH root unaffected |
 | 5 | Witness recruitment <3 | L×H | M6 | network onboarding + funded seats + litewitness cheapness |

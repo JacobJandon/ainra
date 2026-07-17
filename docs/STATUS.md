@@ -260,4 +260,4 @@ all fixed and gate-tested before this status:
 ## Next
 
 M4 per MTS §27: FROST integration end-to-end + public rehearsal ceremony; delegate rotation; verifier middleware +
-explorer on a live testbed (M5). See `PLAN.md` / `PLAN-M3.md`.
+explorer on a live testbed (M5). See `PLAN-M3.md`.

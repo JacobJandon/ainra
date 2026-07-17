@@ -358,8 +358,8 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
   <a class="brand" href="index.html" aria-label="AINRA — Agent Identity and Naming Registry Authority">
     <span class="sigil" aria-hidden="true"><svg viewBox="0 0 112 112"><use href="#ainra-sigil"/></svg></span>
     <span class="wm">AINRA</span><span class="mean">Agent Identity &amp; Naming<br>Registry Authority</span></a>
-  <div class="nav-links" id="navLinks"><a href="index.html">The root</a><a href="standard.html" style="color:var(--green)">Standard</a><a href="verify.html">Verify</a><a href="claim.html">Claim &amp; Reach</a><a href="foundations.html">Foundations</a><a href="status.html">Status</a><a href="faq.html">FAQ</a></div>
-  <div style="display:flex;gap:10px;align-items:center"><a class="btn btn-ink" href="join.html">Get involved</a>
+  <div class="nav-links" id="navLinks"><a href="index.html">The root</a><a href="standard.html" style="color:var(--green)">Standard</a><a href="verify.html">Verify</a><a href="claim.html">Claim &amp; Reach</a><a href="foundations.html">Foundations</a><a href="status.html">Status</a><a href="foundations.html#faq">FAQ</a></div>
+  <div style="display:flex;gap:10px;align-items:center"><a class="btn btn-ink" href="index.html#access">Get involved</a>
   <button class="burger" id="burger" aria-label="Menu" aria-expanded="false">≡</button></div></div></nav>
 <main><section style="padding-top:118px"><div class="wrap"><div class="sec-head rv">
 <span class="eyebrow">Document I · Public normative specification</span>
@@ -467,7 +467,7 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
 
 <h1>PART II — THE PUBLIC RECORD &amp; EXPLORERS</h1>
 
-<p>The record — every passport, registrar, checkpoint, revocation — is public, witness-cosigned, and shows <b>what exists, never what agents did</b>. Independent explorers render it; <b>the root operates no explorer and funds none.</b> The first, <b>AINRAscan</b>, is a separately governed public-benefit organization; sustainability from grants and donations, never listing fees or root budget. Explorer requirements (any implementation claiming conformance): facts, never scores; no rankings, ads, or promotion; mechanical ordering, labeled; structurally identical registrar pages; every fact one click from its cryptographic proof; client-side verification available (&quot;don&#x27;t trust, verify&quot;); open-source and mirrorable. Search grammar: free text plus typed prefixes <code>name: lineage: operator: registrar: log: witness: tier: class:</code>, grouped by object type, ordered by recency, zero personalization. Freshness SLOs: log-to-page &lt;30 s; revocation-to-page &lt;5 s. Root→explorer interface: public endpoints only, identical to what any mirror receives — no funding, staffing, instruction, emphasis, or private channel.</p>
+<p>The record — every passport, registrar, checkpoint, revocation — is public, witness-cosigned, and shows <b>what exists, never what agents did</b>. Independent explorers render it; <b>the root operates no explorer and funds none.</b> Explorer requirements (any implementation claiming conformance): facts, never scores; no rankings, ads, or promotion; mechanical ordering, labeled; structurally identical registrar pages; every fact one click from its cryptographic proof; client-side verification available (&quot;don&#x27;t trust, verify&quot;); open-source and mirrorable. Search grammar: free text plus typed prefixes <code>name: lineage: operator: registrar: log: witness: tier: class:</code>, grouped by object type, ordered by recency, zero personalization. Freshness SLOs: log-to-page &lt;30 s; revocation-to-page &lt;5 s. Root→explorer interface: public endpoints only, identical to what any mirror receives — no funding, staffing, instruction, emphasis, or private channel.</p>
 
 <hr>
 
@@ -521,19 +521,18 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
       <div>
         <h4>Ecosystem</h4>
         <ul>
-          <li><a href="foundations.html#record">AINRAscan — independent explorer</a></li>
           <li><a href="verify.html#align">Where you plug in</a></li>
           <li><a href="verify.html#tiers">Assurance tiers</a></li>
-          <li><a href="claim.html#how">The lifecycle</a></li>
+          <li><a href="index.html#how">The lifecycle</a></li>
         </ul>
       </div>
       <div>
         <h4>Root</h4>
         <ul>
-          <li><a href="foundations.html#does">What the root does</a></li>
+          <li><a href="index.html#does">What the root does</a></li>
           <li><a href="foundations.html">Foundations</a></li>
-          <li><a href="faq.html">FAQ</a></li>
-          <li><a href="join.html">Get involved</a></li>
+          <li><a href="foundations.html#faq">FAQ</a></li>
+          <li><a href="index.html#access">Get involved</a></li>
         </ul>
       </div>
     </div>
@@ -544,4 +543,119 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
     </div>
   </div>
 </footer>
-<script>(function(){const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}}),{threshold:.12});document.querySelectorAll('.rv').forEach(function(el){try{var g=[].slice.call(el.parentElement.children).filter(function(c){return c.classList.contains('rv')});el.style.transitionDelay=(Math.min(g.indexOf(el),6)*70)+'ms';}catch(e){}io.observe(el);});const b=document.getElementById('burger'),n=document.getElementById('navLinks');if(b&&n)b.addEventListener('click',()=>{const o=n.classList.toggle('open');b.setAttribute('aria-expanded',o)});const f=document.getElementById('ctaForm');if(f){f.addEventListener('submit',e=>{e.preventDefault();const em=document.getElementById('ctaEmail');if(!em.value||!em.value.includes('@')){em.focus();return;}e.target.style.display='none';const ok=document.getElementById('ctaOk');if(ok)ok.style.display='block';});}})();</script></body></html>
+<script>
+(function(){
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const touch = matchMedia('(pointer: coarse)').matches;
+  const $ = id => document.getElementById(id);
+
+  /* mobile menu */
+  const burger=$('burger'), links=$('navLinks');
+  if(burger&&links){
+    burger.addEventListener('click',()=>{const open=links.classList.toggle('open');burger.setAttribute('aria-expanded',open?'true':'false');});
+    links.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>{links.classList.remove('open');burger.setAttribute('aria-expanded','false');}));
+  }
+
+  /* agent portrait — deterministic identicon from passport number */
+  const g=$('portrait');
+  if(g){
+    let h=0; const seed='8F2EC41AINRA';
+    for(let i=0;i<seed.length;i++){h=(h*31+seed.charCodeAt(i))>>>0;}
+    for(let r=0;r<7;r++){
+      const row=[];
+      for(let c=0;c<4;c++){h=(h*1103515245+12345)>>>0;row.push(h%100);}
+      for(let c=0;c<7;c++){const v=row[c<4?c:6-c], el=document.createElement('i');if(v<42)el.className='on';else if(v<52)el.className='gn';g.appendChild(el);}
+    }
+  }
+
+  /* MRZ — two lines of exactly 44 characters */
+  const mrzEl=$('mrz'), vline=$('verifyLine');
+  if(mrzEl&&vline){
+    const L1='P<AINACME<CORP<<INVOICING<AGENT<<<<<<<<<<<<<';
+    const L2='8F2EC41AP3AIN2604117L3<<<HUMANZK1VERIFIED<04';
+    const done=()=>{vline.classList.add('in');};
+    if(reduce){mrzEl.textContent=L1+'\n'+L2;done();}
+    else{
+      let i=0; const full=L1+'\n'+L2;
+      const caret=document.createElement('span'); caret.className='caret';
+      (function tick(){mrzEl.textContent=full.slice(0,i);mrzEl.appendChild(caret);i++;if(i<=full.length)setTimeout(tick,13);else{caret.remove();setTimeout(done,220);}})();
+    }
+  }
+
+  /* subtle pointer tilt */
+  const card=$('passportCard');
+  if(card && !reduce && !touch){
+    const stage=card.parentElement;
+    stage.addEventListener('mousemove',e=>{const r=card.getBoundingClientRect();const x=(e.clientX-r.left)/r.width-.5, y=(e.clientY-r.top)/r.height-.5;card.style.transform=`rotateY(${x*4}deg) rotateX(${-y*4}deg)`;});
+    stage.addEventListener('mouseleave',()=>{card.style.transform='none';});
+  }
+
+  /* copy command */
+  const cp=$('copyBtn');
+  if(cp){
+    cp.addEventListener('click',()=>{if(navigator.clipboard)navigator.clipboard.writeText('npx ainra verify ainra:registrar-07:acme:invoicing@4.2.1');cp.textContent='COPIED ✓';setTimeout(()=>cp.textContent='COPY',1600);});
+  }
+
+  /* reveals */
+  const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}}),{threshold:.12});
+  document.querySelectorAll('.rv').forEach(function(el){try{var gg=[].slice.call(el.parentElement.children).filter(function(c){return c.classList.contains('rv')});el.style.transitionDelay=(Math.min(gg.indexOf(el),6)*70)+'ms';}catch(e){}io.observe(el);});
+
+  /* stat counters */
+  const so=new IntersectionObserver(es=>es.forEach(e=>{
+    if(!e.isIntersecting)return; so.unobserve(e.target);
+    const el=e.target, end=+el.dataset.count;
+    if(reduce){el.textContent=end.toLocaleString();return;}
+    const t0=performance.now(), dur=1100;
+    (function step(t){const p=Math.min(1,(t-t0)/dur), v=Math.round(end*(1-Math.pow(1-p,3)));el.textContent=v.toLocaleString();if(p<1)requestAnimationFrame(step);})(t0);
+  }),{threshold:.6});
+  document.querySelectorAll('[data-count]').forEach(el=>so.observe(el));
+
+  /* terminal */
+  const termOut=$('termOut');
+  if(termOut){
+    const lines=[...termOut.querySelectorAll('.t-line')];
+    const play=()=>{lines.forEach(l=>l.classList.remove('show'));if(reduce){lines.forEach(l=>l.classList.add('show'));return;}lines.forEach((l,i)=>setTimeout(()=>l.classList.add('show'),260+i*340));};
+    const to=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){play();to.unobserve(e.target);}}),{threshold:.4});
+    to.observe(termOut);
+    const rb=$('runBtn'); if(rb)rb.addEventListener('click',play);
+  }
+
+  /* authority rail */
+  const authData=[
+    ['A1 · HUMAN-DELEGATED','A verified person stands behind the agent — proven in zero-knowledge, so accountability exists while privacy stays intact. A signed consent mandate sets scopes, time limits, and spend ceilings; the person can revoke it at any moment, everywhere at once.'],
+    ['A2 · ORGANIZATION-DELEGATED','A verified legal entity is the principal. The mandate is an organizational authorization whose accountability resolves to responsible officers through the registrar of record.'],
+    ['A3 · AGENT-DELEGATED','Another passported agent is the principal. Every hop is dual-signed, scopes can only narrow, depth is capped — and the whole chain stays provable back to its ultimate anchor from the credential alone.'],
+    ['A4 · AUTONOMOUS','Fully self-directed — and declared truthfully as such. Requirements: a reachable governance endpoint, a dead-man renewal timer, and a bond, insurance, or steward of record to climb the tiers. Verifiers choose how much A4 to accept; honest existence is always guaranteed.']
+  ];
+  const authBtns=[...document.querySelectorAll('[data-a]')];
+  authBtns.forEach(b=>b.addEventListener('click',()=>{
+    authBtns.forEach(x=>x.setAttribute('aria-pressed','false'));
+    b.setAttribute('aria-pressed','true');
+    const d=authData[+b.dataset.a], at=$('authTier'), ax=$('authText');
+    if(at)at.textContent=d[0]; if(ax)ax.textContent=d[1];
+  }));
+
+  /* tier rail */
+  const tierData=[
+    ['L0 · DECLARED','Valid keypair + logged registration + revocation endpoint. Permissionless by charter — anyone, including fully on-chain agents. Sandbox and attributed-crawl access.'],
+    ['L1 · ANCHORED','L0 plus verified control of a domain or established wallet history. Rate-limited APIs and low-value machine micropayments.'],
+    ['L2 · OPERATED','L1 plus a KYB-verified legal operator, declared model lineage, and a soulbound lineage. Standard commerce and B2B data exchange.'],
+    ['L3 · BACKED','KYB-verified operator + zero-knowledge principal + liability insurance attestation. The floor for consumer-scale payments and contract execution.'],
+    ['L4 · REGULATED','L3 plus sector license, independent audit, and third-party work validation. High-value autonomous transactions and critical infrastructure.']
+  ];
+  const railBtns=[...document.querySelectorAll('[data-t]')];
+  railBtns.forEach(b=>b.addEventListener('click',()=>{
+    railBtns.forEach(x=>x.setAttribute('aria-pressed','false'));
+    b.setAttribute('aria-pressed','true');
+    const d=tierData[+b.dataset.t], rt=$('railTier'), rx=$('railText');
+    if(rt)rt.textContent=d[0]; if(rx)rx.textContent=d[1];
+  }));
+
+  /* email capture (demo) */
+  const cf=$('ctaForm');
+  if(cf){
+    cf.addEventListener('submit',e=>{e.preventDefault();const em=$('ctaEmail');if(!em.value||!em.value.includes('@')){em.focus();return;}e.target.style.display='none';const ok=$('ctaOk');if(ok)ok.style.display='block';});
+  }
+})();
+</script>
+</body></html>

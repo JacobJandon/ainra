@@ -375,7 +375,7 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
       <a href="claim.html">Claim &amp; Reach</a>
       <a href="foundations.html">Foundations</a>
       <a href="status.html">Status</a>
-      <a href="faq.html">FAQ</a>
+      <a href="foundations.html#faq">FAQ</a>
     </div>
     <div style="display:flex;gap:10px;align-items:center">
       <a class="btn btn-ink" href="#access">Get involved</a>
@@ -552,6 +552,57 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
 
 
 
+
+<section id="does">
+  <div class="wrap">
+    <div class="sec-head rv">
+      <span class="eyebrow">What the root does</span>
+      <h2>Four jobs. Done completely.</h2>
+      <p class="lede">A root is trustworthy in proportion to how little it does. These four functions are held in common — everything else stays with registrars, operators, and verifiers. Even the examples on this page use placeholder registrars: the root treats everyone equally.</p>
+    </div>
+    <div class="does">
+      <div class="do-cell rv">
+        <span class="k">01 · Namespace</span>
+        <h3>Names every agent</h3>
+        <p>One canonical, resolvable name per agent — <span style="font-family:var(--mono);font-size:12px">ainra:registrar:operator:lineage@version</span> — that any system can look up and get the signed passport back.</p>
+        <p>Every lineage also carries an <b>AINRA Number</b> — a compact, check-digited identifier for payment rails and databases. Numbers are never reused: a retired identity stays retired forever.</p>
+        <p class="not"><b>BY DESIGN</b> · NAMES POINT — REGISTRARS SERVE THE FILES.</p>
+      </div>
+      <div class="do-cell rv">
+        <span class="k">02 · Accreditation</span>
+        <h3>Licenses the passport offices</h3>
+        <p>Independent registrars — licensed issuers, enterprise directories, permissionless chains — do the verifying and issuing. The root audits them against published rules and can revoke one wholesale.</p>
+        <p class="not"><b>BY DESIGN</b> · REGISTRARS ISSUE — THE ROOT KEEPS THEM HONEST.</p>
+      </div>
+      <div class="do-cell rv">
+        <span class="k">03 · Root of trust</span>
+        <h3>Anchors one key hierarchy</h3>
+        <p>Every passport chains up to one set of root keys, held in threshold by custodians across jurisdictions. A verifier anywhere checks a passport from anywhere, locally, in milliseconds.</p>
+        <p class="not"><b>BY DESIGN</b> · THE ROOT HOLDS KEYS AND RULES — REGISTRARS HOLD THE RECORDS.</p>
+      </div>
+      <div class="do-cell rv">
+        <span class="k">04 · Revocation &amp; logs</span>
+        <h3>Runs the switch and the record</h3>
+        <p>One revocation feed every verifier subscribes to — a compromised version stops everywhere in under a minute — and every event is sealed in append-only, witness-cosigned logs.</p>
+        <p class="not"><b>BY DESIGN</b> · THE ROOT RECORDS AND PROPAGATES — EVERY VERIFIER DECIDES.</p>
+      </div>
+    </div>
+  </div>
+</section>
+<section style="padding-top:0" id="how">
+  <div class="wrap">
+    <div class="sec-head rv">
+      <span class="eyebrow">The lifecycle</span>
+      <h2>Register. Present. Verify. Revoke.</h2>
+    </div>
+    <div class="steps">
+      <div class="step rv"><h3>Register</h3><p>Through an independent registrar of your class. The lineage gets a soulbound passport, authority class declared, event sealed in the public log.</p></div>
+      <div class="step rv"><h3>Present</h3><p>The passport rides in the signed requests the agent already sends, disclosing exactly what each counterparty needs.</p></div>
+      <div class="step rv"><h3>Verify</h3><p>Anyone checks chain, authority, mandate, and live status against cached root keys — milliseconds, works offline.</p></div>
+      <div class="step rv"><h3>Revoke</h3><p>One logged event stops a version's entire fleet — or a principal recalls a mandate and its whole subtree — everywhere, in under a minute.</p></div>
+    </div>
+  </div>
+</section>
 <section id="access" style="padding-top:0">
   <div class="wrap">
     <div class="cta-final rv">
@@ -599,18 +650,17 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
       <div>
         <h4>Ecosystem</h4>
         <ul>
-          <li><a href="foundations.html#record">AINRAscan — independent explorer</a></li>
           <li><a href="verify.html#align">Where you plug in</a></li>
           <li><a href="verify.html#tiers">Assurance tiers</a></li>
-          <li><a href="claim.html#how">The lifecycle</a></li>
+          <li><a href="index.html#how">The lifecycle</a></li>
         </ul>
       </div>
       <div>
         <h4>Root</h4>
         <ul>
-          <li><a href="foundations.html#does">What the root does</a></li>
+          <li><a href="index.html#does">What the root does</a></li>
           <li><a href="foundations.html">Foundations</a></li>
-          <li><a href="faq.html">FAQ</a></li>
+          <li><a href="foundations.html#faq">FAQ</a></li>
           <li><a href="#access">Get involved</a></li>
         </ul>
       </div>
@@ -627,69 +677,58 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
 (function(){
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const touch = matchMedia('(pointer: coarse)').matches;
+  const $ = id => document.getElementById(id);
 
   /* mobile menu */
-  const burger=document.getElementById('burger'), links=document.getElementById('navLinks');
-  burger.addEventListener('click',()=>{
-    const open=links.classList.toggle('open');
-    burger.setAttribute('aria-expanded',open?'true':'false');
-  });
-  links.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>{
-    links.classList.remove('open'); burger.setAttribute('aria-expanded','false');
-  }));
+  const burger=$('burger'), links=$('navLinks');
+  if(burger&&links){
+    burger.addEventListener('click',()=>{const open=links.classList.toggle('open');burger.setAttribute('aria-expanded',open?'true':'false');});
+    links.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>{links.classList.remove('open');burger.setAttribute('aria-expanded','false');}));
+  }
 
   /* agent portrait — deterministic identicon from passport number */
-  const g=document.getElementById('portrait');
-  let h=0; const seed='8F2EC41AINRA';
-  for(let i=0;i<seed.length;i++){h=(h*31+seed.charCodeAt(i))>>>0;}
-  for(let r=0;r<7;r++){
-    const row=[];
-    for(let c=0;c<4;c++){h=(h*1103515245+12345)>>>0;row.push(h%100);}
-    for(let c=0;c<7;c++){
-      const v=row[c<4?c:6-c], i=document.createElement('i');
-      if(v<42)i.className='on'; else if(v<52)i.className='gn';
-      g.appendChild(i);
+  const g=$('portrait');
+  if(g){
+    let h=0; const seed='8F2EC41AINRA';
+    for(let i=0;i<seed.length;i++){h=(h*31+seed.charCodeAt(i))>>>0;}
+    for(let r=0;r<7;r++){
+      const row=[];
+      for(let c=0;c<4;c++){h=(h*1103515245+12345)>>>0;row.push(h%100);}
+      for(let c=0;c<7;c++){const v=row[c<4?c:6-c], el=document.createElement('i');if(v<42)el.className='on';else if(v<52)el.className='gn';g.appendChild(el);}
     }
   }
 
   /* MRZ — two lines of exactly 44 characters */
-  const mrzEl=document.getElementById('mrz'), vline=document.getElementById('verifyLine');
-  const L1='P<AINACME<CORP<<INVOICING<AGENT<<<<<<<<<<<<<';
-  const L2='8F2EC41AP3AIN2604117L3<<<HUMANZK1VERIFIED<04';
-  function done(){vline.classList.add('in');}
-  if(reduce){mrzEl.textContent=L1+'\n'+L2;done();}
-  else{
-    let i=0; const full=L1+'\n'+L2;
-    const caret=document.createElement('span'); caret.className='caret';
-    (function tick(){
-      mrzEl.textContent=full.slice(0,i); mrzEl.appendChild(caret); i++;
-      if(i<=full.length)setTimeout(tick,13);
-      else{caret.remove();setTimeout(done,220);}
-    })();
+  const mrzEl=$('mrz'), vline=$('verifyLine');
+  if(mrzEl&&vline){
+    const L1='P<AINACME<CORP<<INVOICING<AGENT<<<<<<<<<<<<<';
+    const L2='8F2EC41AP3AIN2604117L3<<<HUMANZK1VERIFIED<04';
+    const done=()=>{vline.classList.add('in');};
+    if(reduce){mrzEl.textContent=L1+'\n'+L2;done();}
+    else{
+      let i=0; const full=L1+'\n'+L2;
+      const caret=document.createElement('span'); caret.className='caret';
+      (function tick(){mrzEl.textContent=full.slice(0,i);mrzEl.appendChild(caret);i++;if(i<=full.length)setTimeout(tick,13);else{caret.remove();setTimeout(done,220);}})();
+    }
   }
 
   /* subtle pointer tilt */
-  const card=document.getElementById('passportCard'), stage=card.parentElement;
-  if(!reduce && !touch){
-    stage.addEventListener('mousemove',e=>{
-      const r=card.getBoundingClientRect();
-      const x=(e.clientX-r.left)/r.width-.5, y=(e.clientY-r.top)/r.height-.5;
-      card.style.transform=`rotateY(${x*4}deg) rotateX(${-y*4}deg)`;
-    });
+  const card=$('passportCard');
+  if(card && !reduce && !touch){
+    const stage=card.parentElement;
+    stage.addEventListener('mousemove',e=>{const r=card.getBoundingClientRect();const x=(e.clientX-r.left)/r.width-.5, y=(e.clientY-r.top)/r.height-.5;card.style.transform=`rotateY(${x*4}deg) rotateX(${-y*4}deg)`;});
     stage.addEventListener('mouseleave',()=>{card.style.transform='none';});
   }
 
   /* copy command */
-  const cp=document.getElementById('copyBtn');
-  cp.addEventListener('click',()=>{
-    if(navigator.clipboard) navigator.clipboard.writeText('npx ainra verify ainra:registrar-07:acme:invoicing@4.2.1');
-    cp.textContent='COPIED ✓';
-    setTimeout(()=>cp.textContent='COPY',1600);
-  });
+  const cp=$('copyBtn');
+  if(cp){
+    cp.addEventListener('click',()=>{if(navigator.clipboard)navigator.clipboard.writeText('npx ainra verify ainra:registrar-07:acme:invoicing@4.2.1');cp.textContent='COPIED ✓';setTimeout(()=>cp.textContent='COPY',1600);});
+  }
 
   /* reveals */
   const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}}),{threshold:.12});
-  document.querySelectorAll('.rv').forEach(function(el){try{var g=[].slice.call(el.parentElement.children).filter(function(c){return c.classList.contains('rv')});el.style.transitionDelay=(Math.min(g.indexOf(el),6)*70)+'ms';}catch(e){}io.observe(el);});
+  document.querySelectorAll('.rv').forEach(function(el){try{var gg=[].slice.call(el.parentElement.children).filter(function(c){return c.classList.contains('rv')});el.style.transitionDelay=(Math.min(gg.indexOf(el),6)*70)+'ms';}catch(e){}io.observe(el);});
 
   /* stat counters */
   const so=new IntersectionObserver(es=>es.forEach(e=>{
@@ -697,68 +736,19 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
     const el=e.target, end=+el.dataset.count;
     if(reduce){el.textContent=end.toLocaleString();return;}
     const t0=performance.now(), dur=1100;
-    (function step(t){const p=Math.min(1,(t-t0)/dur), v=Math.round(end*(1-Math.pow(1-p,3)));
-      el.textContent=v.toLocaleString(); if(p<1)requestAnimationFrame(step);})(t0);
+    (function step(t){const p=Math.min(1,(t-t0)/dur), v=Math.round(end*(1-Math.pow(1-p,3)));el.textContent=v.toLocaleString();if(p<1)requestAnimationFrame(step);})(t0);
   }),{threshold:.6});
   document.querySelectorAll('[data-count]').forEach(el=>so.observe(el));
 
   /* terminal */
-  const lines=[...document.querySelectorAll('#termOut .t-line')];
-  function play(){
-    lines.forEach(l=>l.classList.remove('show'));
-    if(reduce){lines.forEach(l=>l.classList.add('show'));return;}
-    lines.forEach((l,i)=>setTimeout(()=>l.classList.add('show'),260+i*340));
+  const termOut=$('termOut');
+  if(termOut){
+    const lines=[...termOut.querySelectorAll('.t-line')];
+    const play=()=>{lines.forEach(l=>l.classList.remove('show'));if(reduce){lines.forEach(l=>l.classList.add('show'));return;}lines.forEach((l,i)=>setTimeout(()=>l.classList.add('show'),260+i*340));};
+    const to=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){play();to.unobserve(e.target);}}),{threshold:.4});
+    to.observe(termOut);
+    const rb=$('runBtn'); if(rb)rb.addEventListener('click',play);
   }
-  const to=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){play();to.unobserve(e.target);}}),{threshold:.4});
-  to.observe(document.getElementById('termOut'));
-  document.getElementById('runBtn').addEventListener('click',play);
-
-  /* explorer: live filter */
-  const q=document.getElementById('scanQ');
-  const rows=[...document.querySelectorAll('#scanRows .scan-row')];
-  const empty=document.getElementById('scanEmpty');
-  function filter(){
-    const v=q.value.trim().toLowerCase();
-    let shown=0;
-    rows.forEach(r=>{
-      const hit=!v || r.textContent.toLowerCase().includes(v);
-      r.classList.toggle('hide',!hit);
-      if(hit)shown++;
-    });
-    empty.style.display=shown?'none':'block';
-  }
-  q.addEventListener('input',filter);
-  document.getElementById('scanBtn').addEventListener('click',filter);
-
-  /* explorer: simulate a revocation propagating */
-  const sim=document.getElementById('simRevoke');
-  let simBusy=false;
-  sim.addEventListener('click',()=>{
-    if(simBusy)return; simBusy=true;
-    const row=document.getElementById('scanTarget');
-    const st=document.getElementById('targetStatus');
-    const ev=row.querySelector('.ev');
-    row.classList.remove('flash'); void row.offsetWidth; row.classList.add('flash');
-    ev.textContent='REVOKE'; ev.className='ev revoke';
-    st.className='st rv';
-    if(reduce){
-      st.textContent='REVOKED · WORLDWIDE ✓';
-      sim.textContent='PROPAGATED IN 41s (SIMULATED) ✓';
-      setTimeout(()=>{sim.textContent='▶ watch a revocation propagate';simBusy=false;},2600);
-      return;
-    }
-    let t=0;
-    const iv=setInterval(()=>{
-      t+=3;
-      st.textContent='REVOKING… PROPAGATION '+t+'s';
-      if(t>=41){
-        clearInterval(iv);
-        st.textContent='REVOKED · WORLDWIDE ✓';
-        sim.textContent='PROPAGATED IN 41s (SIMULATED) ✓';
-        setTimeout(()=>{sim.textContent='▶ watch a revocation propagate';simBusy=false;},3000);
-      }
-    },110);
-  });
 
   /* authority rail */
   const authData=[
@@ -771,9 +761,8 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
   authBtns.forEach(b=>b.addEventListener('click',()=>{
     authBtns.forEach(x=>x.setAttribute('aria-pressed','false'));
     b.setAttribute('aria-pressed','true');
-    const d=authData[+b.dataset.a];
-    document.getElementById('authTier').textContent=d[0];
-    document.getElementById('authText').textContent=d[1];
+    const d=authData[+b.dataset.a], at=$('authTier'), ax=$('authText');
+    if(at)at.textContent=d[0]; if(ax)ax.textContent=d[1];
   }));
 
   /* tier rail */
@@ -788,19 +777,15 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
   railBtns.forEach(b=>b.addEventListener('click',()=>{
     railBtns.forEach(x=>x.setAttribute('aria-pressed','false'));
     b.setAttribute('aria-pressed','true');
-    const d=tierData[+b.dataset.t];
-    document.getElementById('railTier').textContent=d[0];
-    document.getElementById('railText').textContent=d[1];
+    const d=tierData[+b.dataset.t], rt=$('railTier'), rx=$('railText');
+    if(rt)rt.textContent=d[0]; if(rx)rx.textContent=d[1];
   }));
 
   /* email capture (demo) */
-  document.getElementById('ctaForm').addEventListener('submit',e=>{
-    e.preventDefault();
-    const em=document.getElementById('ctaEmail');
-    if(!em.value||!em.value.includes('@')){em.focus();return;}
-    e.target.style.display='none';
-    document.getElementById('ctaOk').style.display='block';
-  });
+  const cf=$('ctaForm');
+  if(cf){
+    cf.addEventListener('submit',e=>{e.preventDefault();const em=$('ctaEmail');if(!em.value||!em.value.includes('@')){em.focus();return;}e.target.style.display='none';const ok=$('ctaOk');if(ok)ok.style.display='block';});
+  }
 })();
 </script>
 </body>

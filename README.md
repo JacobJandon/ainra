@@ -90,10 +90,10 @@ remaining events: **[outreach/](outreach/)**.
 
 ## Website
 
-The public front door lives in [`site/`](site/) — landing, the Standard, a verify walkthrough, the honest
-[status page](site/status.html), and the "get involved" pages (verifiers, witnesses, custodians). Plain HTML/CSS, **no
-framework, nothing phones home** (no CDN, web fonts, external scripts/images, or analytics — deliberate for a neutral
-root). Build + serve locally:
+The public front door lives in [`site/`](site/) — the landing (with the founding-table call to get involved), the
+Standard, verify and claim walkthroughs, foundations, and the honest [status page](site/status.html). Plain HTML/CSS,
+**no framework, nothing phones home** (no CDN, web fonts, external scripts/images, or analytics — deliberate for a
+neutral root). Build + serve locally:
 
 ```sh
 make site SERVE=1     # refreshes the derived downloads from canonical sources, serves at http://127.0.0.1:8088

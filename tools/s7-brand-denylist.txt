@@ -1,0 +1,47 @@
+# S7 BRAND denylist — for the PROSE + commit-message sweep (docs/, kit READMEs, .github/, git log).
+# These are UNAMBIGUOUS commercial company/product names (the competitive "foils" a NEUTRAL root must never be seen
+# naming in public materials). Unlike tools/s7-denylist.txt — which guards code/fixtures against product IMPERSONATION
+# and therefore lists common consumer words (windows, chrome, apple, meta, oracle) that appear legitimately in prose —
+# this list is deliberately restricted to tokens that only ever appear AS a brand, so it can run over docs and commit
+# messages with zero false positives.
+#
+# Rules: one token per line, matched case-insensitively as a standalone word. Standards bodies and open specs
+# (IETF, NIST, FIDO, W3C, IANA, ICANN, RFC, FIPS, ACME, Tessera, SPIFFE, OpenSSL) are NOT brands — never add them.
+# Attribution terms used by this repo's own policy (Anthropic/Claude in Co-Authored-By trailers) are NOT foils —
+# never add them. If a genuine, unavoidable technical reference to one of these ever arises, add an allowlist entry in
+# s7-lint.mjs (PROSE_ALLOW) with a comment — do not delete the denylist entry.
+
+# bot-management / anti-bot vendors
+cloudflare
+akamai
+fastly
+datadome
+imperva
+cequence
+kasada
+# credit bureaus / scoring
+experian
+equifax
+transunion
+# agent-identity / KYA startups + wallets
+skyfire
+bittensor
+chimoney
+# certificate authorities
+digicert
+sectigo
+globalsign
+# enterprise IdPs
+okta
+auth0
+forgerock
+entra
+# payments / commerce
+adyen
+shopify
+paypal
+mastercard
+# enterprise SaaS
+salesforce
+servicenow
+workday

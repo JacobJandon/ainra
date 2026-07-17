@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-/* AINRA reference implementation v0.1.0
+/* SPDX-License-Identifier: Apache-2.0 OR MIT
+ * AINRA reference implementation v0.1.0
  * Real Ed25519 signatures, real chain verification, real revocation, hash-chained log.
  * Honest limits (labeled at runtime): single-key root (threshold ceremony pending),
  * local witness keys (independent witnesses pending). For interop testing, not production.

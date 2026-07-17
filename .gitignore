@@ -47,3 +47,6 @@ kits/verifier/challenge/
 
 # built TypeScript outputs (all dist/ are tsc build products)
 **/dist/
+
+# stray build artifact (never commit)
+*.zip

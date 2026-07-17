@@ -1,0 +1,24 @@
+# SPDX-License-Identifier: Apache-2.0 OR MIT
+# gitleaks configuration for the AINRA reference implementation.
+#
+# Why an allowlist: the CC0 conformance vectors and sample artifacts are PUBLIC key material by design — log/issuer/
+# root PUBLIC keys (Ed25519, ML-DSA-65, SLH-DSA), all high-entropy base64 that trips gitleaks' generic-api-key entropy
+# heuristic. Public keys are not secrets. The allowlist is scoped to exactly those generated public-artifact paths, so
+# a real secret committed ANYWHERE ELSE still trips the scan. Actual private material never enters the tree: it is
+# runtime-only and gitignored (`*.secret`, `registrar.secret`, `*.key`, `*.pem`, `**/answer-key*.json`,
+# `**/challenge-secret*.json`) — see docs/PUBLISH-AUDIT.md.
+
+title = "AINRA gitleaks"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "CC0 vectors + sample/genesis artifacts hold only PUBLIC keys (not secrets); real private material is gitignored and never committed."
+paths = [
+  '''vectors/.*''',
+  '''kits/verifier/sample-artifacts/.*''',
+  '''samples/.*''',
+  '''packages/sdk-ts/.*/fixtures/.*''',
+  '''packages/middleware/.*/fixtures/.*''',
+]

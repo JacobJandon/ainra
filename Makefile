@@ -1,6 +1,6 @@
 # AINRA — the acceptance bar (MTS §28, brief §8): a stranger clones, runs `make test && make vectors && make diff`,
 # and everything is green in under 10 minutes on a laptop.
-.PHONY: all test vectors vectors-check diff fmt clippy fuzz-smoke bench sdk-build sdk-test ci clean status console samples drill explorer demo scale ceremony testbed wedge-build wedge-test repro mirror verify-mirror check-freeze freeze genesis-local verifier-kit-smoke ceremony-dry-run soak-smoke drill-networked
+.PHONY: all test vectors vectors-check diff fmt clippy fuzz-smoke bench sdk-build sdk-test ci clean status console samples drill explorer demo scale ceremony testbed wedge-build wedge-test repro mirror verify-mirror check-freeze freeze genesis-local verifier-kit-smoke ceremony-dry-run soak-smoke drill-networked preflight s7 license gitleaks audit
 
 all: fmt clippy test vectors diff
 
@@ -157,6 +157,26 @@ freeze:
 # Fail if any frozen doc drifted from docs/FREEZE.sha256.
 check-freeze:
 	bash tools/freeze.sh check
+
+# M10 — the "clone it and it works" promise: run every gate a stranger runs, print a green/red board (QUICK=1 skips repro).
+preflight:
+	bash tools/preflight.sh
+
+# S7 neutrality: no product impersonation in fixtures/code + no commercial-brand names in public prose or commit messages.
+s7:
+	node tools/s7-lint.mjs
+
+# Every authored source file carries the dual-license SPDX header.
+license:
+	node tools/license-check.mjs
+
+# Secret scan over the FULL git history (config .gitleaks.toml allowlists only the CC0 vector public keys). Needs gitleaks.
+gitleaks:
+	gitleaks detect --source . --no-banner --redact
+
+# M10 — publish-readiness audit: neutral + licensed + zero secrets in history. See docs/PUBLISH-AUDIT.md.
+audit: s7 license gitleaks
+	@echo "AUDIT OK — neutral, licensed, no secrets in history"
 
 clean:
 	cargo clean

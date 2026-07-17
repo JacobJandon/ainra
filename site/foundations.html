@@ -383,6 +383,131 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
 <div class="fx" aria-hidden="true">→</div>
 <div class="half you"><b>EXIT POWER, INSTITUTIONALIZED</b><p>Every artifact is mirrorable and the whole root is forkable from public data — rehearsed on a schedule, published every time. The right to leave is what keeps the root worth staying with.</p></div></div>
 </div></section></main>
+
+<section id="does">
+  <div class="wrap">
+    <div class="sec-head rv">
+      <span class="eyebrow">What the root does</span>
+      <h2>Four jobs. Done completely.</h2>
+      <p class="lede">A root is trustworthy in proportion to how little it does. These four functions are held in common — everything else stays with registrars, operators, and verifiers. Even the examples on this page use placeholder registrars: the root treats everyone equally.</p>
+    </div>
+    <div class="does">
+      <div class="do-cell rv">
+        <span class="k">01 · Namespace</span>
+        <h3>Names every agent</h3>
+        <p>One canonical, resolvable name per agent — <span style="font-family:var(--mono);font-size:12px">ainra:registrar:operator:lineage@version</span> — that any system can look up and get the signed passport back.</p>
+        <p>Every lineage also carries an <b>AINRA Number</b> — a compact, check-digited identifier for payment rails and databases. Numbers are never reused: a retired identity stays retired forever.</p>
+        <p class="not"><b>BY DESIGN</b> · NAMES POINT — REGISTRARS SERVE THE FILES.</p>
+      </div>
+      <div class="do-cell rv">
+        <span class="k">02 · Accreditation</span>
+        <h3>Licenses the passport offices</h3>
+        <p>Independent registrars — licensed issuers, enterprise directories, permissionless chains — do the verifying and issuing. The root audits them against published rules and can revoke one wholesale.</p>
+        <p class="not"><b>BY DESIGN</b> · REGISTRARS ISSUE — THE ROOT KEEPS THEM HONEST.</p>
+      </div>
+      <div class="do-cell rv">
+        <span class="k">03 · Root of trust</span>
+        <h3>Anchors one key hierarchy</h3>
+        <p>Every passport chains up to one set of root keys, held in threshold by custodians across jurisdictions. A verifier anywhere checks a passport from anywhere, locally, in milliseconds.</p>
+        <p class="not"><b>BY DESIGN</b> · THE ROOT HOLDS KEYS AND RULES — REGISTRARS HOLD THE RECORDS.</p>
+      </div>
+      <div class="do-cell rv">
+        <span class="k">04 · Revocation &amp; logs</span>
+        <h3>Runs the switch and the record</h3>
+        <p>One revocation feed every verifier subscribes to — a compromised version stops everywhere in under a minute — and every event is sealed in append-only, witness-cosigned logs.</p>
+        <p class="not"><b>BY DESIGN</b> · THE ROOT RECORDS AND PROPAGATES — EVERY VERIFIER DECIDES.</p>
+      </div>
+    </div>
+  </div>
+</section>
+<section id="record">
+  <div class="wrap">
+    <div class="sec-head rv">
+      <span class="eyebrow">The public record</span>
+      <h2>Open to anyone.<br>Owned by no one.</h2>
+      <p class="lede">Every passport, registrar, log checkpoint, and revocation lives in a public, witness-cosigned record. Independent explorers make it readable — the first is <b>AINRAscan</b>, a separately governed organization, with every fact shipped alongside the proof to check it yourself. Below: a working concept of what it renders.</p>
+    </div>
+    <div class="scan rv" aria-label="AINRAscan explorer concept, simulated data">
+      <div class="scan-top">
+        <span class="sigil" aria-hidden="true"><svg viewBox="0 0 112 112"><use href="#ainra-sigil"/></svg></span>
+        <span class="name">AINRA<span>scan</span></span>
+        <span class="tags">
+          <span class="tag ind">INDEPENDENT</span>
+          <span class="tag">CONCEPT · SIMULATED DATA</span>
+        </span>
+      </div>
+      <div class="scan-search">
+        <input type="text" id="scanQ" placeholder="Filter: name · lineage · operator · registrar · event…" aria-label="Filter the simulated records">
+        <button class="btn" type="button" id="scanBtn">SEARCH</button>
+      </div>
+      <div class="scan-stats">
+        <div><b>&lt;60s</b><span>REVOCATION TARGET</span></div>
+        <div><b>5-OF-9</b><span>ROOT KEY THRESHOLD</span></div>
+        <div><b>L0–L4</b><span>ASSURANCE TIERS</span></div>
+        <div><b>A1–A4</b><span>AUTHORITY CLASSES</span></div>
+      </div>
+      <div class="scan-rows" id="scanRows">
+        <div class="scan-row" id="scanTarget">
+          <span class="ev issue">ISSUE</span>
+          <span class="nm">ainra:<s>registrar-12</s>:acme-corp:<b>invoicing</b>@4.2.1</span>
+          <span class="tr">L3 · A1</span>
+          <span class="st ok" id="targetStatus">ACTIVE ✓</span>
+        </div>
+        <div class="scan-row">
+          <span class="ev xfer">RE-CERT</span>
+          <span class="nm">ainra:<s>registrar-03</s>:northline:<b>dispatch</b>@9.0.2</span>
+          <span class="tr">L2 · A2</span>
+          <span class="st ok">ACTIVE ✓</span>
+        </div>
+        <div class="scan-row">
+          <span class="ev issue">ISSUE</span>
+          <span class="nm">ainra:<s>chain-open-01</s>:0x91fe…:<b>market-maker</b>@17</span>
+          <span class="tr">L0 · A4</span>
+          <span class="st ok">ACTIVE ✓</span>
+        </div>
+        <div class="scan-row">
+          <span class="ev revoke">REVOKE</span>
+          <span class="nm">ainra:<s>registrar-09</s>:helios:<b>scraper</b>@2.1.0</span>
+          <span class="tr">L1 · A2</span>
+          <span class="st rv">REVOKED · KEY-COMPROMISE</span>
+        </div>
+        <div class="scan-row">
+          <span class="ev issue">MANDATE</span>
+          <span class="nm">principal ⌗a94f… → <b>concierge</b>@6.3 · spend ≤ $500/day</span>
+          <span class="tr">L3 · A1</span>
+          <span class="st ok">GRANTED ✓</span>
+        </div>
+        <div class="scan-empty" id="scanEmpty">NO MATCHING RECORDS — CLEAR THE FILTER TO SEE ALL.</div>
+      </div>
+      <div class="scan-foot">
+        <span>FACTS, NEVER SCORES · MECHANICAL ORDERING · PROOF ATTACHED TO EVERY FACT</span>
+        <button class="btn" id="simRevoke" type="button">▶ watch a revocation propagate</button>
+      </div>
+    </div>
+    <p class="scan-note rv">AINRAscan IS A SEPARATE ORGANIZATION — THE ROOT OPERATES NO EXPLORER AND EVERY MIRROR IS WELCOME.<br>SIMULATED RECORDS WITH PLACEHOLDER REGISTRARS · THE RECORD SHOWS WHAT EXISTS — WHAT AGENTS DO STAYS PRIVATE.</p>
+  </div>
+</section>
+<section id="tech" style="padding-top:0">
+  <div class="wrap">
+    <div class="sec-head rv">
+      <span class="eyebrow">The technology, in plain words</span>
+      <h2>Proven parts. New assembly.</h2>
+      <p class="lede">Every piece is an open standard already trusted at internet scale. The new work is the assembly — and the charter that holds it neutral.</p>
+    </div>
+    <div class="gloss">
+      <div class="g-cell rv"><b>HTTP MESSAGE SIGNATURES</b><p>Every request an agent sends is cryptographically signed, and the signature names the key in its passport. The passport rides inside ordinary web traffic.</p><div class="role">ROLE · HOW THE PASSPORT TRAVELS</div></div>
+      <div class="g-cell rv"><b>SD-JWT VERIFIABLE CREDENTIALS</b><p>The passport's file format. Selective disclosure means the agent proves exactly the fields a counterparty needs — and keeps the rest private.</p><div class="role">ROLE · THE DOCUMENT ITSELF</div></div>
+      <div class="g-cell rv"><b>DECENTRALIZED IDENTIFIERS (DID)</b><p>A standard name format any system can resolve. Every <span style="font-family:var(--mono);font-size:11px">ainra:</span> name is a DID underneath, so existing tooling understands it out of the box.</p><div class="role">ROLE · UNIVERSAL ADDRESSING</div></div>
+      <div class="g-cell rv"><b>MTLS + SHORT-LIVED CREDENTIALS</b><p>Running copies carry minutes-long credentials minted locally under the passport, bound to the connection. A stolen token expires before it matters.</p><div class="role">ROLE · THEFT CONTAINMENT AT SCALE</div></div>
+      <div class="g-cell rv"><b>ZERO-KNOWLEDGE PROOFS</b><p>Prove "a verified human authorized this agent" while keeping the person private. Accountability and privacy, together.</p><div class="role">ROLE · HUMAN BACKING WITH PRIVACY INTACT</div></div>
+      <div class="g-cell rv"><b>CONSENT MANDATES</b><p>A signed permission slip from the principal — scopes, time limits, spend ceilings, a revocation address — that every downstream delegation can only narrow.</p><div class="role">ROLE · AUTHORITY YOU CAN AUDIT AND RECALL</div></div>
+      <div class="g-cell rv"><b>MERKLE TRANSPARENCY LOGS</b><p>Append-only records where altering history breaks the math, and independent witnesses cosign every checkpoint. Honesty is checkable, always.</p><div class="role">ROLE · A RECORD THAT KEEPS ITSELF HONEST</div></div>
+      <div class="g-cell rv"><b>THRESHOLD KEY CEREMONIES</b><p>The root key is split so signing takes a quorum of custodians across jurisdictions; used only in public, recorded ceremonies, with a standby in escrow.</p><div class="role">ROLE · POWER SHARED BY CONSTRUCTION</div></div>
+      <div class="g-cell rv"><b>STATUS PROOFS + PUSH REVOCATION</b><p>Compressed revocation sets update in seconds, and high-assurance interactions require a fresh proof — so the switch works even when someone blocks the feed.</p><div class="role">ROLE · THE SWITCH, GUARANTEED</div></div>
+      <div class="g-cell rv"><b>THE TRUST GRAPH</b><p>The log-derivable map of who acts for whom — delegation edges only, behavior stays private. Agents with expired mandates surface ecosystem-wide.</p><div class="role">ROLE · STRUCTURE WITH PRIVACY INTACT</div></div>
+    </div>
+  </div>
+</section>
 <footer>
   <div class="wrap">
     <div class="foot">
@@ -399,26 +524,26 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
         <ul>
           <li><a href="AINRA_I_The_Standard.md">The standard</a></li>
           <li><a href="ainra-cli-v0.1.0.zip">Reference CLI v0.1.0</a></li>
-          <li><a href="#passport">The passport</a></li>
-          <li><a href="#authority">Authority model</a></li>
+          <li><a href="claim.html#passport">The passport</a></li>
+          <li><a href="verify.html#authority">Authority model</a></li>
           </ul>
       </div>
       <div>
         <h4>Ecosystem</h4>
         <ul>
           <li><a href="#record">AINRAscan — independent explorer</a></li>
-          <li><a href="#align">Where you plug in</a></li>
-          <li><a href="#tiers">Assurance tiers</a></li>
-          <li><a href="#how">The lifecycle</a></li>
+          <li><a href="verify.html#align">Where you plug in</a></li>
+          <li><a href="verify.html#tiers">Assurance tiers</a></li>
+          <li><a href="claim.html#how">The lifecycle</a></li>
         </ul>
       </div>
       <div>
         <h4>Root</h4>
         <ul>
           <li><a href="#does">What the root does</a></li>
-          <li><a href="#foundations">Foundations</a></li>
-          <li><a href="#faq">FAQ</a></li>
-          <li><a href="#access">Get involved</a></li>
+          <li><a href="foundations.html">Foundations</a></li>
+          <li><a href="faq.html">FAQ</a></li>
+          <li><a href="join.html">Get involved</a></li>
         </ul>
       </div>
     </div>

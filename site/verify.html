@@ -380,6 +380,130 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
 <div class="half you"><b>AT FIRST PUBLIC RELEASE — AHEAD</b><p>The full reference implementation: verify in five lines with the SDK, a fail-closed middleware gate, registrar-in-a-box in one command, and the complete conformance vector set — published free, CC0, so conformance never needs anyone's permission.</p></div></div>
 <p class="scan-note rv">VERIFICATION IS LOCAL · IT NEVER PHONES HOME · CONFORMANCE IS CLAIMED AGAINST PUBLIC VECTORS, NOT GRANTED BY US</p>
 </div></section></main>
+
+<section style="padding-top:0" id="authority">
+  <div class="wrap">
+    <div class="sec-head rv">
+      <span class="eyebrow">The authority model</span>
+      <h2>Who stands behind it —<br>declared, provable, honest.</h2>
+      <p class="lede">Every passport names its authority class. Delegation can only narrow, chains stay provable to their anchor at any depth — and even a fully autonomous agent gets a truthful class of its own. Select one:</p>
+    </div>
+    <div class="rv">
+      <div class="rail" role="group" aria-label="Authority classes">
+        <button data-a="0" aria-pressed="true">A1 HUMAN</button>
+        <button data-a="1">A2 ORGANIZATION</button>
+        <button data-a="2">A3 AGENT-DELEGATED</button>
+        <button data-a="3">A4 AUTONOMOUS</button>
+      </div>
+      <div class="rail-info">
+        <b id="authTier">A1 · HUMAN-DELEGATED</b>
+        <p id="authText">A verified person stands behind the agent — proven in zero-knowledge, so accountability exists while privacy stays intact. A signed consent mandate sets scopes, time limits, and spend ceilings; the person can revoke it at any moment, everywhere at once.</p>
+      </div>
+      <div class="mini-code">act_chain: [<span class="g">principal</span> → <span class="g">agent:orchestrator@3</span> → <span class="g">agent:invoicing@4.2.1</span>]   <span class="m">// scopes may only narrow — provable to the anchor at any depth</span></div>
+    </div>
+  </div>
+</section>
+<section class="dark" id="decision">
+  <div class="wrap">
+    <div class="sec-head rv">
+      <span class="eyebrow">From the login to the decision</span>
+      <h2 style="color:#fff">Agents act all day,<br>every day.</h2>
+      <p class="lede">The old boundary was the login — one human, one prompt, one yes. Agents operate continuously, at full volume, so the boundary moves to the decision — every action, verified in context:</p>
+    </div>
+    <div class="split rv">
+      <div class="half"><b>THE RECORD — SUPPLIED BY THE ROOT</b><p>Who this is, who stands behind it, along which chain, with what ceilings, and whether it's in good standing anywhere on Earth. Cached, offline-capable, freshness-classed by tier.</p></div>
+      <div class="fx" aria-hidden="true">→</div>
+      <div class="half you"><b>THE DECISION — MADE BY YOU</b><p>Should this action, here, now, be allowed? Your engines, your gateways, your policy — per action. The root standardizes every input to the decision; the decision stays yours.</p></div>
+    </div>
+<div class="term rv">
+      <div class="term-bar" aria-hidden="true"><i></i><i></i><i></i><span>ainra-cli v0.1.0 · real captured output</span></div>
+      <div class="term-body" id="termOut">
+        <div class="t-line"><span class="p">$</span> <span class="w">ainra verify ainra:registrar-07:acme-corp:invoicing@4.2.1</span></div>
+        <div class="t-line">→ chain&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;root <span class="g">✓</span> · registrar <span class="g">✓</span> · version <span class="g">✓</span></div>
+        <div class="t-line">→ operator&nbsp;&nbsp;Acme Corp — <span class="g">KYB verified</span> (US-DE)</div>
+        <div class="t-line">→ authority&nbsp;<span class="g">A1 human-delegated (zk-commitment) ✓</span> · PII: <span class="w">none</span></div>
+        <div class="t-line">→ validity&nbsp;&nbsp;2026-07-07 → 2027-07-07 <span class="g">✓</span></div>
+        <div class="t-line">→ status&nbsp;&nbsp;&nbsp;&nbsp;tier <span class="g">L3</span> · revocation <span class="g">ACTIVE ✓</span></div>
+        <div class="t-line">→ log&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;entry #000002 <span class="g">✓ included</span> · chain of 3 intact · witnesses 3/3 <span class="p">(local)</span></div>
+        <div class="t-line"><span class="g">✓ VALID</span> <span class="p">· verified in 4.0 ms — run it yourself: the CLI is in the download above</span></div>
+      </div>
+      <div class="term-run"><button class="btn" id="runBtn" aria-label="Replay verification output">▶ replay</button></div>
+    </div>
+  </div>
+</section>
+<section id="align" style="padding-top:0">
+  <div class="wrap">
+    <div class="sec-head rv">
+      <span class="eyebrow">A universal standard for current players</span>
+      <h2>Keep what you built.<br>Gain everyone else.</h2>
+      <p class="lede">The standard belongs to no vendor. Every existing layer keeps its product and its customers — and plugs in where it already looks things up.</p>
+    </div>
+    <div class="align">
+      <div class="a-cell rv"><h3>Payment networks</h3>
+        <div class="a-row"><b>KEEP</b><span>Their agent programs, tokens, and checkout flows.</span></div>
+        <div class="a-row"><b>PLUG IN</b><span>Key-directory lookups resolve through the root.</span></div>
+        <div class="a-row"><b>GAIN</b><span>Cross-network recognition and an instant, shared switch.</span></div>
+      </div>
+      <div class="a-cell rv"><h3>Runtime identity &amp; control planes</h3>
+        <div class="a-row"><b>KEEP</b><span>Their gateways, policy engines, and per-action enforcement.</span></div>
+        <div class="a-row"><b>PLUG IN</b><span>Consume the record — chain, authority class, mandate, status — as the input to every decision.</span></div>
+        <div class="a-row"><b>GAIN</b><span>Trust that works across the org boundary, everywhere.</span></div>
+      </div>
+      <div class="a-cell rv"><h3>Edge &amp; bot defense</h3>
+        <div class="a-row"><b>KEEP</b><span>Signature checks and traffic policy at the edge.</span></div>
+        <div class="a-row"><b>PLUG IN</b><span>Mirror the root directory behind existing checks.</span></div>
+        <div class="a-row"><b>GAIN</b><span>Operator, tier, and live status behind every signature — a welcome lane for good agents.</span></div>
+      </div>
+      <div class="a-cell rv"><h3>Enterprise identity</h3>
+        <div class="a-row"><b>KEEP</b><span>Internal agent directories, ownership, and audit.</span></div>
+        <div class="a-row"><b>PLUG IN</b><span>Mint a passport the moment an agent crosses the boundary.</span></div>
+        <div class="a-row"><b>GAIN</b><span>Trust that survives outside the walls, with the chain of authority intact.</span></div>
+      </div>
+      <div class="a-cell rv"><h3>On-chain registries</h3>
+        <div class="a-row"><b>KEEP</b><span>Permissionless registration, no central issuer.</span></div>
+        <div class="a-row"><b>PLUG IN</b><span>Entries auto-map to L0–L1 passports; transfers are logged.</span></div>
+        <div class="a-row"><b>GAIN</b><span>Acceptance by off-chain verifiers everywhere.</span></div>
+      </div>
+      <div class="a-cell rv"><h3>Merchants, apps &amp; APIs</h3>
+        <div class="a-row"><b>KEEP</b><span>Their whole stack, unchanged.</span></div>
+        <div class="a-row"><b>PLUG IN</b><span>One verify middleware plus a tier floor — an afternoon of work.</span></div>
+        <div class="a-row"><b>GAIN</b><span>Welcome good agents and price risk by tier and authority class, confidently.</span></div>
+      </div>
+      <div class="a-cell rv"><h3>Insurers &amp; auditors</h3>
+        <div class="a-row"><b>KEEP</b><span>Their risk models and audit practice.</span></div>
+        <div class="a-row"><b>PLUG IN</b><span>Read passports, mandate chains, and public logs.</span></div>
+        <div class="a-row"><b>GAIN</b><span>Attributable history — the raw material for pricing agents at all.</span></div>
+      </div>
+      <div class="a-cell rv"><h3>Regulators &amp; the public</h3>
+        <div class="a-row"><b>KEEP</b><span>Jurisdiction and rule-making, untouched.</span></div>
+        <div class="a-row"><b>PLUG IN</b><span>Recognize tiers and classes; read the same public logs anyone can.</span></div>
+        <div class="a-row"><b>GAIN</b><span>Oversight with full privacy for everyone underneath.</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+<section style="padding-top:0" id="tiers">
+  <div class="wrap">
+    <div class="sec-head rv">
+      <span class="eyebrow">Assurance tiers</span>
+      <h2>Five levels. You set the floor.</h2>
+      <p class="lede">The root grades how much verification stands behind a passport; every verifier picks its own floor. Existence at L0 is guaranteed by charter, and each level up earns more consequence.</p>
+    </div>
+    <div class="rv">
+      <div class="rail" role="group" aria-label="Assurance tiers">
+        <button data-t="0">L0 DECLARED</button>
+        <button data-t="1">L1 ANCHORED</button>
+        <button data-t="2">L2 OPERATED</button>
+        <button data-t="3" aria-pressed="true">L3 BACKED</button>
+        <button data-t="4">L4 REGULATED</button>
+      </div>
+      <div class="rail-info">
+        <b id="railTier">L3 · BACKED</b>
+        <p id="railText">KYB-verified operator + zero-knowledge principal + liability insurance attestation. The floor for consumer-scale payments and contract execution.</p>
+      </div>
+    </div>
+  </div>
+</section>
 <footer>
   <div class="wrap">
     <div class="foot">
@@ -396,26 +520,26 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
         <ul>
           <li><a href="AINRA_I_The_Standard.md">The standard</a></li>
           <li><a href="ainra-cli-v0.1.0.zip">Reference CLI v0.1.0</a></li>
-          <li><a href="#passport">The passport</a></li>
+          <li><a href="claim.html#passport">The passport</a></li>
           <li><a href="#authority">Authority model</a></li>
           </ul>
       </div>
       <div>
         <h4>Ecosystem</h4>
         <ul>
-          <li><a href="#record">AINRAscan — independent explorer</a></li>
+          <li><a href="foundations.html#record">AINRAscan — independent explorer</a></li>
           <li><a href="#align">Where you plug in</a></li>
           <li><a href="#tiers">Assurance tiers</a></li>
-          <li><a href="#how">The lifecycle</a></li>
+          <li><a href="claim.html#how">The lifecycle</a></li>
         </ul>
       </div>
       <div>
         <h4>Root</h4>
         <ul>
-          <li><a href="#does">What the root does</a></li>
-          <li><a href="#foundations">Foundations</a></li>
-          <li><a href="#faq">FAQ</a></li>
-          <li><a href="#access">Get involved</a></li>
+          <li><a href="foundations.html#does">What the root does</a></li>
+          <li><a href="foundations.html">Foundations</a></li>
+          <li><a href="faq.html">FAQ</a></li>
+          <li><a href="join.html">Get involved</a></li>
         </ul>
       </div>
     </div>

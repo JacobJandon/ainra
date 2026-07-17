@@ -375,6 +375,40 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
 <div class="org-cell rv"><h3>By domain <span>WELL-KNOWN</span></h3><p>A domain-anchored agent publishes the challenge at a well-known path. The domain becomes reach metadata — the identity persists even if the domain doesn't.</p></div></div>
 <p class="scan-note rv">PROOF-OF-CONTROL REQUIRED, ALWAYS · ALIASES ARE NEVER THE IDENTITY · A RETIRED IDENTITY STAYS RETIRED FOREVER</p>
 </div></section></main>
+
+<section id="passport">
+  <div class="wrap">
+    <div class="sec-head rv">
+      <span class="eyebrow">The passport, field by field</span>
+      <h2>Every line has a job.</h2>
+      <p class="lede">Each numbered key below names one field on the agent passport, in order — the same specimen shown on the home page.</p>
+    </div>
+    <div class="defs rv">
+      <div class="def"><span class="mark">1</span><div class="body"><b>LINEAGE</b><p>The agent's permanent identity — soulbound, held for life, the thing history attaches to. <em>Is this the same agent I dealt with before?</em></p></div></div>
+      <div class="def"><span class="mark">2</span><div class="body"><b>VERSION</b><p>Re-certified on every material change — model, permissions, operator — so trust always describes what's running today. <em>What exactly is running right now?</em></p></div></div>
+      <div class="def"><span class="mark">3</span><div class="body"><b>OPERATOR</b><p>The verified legal entity responsible for the agent — where accountability lives if something goes wrong. <em>Who do I hold responsible?</em></p></div></div>
+      <div class="def"><span class="mark">4</span><div class="body"><b>REGISTRAR</b><p>The independent, accredited issuer that did the verification and signed the passport. Its certificate chains to the root. <em>Who vouched, under what rules?</em></p></div></div>
+      <div class="def"><span class="mark">5</span><div class="body"><b>AUTHORITY CLASS</b><p>Who stands behind it: a human (proven in zero-knowledge), an organization, another agent along a provable chain — or, declared honestly, fully autonomous. <em>On whose behalf is this acting?</em></p></div></div>
+      <div class="def"><span class="mark">6</span><div class="body"><b>ASSURANCE TIER</b><p>How much verification stands behind the passport, L0 to L4. The root labels; every verifier chooses its own floor. <em>How much can this credential carry?</em></p></div></div>
+      <div class="def"><span class="mark">7</span><div class="body"><b>ISSUING AUTHORITY + MRZ</b><p>The machine-readable zone any system can parse in one pass — with the canonical name, validity dates, and key fingerprint printed above it. Mandates and running fleets live outside the document, at the edge, where they belong. <em>Can my software read this without custom integration?</em></p></div></div>
+      <div class="def"><span class="mark">8</span><div class="body"><b>ROOT ATTESTATION</b><p>The live status: chain valid, witnesses agree, entry sealed in the public log, in good standing — re-checked at every verification. <em>Is this still good, right now?</em></p></div></div>
+    </div>
+  </div>
+</section>
+<section style="padding-top:0" id="how">
+  <div class="wrap">
+    <div class="sec-head rv">
+      <span class="eyebrow">The lifecycle</span>
+      <h2>Register. Present. Verify. Revoke.</h2>
+    </div>
+    <div class="steps">
+      <div class="step rv"><h3>Register</h3><p>Through an independent registrar of your class. The lineage gets a soulbound passport, authority class declared, event sealed in the public log.</p></div>
+      <div class="step rv"><h3>Present</h3><p>The passport rides in the signed requests the agent already sends, disclosing exactly what each counterparty needs.</p></div>
+      <div class="step rv"><h3>Verify</h3><p>Anyone checks chain, authority, mandate, and live status against cached root keys — milliseconds, works offline.</p></div>
+      <div class="step rv"><h3>Revoke</h3><p>One logged event stops a version's entire fleet — or a principal recalls a mandate and its whole subtree — everywhere, in under a minute.</p></div>
+    </div>
+  </div>
+</section>
 <footer>
   <div class="wrap">
     <div class="foot">
@@ -392,25 +426,25 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
           <li><a href="AINRA_I_The_Standard.md">The standard</a></li>
           <li><a href="ainra-cli-v0.1.0.zip">Reference CLI v0.1.0</a></li>
           <li><a href="#passport">The passport</a></li>
-          <li><a href="#authority">Authority model</a></li>
+          <li><a href="verify.html#authority">Authority model</a></li>
           </ul>
       </div>
       <div>
         <h4>Ecosystem</h4>
         <ul>
-          <li><a href="#record">AINRAscan — independent explorer</a></li>
-          <li><a href="#align">Where you plug in</a></li>
-          <li><a href="#tiers">Assurance tiers</a></li>
+          <li><a href="foundations.html#record">AINRAscan — independent explorer</a></li>
+          <li><a href="verify.html#align">Where you plug in</a></li>
+          <li><a href="verify.html#tiers">Assurance tiers</a></li>
           <li><a href="#how">The lifecycle</a></li>
         </ul>
       </div>
       <div>
         <h4>Root</h4>
         <ul>
-          <li><a href="#does">What the root does</a></li>
-          <li><a href="#foundations">Foundations</a></li>
-          <li><a href="#faq">FAQ</a></li>
-          <li><a href="#access">Get involved</a></li>
+          <li><a href="foundations.html#does">What the root does</a></li>
+          <li><a href="foundations.html">Foundations</a></li>
+          <li><a href="faq.html">FAQ</a></li>
+          <li><a href="join.html">Get involved</a></li>
         </ul>
       </div>
     </div>

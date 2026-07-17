@@ -1,5 +1,7 @@
 <!-- SPDX-License-Identifier: Apache-2.0 OR MIT -->
-# STATUS — AINRA reference implementation (M1–M8 ladder done · M9 = committed + CI + stranger-runnable kits)
+# STATUS — AINRA reference implementation (M1–M9 ladder done · M10 = public-ready + stranger-runnable DoD events)
+
+<!-- STATUS-LINE -->Engineering ladder M1–M9 complete; M10 makes the repository public-ready and the three remaining DoD events stranger-runnable; logs sealed by the real root: 0.
 
 Honest state of the tree. If it says green, `make` proves it; if it says M6+, the code does not pretend otherwise.
 Prime directive: **nothing fake, ever** (brief §0). Toolchain: Rust 1.96, Node 26, `ml-dsa 0.0.4` / `slh-dsa 0.0.3`
@@ -191,6 +193,22 @@ keys** (now id-derived, cryptographically distinct); hardcoded ports + swallowed
 the run silently (now a pre-flight port check + post-launch `kill -0` liveness); and the DoD overclaimed the
 in-process witnesses (now marked ✓-in-process / external-operators, per D-021). See D-023. **This completes the MTS
 §27 milestone ladder M1–M8.**
+
+**M10 — public-ready + the DoD events made stranger-completable.** No new protocol. (1) **Publish audit**
+(`docs/PUBLISH-AUDIT.md`, D-025): full-24-commit-history secret sweep = **0 real secrets** (`gitleaks` FPs on CC0
+vector PUBLIC keys, now allowlisted in `.gitleaks.toml` + a CI job over full history); three self-labeled-PRIVATE
+strategy docs + the legacy `_archive/` were **excised from all history** (`git filter-repo`, relocated to
+`../ainra-private/`) so the tree is brand-clean; the code-cited MTS kept + scrubbed of internal framing. S7 now sweeps
+**docs + kit READMEs + `.github` + every commit message** with a curated `s7-brand-denylist.txt` (both passes green);
+`THIRD-PARTY.md` inventories all 115 crates + Node deps (OSI-permissive, no forced copyleft); `make preflight` prints
+the cold-clone green/red board and `make audit` gates S7+license+gitleaks. (2) **Cold-open onboarding** per kit
+(verifier `QUICKSTART`+`TROUBLESHOOTING`+`make verify-as-external`+`verifier-triple-drill`; ceremony role-split RUNBOOK
++ `ceremony-checklist.json` + `verify-transcript`; soak `DEPLOY` + `make soak-verify`). (3) **Genesis board**
+(`tools/genesis-board/`, `make genesis-status`): verifies collected attestations/transcript/soak-reports and renders
+the §29 table — ✅ only with a signature-checked artifact; today **7/11** (laptop rows green, external rows ⏳ pending
+real people). (4) **`outreach/`** — plain, no-hype, no-brand calls for verifiers, witnesses, custodians. Every M10
+acceptance green from a fresh clone; the front door (README) and this file are kept in sync by
+`tools/status-consistency.mjs`. See D-025 + `docs/PLAN-M10.md`.
 
 **M9 — committed, public-ready, executable by strangers.** The tree is now a real **git repository scoped to the
 project** (not `$HOME`), with a strict `.gitignore` (no secrets — the TEST registrar reload-seeds are excluded — no

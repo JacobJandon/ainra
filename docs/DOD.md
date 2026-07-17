@@ -45,6 +45,7 @@ make verifier-kit-smoke   # kits/verifier — external verifier attestation
 make ceremony-dry-run     # kits/ceremony — witness-reproducible ceremony rehearsal
 make soak-smoke           # kits/soak — measured revocation p95, signed report
 make drill-networked      # kits/witness — quorum over HTTP, fork refused
+make genesis-status       # M10 — render THIS table from the actual collected artifacts (✅ only with a verified artifact)
 ```
 
 The ordered runbook that turns these into "prototype DONE" — the recorded ceremony, ≥3 external verifiers, the

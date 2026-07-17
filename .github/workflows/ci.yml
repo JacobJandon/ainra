@@ -73,6 +73,8 @@ jobs:
         run: node tools/s7-lint.mjs
       - name: License headers (Apache-2.0 OR MIT)
         run: node tools/license-check.mjs
+      - name: README and STATUS.md agree on the status line
+        run: node tools/status-consistency.mjs
       - name: Docs freeze (normative docs unchanged — M7)
         run: make check-freeze
       - name: ainra-core has no network / IO / clock

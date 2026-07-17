@@ -7,6 +7,12 @@ ordered runbook that ties the kits together into that declaration. Every row nam
 
 Nothing here is faked. A step is ✅ only when its artifact exists and independently verifies; until then it is ⏳.
 
+> **Track it live:** `make genesis-status` renders this table from the actual collected artifacts — a row is ✅ only
+> when a signature-checked artifact backs it. **Recruit the people** for the three real-world steps via
+> [outreach/](outreach/): [external verifiers](outreach/EXTERNAL-VERIFIER-CALL.md) (§3),
+> [witnesses](outreach/WITNESS-CALL.md) (§4), [ceremony custodians](outreach/CEREMONY-CUSTODIAN-BRIEF.md) (§2). Each
+> step's cold-open runbook is in its kit (`kits/verifier/QUICKSTART.md`, `kits/ceremony/RUNBOOK.md`, `kits/soak/DEPLOY.md`).
+
 ## Ordered runbook
 
 ### 0. Pre-flight (done — CI-gated)

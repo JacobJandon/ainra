@@ -17,29 +17,50 @@ deviation is in [docs/DECISIONS.md](docs/DECISIONS.md).
 
 ## Honest status
 
-The **MTS §27 engineering ladder M1–M8 is complete** and **M9** makes it committed, CI-gated, and executable by
-strangers. What remains to *ship the prototype* is **not code** — it is three real-world events (a recorded ceremony,
-≥3 independent external verifiers, a 14-day/3-region revocation soak). M9 builds the machinery that lets others run
-those events **without us in the room**, and proves each at smoke scale. See the honest, per-row picture in
-[docs/DOD.md](docs/DOD.md) and [GENESIS-CHECKLIST.md](GENESIS-CHECKLIST.md).
+<!-- STATUS-LINE -->Engineering ladder M1–M9 complete; M10 makes the repository public-ready and the three remaining DoD events stranger-runnable; logs sealed by the real root: 0.
+
+What remains to *ship the prototype* is **not code** — it is three real-world events (a recorded ceremony, ≥3
+independent external verifiers, a 14-day/3-region revocation soak). The machinery to run those **without us in the
+room** is built and smoke-proven, and the **genesis board** shows exactly how far along we are, unfaked:
+
+```sh
+make genesis-status   # the honest §29 DoD board — a row is ✅ ONLY when a signature-checked artifact backs it
+```
+
+Today that board reads **7/11** — the 7 laptop-provable rows are green; the 4 external rows are ⏳ pending real people
+running the events (see [outreach/](outreach/), [docs/DOD.md](docs/DOD.md), [GENESIS-CHECKLIST.md](GENESIS-CHECKLIST.md)).
 
 > Nothing here is asserted; if it says green, a `make` target proves it. Logs sealed by the real root: **0** — the
 > Genesis ceremony has not happened yet, and we say so.
 
-## Quick start (3 commands)
+## Clone it and it works
 
 ```sh
-make test          # cargo test --release --workspace — the full test suite (RELEASE required; see the note below)
-make genesis-local # the whole stack on one laptop: dual root → 2 registrars → verify root-dark → revoke/forge fail
-                   # closed → an injected fork caught by a witness quorum → a signed transcript
-make verifier-kit-smoke   # become an external verifier: verify root-dark + reject revoked/forged with only @ainra/sdk
+make preflight        # from a cold clone: build+test, differential, genesis-local, all kit smokes, S7, license, repro
 ```
 
-All go green in minutes on a laptop. `make diff` runs the 3-way differential (684/684). `make ci` runs the full
-local gate; CI runs it on every push (see `.github/workflows/ci.yml`).
+Expected — a stranger sees this board go all-green in one command:
+
+```
+AINRA preflight — clone-and-it-works board
+  [PASS] build + tests          release test suite
+  [PASS] differential           3 impls agree over vectors
+  [PASS] genesis-local          whole stack boots on 1 host
+  [PASS] verifier kit           execution-bound attestation
+  [PASS] ceremony dry-run       witness-reproducible
+  [PASS] soak instrument        measured p95, signed report
+  [PASS] witness quorum         fork refused over HTTP
+  [PASS] S7 neutrality          no brands / no impersonation
+  [PASS] license headers        SPDX on every source file
+  [PASS] reproducibility        artifacts rebuild byte-exact
+  ALL GREEN — a stranger can clone this repo and every gate passes.
+```
+
+`make audit` runs the publish gate (S7 + license headers + gitleaks over full history). `make ci` mirrors CI, which
+runs every gate on push (see `.github/workflows/ci.yml`).
 
 > **Release-test trap:** `make test` uses `--release` on purpose. A *debug* build stack-overflows one crypto-heavy
-> test (large unoptimized ML-DSA/SLH-DSA stack frames) — not a bug; use `make test`.
+> test (large unoptimized ML-DSA/SLH-DSA stack frames) — not a bug; use `make test` / `make preflight`.
 
 ## See it work
 
@@ -54,12 +75,17 @@ make verify-mirror MIRROR=<dir>   # any third party byte-verifies a mirror, root
 
 ## Kits — run the external events yourself (`kits/`)
 
-| Kit | What a stranger does | Proof |
-|---|---|---|
-| [`kits/verifier/`](kits/verifier/) | verify root-dark + reject revoked/forged with only `@ainra/sdk`; emit a signed attestation | `make verifier-kit-smoke` |
-| [`kits/ceremony/`](kits/ceremony/) | rehearse the recorded 5-of-9 ceremony (RUNBOOK); a witness recomputes the transcript hash | `make ceremony-dry-run` |
-| [`kits/soak/`](kits/soak/) | measure revocation p95 from ≥3 regions into a signed report; SLO computed, never asserted | `make soak-smoke` |
-| [`kits/witness/`](kits/witness/) | run independently-operated witnesses over HTTP; a fork can't reach quorum | `make drill-networked` |
+Each kit is completable by an unattended stranger and self-verifying. Start with the kit's `QUICKSTART`/`DEPLOY`/`RUNBOOK`.
+
+| Kit | What a stranger does | Cold-open | Prove the machinery |
+|---|---|---|---|
+| [`kits/verifier/`](kits/verifier/) | verify root-dark + reject revoked/forged, then verify a fresh secret-coin-flip challenge → an **execution-bound** attestation certified against a private answer key | [QUICKSTART](kits/verifier/QUICKSTART.md) · `make verify-as-external` | `make verifier-triple-drill` |
+| [`kits/ceremony/`](kits/ceremony/) | rehearse the recorded 5-of-9 ceremony by role; an outsider recomputes the transcript hash | [RUNBOOK](kits/ceremony/RUNBOOK.md) | `make ceremony-dry-run` · `make verify-transcript` |
+| [`kits/soak/`](kits/soak/) | measure revocation p95 from ≥3 regions into a signed report; SLO computed, never asserted | [DEPLOY](kits/soak/DEPLOY.md) | `make soak-smoke` · `make soak-verify` |
+| [`kits/witness/`](kits/witness/) | run independently-operated witnesses over HTTP; a fork can't reach quorum | [WITNESS-CALL](outreach/WITNESS-CALL.md) | `make drill-networked` |
+
+Collected evidence rolls up into one honest picture — `make genesis-status`. Recruiting the people for the three
+remaining events: **[outreach/](outreach/)**.
 
 ## Architecture
 
@@ -100,4 +126,5 @@ metric is opt-in, count-only, in the kit layer only) · only audited crypto libr
 
 Source **code** is dual-licensed **Apache-2.0 OR MIT** ([LICENSE-APACHE](LICENSE-APACHE), [LICENSE-MIT](LICENSE-MIT)).
 The **conformance vectors** and other CC0-marked data artifacts are public domain **CC0** ([LICENSE-CC0](LICENSE-CC0))
-— the shared test corpus is ownable by no one.
+— the shared test corpus is ownable by no one. Every third-party dependency + its license is inventoried in
+[THIRD-PARTY.md](THIRD-PARTY.md): all OSI-permissive, no forced copyleft, verify path = RFC/FIPS + OSI only.

@@ -18,7 +18,7 @@ deviation is in [docs/DECISIONS.md](docs/DECISIONS.md).
 
 ## Honest status
 
-<!-- STATUS-LINE -->Engineering ladder M1–M9 complete; M10 makes the repository public-ready and the three remaining DoD events stranger-runnable; logs sealed by the real root: 0.
+<!-- STATUS-LINE -->Engineering ladder M1–M9 complete; M10–M11 make the repository public-ready, public-operational, and the four remaining DoD rows stranger-runnable; logs sealed by the real root: 0.
 
 What remains to *ship the prototype* is **not code** — it is three real-world events (a recorded ceremony, ≥3
 independent external verifiers, a 14-day/3-region revocation soak). The machinery to run those **without us in the

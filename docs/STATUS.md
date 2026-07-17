@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: Apache-2.0 OR MIT -->
-# STATUS — AINRA reference implementation (M1–M9 ladder done · M10 = public-ready + stranger-runnable DoD events)
+# STATUS — AINRA reference implementation (M1–M9 ladder done · M10 public-ready · M11 public-operational)
 
-<!-- STATUS-LINE -->Engineering ladder M1–M9 complete; M10 makes the repository public-ready and the three remaining DoD events stranger-runnable; logs sealed by the real root: 0.
+<!-- STATUS-LINE -->Engineering ladder M1–M9 complete; M10–M11 make the repository public-ready, public-operational, and the four remaining DoD rows stranger-runnable; logs sealed by the real root: 0.
 
 Honest state of the tree. If it says green, `make` proves it; if it says M6+, the code does not pretend otherwise.
 Prime directive: **nothing fake, ever** (brief §0). Toolchain: Rust 1.96, Node 26, `ml-dsa 0.0.4` / `slh-dsa 0.0.3`
@@ -193,6 +193,21 @@ keys** (now id-derived, cryptographically distinct); hardcoded ports + swallowed
 the run silently (now a pre-flight port check + post-launch `kill -0` liveness); and the DoD overclaimed the
 in-process witnesses (now marked ✓-in-process / external-operators, per D-021). See D-023. **This completes the MTS
 §27 milestone ladder M1–M8.**
+
+**M11 — public-operational.** No new protocol; plumbing + durability + the operator loop (D-026). (1) **CI runs the
+full gate set on the host** on push/PR + **nightly** (`.github/workflows/ci.yml`): 8 parallel jobs with `timeout-minutes`,
+`concurrency` cancel-in-progress, least-privilege perms; a dedicated **`audit` job runs the same `make audit`** a
+contributor runs (so no PR can reintroduce a secret or a brand name); reproducibility stays a PR gate in its own job.
+(2) **Release hygiene:** `make release` refuses a dirty tree / red preflight, re-checks reproducibility, builds the
+reference CLI, and writes a signable `dist/SHA256SUMS` (proven: CLI + vectors tarball + manifest); `CHANGELOG.md` maps
+to the ladder + owns the fixed security bugs publicly; `RELEASING.md` gives the downloader's verify-by-rebuild path.
+(3) **Community health:** issue forms (security routed **privately**, bug, vector-discrepancy) + a PR template
+(tests/preflight/audit/SPDX/DCO). (4) **Operator loop** for the highest-leverage ⏳ row: `mint-challenge --party` (answer
+key under gitignored `ops-verifier/`), `check-attestation --party` → durable `evidence/verifier/<party>.json` the board
+reads, `kits/verifier/OPERATOR.md`; `make verifier-operator-drill` proves it on 3 dry-run parties (forgery refused).
+(5) **Durability:** `TOOLCHAIN.md` + `make doctor`, golden-path scripts point a missing toolchain at `make doctor`,
+and `status-consistency.mjs` now also pins the board's ✅/⏳ counts to `docs/DOD.md`. The CI badge is one find/replace
+(`<owner>`); the ordered **pre-push checklist** is in `docs/PUBLISH-AUDIT.md`.
 
 **M10 — public-ready + the DoD events made stranger-completable.** No new protocol. (1) **Publish audit**
 (`docs/PUBLISH-AUDIT.md`, D-025): full-24-commit-history secret sweep = **0 real secrets** (`gitleaks` FPs on CC0

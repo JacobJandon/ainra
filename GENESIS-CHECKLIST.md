@@ -36,19 +36,21 @@ Nothing here is faked. A step is ✅ only when its artifact exists and independe
 - **Proof:** a published transcript whose SHA-256 an independent witness recomputes (`kits/ceremony/witness.mjs`),
   plus the recording; ≥2 mirrors byte-verify (`make verify-mirror`).
 
-### 3. Enroll ≥3 independent external verifiers (⏳ real-world)
-- [ ] For **each** separately-vetted operator, `mint-challenge.mjs` a **fresh challenge corpus** (K bundles, secret
-  coin-flip revocations, K≥8 so 2^-K is negligible) + a **private answer key**. Hand them the public corpus + nonce;
-  keep the answer key. Record who got which challenge, out of band (this is what makes them count as *distinct*).
+### 3. Enroll ≥3 independent external verifiers (⏳ real-world) — the easiest row; **operator runbook: `kits/verifier/OPERATOR.md`**
+- [ ] For **each** separately-vetted operator, `mint-challenge.mjs --party <id>` a **fresh challenge corpus** (K bundles,
+  secret coin-flip revocations, K≥8 so 2^-K is negligible) + a **private answer key** (stored under the gitignored
+  `ops-verifier/<id>/`). Hand them the public corpus + the one-pager `outreach/EXTERNAL-VERIFIER-CALL.md`; keep the
+  answer key. Record who got which challenge, out of band (this is what makes them count as *distinct*).
 - [ ] Three unaffiliated operators, on three different machines, each run
   `kits/verifier/verify-kit.mjs --challenge <their-nonce> --challenge-dir <their-corpus>` and send us a signed
   `verifier-attestation.json`.
 - **Proof:** three attestations that each pass
-  `kits/verifier/check-attestation.mjs --challenge <nonce> --secret <that operator's answer key>` — the decisive gate
-  being that their verdicts on the fresh, **never-published** bundles match the answer key exactly (a non-executor must
-  guess all K). Under **distinct** verifier keys, one challenge each. Honest scope: this proves *actual verification was
+  `kits/verifier/check-attestation.mjs --challenge <nonce> --secret <that operator's answer key> --party <id>` — the
+  decisive gate being that their verdicts on the fresh, **never-published** bundles match the answer key exactly (a
+  non-executor must guess all K). Each success writes a durable `evidence/verifier/<id>.json` that `make genesis-status`
+  counts; the row turns ✅ at three **distinct** verifier keys. Honest scope: this proves *actual verification was
   performed* on un-precomputable inputs (not the exact binary, not Sybil-resistance — distinctness is the
-  one-challenge-per-party issuance). (Kill-gate K4.)
+  one-challenge-per-party issuance). Rehearse the whole loop with `make verifier-operator-drill`. (Kill-gate K4.)
 
 ### 4. Stand up witnesses on independent infra (⏳ real-world)
 - [ ] ≥3 `witnessd` run by separate operators (TLS-fronted); a relying party assembles a quorum certificate over the

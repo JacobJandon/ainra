@@ -36,6 +36,16 @@ PY
 echo "== an INDEPENDENT witness recomputes the transcript hash + verifies every custodian =="
 node kits/ceremony/witness.mjs --dir "$DRY"
 
+echo "== an OUTSIDER recomputes the published transcript hash from PUBLIC BYTES alone (+ coordinator checklist) =="
+# A real coordinator ticks ceremony-checklist.json on camera; here we tick a TEST-ROOT copy to exercise the check.
+DRY="$DRY" node -e '
+  const {readFileSync,writeFileSync}=require("fs");
+  const cl=JSON.parse(readFileSync("kits/ceremony/ceremony-checklist.json","utf8"));
+  cl.steps.forEach((s)=>{ s.done=true; s.evidence="dry-run (camera-mark N/A)"; }); cl.test_root=true; cl.ceremony_id="DRYRUN";
+  writeFileSync(process.env.DRY+"/ceremony-checklist.json", JSON.stringify(cl,null,2)+"\n");
+'
+node kits/ceremony/verify-transcript.mjs --transcript "$DRY/transcript.json" --sha256 "$DRY/transcript.sha256" --checklist "$DRY/ceremony-checklist.json"
+
 echo "== NEGATIVE: skip a custodian → the witness MUST fail loudly =="
 BAD="$WORK/bad"
 cp -r "$DRY" "$BAD"

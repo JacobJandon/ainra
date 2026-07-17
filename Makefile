@@ -1,6 +1,6 @@
 # AINRA — the acceptance bar (MTS §28, brief §8): a stranger clones, runs `make test && make vectors && make diff`,
 # and everything is green in under 10 minutes on a laptop.
-.PHONY: all test vectors vectors-check diff fmt clippy fuzz-smoke bench sdk-build sdk-test ci clean status console samples drill explorer demo scale ceremony testbed wedge-build wedge-test repro mirror verify-mirror check-freeze freeze genesis-local verifier-kit-smoke ceremony-dry-run soak-smoke drill-networked preflight s7 license gitleaks audit
+.PHONY: all test vectors vectors-check diff fmt clippy fuzz-smoke bench sdk-build sdk-test ci clean status console samples drill explorer demo scale ceremony testbed wedge-build wedge-test repro mirror verify-mirror check-freeze freeze genesis-local verifier-kit-smoke ceremony-dry-run soak-smoke drill-networked preflight s7 license gitleaks audit verify-as-external verifier-triple-drill soak-verify genesis-status verify-transcript
 
 all: fmt clippy test vectors diff
 
@@ -122,15 +122,32 @@ genesis-local:
 verifier-kit-smoke:
 	bash tools/verifier-kit-smoke.sh
 
+# M10 — the ONE command a stranger runs to become external verifier #N (CHALLENGE=<dir the maintainer sent>).
+verify-as-external:
+	bash tools/verify-as-external.sh
+
+# M10 — the §29 "≥3 external verifiers" flow at smoke scale: 3 distinct challenges → 3 distinct execution-bound
+# attestations accepted, a hand-authored one rejected. A dry run (simulated on one host) — proves the machinery.
+verifier-triple-drill:
+	bash tools/verifier-triple-drill.sh
+
 # M9 — Ceremony dry-run: rehearse the operator choreography on N 'machines', run the real dual-root ceremony
 # (TEST-ROOT), and an independent witness recomputes the transcript hash + verifies every custodian; fails loud.
 ceremony-dry-run:
 	bash tools/ceremony-dry-run.sh $(or $(N),5)
 
+# M10 — an outsider recomputes a PUBLISHED ceremony transcript's hash from public bytes alone (TRANSCRIPT=, SHA256=).
+verify-transcript:
+	node kits/ceremony/verify-transcript.mjs --transcript "$(or $(TRANSCRIPT),transcript.json)" --sha256 "$(or $(SHA256),transcript.sha256)" $(if $(CHECKLIST),--checklist "$(CHECKLIST)",)
+
 # M9 — Soak instrument smoke: real registrar, issue+revoke, measure propagation from 3 vantage points into a
 # hash-chained log, signed report + SLO flag (fail closed). Real soak = same instrument, --duration-sec + regions.
 soak-smoke:
 	bash tools/soak-smoke.sh $(or $(CYCLES),20)
+
+# M10 — re-check a FINISHED soak run's signature + tamper-evident structure (OUT=<dir>). Add SLO=60 CHALLENGE=<n> to gate.
+soak-verify:
+	bash tools/soak-verify.sh
 
 # M9 — Networked witness quorum (D-021 transport): N witnessd processes over HTTP; relying party collects
 # cosignatures + refuses a fork; k stays the relying party's argument.

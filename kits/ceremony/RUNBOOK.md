@@ -20,6 +20,37 @@ has ever touched a network, the ceremony is void; start over with fresh hardware
 
 ---
 
+## 0. Your role — standalone checklist
+Three roles run the ceremony. Find yours; each list is self-contained and points into the detailed phases below.
+
+### Coordinator / scribe (one person; never touches a share)
+1. Recruit the roster (§1) and confirm jurisdiction/organization diversity. Brief everyone on this runbook.
+2. Run `make ceremony-dry-run` with the full group until fluent — nothing real (§ intro).
+3. On the day: open the recording (§3), collect each custodian's **commitment** on camera (§4), drive the on-camera
+   **cross-read** (§4), then the **reveals** (§7).
+4. Run the coordinator ceremony binary; write `transcript.json` + `transcript.sha256` (§7). Fill
+   **`ceremony-checklist.json`** as you go — one line per step, ticked on camera; it is published with the transcript.
+5. Publish `directory.json`, `roots.json`, `transcript.json` + hash to **≥2 mirrors**; confirm `make verify-mirror`
+   (§7). Publish the recording. Hand the witness the artifacts.
+
+### Custodian (×9; holds exactly one share)
+1. Bring **fresh, sealed** hardware; boot the ephemeral, **air-gapped** OS on camera (§2, §3). Radio survey on camera.
+2. **Commit:** generate your entropy on the air-gapped machine; publish only `SHA-256(nonce)` — never the nonce (§4).
+3. **Cross-read:** on camera, read every other custodian's commitment aloud and confirm the set matches (§4).
+4. **Real-secret step (§5):** generate your FROST 5-of-9 share on the air-gapped machine. **It never leaves that
+   machine.** This is the one irreversible step.
+5. **Reveal:** after all commitments are cross-read, reveal your nonce (§7). Then **wipe/destroy** your hardware (§8).
+
+### Witness (≥1; independent, touches nothing)
+1. Observe the whole ceremony on camera; take independent notes with timestamps.
+2. Afterward, with only the **published** artifacts, recompute the transcript hash yourself:
+   `node kits/ceremony/verify-transcript.mjs --transcript transcript.json --sha256 transcript.sha256`
+   (and for the full dry-run, `node kits/ceremony/witness.mjs --dir <dir>` — commit-reveal + distinct-custodian checks).
+3. Confirm your recomputed hash equals the published hash **and** what the recording shows. Byte-verify ≥2 mirrors
+   (`make verify-mirror`). Publish your independent confirmation.
+
+---
+
 ## 1. Roster & quorum
 - **9 custodians**, geographically and organizationally separated; **5-of-9** threshold (FROST RFC 9591). No custodian
   can sign alone; any 5 can. A verifier cannot tell the root is thresholded — FROST emits standard RFC 8032 signatures.

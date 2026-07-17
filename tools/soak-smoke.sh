@@ -60,6 +60,15 @@ if node kits/soak/verify-log.mjs --log "$OUT/bad-log.jsonl" --report "$OUT/bad-r
   echo "FAIL: a breaching log with a PASS report was accepted — SLO not pinned"; exit 1
 else echo "  ✓ breaching-run fabrication rejected (SLO recomputed against our pin)"; fi
 
+echo "== make soak-verify: accepts the genuine report (consistency-only) + REJECTS a tampered copy (M10) =="
+OUT="$OUT" bash tools/soak-verify.sh >/dev/null 2>&1 && echo "  ✓ soak-verify accepts the genuine run" || { echo "FAIL: soak-verify rejected a genuine run"; exit 1; }
+# tamper: flip one measured latency in the log without re-chaining → the hash chain must catch it.
+TAMP="$WORK/tamper"; mkdir -p "$TAMP"; cp "$OUT/soak-report.json" "$TAMP/"
+sed '0,/"latency_ms":[0-9]/s//"latency_ms":999999/' "$OUT/soak-log.jsonl" > "$TAMP/soak-log.jsonl"
+if OUT="$TAMP" bash tools/soak-verify.sh >/dev/null 2>&1; then
+  echo "FAIL: soak-verify accepted a tampered log — chain not enforced"; exit 1
+else echo "  ✓ soak-verify rejects a tampered log (hash chain broken)"; fi
+
 echo
 echo "soak-smoke OK — the instrument measures real propagation, chains it tamper-evidently, and the signed report"
 echo "is reproducible from the log. A real soak: same instrument, --duration-sec $((14 * 24 * 3600)) + regional URLs."

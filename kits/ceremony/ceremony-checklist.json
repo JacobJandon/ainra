@@ -1,0 +1,23 @@
+{
+  "kind": "ainra/ceremony-checklist/v1",
+  "note": "TEMPLATE. The coordinator fills this in on camera as the ceremony proceeds — one entry per required step, each ticked (done:true) only when the recording shows it. Publish it alongside transcript.json so an outsider can map the recording to the transcript. Set test_root:false ONLY for the real recorded ceremony; the dry-run leaves it true.",
+  "ceremony_id": "GENESIS-<fill>",
+  "date_utc": "<fill: YYYY-MM-DDTHH:MM:SSZ>",
+  "test_root": true,
+  "roster": { "custodians_required": 9, "threshold": 5, "witnesses": 1, "jurisdictions": ["<fill>"] },
+  "steps": [
+    { "id": "recording-open", "phase": 3, "desc": "recording started, synchronized clock in frame", "done": false, "evidence": "" },
+    { "id": "hardware-shown", "phase": 2, "desc": "each custodian shows sealed hardware + boots ephemeral OS", "done": false, "evidence": "" },
+    { "id": "airgap-survey", "phase": 2, "desc": "radio survey on camera confirms every machine is air-gapped", "done": false, "evidence": "" },
+    { "id": "commitments", "phase": 4, "desc": "all 9 custodians published SHA-256(nonce) commitments", "done": false, "evidence": "" },
+    { "id": "cross-read", "phase": 4, "desc": "every commitment read aloud + set confirmed by all on camera", "done": false, "evidence": "" },
+    { "id": "shares-generated", "phase": 5, "desc": "REAL-SECRET STEP: FROST 5-of-9 shares generated air-gapped; none left its machine", "done": false, "evidence": "" },
+    { "id": "root-assembled", "phase": 6, "desc": "dual root (FROST-Ed25519 + SLH-DSA) assembled; directory signed", "done": false, "evidence": "" },
+    { "id": "delegate-certified", "phase": 6, "desc": "online delegate certified (ADR-002); real root goes offline", "done": false, "evidence": "" },
+    { "id": "reveals", "phase": 7, "desc": "all custodians revealed nonces; SHA-256(reveal)==commit for each", "done": false, "evidence": "" },
+    { "id": "transcript-published", "phase": 7, "desc": "transcript.json + transcript.sha256 written and published", "done": false, "evidence": "" },
+    { "id": "mirrors-verified", "phase": 7, "desc": "≥2 mirrors byte-verify (make verify-mirror); recording published", "done": false, "evidence": "" },
+    { "id": "witness-confirmed", "phase": 7, "desc": "independent witness recomputed the transcript hash == published", "done": false, "evidence": "" },
+    { "id": "wipe-seal", "phase": 8, "desc": "air-gapped machines wiped/destroyed; share backups sealed; chain of custody recorded", "done": false, "evidence": "" }
+  ]
+}

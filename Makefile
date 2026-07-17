@@ -1,6 +1,6 @@
 # AINRA — the acceptance bar (MTS §28, brief §8): a stranger clones, runs `make test && make vectors && make diff`,
 # and everything is green in under 10 minutes on a laptop.
-.PHONY: all test vectors vectors-check diff fmt clippy fuzz-smoke bench sdk-build sdk-test ci clean status console samples drill explorer demo scale ceremony testbed wedge-build wedge-test repro mirror verify-mirror check-freeze freeze genesis-local verifier-kit-smoke ceremony-dry-run soak-smoke drill-networked preflight s7 license gitleaks audit verify-as-external verifier-triple-drill soak-verify genesis-status verify-transcript genesis-board-demo release doctor verifier-operator-drill
+.PHONY: all test vectors vectors-check diff fmt clippy fuzz-smoke bench sdk-build sdk-test ci clean status console samples drill explorer demo scale ceremony testbed wedge-build wedge-test repro mirror verify-mirror check-freeze freeze genesis-local verifier-kit-smoke ceremony-dry-run soak-smoke drill-networked preflight s7 license gitleaks audit verify-as-external verifier-triple-drill soak-verify genesis-status verify-transcript genesis-board-demo release doctor verifier-operator-drill site
 
 all: fmt clippy test vectors diff
 
@@ -197,6 +197,10 @@ genesis-board-demo:
 # M11 — check a newcomer's environment against TOOLCHAIN.md before they waste an hour on a cryptic error.
 doctor:
 	bash tools/doctor.sh
+
+# M11+ — build the public static site (site/): refresh its derived downloads from canonical sources. SERVE=1 to serve.
+site:
+	bash tools/site.sh
 
 # M10 — the "clone it and it works" promise: run every gate a stranger runs, print a green/red board (QUICK=1 skips repro).
 preflight:

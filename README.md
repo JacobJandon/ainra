@@ -88,6 +88,19 @@ Each kit is completable by an unattended stranger and self-verifying. Start with
 Collected evidence rolls up into one honest picture — `make genesis-status`. Recruiting the people for the three
 remaining events: **[outreach/](outreach/)**.
 
+## Website
+
+The public front door lives in [`site/`](site/) — landing, the Standard, a verify walkthrough, the honest
+[status page](site/status.html), and the "get involved" pages (verifiers, witnesses, custodians). Plain HTML/CSS, **no
+framework, nothing phones home** (no CDN, web fonts, external scripts/images, or analytics — deliberate for a neutral
+root). Build + serve locally:
+
+```sh
+make site SERVE=1     # refreshes the derived downloads from canonical sources, serves at http://127.0.0.1:8088
+```
+
+Deploy is one GitHub Pages workflow the owner enables at publish time (see `site/README.md` + the pre-push checklist).
+
 ## Architecture
 
 ```

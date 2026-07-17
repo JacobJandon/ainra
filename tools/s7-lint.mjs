@@ -82,8 +82,8 @@ const brandPat = BRAND.map((n) => {
   const esc = n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   return { name: n, re: new RegExp(`(?<![.\\w])${esc}(?![\\w])`, "i") };
 });
-const PROSE_DIRS = ["docs", "kits", "outreach", ".github"];
-const PROSE_EXT = new Set([".md", ".txt", ".yml", ".yaml"]);
+const PROSE_DIRS = ["docs", "kits", "outreach", ".github", "site"];
+const PROSE_EXT = new Set([".md", ".txt", ".yml", ".yaml", ".html"]);
 const PROSE_FILES = ["README.md", "CONTRIBUTING.md", "SECURITY.md", "CODE_OF_CONDUCT.md", "GENESIS-CHECKLIST.md"];
 let brandHits = 0;
 function scanProse(label, text) {

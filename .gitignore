@@ -59,3 +59,7 @@ genesis-board*.html
 
 # operator's private per-party working dir (holds ANSWER KEYS — never commit)
 ops-verifier/
+
+# site derived downloads (built by make site from canonical sources)
+site/AINRA_I_The_Standard.md
+site/ainra-cli-*.zip

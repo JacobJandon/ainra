@@ -101,7 +101,10 @@ been done for you (no remote exists, nothing is pushed) — that is deliberate.
    step 2 (owner) and that the workflow file is on the default branch.
 8. **Turn on branch protection** (Settings → Branches → protect `main`): require the CI checks + require a PR. This is
    what makes the `audit` job actually prevent a future contributor from reintroducing a secret or a brand name.
-9. **Only now, recruit.** Send the `outreach/` one-pagers (verifiers, witnesses, custodians). Track incoming evidence
-   with `make genesis-status`.
+9. **(Optional) Publish the website.** Enable Pages (Settings → Pages → Source: **GitHub Actions**). The
+   `.github/workflows/pages.yml` workflow builds `site/` (`make site`) and deploys it; confirm the first run is green
+   and the Pages URL resolves. The site is self-contained (nothing phones home). Point the outreach links at it.
+10. **Only now, recruit.** Send the `outreach/` one-pagers (verifiers, witnesses, custodians). Track incoming evidence
+    with `make genesis-status`.
 
 Nothing about publishing changes the verify path or any test. If a step fails, stop — a public mistake is one-way.

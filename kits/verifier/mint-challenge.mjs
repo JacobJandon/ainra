@@ -22,11 +22,16 @@ const A = (n, d) => { const i = process.argv.indexOf(`--${n}`); return i >= 0 &&
 const registrar = A("registrar");
 const now = Number(A("now"));
 const count = Number(A("count", "8"));
-const outDir = A("out");
-const secretPath = A("secret");
+// --party <id> (operator flow): organizes output per named party under a gitignored ops dir and defaults --out/--secret
+// so the maintainer never has to pick paths (and the private answer key lands somewhere .gitignore already excludes).
+const party = A("party", "");
+const opsDir = A("ops-dir", "ops-verifier");
+const outDir = A("out", party ? `${opsDir}/${party}/challenge` : undefined);
+const secretPath = A("secret", party ? `${opsDir}/${party}/answer-key.json` : undefined);
 const nonce = A("nonce", randomBytes(16).toString("hex"));
 if (!registrar || !now || !outDir || !secretPath) {
-  console.error("usage: mint-challenge.mjs --registrar <url> --now <unix> --count <K> --out <challenge-dir> --secret <secret.json> [--nonce <hex>]");
+  console.error("usage: mint-challenge.mjs --registrar <url> --now <unix> --count <K> {--party <id> | --out <dir> --secret <file>} [--nonce <hex>]");
+  console.error("  --party <id> stores the public corpus + the PRIVATE answer key under ops-verifier/<id>/ (gitignored). See kits/verifier/OPERATOR.md.");
   process.exit(2);
 }
 if (!(count >= 1)) { console.error("--count must be >= 1"); process.exit(2); }
@@ -81,6 +86,7 @@ for (let i = 0; i < count; i++) {
 const challenge = {
   kind: "ainra/verifier-challenge/v1",
   nonce,
+  ...(party ? { party } : {}),
   now,
   registrar: registrarId,
   bundles,
@@ -96,6 +102,7 @@ const corpus_sha256 = Object.fromEntries(corpusFiles.map((f) => [f, sha256(readF
 const secret = {
   kind: "ainra/verifier-challenge-secret/v1",
   nonce,
+  ...(party ? { party } : {}),
   now,
   count,
   expected, // ground-truth verdict per bundle — the un-precomputable part
@@ -105,6 +112,13 @@ const secret = {
 writeFileSync(secretPath, JSON.stringify(secret, null, 2) + "\n");
 
 const nRevoked = expected.filter((v) => v === "invalid:revoked").length;
-console.log(`minted challenge ${nonce}: ${count} fresh bundles (${nRevoked} revoked / ${count - nRevoked} valid) — a forger must guess all ${count} (${secret.forge_probability}).`);
+console.log(`minted challenge ${nonce}${party ? ` for party "${party}"` : ""}: ${count} fresh bundles (${nRevoked} revoked / ${count - nRevoked} valid) — a forger must guess all ${count} (${secret.forge_probability}).`);
 console.log(`  public  → ${outDir}/ (directory.json, roots.json, challenge.json, ${bundles.length} bundles) — hand to the verifier`);
 console.log(`  private → ${secretPath} — KEEP THIS (the answer key); never publish it`);
+if (party) {
+  console.log(`\n── operator: onboard "${party}" ──`);
+  console.log(`  1. Send them ${outDir}/ (a zip is fine) + the outreach one-pager outreach/EXTERNAL-VERIFIER-CALL.md.`);
+  console.log(`  2. They run:   make verify-as-external CHALLENGE=<the folder you sent>   → they send back verifier-attestation.json`);
+  console.log(`  3. You check:  node kits/verifier/check-attestation.mjs --attestation <their-file> --challenge ${nonce} --secret ${secretPath} --party ${party}`);
+  console.log(`     → on success it writes evidence/verifier/${party}.json, which 'make genesis-status' counts.`);
+}

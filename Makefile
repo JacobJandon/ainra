@@ -1,6 +1,6 @@
 # AINRA — the acceptance bar (MTS §28, brief §8): a stranger clones, runs `make test && make vectors && make diff`,
 # and everything is green in under 10 minutes on a laptop.
-.PHONY: all test vectors vectors-check diff fmt clippy fuzz-smoke bench sdk-build sdk-test ci clean status console samples drill explorer demo scale ceremony testbed wedge-build wedge-test repro mirror verify-mirror check-freeze freeze genesis-local verifier-kit-smoke ceremony-dry-run soak-smoke drill-networked preflight s7 license gitleaks audit verify-as-external verifier-triple-drill soak-verify genesis-status verify-transcript genesis-board-demo release doctor
+.PHONY: all test vectors vectors-check diff fmt clippy fuzz-smoke bench sdk-build sdk-test ci clean status console samples drill explorer demo scale ceremony testbed wedge-build wedge-test repro mirror verify-mirror check-freeze freeze genesis-local verifier-kit-smoke ceremony-dry-run soak-smoke drill-networked preflight s7 license gitleaks audit verify-as-external verifier-triple-drill soak-verify genesis-status verify-transcript genesis-board-demo release doctor verifier-operator-drill
 
 all: fmt clippy test vectors diff
 
@@ -130,6 +130,11 @@ verify-as-external:
 # attestations accepted, a hand-authored one rejected. A dry run (simulated on one host) — proves the machinery.
 verifier-triple-drill:
 	bash tools/verifier-triple-drill.sh
+
+# M11 — the OPERATOR loop for real external verifiers: mint per-party → party verifies → check → durable evidence →
+# `make genesis-status` counts it. 3 dry-run parties (not counted) + a forgery rejected. See kits/verifier/OPERATOR.md.
+verifier-operator-drill:
+	bash tools/verifier-operator-drill.sh
 
 # M9 — Ceremony dry-run: rehearse the operator choreography on N 'machines', run the real dual-root ceremony
 # (TEST-ROOT), and an independent witness recomputes the transcript hash + verifies every custodian; fails loud.

@@ -30,7 +30,27 @@ function canonicalJSON(v) {
 const eqArr = (a, b) => Array.isArray(a) && Array.isArray(b) && a.length === b.length && a.every((x, i) => x === b[i]);
 const dir = (p) => (existsSync(p) ? readdirSync(p, { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => e.name) : []);
 
+const files = (p, ext) => (existsSync(p) ? readdirSync(p, { withFileTypes: true }).filter((e) => e.isFile() && e.name.endsWith(ext)).map((e) => e.name) : []);
+
+// The DURABLE evidence the operator's `check-attestation.mjs --party` emits (evidence/verifier/<party>.json). It holds
+// no secret; the board independently RE-VERIFIES the embedded attestation signature and requires the operator marked it
+// valid (the operator held the answer key; the board doesn't). Distinctness = the verifier's public key.
+function checkVerifierEvidence(file) {
+  const base = `${EV}/verifier/${file}`;
+  try {
+    const ev = JSON.parse(readFileSync(base, "utf8"));
+    const att = ev.attestation || {};
+    const body = att.body || {};
+    const pub = createPublicKey({ key: Buffer.from(body.verifier_pubkey_spki_b64 || "", "base64"), format: "der", type: "spki" });
+    const sigOk = edVerify(null, Buffer.from(canonicalJSON(body)), pub, Buffer.from(att.sig_ed25519_b64 || "", "base64"));
+    const ok = sigOk && ev.valid === true && body.execution_bound === true && body.challenge === ev.challenge_nonce &&
+      typeof ev.verifier_pubkey_spki_b64 === "string" && ev.verifier_pubkey_spki_b64 === body.verifier_pubkey_spki_b64;
+    return { name: ev.party || file.replace(/\.json$/, ""), valid: ok, key: body.verifier_pubkey_spki_b64 };
+  } catch (e) { return { name: file, valid: false, error: e.message }; }
+}
+
 // ── verify one external-verifier attestation against its private answer key (the same gate as check-attestation.mjs) ──
+// Legacy layout (evidence/verifiers/<name>/{attestation.json, secret.json}) — used by the board demo, kept for compat.
 function checkVerifier(name) {
   const base = `${EV}/verifiers/${name}`;
   try {
@@ -83,7 +103,8 @@ function checkSoak(region) {
 }
 
 // ── gather ──────────────────────────────────────────────────────────────────────────────────────────────────────
-const verifiers = dir(`${EV}/verifiers`).map(checkVerifier);
+// Durable per-party evidence (the operator flow, evidence/verifier/*.json) + the legacy demo layout.
+const verifiers = [...files(`${EV}/verifier`, ".json").map(checkVerifierEvidence), ...dir(`${EV}/verifiers`).map(checkVerifier)];
 const validVerifiers = verifiers.filter((v) => v.valid);
 const distinctKeys = new Set(validVerifiers.map((v) => v.key)).size;
 const ceremony = checkCeremony();

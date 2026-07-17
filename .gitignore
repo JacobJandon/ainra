@@ -56,3 +56,6 @@ genesis-board*.html
 
 # release artifacts (make release)
 /dist/
+
+# operator's private per-party working dir (holds ANSWER KEYS — never commit)
+ops-verifier/

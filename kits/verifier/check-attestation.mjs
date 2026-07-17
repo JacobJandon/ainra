@@ -20,7 +20,8 @@
 // and it does NOT prove they are a DISTINCT human — operator distinctness is established out of band by minting ONE
 // challenge per separately-vetted party (see SECURITY.md, GENESIS-CHECKLIST §3).
 
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { dirname } from "node:path";
 import { createHash, createPublicKey, verify as edVerify } from "node:crypto";
 
 function arg(name, def) {
@@ -31,6 +32,9 @@ const attPath = arg("attestation");
 const canonDir = arg("canonical", new URL("./sample-artifacts", import.meta.url).pathname);
 const expectChallenge = arg("challenge"); // the nonce WE issued to this verifier; required — no default
 const secretPath = arg("secret"); // the private answer key from mint-challenge.mjs; required to COUNT as a verifier
+// --party <id> (operator flow): on success, write a durable evidence file `make genesis-status` reads (never the secret).
+const party = arg("party", "");
+const evidenceOut = arg("evidence-out", party ? `evidence/verifier/${party}.json` : "");
 if (!attPath || !expectChallenge || !secretPath) {
   console.error("usage: check-attestation.mjs --attestation <file> --challenge <the-nonce-you-issued> --secret <answer-key.json> [--canonical <dir>]");
   console.error("  (--secret is REQUIRED: without the private answer key, execution cannot be checked and the attestation cannot count.)");
@@ -119,6 +123,25 @@ if (body.execution_bound !== true) {
 console.log("");
 if (ok) {
   console.log(`ATTESTATION VALID (EXECUTION-BOUND) — a party holding key ${(body.verifier_pubkey_spki_b64 || "").slice(0, 16)}… CORRECTLY VERIFIED ${secret.expected.length} fresh bundles whose answers we never published, root-dark, for challenge ${expectChallenge} (sdk ${body.sdk}). They actually performed AINRA verification. Count it as ONE external verifier (this does NOT prove the exact binary vs. a conformant reimplementation, nor operator distinctness — that is out-of-band; see SECURITY.md).`);
+  // Durable evidence the genesis board reads. It embeds the FULL attestation (so the board re-checks the signature
+  // independently) + the operator's answer-key verdict + the answer-key HASH (auditable), but NEVER the secret itself.
+  if (evidenceOut) {
+    const evidence = {
+      kind: "ainra/verifier-evidence/v1",
+      party: party || null,
+      valid: true,
+      verifier_pubkey_spki_b64: body.verifier_pubkey_spki_b64,
+      challenge_nonce: expectChallenge,
+      challenge_count: secret.expected.length,
+      forge_probability: secret.forge_probability || `2^-${secret.expected.length}`,
+      answer_key_sha256: sha256(JSON.stringify(secret)), // auditable link to the key, without exposing it
+      attestation: att, // full body+sig, so the board verifies the signature without needing the private key
+      note: "Execution-bound: challenge verdicts matched the private answer key. Distinctness is out-of-band (one challenge per vetted party).",
+    };
+    try { mkdirSync(dirname(evidenceOut), { recursive: true }); } catch { /* exists */ }
+    writeFileSync(evidenceOut, JSON.stringify(evidence, null, 2) + "\n");
+    console.log(`  → wrote evidence ${evidenceOut} (no secret inside) — 'make genesis-status' now counts ${party ? `"${party}"` : "this verifier"}.`);
+  }
   process.exit(0);
 }
 console.error("ATTESTATION REJECTED — does not count as external-verifier evidence.");

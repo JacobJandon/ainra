@@ -194,6 +194,10 @@ genesis-status:
 genesis-board-demo:
 	bash tools/genesis-board/demo.sh
 
+# M11 — check a newcomer's environment against TOOLCHAIN.md before they waste an hour on a cryptic error.
+doctor:
+	bash tools/doctor.sh
+
 # M10 — the "clone it and it works" promise: run every gate a stranger runs, print a green/red board (QUICK=1 skips repro).
 preflight:
 	bash tools/preflight.sh

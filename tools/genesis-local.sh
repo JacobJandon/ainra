@@ -8,6 +8,8 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+for t in cargo node; do command -v "$t" >/dev/null 2>&1 || { echo "✗ missing '$t' — run 'make doctor' (see TOOLCHAIN.md)"; exit 1; }; done
+
 NOW=$((1775865600 + 10 * 24 * 3600)) # inside the demo delegate-cert window (2026-04-21)
 OUT="${1:-genesis-out}"
 WORK="$(mktemp -d)"

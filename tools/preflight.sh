@@ -8,6 +8,17 @@
 #   make preflight QUICK=1      # skip the ~long repro/soak-heavy rows for a fast sanity board
 set -uo pipefail
 cd "$(dirname "$0")/.."
+
+# A newcomer's #1 failure is a missing toolchain surfacing as a cryptic error 3 minutes into a build. Catch it up front
+# with a human next step instead. (`make doctor` gives the full picture + versions.)
+MISSING=""
+for t in rustc cargo node make; do command -v "$t" >/dev/null 2>&1 || MISSING="$MISSING $t"; done
+if [ -n "$MISSING" ]; then
+  echo "✗ Missing required tool(s):$MISSING"
+  echo "  → Run 'make doctor' for the full environment check + how to install each. See TOOLCHAIN.md."
+  exit 1
+fi
+
 QUICK="${QUICK:-0}"
 LOGDIR="$(mktemp -d)"
 trap 'rm -rf "$LOGDIR"' EXIT

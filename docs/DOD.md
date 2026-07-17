@@ -7,6 +7,10 @@ forking the root from public artifacts alone."* Each item below is marked **hone
 (with the command that proves it) or **external / pending** (a real-world soak / multi-region / third-party item that
 code cannot fake — M8 delivers the machinery + the local proof and leaves the external column unfaked).
 
+<!-- DOD-BOARD laptop=7 external=4 --> <!-- lockstep with tools/genesis-board/board.mjs; tools/status-consistency.mjs
+fails CI if these drift. The board is the live, artifact-verified view of the same criteria (`make genesis-status`):
+7 laptop-provable rows are ✅ now; 4 external rows are ⏳ until a signature-checked artifact backs each. -->
+
 ## §29 prototype-exit criteria
 
 | Criterion | Status | Evidence / what's left |

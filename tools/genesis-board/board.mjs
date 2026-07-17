@@ -136,6 +136,13 @@ const rows = [
   ["external", "Independent witnesses on separate infra", "⏳", "machinery: kits/witness (make drill-networked proves the mechanism)"],
 ];
 
+// --counts: emit the STRUCTURAL row counts (independent of evidence) so the docs-vs-reality check can pin them to DOD.md.
+if (process.argv.includes("--counts")) {
+  const laptop = rows.filter((r) => r[0] === "laptop").length;
+  const external = rows.filter((r) => r[0] === "external").length;
+  console.log(`DOD-BOARD laptop=${laptop} external=${external} total=${rows.length}`);
+  process.exit(0);
+}
 const done = rows.filter((r) => r[2] === "✅").length;
 const founded = rows.every((r) => r[2] === "✅");
 

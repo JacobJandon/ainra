@@ -6,6 +6,10 @@
 # help, no data leaves your machine, ≤10 min. See kits/verifier/QUICKSTART.md.
 set -euo pipefail
 cd "$(dirname "$0")/.."
+# Friendly toolchain check (this is a stranger's first command). Node 18+ is required by the kit.
+command -v node >/dev/null 2>&1 || { echo "✗ Node.js not found — install Node 18+ (see kits/verifier/TROUBLESHOOTING.md)"; exit 1; }
+NODE_MAJ="$(node --version 2>/dev/null | tr -d v | cut -d. -f1)"
+[ "${NODE_MAJ:-0}" -ge 18 ] 2>/dev/null || { echo "✗ Node $(node --version) is too old — the kit needs Node 18+ (see kits/verifier/TROUBLESHOOTING.md)"; exit 1; }
 CHALLENGE="${CHALLENGE:-}"
 OUT="${OUT:-verifier-attestation.json}"
 if [ -z "$CHALLENGE" ] || [ ! -f "$CHALLENGE/challenge.json" ]; then

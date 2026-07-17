@@ -1,6 +1,6 @@
 # AINRA — the acceptance bar (MTS §28, brief §8): a stranger clones, runs `make test && make vectors && make diff`,
 # and everything is green in under 10 minutes on a laptop.
-.PHONY: all test vectors vectors-check diff fmt clippy fuzz-smoke bench sdk-build sdk-test ci clean status console samples drill explorer demo scale ceremony testbed wedge-build wedge-test repro mirror verify-mirror check-freeze freeze genesis-local verifier-kit-smoke ceremony-dry-run soak-smoke drill-networked preflight s7 license gitleaks audit verify-as-external verifier-triple-drill soak-verify genesis-status verify-transcript
+.PHONY: all test vectors vectors-check diff fmt clippy fuzz-smoke bench sdk-build sdk-test ci clean status console samples drill explorer demo scale ceremony testbed wedge-build wedge-test repro mirror verify-mirror check-freeze freeze genesis-local verifier-kit-smoke ceremony-dry-run soak-smoke drill-networked preflight s7 license gitleaks audit verify-as-external verifier-triple-drill soak-verify genesis-status verify-transcript genesis-board-demo
 
 all: fmt clippy test vectors diff
 
@@ -174,6 +174,15 @@ freeze:
 # Fail if any frozen doc drifted from docs/FREEZE.sha256.
 check-freeze:
 	bash tools/freeze.sh check
+
+# M10 — the honest DoD board: ingest collected verifier attestations + ceremony transcript + soak reports, verify each,
+# render the §29 table (✅ only with a valid artifact). EVIDENCE=<dir> (default genesis-evidence/ — absent = all ⏳).
+genesis-status:
+	node tools/genesis-board/board.mjs $(if $(EVIDENCE),--evidence "$(EVIDENCE)",)
+
+# M10 — prove the board: real evidence (3 attestations + ceremony + soak) drives rows to ✅, soak stays honest, fakes refused.
+genesis-board-demo:
+	bash tools/genesis-board/demo.sh
 
 # M10 — the "clone it and it works" promise: run every gate a stranger runs, print a green/red board (QUICK=1 skips repro).
 preflight:

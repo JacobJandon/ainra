@@ -53,3 +53,6 @@ kits/verifier/challenge/
 
 # generated board output (render with: make genesis-status)
 genesis-board*.html
+
+# release artifacts (make release)
+/dist/

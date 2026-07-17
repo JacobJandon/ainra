@@ -1,6 +1,6 @@
 # AINRA — the acceptance bar (MTS §28, brief §8): a stranger clones, runs `make test && make vectors && make diff`,
 # and everything is green in under 10 minutes on a laptop.
-.PHONY: all test vectors vectors-check diff fmt clippy fuzz-smoke bench sdk-build sdk-test ci clean status console samples drill explorer demo scale ceremony testbed wedge-build wedge-test repro mirror verify-mirror check-freeze freeze genesis-local verifier-kit-smoke ceremony-dry-run soak-smoke drill-networked preflight s7 license gitleaks audit verify-as-external verifier-triple-drill soak-verify genesis-status verify-transcript genesis-board-demo
+.PHONY: all test vectors vectors-check diff fmt clippy fuzz-smoke bench sdk-build sdk-test ci clean status console samples drill explorer demo scale ceremony testbed wedge-build wedge-test repro mirror verify-mirror check-freeze freeze genesis-local verifier-kit-smoke ceremony-dry-run soak-smoke drill-networked preflight s7 license gitleaks audit verify-as-external verifier-triple-drill soak-verify genesis-status verify-transcript genesis-board-demo release doctor
 
 all: fmt clippy test vectors diff
 
@@ -174,6 +174,11 @@ freeze:
 # Fail if any frozen doc drifted from docs/FREEZE.sha256.
 check-freeze:
 	bash tools/freeze.sh check
+
+# M11 — cut a VERIFIABLE release: refuse a dirty tree / red preflight, re-check reproducibility, build the reference
+# CLI, write a signable SHA256SUMS manifest (VERSION=vX.Y.Z). The public counterpart to reproducible builds.
+release:
+	bash scripts/release.sh
 
 # M10 — the honest DoD board: ingest collected verifier attestations + ceremony transcript + soak reports, verify each,
 # render the §29 table (✅ only with a valid artifact). EVIDENCE=<dir> (default genesis-evidence/ — absent = all ⏳).

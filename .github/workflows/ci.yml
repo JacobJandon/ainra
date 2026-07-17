@@ -1,18 +1,30 @@
 # SPDX-License-Identifier: Apache-2.0 OR MIT
-# AINRA CI — hard gates (MTS §28). Mirrors `make ci`. The acceptance bar (`make test && make vectors && make diff`)
-# is the `differential` job; the rest are hygiene + neutrality gates that also block merge.
+# AINRA CI — hard gates (MTS §28). Mirrors `make preflight` / `make ci`. Runs on push + PR (fast feedback) and nightly
+# (catches environment drift with no commits). Jobs run in parallel; the fast ones (fmt/clippy/test) report in minutes
+# while the heavier repro/integration jobs run alongside — see D-026 for the reproducibility-in-CI decision.
 name: CI
 on:
   push:
   pull_request:
+  schedule:
+    - cron: "0 7 * * *" # nightly full run (07:00 UTC) — durability against upstream/toolchain drift
+
+# Newer pushes to the same ref supersede in-flight runs (faster feedback, fewer wasted minutes).
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
   rust:
     name: fmt · clippy · test · vectors-replay
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@1.96
+      - uses: dtolnay/rust-toolchain@1.96 # pinned; matches rust-toolchain.toml (channel = "1.96")
         with:
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
@@ -30,6 +42,7 @@ jobs:
   differential:
     name: 3-way differential (core · sdk-ts · P0)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@1.96
@@ -48,6 +61,7 @@ jobs:
   wedge:
     name: verifier wedge (@ainra/middleware fail-closed)
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@1.96
@@ -59,25 +73,40 @@ jobs:
       - run: cd packages/sdk-ts && npm ci && npm run build
       - run: cd packages/middleware && npm install && npm run build && npm test
 
-  neutrality-and-hygiene:
-    name: S7 · license · no-network · npm-audit
+  # The publish gate a contributor cannot regress: `make audit` = S7 (fixtures + prose + EVERY commit message) +
+  # license headers + gitleaks over full history. Needs the whole history for the commit-message scan + gitleaks.
+  audit:
+    name: publish audit (make audit — S7 · license · gitleaks)
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # S7 also scans ALL commit messages for brand names
+          fetch-depth: 0 # S7 scans all commit messages; gitleaks scans all commits
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: S7 neutrality (no impersonation in fixtures + no commercial brands in docs/commit messages)
-        run: node tools/s7-lint.mjs
-      - name: License headers (Apache-2.0 OR MIT)
-        run: node tools/license-check.mjs
-      - name: README and STATUS.md agree on the status line
+      - name: Install gitleaks
+        run: |
+          VER=8.21.2
+          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${VER}/gitleaks_${VER}_linux_x64.tar.gz" | tar -xz gitleaks
+          sudo mv gitleaks /usr/local/bin/gitleaks
+      - run: make audit
+
+  hygiene:
+    name: freeze · no-network · npm-audit · status-consistency
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: README/STATUS/DOD agree (docs-vs-reality lockstep)
         run: node tools/status-consistency.mjs
       - name: Docs freeze (normative docs unchanged — M7)
         run: make check-freeze
-      - name: ainra-core has no network / IO / clock
+      - name: ainra-core has no network / IO / clock (N7)
         run: |
           if grep -rnE "std::net|std::fs|reqwest|hyper|ureq|tokio|std::process|SystemTime|Instant|std::env" crates/ainra-core/src/; then
             echo "ainra-core must be a pure library (N7) — network/IO/clock reference found"; exit 1
@@ -86,24 +115,10 @@ jobs:
       - name: SDK dependency audit
         run: cd packages/sdk-ts && npm ci && npm audit --audit-level=high
 
-  secret-scan:
-    name: gitleaks (full history)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0 # scan EVERY commit, not just the tip
-      - name: Install gitleaks
-        run: |
-          VER=8.21.2
-          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${VER}/gitleaks_${VER}_linux_x64.tar.gz" | tar -xz gitleaks
-          sudo mv gitleaks /usr/local/bin/gitleaks
-      - name: Scan full history (allowlist in .gitleaks.toml = CC0 vector PUBLIC keys only)
-        run: gitleaks detect --source . --no-banner --redact --config .gitleaks.toml
-
   fuzz-smoke:
     name: fuzz smoke (parsers never panic)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@1.96
@@ -113,6 +128,7 @@ jobs:
   integration:
     name: end-to-end (drill · testbed · genesis-local)
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@1.96
@@ -129,6 +145,9 @@ jobs:
   reproducibility:
     name: reproducible builds + mirror byte-verify (M7)
     runs-on: ubuntu-latest
+    # ~6 min locally; kept on PR (in its own parallel job, so it never blocks fast feedback) so a reproducibility
+    # regression is caught BEFORE merge, not only nightly. Generous timeout guards against a hang. See D-026.
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@1.96

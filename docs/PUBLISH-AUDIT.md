@@ -77,3 +77,30 @@ material, safe because nothing was pushed. The four paths above were copied to `
 all commits with `git filter-repo --invert-paths`. Post-rewrite verification (fresh clone: `make preflight` green;
 `git log`/`git cat-file` show no trace of the paths; brand scan clean) is recorded in the M10 close-out. Decision
 logged as **D-025** in `DECISIONS.md`.
+
+---
+
+## Pre-push checklist (M11 — the human presses these buttons, in order)
+
+Everything below is prepared; this is the ordered sequence to take the repo public in one sitting. Nothing here has
+been done for you (no remote exists, nothing is pushed) — that is deliberate.
+
+1. **Final green from a clean clone.** `git clone . /tmp/ainra-check && cd /tmp/ainra-check && make preflight` → the
+   board must read **ALL GREEN**, and `make audit` → **AUDIT OK**. (M11 keeps this true; re-run if in doubt.)
+2. **Set the owner.** One repo-wide find/replace: `<owner>` → your GitHub org/user (it appears only in the README CI
+   badge). Commit it.
+3. **Tag the first release.** `make release` (refuses a dirty tree or a red preflight; writes `dist/` + a checksum
+   manifest), then `git tag -s v0.1.0 -m "AINRA v0.1.0"` (or `-a` if you're not signing yet). See `CHANGELOG.md`.
+4. **Create the empty public repo** on GitHub under `<owner>/ainra`. Do NOT initialize it with a README/license (this
+   repo already has them). Confirm **Actions are enabled** for it (Settings → Actions → Allow all actions).
+5. **Push.** `git remote add origin git@github.com:<owner>/ainra.git && git push -u origin main --tags`.
+6. **Confirm CI is green on the host.** Open the Actions tab; the `CI` workflow should run all jobs (rust, differential,
+   wedge, audit, hygiene, fuzz-smoke, integration, reproducibility) and pass. The nightly schedule will run daily.
+7. **Confirm the badge resolves.** The README CI badge should now show *passing* (not "unknown"). If it 404s, re-check
+   step 2 (owner) and that the workflow file is on the default branch.
+8. **Turn on branch protection** (Settings → Branches → protect `main`): require the CI checks + require a PR. This is
+   what makes the `audit` job actually prevent a future contributor from reintroducing a secret or a brand name.
+9. **Only now, recruit.** Send the `outreach/` one-pagers (verifiers, witnesses, custodians). Track incoming evidence
+   with `make genesis-status`.
+
+Nothing about publishing changes the verify path or any test. If a step fails, stop — a public mistake is one-way.

@@ -1,7 +1,8 @@
 <!-- SPDX-License-Identifier: Apache-2.0 OR MIT -->
 # AINRA — the neutral root of AI-agent identity
 
-<!-- CI badge: replace <owner> with your GitHub org/user after pushing -->
+<!-- ⚙️ BEFORE PUBLISHING: one repo-wide find/replace of `<owner>` → your GitHub org/user makes this badge resolve.
+     It appears ONLY here (both spots on the next line). Full steps: docs/PUBLISH-AUDIT.md § "Pre-push checklist". -->
 [![CI](https://github.com/<owner>/ainra/actions/workflows/ci.yml/badge.svg)](https://github.com/<owner>/ainra/actions/workflows/ci.yml)
 
 **AINRA** does exactly four jobs — **accredit · anchor · revoke · log** — and nothing else. It answers the three

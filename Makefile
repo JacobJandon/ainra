@@ -198,7 +198,7 @@ license:
 
 # Secret scan over the FULL git history (config .gitleaks.toml allowlists only the CC0 vector public keys). Needs gitleaks.
 gitleaks:
-	gitleaks detect --source . --no-banner --redact
+	gitleaks detect --source . --config .gitleaks.toml --no-banner --redact
 
 # M10 — publish-readiness audit: neutral + licensed + zero secrets in history. See docs/PUBLISH-AUDIT.md.
 audit: s7 license gitleaks

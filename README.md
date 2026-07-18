@@ -53,6 +53,8 @@ AINRA preflight — clone-and-it-works board
   [PASS] witness quorum         fork refused over HTTP
   [PASS] S7 neutrality          no brands / no impersonation
   [PASS] license headers        SPDX on every source file
+  [PASS] status honesty         README == STATUS claim
+  [PASS] doc freeze             normative docs unchanged
   [PASS] reproducibility        artifacts rebuild byte-exact
   ALL GREEN — a stranger can clone this repo and every gate passes.
 ```

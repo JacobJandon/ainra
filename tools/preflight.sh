@@ -56,6 +56,7 @@ run "witness quorum"     "fork refused over HTTP"       bash tools/drill-network
 run "S7 neutrality"      "no brands / no impersonation" node tools/s7-lint.mjs
 run "license headers"    "SPDX on every source file"    node tools/license-check.mjs
 run "status honesty"     "README == STATUS claim"       node tools/status-consistency.mjs
+run "doc freeze"         "normative docs unchanged"     make check-freeze
 if [ "$QUICK" != "1" ]; then
   run "reproducibility"  "artifacts rebuild byte-exact" make repro
 fi

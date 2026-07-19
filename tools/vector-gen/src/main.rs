@@ -334,6 +334,159 @@ fn build(p: &CredParams) -> Built {
     }
 }
 
+/// ADR-017: one lineage, two generations in ONE log — a first-issuance credential and its REISSUE (fresh
+/// overlapping window, new status index, `prev_leaf` = the old body's RFC 6962 leaf). Both share the registrar,
+/// the log, and one signed checkpoint, so each is independently verifiable and the continuity link in the new
+/// body points at a leaf genuinely committed by the same log. Validity spans: old `[1000, 2000)`, new `[1600, 3200)` —
+/// overlap `[1600, 2000)`.
+fn build_renewal_pair(seed: u64) -> (Built, Built) {
+    let mut rng = ChaCha20Rng::seed_from_u64(0x4149_4E52_4100_0000 ^ seed);
+    let issuer = crypto::HybridKeypair::generate(&mut rng);
+    let root = crypto::TestRootSlh::generate(&mut rng);
+    let registrar = "registrar-01".to_string();
+
+    let mk_body = |idx: u64, nbf: u64, exp: u64, prev: Option<String>| {
+        let mut b = json!({
+            "vct": ainra_core::PASSPORT_VCT,
+            "iss": format!("did:ainra:{registrar}:acme:invoicing"),
+            "sub": format!("ainra:{registrar}:acme:invoicing@1.0.0"),
+            "nbf": nbf,
+            "exp": exp,
+            "authority": { "class": "A2", "principal_proof": "deadbeef" },
+            "tier": "L1",
+            "capabilities": ["read:invoices"],
+            "scope_ceiling": ["read:invoices"],
+            "keys": [ { "ed25519": "AAAA", "mldsa65": "BBBB" } ],
+            "cnf": { "jkt": "thumb" },
+            "status": { "status_list": { "idx": idx, "uri": format!("status://{registrar}/1") } },
+            "act_chain": json!([])
+        });
+        if let Some(p) = prev {
+            b["prev_leaf"] = json!(p);
+        }
+        b
+    };
+
+    let old_body = mk_body(3, 1_000, 2_000, None);
+    let old_bytes = canon::canonicalize(&old_body)
+        .expect("canon old")
+        .into_bytes();
+    let old_leaf = merkle::hash_leaf(&old_bytes);
+    let new_body = mk_body(4, 1_600, 3_200, Some(b64::encode(&old_leaf)));
+    let new_bytes = canon::canonicalize(&new_body)
+        .expect("canon new")
+        .into_bytes();
+    let new_leaf = merkle::hash_leaf(&new_bytes);
+
+    let mut log = merkle::TestLog::new();
+    for k in 0..3u8 {
+        log.append(&[k]);
+    }
+    let old_index = log.append(&old_bytes);
+    let new_index = log.append(&new_bytes);
+    let cp = checkpoint::Checkpoint {
+        origin: format!("ainra-log/{registrar}"),
+        tree_size: log.size(),
+        root: log.root(),
+    };
+    let cp_sig = checkpoint_sig(&cp, &root, &mut rng, false, None);
+    let status_list = status::StatusList::from_bits(vec![false; 16]);
+
+    let finish = |body: Value, leaf: [u8; 32], index: u64| -> Built {
+        let mut full = body;
+        full["log"] = json!({ "leaf": b64::encode(&leaf), "root": b64::encode(&cp.root), "checkpoint": "cp-1" });
+        let claims = canon::canonicalize(&full).expect("canon full").into_bytes();
+        debug_assert_eq!(verify::prelog_leaf(&claims).expect("prelog"), leaf);
+        let issuer_sig = issuer.sign(&claims).expect("sign claims");
+        let (nbf, exp) = (
+            full["nbf"].as_u64().expect("nbf"),
+            full["exp"].as_u64().expect("exp"),
+        );
+        Built {
+            claims,
+            issuer_pub: issuer.public(),
+            issuer_sig,
+            root_pub: root.public(),
+            registrar: registrar.clone(),
+            cp: cp.clone(),
+            cp_sig: cp_sig.clone(),
+            proof: log.inclusion_proof(index).expect("proof"),
+            leaf_index: index,
+            status_list: status_list.clone(),
+            status_len: 16,
+            chain_keys: Vec::new(),
+            hop_proofs: Vec::new(),
+            nbf,
+            exp,
+        }
+    };
+    let old = finish(old_body, old_leaf, old_index);
+    let new = finish(new_body, new_leaf, new_index);
+    (old, new)
+}
+
+/// A fully valid credential whose signed body carries `"prev_leaf": null`. ADR-017 parity guard: Rust's
+/// `Option<String>` maps a JSON null to `None` (= absent, a first issuance), so this credential must VERIFY;
+/// the SDK must treat null identically to a missing field. Signed properly (not mutated post-sign) so the
+/// expected verdict is VALID, not a signature error.
+fn build_prevleaf_null(seed: u64) -> Built {
+    let mut rng = ChaCha20Rng::seed_from_u64(0x4149_4E52_4143_0000 ^ seed);
+    let issuer = crypto::HybridKeypair::generate(&mut rng);
+    let root = crypto::TestRootSlh::generate(&mut rng);
+    let p = valid_params(seed as usize);
+    let body = json!({
+        "vct": ainra_core::PASSPORT_VCT,
+        "iss": format!("did:ainra:{}:{}:{}", p.registrar, p.operator, p.lineage),
+        "sub": format!("ainra:{}:{}:{}@{}", p.registrar, p.operator, p.lineage, p.version),
+        "nbf": p.nbf, "exp": p.exp,
+        "authority": { "class": "A2", "principal_proof": "deadbeef" },
+        "tier": "L1",
+        "capabilities": p.capabilities.clone(),
+        "scope_ceiling": p.scope_ceiling.clone(),
+        "keys": [ { "ed25519": "AAAA", "mldsa65": "BBBB" } ],
+        "cnf": { "jkt": "thumb" },
+        "status": { "status_list": { "idx": p.status_idx, "uri": format!("status://{}/1", p.registrar) } },
+        "act_chain": [],
+        "prev_leaf": Value::Null
+    });
+    let body_bytes = canon::canonicalize(&body).expect("canon").into_bytes();
+    let leaf = merkle::hash_leaf(&body_bytes);
+    let mut log = merkle::TestLog::new();
+    for k in 0..3u8 {
+        log.append(&[k]);
+    }
+    let leaf_index = log.append(&body_bytes);
+    let cp = checkpoint::Checkpoint {
+        origin: format!("ainra-log/{}", p.registrar),
+        tree_size: log.size(),
+        root: log.root(),
+    };
+    let cp_sig = checkpoint_sig(&cp, &root, &mut rng, false, None);
+    let proof = log.inclusion_proof(leaf_index).expect("proof");
+    let mut full = body;
+    full["log"] =
+        json!({ "leaf": b64::encode(&leaf), "root": b64::encode(&cp.root), "checkpoint": "cp-1" });
+    let claims = canon::canonicalize(&full).expect("canon").into_bytes();
+    let issuer_sig = issuer.sign(&claims).expect("sign");
+    Built {
+        claims,
+        issuer_pub: issuer.public(),
+        issuer_sig,
+        root_pub: root.public(),
+        registrar: p.registrar.clone(),
+        cp,
+        cp_sig,
+        proof,
+        leaf_index,
+        status_list: status::StatusList::from_bits(vec![false; p.status_len]),
+        status_len: p.status_len,
+        chain_keys: Vec::new(),
+        hop_proofs: Vec::new(),
+        nbf: p.nbf,
+        exp: p.exp,
+    }
+}
+
 /// A validly-signed credential whose `log.leaf` references a REAL in-tree leaf that is NOT its own body. Every check
 /// through step 8 passes and the inclusion proof is genuinely valid — only the body↔leaf binding stops it, so the
 /// expected verdict is NotLogged. Guards the binding across implementations (review finding #4).
@@ -738,6 +891,125 @@ fn generate() -> Vec<Vector> {
         v.presentation.now = b.nbf.saturating_sub(50);
         out.push(invalid(v, Reason::NotYetValid, "now is before nbf"));
     }
+
+    // ── ADR-017 exact window boundaries: nbf INCLUSIVE, exp EXCLUSIVE. ADR-016's ±30 s skew tolerance applies
+    //    to freshness-layer signed timestamps (heads/checkpoints), NEVER to the passport window — a skewed
+    //    window would be a fail-open grace period, which ADR-017 forbids: expiry is expiry. ──
+    let bper = 6usize;
+    for i in 0..bper {
+        let b = build(&valid_params(2_000 + i));
+        let mut v = wire_valid(
+            &format!("boundary-nbf-valid-{:04}", i),
+            "now == nbf: the window is nbf-inclusive (ADR-017 exact comparison, no skew on the window)",
+            &b,
+        );
+        v.presentation.now = b.nbf;
+        v.presentation.status_issued_at = b.nbf.saturating_sub(10);
+        out.push(v);
+    }
+    for i in 0..bper {
+        let b = build(&valid_params(2_100 + i));
+        let mut v = wire_valid(&format!("boundary-exp-expired-{:04}", i), "", &b);
+        v.presentation.now = b.exp;
+        v.presentation.status_issued_at = b.exp.saturating_sub(10);
+        out.push(invalid(
+            v,
+            Reason::Expired,
+            "now == exp: exp is exclusive — expiry is expiry, no grace period (ADR-017)",
+        ));
+    }
+    for i in 0..bper {
+        let b = build(&valid_params(2_200 + i));
+        let mut v = wire_valid(
+            &format!("boundary-exp-last-second-{:04}", i),
+            "now == exp − 1: the last second inside the window still verifies",
+            &b,
+        );
+        v.presentation.now = b.exp - 1;
+        v.presentation.status_issued_at = b.exp.saturating_sub(11);
+        out.push(v);
+    }
+    for i in 0..bper {
+        let b = build(&valid_params(2_300 + i));
+        let mut v = wire_valid(&format!("boundary-nbf-early-{:04}", i), "", &b);
+        v.presentation.now = b.nbf - 1;
+        v.presentation.status_issued_at = b.nbf.saturating_sub(11);
+        out.push(invalid(
+            v,
+            Reason::NotYetValid,
+            "now == nbf − 1: one second early is not yet valid (exact comparison, no skew)",
+        ));
+    }
+
+    // ── ADR-017 renewal (REISSUE): one lineage, two generations in one log; the new body carries `prev_leaf`.
+    //    Overlap [new.nbf, old.exp): BOTH verify. At old.exp the old fails closed; the new continues. ──
+    for i in 0..bper {
+        let (old_gen, new_gen) = build_renewal_pair(3_000 + i as u64);
+        let inside = 1_800u64; // within the overlap [1600, 2000)
+        let after = 2_000u64; // == old.exp — the overlap's hard edge
+        let mut v = wire_valid(
+            &format!("renewal-old-overlap-{:04}", i),
+            "ADR-017 overlap: the renewed-away generation, still inside its own window, verifies",
+            &old_gen,
+        );
+        v.presentation.now = inside;
+        v.presentation.status_issued_at = inside - 10;
+        out.push(v);
+        let mut v = wire_valid(
+            &format!("renewal-new-overlap-{:04}", i),
+            "ADR-017 overlap: the REISSUE (with its prev_leaf continuity link) verifies alongside its predecessor",
+            &new_gen,
+        );
+        v.presentation.now = inside;
+        v.presentation.status_issued_at = inside - 10;
+        out.push(v);
+        let mut v = wire_valid(&format!("renewal-old-expired-{:04}", i), "", &old_gen);
+        v.presentation.now = after;
+        v.presentation.status_issued_at = after - 10;
+        out.push(invalid(
+            v,
+            Reason::Expired,
+            "after the overlap the old generation fails closed — expiry is expiry (ADR-017, no grace)",
+        ));
+        let mut v = wire_valid(
+            &format!("renewal-new-survives-{:04}", i),
+            "the reissued generation continues past its predecessor's exp",
+            &new_gen,
+        );
+        v.presentation.now = after;
+        v.presentation.status_issued_at = after - 10;
+        out.push(v);
+    }
+    // A REISSUE whose continuity link is structurally malformed fails closed at the schema gate — a renewal that
+    // LOOKS like a renewal but cannot be walked is refused, never ignored. The last case is the SUBTLE one that
+    // guards cross-impl parity: a 43-char alphabet-valid but NON-CANONICAL base64url string (nonzero trailing
+    // bits). Rust's base64ct decoder rejects it; Node's lenient Buffer.from would silently accept 32 bytes — so
+    // the SDK must apply a canonical round-trip or it fails OPEN where Rust fails closed (M12 review finding).
+    let noncanonical = "A".repeat(42) + "B"; // 43 base64url chars, last char carries nonzero trailing bits
+    let bad_links: [&str; 4] = ["AAAA", "not!!b64", "", noncanonical.as_str()];
+    for (i, bad) in bad_links.iter().enumerate() {
+        let (_, new_gen) = build_renewal_pair(3_100 + i as u64);
+        let mut v = wire_valid(&format!("renewal-invalid-prevleaf-{:04}", i), "", &new_gen);
+        let mut claims: Value =
+            serde_json::from_slice(&b64::decode(&v.presentation.claims).unwrap()).unwrap();
+        claims["prev_leaf"] = json!(bad);
+        v.presentation.claims = b64::encode(canon::canonicalize(&claims).unwrap().as_bytes());
+        v.presentation.now = 1_800;
+        v.presentation.status_issued_at = 1_790;
+        out.push(invalid(
+            v,
+            Reason::SchemaViolation,
+            "prev_leaf is not a canonical 32-byte base64url leaf hash — an unwalkable renewal link fails closed",
+        ));
+    }
+    // A JSON `null` prev_leaf is NOT a renewal marker: Rust's `Option<String>` maps null → None (first issuance),
+    // so it must VERIFY, and the SDK must treat null identically to a missing field (parity guard). Signed with
+    // null in the body (not mutated post-sign), so the expected verdict is genuinely VALID.
+    out.push(wire_valid(
+        "renewal-null-prevleaf-0000",
+        "prev_leaf: null is treated as absent (first issuance) by both implementations — verifies",
+        &build_prevleaf_null(3_120),
+    ));
 
     // registrar
     for i in 0..per {

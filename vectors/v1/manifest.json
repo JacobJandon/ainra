@@ -5,19 +5,19 @@
     "chain_expired": 24,
     "chain_widening": 24,
     "checkpoint_invalid": 72,
-    "expired": 24,
+    "expired": 36,
     "mandate_revoked": 24,
     "name_malformed": 24,
     "not_logged": 72,
-    "not_yet_valid": 24,
+    "not_yet_valid": 30,
     "revoked": 24,
-    "schema_violation": 48,
+    "schema_violation": 52,
     "sig_invalid": 48,
     "stale_status": 24,
     "unknown_registrar": 24,
-    "valid": 180
+    "valid": 211
   },
-  "count": 684,
+  "count": 737,
   "note": "CC0 conformance vectors. Each is a real signed credential + expected verdict. Regenerate with `make vectors`.",
   "version": "v1"
 }

@@ -18,7 +18,7 @@ deviation is in [docs/DECISIONS.md](docs/DECISIONS.md).
 
 ## Honest status
 
-<!-- STATUS-LINE -->Engineering ladder M1–M9 complete; M10–M11 make the repository public-ready, public-operational, and the four remaining DoD rows stranger-runnable; logs sealed by the real root: 0.
+<!-- STATUS-LINE -->Engineering ladder M1–M9 complete; M10–M11 make the repository public-ready, public-operational, and the four remaining DoD rows stranger-runnable; M12 bounds credential validity (366 d default, invisible ACME-style renewal with logged continuity — ADR-017); logs sealed by the real root: 0.
 
 What remains to *ship the prototype* is **not code** — it is three real-world events (a recorded ceremony, ≥3
 independent external verifiers, a 14-day/3-region revocation soak). The machinery to run those **without us in the
@@ -72,7 +72,7 @@ make drill            # witness QUORUM catches an injected fork (5 witnesses, k=
 make drill-networked  # the same quorum over HTTP — independently-operated witnesses (kits/witness)
 make ceremony-dry-run # rehearse the 5-of-9 ceremony choreography; a witness recomputes the transcript hash
 make soak-smoke       # measure revocation propagation (p50/95/99) into a signed, tamper-evident report
-make repro            # rebuild every published artifact byte-for-byte from source (729 files)
+make repro            # rebuild every published artifact byte-for-byte from source (782 files)
 make verify-mirror MIRROR=<dir>   # any third party byte-verifies a mirror, root dark
 ```
 
@@ -123,7 +123,13 @@ Deploy is one GitHub Pages workflow the owner enables at publish time (see `site
 ```
 
 The verify path is **RFCs + FIPS + OSI-licensed deps only** — no vendor, no bespoke crypto. Three independent
-implementations (core, sdk-ts, P0) agree on every one of the 684 vectors (`make diff`).
+implementations (core, sdk-ts, P0) agree on every one of the 737 vectors (`make diff`).
+
+**Validity (ADR-017):** the *identity* — the lineage and its AINRA Number — is permanent; the *credential* defaults
+to **366 days** and renews invisibly (ACME-style at T−30 d, overlap issuance, a logged REISSUE whose `prev_leaf`
+makes renewals walkable through the log as one unbroken chain). Long credentials are safe here **because revocation
+fails closed in under 60 seconds** — short certificates are what you need when it doesn't. There is no grace period
+anywhere: expiry is expiry.
 
 ## Prime directives (brief §0)
 

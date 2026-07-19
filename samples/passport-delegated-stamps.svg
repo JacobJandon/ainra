@@ -54,7 +54,7 @@
 <rect x="30" y="178" width="400" height="82" rx="8" fill="none" stroke="#0B1220" stroke-width="1.7" stroke-opacity="0.85"/>
 <rect x="32" y="180" width="396" height="78" rx="7" fill="none" stroke="#0B1220" stroke-width="0.5" stroke-opacity="0.4"/>
 <text x="48" y="204" font-size="14" font-weight="700" letter-spacing="2.4" fill="#0B1220">DELEGATED</text>
-<text x="414" y="204" text-anchor="end" font-size="9" letter-spacing="0.8" fill="#5A6372">EXPIRES 11 APR 2027 · DUAL-KEY SIGNED</text>
+<text x="414" y="204" text-anchor="end" font-size="9" letter-spacing="0.8" fill="#5A6372">EXPIRES 12 APR 2027 · DUAL-KEY SIGNED</text>
 <text x="48" y="228" font-size="11.5" letter-spacing="0.8" fill="#0B1220">OWNER → SUPPORT-DESK</text>
 <text x="48" y="246" font-size="9.5" letter-spacing="0.8" fill="#5A6372">GRANTED READ:TICKETS, REPLY:TICKET</text>
 </g>
@@ -62,10 +62,10 @@
 <rect x="450" y="178" width="400" height="82" rx="8" fill="none" stroke="#0B1220" stroke-width="1.7" stroke-opacity="0.85"/>
 <rect x="452" y="180" width="396" height="78" rx="7" fill="none" stroke="#0B1220" stroke-width="0.5" stroke-opacity="0.4"/>
 <text x="468" y="204" font-size="14" font-weight="700" letter-spacing="2.4" fill="#0B1220">DELEGATED</text>
-<text x="834" y="204" text-anchor="end" font-size="9" letter-spacing="0.8" fill="#5A6372">EXPIRES 11 APR 2027 · DUAL-KEY SIGNED</text>
+<text x="834" y="204" text-anchor="end" font-size="9" letter-spacing="0.8" fill="#5A6372">EXPIRES 12 APR 2027 · DUAL-KEY SIGNED</text>
 <text x="468" y="228" font-size="11.5" letter-spacing="0.8" fill="#0B1220">SUPPORT-DESK → SUPPORT-BOT</text>
 <text x="468" y="246" font-size="9.5" letter-spacing="0.8" fill="#5A6372">GRANTED READ:TICKETS</text>
 </g>
 <line x1="30" y1="514" x2="850" y2="514" stroke="#E2E5DF" stroke-dasharray="2 3"/>
-<text x="30" y="534" font-size="9" letter-spacing="1.4" fill="#5A6372">CHECKPOINT ROOT</text><text x="170" y="534" font-size="11" letter-spacing="0.6" fill="#1A6B4E">gkPDHEcqqPRbTrPQY-UIiBd9XfT9v4HbOQvvP39ZmwE</text>
+<text x="30" y="534" font-size="9" letter-spacing="1.4" fill="#5A6372">CHECKPOINT ROOT</text><text x="170" y="534" font-size="11" letter-spacing="0.6" fill="#1A6B4E">uuymMNgpxkpaZyBk4jXHHWfEtQiy6bO3lvnzrRzu7xI</text>
 </svg>

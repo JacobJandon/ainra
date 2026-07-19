@@ -173,3 +173,119 @@ M11 turns "green on my laptop" into "green on the host and operable by strangers
 **Operator loop for real external verifiers** (the highest-leverage ⏳ row): `mint-challenge.mjs` writes each party's private answer key under a gitignored per-party path (asserted ignored); `check-attestation.mjs` emits a durable `evidence/verifier/<party>.json` the board reads and refuses hand-authored/wrong-key attestations; `kits/verifier/OPERATOR.md` is the cold onboarding runbook. Proven on 3 clearly-labelled dry-run parties (NOT counted as real) — the board reads 3 distinct evidence files, a forgery is rejected.
 
 **Docs-vs-reality lockstep extended.** `status-consistency.mjs` already pinned the README/STATUS status line; it now also fails if the genesis board's ✅/⏳ counts drift from `docs/DOD.md` — one enforced source of truth for "what's done."
+
+## D-027 — M12 (ADR-017): identity eternal, credentials bounded, renewal invisible
+
+**The MTS gains ADR-017 and M12 implements it end-to-end.** Infinite passports are rejected for the ADR's four
+reasons (status-list GC, crypto agility, ghost agents/claim staleness, verifier fragmentation); the lineage + AINRA
+Number remain permanent; long validity is affordable **because revocation fails closed <60 s** — the opposite trade
+from Web PKI's shrinking certificates. (The MTS is a frozen doc: `docs/FREEZE.sha256` re-recorded with the edit.)
+
+**One duration ladder, one home.** `ainra_core::consts`: `PASSPORT_VALIDITY_DEFAULT_SECS` (366 d),
+`RENEWAL_LEAD_SECS` (30 d), `DELEGATE_CERT_MAX_SECS` (92 d — moved here, `checkpoint` re-exports it),
+`INSTANCE_CRED_DEFAULT_SECS` (1 h, explicitly RESERVED — instance-cred machinery is future work; the constant only
+pins the ADR's ceiling so later code cannot invent its own number). Every magic 365-day epoch pair in the repo
+(registrar-box bin, CLI seed, scale-proof, sample, ceremony bin, P0 `plusDays(365)`) now derives from the constant;
+the registrar's and ceremony's 90-day delegate-cert choices gained compile-time asserts against the 92 d cap; the
+TS SDK exports mirrored constants + a `renewalDue(exp, now)` scheduling hint.
+
+**Window semantics pinned exactly — no skew, no grace.** The verifier's `nbf ≤ now < exp` comparison was already
+strict and fail-closed in all implementations with `not_yet_valid`/`expired` vectors at ±50 s; what was missing was
+the BOUNDARY. New `boundary-*` vector families pin `now == nbf → VALID` (inclusive), `now == exp → expired`
+(exclusive), `now == exp−1 → VALID`, `now == nbf−1 → not_yet_valid`, and the ADR-016 scope note now says in the MTS
+what the code always did: the ±30 s skew tolerance is a freshness-layer rule and NEVER applies to the passport
+window (a skewed window would be a fail-open grace period, which ADR-017 forbids).
+
+**REISSUE is a first-class operation, distinct from ROTATE (key rotation).** A renewal mints the same lineage with
+a FRESH `[now, now+366 d]` window, a NEW status index, and a new top-level signed claim **`prev_leaf`** — the
+RFC 6962 leaf hash of the predecessor's credential body. `prev_leaf` is deliberately NOT inside the `log` object:
+the `log` back-reference is stripped from the pre-log body, and the continuity link must be part of what the log
+commits, so renewals are walkable through the log as one unbroken chain (proven by test: three generations walk
+back g3→g2→g1→∅). Schema, all implementations: present ⇒ must strictly decode to 32 bytes, else
+`schema_violation` (an unwalkable link that LOOKS like a renewal is refused, never ignored —
+`renewal-invalid-prevleaf-*` vectors). **Issuance-side consistency is ACME-style:** the caller claims which
+credential it renews; the registrar validates the claim against its recorded lineage continuity head BEFORE
+anything is logged — wrong, missing, or superseded-generation (fork) links are `ReissueContinuity`, fail closed,
+and the log is untouched (asserted). **Overlap:** the displaced generation is kept (persisted `superseded` set) and
+keeps verifying until its own `exp` — that IS the overlap; at `exp` it fails closed `expired` while the new one
+continues (`renewal-*-overlap/-expired/-survives` vectors, differential-checked). **No grace period exists
+anywhere.** Two deliberate exclusions, stated honestly: (1) a delegated (chained) passport is NOT auto-renewable —
+the delegation parties' consent signatures are theirs to give, not the registrar's to re-mint; renewal of a
+delegation is a re-delegation (explicit error); (2) the HTTP daemon exposes no reissue endpoint yet — the CLI
+(`ainra renew <dir> <sub> [--version V] [--dry-run]`) is the M12 surface, and its help says the T−30 d lead is a
+deployment cadence, not protocol.
+
+**Revocation stays lineage-wide across generations — renewal must never be a revocation bypass.** The status list
+is one bit per LINEAGE (MTS §16), so `revoke` now flips the named record's bit AND every other unexpired
+generation of the same lineage (superseded or version-bumped). Without this, revoking a freshly-renewed lineage
+would leave its predecessor verifying for up to 30 days. Test-proven: reissue → revoke → BOTH generations
+`revoked`.
+
+**The L3+ audit cap: "audited" means audited recently.** `IssueSpec` gains optional `AuditEvidence {reference,
+expires}` — held REGISTRAR-side (Standard §4: evidence never at the root), so the wire format is unchanged and no
+verifier change is needed. `issue`/`reissue` refuse L3/L4 without it (`AuditRequired`) or when the requested `exp`
+exceeds the audit's own expiry (`AuditStale` — the error names both timestamps and says why). The same request at
+L2 issues without evidence (tested); an L3 renewal under an aged audit is refused until the audit itself renews
+(tested). Fixture lineages at L3+ carry deterministic placeholder evidence expiring exactly at the window's end.
+
+Corpus: 684 → **735** passport vectors (24 boundary + 27 renewal), all three implementations agree 735/735; the
+existing 684 are byte-identical (purely additive). `MANIFEST.sha256` re-derived via the sanctioned `make repro`
+clean-rebuild. No existing test weakened; the DoD table is unchanged (no new real-world rows).
+
+## D-028 — Status-list garbage collection: DEFERRED with the math on the table (ADR-017 trap i)
+
+ADR-017 names expiry as the status list's garbage collector; the standard pattern is cohort/epoch-sharded lists
+(issuances in an epoch share a status URI; once every credential in a cohort has expired the whole list retires).
+**M12 decides: defer the sharding machinery, keep the wire forward-compatible, write the thresholds down.**
+
+- **Size is not the constraint.** Measured (MTS §16/§21): 10 M lineages at 0.1 % revoked → **21.2 KB gzipped**
+  (empty list 1 245 B). A single list at I1 scale is bytes, not megabytes.
+- **Index burn is the real ceiling.** Indices are never reused; with 366 d renewal each live lineage burns ~1 index
+  per year (renewal allocates a new index; the old one dies with its credential's expiry — that IS the GC working,
+  it just reclaims *meaning*, not list positions yet). A `MAX_STATUS_BITS = 2^24` segment therefore supports
+  ~16.7 M lineage-years; at I1 (10 M lineages) that is under two years of steady state. **Sharding becomes
+  necessary when a registrar shard's cumulative issuance approaches 2^24.** The testbed default capacity is 4096 —
+  three orders of magnitude of headroom before any of this binds.
+- **The wire format already carries the cohort discriminator: the status list URI itself.** `StatusRef` is
+  deliberately unchanged (`{idx, uri}`, deny-unknown in both implementations): a registrar rotates cohorts by
+  issuing new epochs under a NEW `uri`; verifiers already fetch/verify per-credential URIs. The additive change
+  lives in the **directory** (an entry must be able to list current + prior epoch status URIs so the GA verifier's
+  triple URI binding accepts every live cohort) — that directory extension + the retire-a-dead-cohort test are the
+  deferred work, and nothing about the credential format blocks them.
+- **`StatusFull` stays a terminal, honest error** rather than silently rolling over — a rollover without the
+  directory-side epoch machinery would break the triple binding and could be abused to shed revocation state.
+
+Deferral is the honest choice at testbed scale; the trap is neither built speculatively nor silently ignored.
+
+### M12 adversarial review — 6 attack-dimension reviewers, findings triaged + hardened (D-027 addendum)
+
+M12 got the standard adversarial pass (continuity/forks, revocation completeness, schema differential, window
+boundaries, the audit cap, vector soundness). The refute-verify phase was cut short by an account spend limit, so
+the raw findings were triaged by hand against the code; the real ones were fixed and regression-tested, and the
+corpus grew 735 → **737** to pin the two cross-implementation gaps:
+
+- **Differential (HIGH) — non-canonical `prev_leaf` was fail-open in the SDK.** Rust decodes with base64ct
+  (strict, unpadded), which rejects a 43-char base64url string with nonzero trailing bits; Node's `Buffer.from`
+  silently accepted it as 32 bytes, so the SDK would VALID a credential Rust rejects. Fixed: the SDK now requires a
+  canonical round-trip (`b64uEncode(decode(s)) === s`). Vector `renewal-invalid-prevleaf-0003` pins it; both now
+  agree `schema_violation`.
+- **Differential (MEDIUM) — `"prev_leaf": null`.** Rust's `Option<String>` maps null → None (a first issuance);
+  the SDK rejected null at the schema gate. Fixed: the SDK treats null identically to a missing field. Vector
+  `renewal-null-prevleaf-0000` (signed with null in the body) pins it VALID in both.
+- **Revocation durability (HIGH/edge) — an expired generation could be reissued into a clean status index.**
+  `revoke` already flips every *unexpired* generation of a lineage (so no live credential escapes), but a lapsed
+  generation could still be reissued. Closed by the ADR-017 rule that **renewal is for a credential in good
+  standing**: `reissue` now refuses an expired (`now ≥ old.exp`) or revoked generation — renewal happens at T−30 d,
+  before expiry; a lapsed credential requires fresh issuance. Test `expired_credential_cannot_be_renewed`.
+- **Overflow (MEDIUM) — `now + 366 d`.** A hostile `now` near `u64::MAX` would wrap to `exp < nbf`. `reissue` now
+  uses `checked_add` (fail closed); the CLI uses `saturating_add`.
+- **Name-key integrity (LOW) — composite `operator:lineage` key.** An operator/lineage carrying a `:`/`@` could
+  desync the continuity/revocation key. `issue` now validates the constructed subject with `AinraName::parse`
+  (test `tier_vocabulary_is_closed`… covers the sibling closed-vocabulary gate for tier/authority strings).
+- **Honesty (LOW) — `ainra renew --dry-run`** now evaluates the real guards (revoked / expired / chained / L3+
+  audit) and reports refusal instead of always printing "would reissue".
+
+Refuted / by-design (documented, not changed): the reissue caller supplies `now` (consistent with the whole
+system's no-clock N7 design — the GA verifier uses its OWN clock); `issue()` of a genuinely new version is the
+deliberate re-accreditation path (distinct from mechanical reissue); `build_renewal_pair`'s shared post-append
+checkpoint is a sound modeling choice (each generation's leaf is genuinely committed, inclusion proofs verify).

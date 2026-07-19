@@ -10,7 +10,31 @@ We **publicly own fixed security bugs** — hiding them would be the opposite of
 
 ## [Unreleased]
 
-Nothing yet. `v0.1.0` is the first tag (the human cuts it as step 3 of the pre-push checklist in `docs/PUBLISH-AUDIT.md`).
+### M12 — validity & renewal (ADR-017): identity eternal, credentials bounded, renewal invisible
+
+- **One duration ladder** in `ainra_core::consts` — `PASSPORT_VALIDITY_DEFAULT_SECS` (366 d), `RENEWAL_LEAD_SECS`
+  (30 d), `DELEGATE_CERT_MAX_SECS` (92 d, moved; re-exported from `checkpoint`), `INSTANCE_CRED_DEFAULT_SECS`
+  (reserved) — cited by every issuer path, demo seed, the P0 CLI, and mirrored in `@ainra/sdk` (+ `renewalDue`).
+- **Exact window boundaries pinned** by new `boundary-*` conformance vectors: `nbf` inclusive, `exp` exclusive; the
+  ADR-016 ±30 s skew is freshness-layer only — **no skew on the passport window, no grace period: expiry is expiry**.
+- **REISSUE (renewal) as a first-class operation**, distinct from ROTATE: fresh `[now, now+366 d]` window, a new
+  status index, and a signed+logged **`prev_leaf`** continuity claim (schema-gated to a strict 32-byte leaf hash in
+  all implementations) so renewals walk back through the transparency log as one unbroken chain. ACME-style
+  issuance-side validation against the lineage continuity head — wrong/missing/forked links are refused before
+  anything is logged. Overlap semantics: both generations verify until the old `exp`, then the old fails closed.
+  `ainra renew <dir> <sub> [--version V] [--dry-run]` performs it. Chained (delegated) passports are explicitly NOT
+  auto-renewable (renewal of a delegation is a re-delegation).
+- **Revocation is lineage-wide across generations** — revoking a renewed lineage flips every unexpired generation's
+  bit, so renewal can never be a revocation bypass (test-proven).
+- **L3+ audit cap**: issuance/renewal refuses a passport whose `exp` exceeds the registrar-side tier audit's own
+  expiry (`AuditRequired`/`AuditStale`, with the reason spelled out) — "audited" means audited recently. The wire
+  format is unchanged (evidence stays at the registrar per Standard §4).
+- **Status-list GC deferred honestly** (D-028): measured math + the 2^24 index-burn threshold recorded; the status
+  URI is already the cohort discriminator, so sharding needs a directory-side extension only, no credential change.
+- Corpus 684 → **737** passport vectors (all three implementations agree 737/737; existing vectors byte-identical);
+  release tests 104 → **117**. Decisions: D-027, D-028; spec: MTS ADR-017.
+
+`v0.1.0` is the first tag (the human cuts it as step 3 of the pre-push checklist in `docs/PUBLISH-AUDIT.md`).
 
 ## [v0.1.0] — the first public release (pending tag)
 

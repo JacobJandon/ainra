@@ -13,10 +13,10 @@ A stranger clones, runs `make test && make vectors && make diff`, all green in <
 
 | Target | What it does | State |
 |---|---|---|
-| `make test` | `cargo test --release --workspace` — **117 tests** (core unit incl. directory + property + frost + ceremony + registrar + service + networked-quorum regression) | ✅ green |
-| `make vectors` | regenerate **713 passport (incl. 24 ADR-017 boundary + 29 renewal/REISSUE) + 24 delegate-revocation + 17 delta + 9 directory** CC0 vectors + self-check | ✅ green |
+| `make test` | `cargo test --release --workspace` — **118 tests** (core unit incl. directory + property + frost + ceremony + registrar + service + networked-quorum regression) | ✅ green |
+| `make vectors` | regenerate **721 passport (incl. 24 ADR-017 boundary + 29 renewal/REISSUE + 8 D-029 non-canonical-encoding) + 24 delegate-revocation + 17 delta + 9 directory** CC0 vectors + self-check | ✅ green |
 | `make vectors-check` | replay ALL three committed corpora back through ainra-core | ✅ green |
-| `make diff` | differential (below) — verdicts **737/737**, canon 10/10 + 4/4, delta 17/17, **directory 9/9** | ✅ green |
+| `make diff` | differential (below) — verdicts **745/745**, canon 10/10 + 4/4, delta 17/17, **directory 9/9** | ✅ green |
 | `make ceremony` | **M4** genesis rehearsal: FROST 5-of-9 dual root → signed directory → mint/verify → revoke→`checkpoint_invalid` → rotate→VALID → transcript | ✅ green |
 | `make testbed` | **M5** the wedge: live registrar → `accredit` → 5-line `ainra-verify` → VALID; revoke → INVALID; **+ 4b: forged all-clear status (clear/strip/swap-uri) → INVALID**; verify-latency | ✅ green |
 | `make wedge-test` | **M5+M6** the `@ainra/middleware` gate — **18** fail-closed tests (malformed denied, nothing throws, **the revocation-bypass regression**: forge/DoS/freshness-window, **+ M6 currency-mode**: fresh-head bind + monotonic-seq replay rejected) | ✅ green |
@@ -24,7 +24,7 @@ A stranger clones, runs `make test && make vectors && make diff`, all green in <
 | `make demo` | the M3 lifecycle end-to-end: issue → verify → log-verify → revoke (signed delta) → re-verify | ✅ green |
 | `make console` / `make explorer` | passport-book viewer + live verify; the registrar explorer over a signed export | ✅ green |
 | `make scale` | the billion-device proof: a REAL 1-billion-lineage status list + 16M-leaf trees + sharded issuance, measured → `docs/SCALE.md` | ✅ green |
-| `make repro` | **M7** reproducibility: rebuild the 782-file spec artifact set from source into a fresh temp tree ×2, assert **committed == clean-rebuild ×2** byte-identical → `MANIFEST.sha256` | ✅ green |
+| `make repro` | **M7** reproducibility: rebuild the 790-file spec artifact set from source into a fresh temp tree ×2, assert **committed == clean-rebuild ×2** byte-identical → `MANIFEST.sha256` | ✅ green |
 | `make mirror` / `make verify-mirror` | **M7** byte-verify a mirror against the manifest (fail-closed on tamper/missing/extra/symlink/subdir-manifest); 2 mirrors proven | ✅ green |
 | `make check-freeze` | **M7** the normative docs (Standard · MTS · DESIGN) are frozen; drift fails | ✅ green |
 | `make genesis-local` | **M8** the whole stack on one laptop (§29/N9): dual root → 2 distinct registrar classes → issue+log → 5-line verify root-dark → revoke/forge fail closed → witness-quorum fork caught → transcript | ✅ green |
@@ -165,7 +165,7 @@ field is gone, and `certified` refuses k=0. Regressions added; `fork_drill.rs` p
 can't certify. See D-021.
 
 **M7 — reproducible builds + mirrors + docs freeze** (`make repro` / `make verify-mirror` / `make check-freeze`).
-The published spec artifacts (737 + 17 + 9 CC0 vectors + the 3-face sample book, 782 files) are made verifiable by
+The published spec artifacts (745 + 17 + 9 CC0 vectors + the 3-face sample book, 790 files) are made verifiable by
 anyone, with the **source** as trust root. `make repro` rebuilds the whole set from source into a fresh empty temp
 tree **twice** and asserts **committed == clean-rebuild ×2** byte-identical (deterministic: seeded RNG, no wall-clock),
 then writes `MANIFEST.sha256`. A **mirror** is any host serving that set; `make verify-mirror` recomputes every hash

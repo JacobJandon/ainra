@@ -289,3 +289,43 @@ Refuted / by-design (documented, not changed): the reissue caller supplies `now`
 system's no-clock N7 design — the GA verifier uses its OWN clock); `issue()` of a genuinely new version is the
 deliberate re-accreditation path (distinct from mechanical reissue); `build_renewal_pair`'s shared post-append
 checkpoint is a sound modeling choice (each generation's leaf is genuinely committed, inclusion proofs verify).
+
+## D-029 — M12.1: canonical-encoding sweep — one strict base64url gateway, differential-locked
+
+The base64 fail-open class appeared twice (M9 ceremony custodian dedup on raw wire strings; M12 non-canonical
+`prev_leaf`). M12.1 closes the class at every base64url ingestion point and adds a differential vector class so a
+regression is caught, not re-discovered.
+
+**Core was already canonical-strict** — every decode routes through `b64::decode` = base64ct `Base64UrlUnpadded`,
+which rejects non-canonical trailing bits, padding, whitespace, and standard-alphabet (`+`/`/`) swaps. Locked by a
+new unit test (`b64::decoder_is_canonical_only`). No core change was needed; there is no hex ingestion.
+
+**The SDK now routes EVERY external base64url decode through one strict gateway.** `strictB64u` gained the canonical
+round-trip (`b64uEncode(decode(s)) === s`) that mirrors base64ct exactly — Node's `Buffer.from(_, "base64")` is
+lenient (it silently drops nonzero trailing bits and non-alphabet chars), which was the fail-open. A new `dec(s,
+reason)` wraps it and fails closed. All ~30 lenient `b64uDecode` call sites were replaced: the claims-internal
+verify-path fields carry the reason core uses at that field's decode (hop signatures → `alg_downgrade`, `log.leaf`
+and hop `log_leaf` → `not_logged`), and the presentation/boundary decodes (issuer sig, chain keys, status list,
+checkpoint, inclusion proofs, anchors, directory, delegate certs, fresh heads) fail closed to `schema_violation`.
+The raw `b64uDecode` now survives only INSIDE the gateway. Locked by a new SDK unit test (`test/canonical.test.mjs`)
+whose exhaustive last-char sweep confirms the SDK accepts exactly the 16 canonical values (≡ 0 mod 4) — identical to
+base64ct.
+
+**Differential vector class.** For the claims-internal decoded fields (the ones the verify path itself decodes; the
+reference `run()` decodes presentation fields out-of-band, so those are the trusted boundary, covered by the unit
+tests), a non-canonical encoding is signed INTO the credential body (via `build_mut`, so the issuer signature is
+valid and the field's OWN decode is what fails) and BOTH implementations must reject identically:
+`noncanon-logleaf-{trailingbits,whitespace,padding}` (→ `not_logged`), `noncanon-hopsig-{whitespace,padding}` (→
+`alg_downgrade`), and `renewal-invalid-prevleaf-*` now spanning trailing-bits, padding, whitespace, and
+standard-alphabet swaps (→ `schema_violation`). Corpus 737 → **745**; the 3-way differential agrees **745/745**.
+
+**P0** ingests base64 at exactly one point — a *standard, padded* signature in its own demo passport format (PEM
+keys, calendar-date validity), a different wire format from the base64url conformance corpus. P0 participates in the
+differential only for canonical-JSON (B) and canon-rejection (C), never verdict (A), so it is outside the base64url
+canonicalization class; forcing base64url-strictness on a standard-base64 field would be incorrect. Documented, not
+changed.
+
+Independent re-verification of the two M12 differentials this milestone was asked to confirm (before the sweep): two
+adversarial refuters built 202- and 151-input batteries through both real implementations and found **zero
+divergences**; both accept exactly the 16 canonical last-chars. No frozen doc changed (freeze stays valid). DoD
+table unchanged.

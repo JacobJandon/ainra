@@ -410,16 +410,34 @@ function certFingerprintB64(c: DelegateCert): string {
   return b64uEncode(sha256(bytes));
 }
 
-/** STRICT unpadded base64url decode: returns null on any character outside the base64url alphabet (Node's
- *  `Buffer.from(x,'base64')` silently drops invalid chars; Rust's `b64::decode` rejects them — this restores
- *  parity). Empty string → empty array (valid). */
-function strictB64u(s: string): Uint8Array | null {
+/** STRICT unpadded base64url decode — the ONE canonical gateway every external base64 ingestion routes through
+ *  (D-029). Returns null on ANY input Rust's `b64::decode` (base64ct `Base64UrlUnpadded`) would reject, so the two
+ *  implementations reject byte-for-byte identically:
+ *    * a character outside the unpadded base64url alphabet — `+`/`/` (standard-alphabet swap), `=` (padding), or
+ *      whitespace — is caught by the alphabet regex; Node's lenient `Buffer.from(x,'base64')` would otherwise
+ *      silently drop or accept them;
+ *    * a NON-CANONICAL last character (nonzero trailing bits) is caught by the round-trip: base64ct rejects it,
+ *      but `Buffer.from` accepts it as the same bytes — so `b64uEncode(decode(s)) === s` is REQUIRED, else a
+ *      43-char non-canonical hash/key/sig is a fail-OPEN verdict split in the SDK (M9/M12 fail-open class).
+ *  Empty string → empty array (valid). */
+export function strictB64u(s: string): Uint8Array | null {
   if (!/^[A-Za-z0-9_-]*$/.test(s)) return null;
   try {
-    return b64uDecode(s);
+    const b = b64uDecode(s);
+    if (b64uEncode(b) !== s) return null; // non-canonical trailing bits — base64ct rejects, Buffer.from doesn't
+    return b;
   } catch {
     return null;
   }
+}
+
+/** Strict-decode `s` or fail closed with `reason`. This is how the verify path ingests every base64url field
+ *  from external input — never the lenient `b64uDecode` directly — so a non-canonical encoding can neither be
+ *  normalised into acceptance nor pose as a distinct wire string for the same bytes (D-029). */
+function dec(s: string, reason: Reason = "schema_violation"): Uint8Array {
+  const b = strictB64u(s);
+  if (b === null) throw new Reject(reason);
+  return b;
 }
 
 /** Decode + length-check a list of base64url SHA-256 fingerprints, returning a canonical-b64 array — or null if
@@ -610,10 +628,12 @@ function verifyInner(pres: Presentation, anchors: TrustAnchors): void {
     for (let i = 0; i < p.act_chain.length; i++) {
       const hop = p.act_chain[i];
       const msg = hopSigningBytes(hop);
-      const parent: HybridSig = { ed25519: b64uDecode(hop.sig_ed25519), mldsa65: b64uDecode(hop.sig_mldsa65) };
+      // Hop signature bytes: strict decode. A non-canonical encoding is alg_downgrade, exactly as core's
+      // chain.rs maps a b64::decode failure — so the two implementations reject a malformed hop sig identically.
+      const parent: HybridSig = { ed25519: dec(hop.sig_ed25519, "alg_downgrade"), mldsa65: dec(hop.sig_mldsa65, "alg_downgrade") };
       const rp = verifyHybrid(pres.chainKeys[i], msg, parent);
       if (rp) throw new Reject(rp);
-      const child: HybridSig = { ed25519: b64uDecode(hop.sig_child_ed25519), mldsa65: b64uDecode(hop.sig_child_mldsa65) };
+      const child: HybridSig = { ed25519: dec(hop.sig_child_ed25519, "alg_downgrade"), mldsa65: dec(hop.sig_child_mldsa65, "alg_downgrade") };
       const rc = verifyHybrid(pres.chainKeys[i + 1], msg, child);
       if (rc) throw new Reject(rc);
     }
@@ -654,14 +674,16 @@ function verifyInner(pres: Presentation, anchors: TrustAnchors): void {
   if (pres.checkpointSig.mode === "delegate" && pres.revokedDelegates.has(certFingerprintB64(pres.checkpointSig.cert)))
     throw new Reject("checkpoint_invalid");
   const expectedLeaf = prelogLeaf(pres.claims);
-  const claimedLeaf = b64uDecode(p.logLeaf);
+  // log.leaf: strict decode (non-canonical → not_logged, matching core's decode_array→NotLogged), then the
+  // 32-byte length + binding check.
+  const claimedLeaf = dec(p.logLeaf, "not_logged");
   if (claimedLeaf.length !== 32 || !eqBytes(claimedLeaf, expectedLeaf)) throw new Reject("not_logged");
   if (!verifyInclusion(claimedLeaf, pres.leafIndex, pres.checkpoint.size, pres.inclusionProof, pres.checkpoint.root)) {
     throw new Reject("not_logged");
   }
   for (let i = 0; i < p.act_chain.length; i++) {
     const hop = p.act_chain[i];
-    const anchored = b64uDecode(hop.log_leaf);
+    const anchored = dec(hop.log_leaf, "not_logged");
     const recomputed = hopLeaf(hop);
     if (anchored.length !== 32 || !eqBytes(anchored, recomputed)) throw new Reject("not_logged");
     const hp = pres.hopProofs[i];
@@ -733,18 +755,18 @@ export interface WireVector {
 }
 
 function decodeCheckpointSig(w: WireCheckpointSig): CheckpointSig {
-  if (w.mode === "root") return { mode: "root", slh: b64uDecode(w.slh ?? "") };
+  if (w.mode === "root") return { mode: "root", slh: dec(w.slh ?? "") };
   const c = w.cert!;
   return {
     mode: "delegate",
     cert: {
-      delegateEd25519: b64uDecode(c.delegate_ed25519),
+      delegateEd25519: dec(c.delegate_ed25519),
       scopes: c.scopes,
       nbf: c.nbf,
       exp: c.exp,
-      sigSlh: b64uDecode(c.sig_slh),
+      sigSlh: dec(c.sig_slh),
     },
-    sigEd25519: b64uDecode(w.sig_ed25519 ?? ""),
+    sigEd25519: dec(w.sig_ed25519 ?? ""),
   };
 }
 
@@ -758,19 +780,19 @@ export type PresentationBundle = WireVector["presentation"];
  * on a malformed status list (fail closed); other decode errors propagate for the caller's try/catch. */
 function decodePresentation(pr: PresentationBundle, revoked: Set<string>, now: number): Presentation {
   return {
-    claims: b64uDecode(pr.claims),
-    issuerSig: { ed25519: b64uDecode(pr.issuer_sig.ed25519), mldsa65: b64uDecode(pr.issuer_sig.mldsa65) },
+    claims: dec(pr.claims),
+    issuerSig: { ed25519: dec(pr.issuer_sig.ed25519), mldsa65: dec(pr.issuer_sig.mldsa65) },
     now,
-    chainKeys: pr.chain_keys.map((k) => ({ ed25519: b64uDecode(k.ed25519), mldsa65: b64uDecode(k.mldsa65) })),
-    hopProofs: pr.hop_proofs.map((hp) => ({ leafIndex: hp.leaf_index, proof: hp.proof.map(b64uDecode) })),
-    statusBits: unpackStatus(b64uDecode(pr.status_list), pr.status_len),
+    chainKeys: pr.chain_keys.map((k) => ({ ed25519: dec(k.ed25519), mldsa65: dec(k.mldsa65) })),
+    hopProofs: pr.hop_proofs.map((hp) => ({ leafIndex: hp.leaf_index, proof: hp.proof.map((s) => dec(s)) })),
+    statusBits: unpackStatus(dec(pr.status_list), pr.status_len),
     statusBitLen: pr.status_len,
     statusIssuedAt: pr.status_issued_at,
     freshness: pr.freshness,
-    checkpoint: { origin: pr.checkpoint.origin, size: pr.checkpoint.size, root: b64uDecode(pr.checkpoint.root), rootB64: pr.checkpoint.root },
+    checkpoint: { origin: pr.checkpoint.origin, size: pr.checkpoint.size, root: dec(pr.checkpoint.root), rootB64: pr.checkpoint.root },
     checkpointSig: decodeCheckpointSig(pr.checkpoint_sig),
     leafIndex: pr.leaf_index,
-    inclusionProof: pr.inclusion_proof.map(b64uDecode),
+    inclusionProof: pr.inclusion_proof.map((s) => dec(s)),
     mandatePath: [],
     mandateProofs: [],
     mandateRevocations: new Set(pr.mandate_revocations),
@@ -787,8 +809,8 @@ export function runVector(v: WireVector): Verdict {
     const anchors: TrustAnchors = Object.create(null);
     for (const [id, r] of Object.entries(v.anchors)) {
       anchors[id] = {
-        issuerKey: { ed25519: b64uDecode(r.issuer_key.ed25519), mldsa65: b64uDecode(r.issuer_key.mldsa65) },
-        logRootKey: b64uDecode(r.log_root_key),
+        issuerKey: { ed25519: dec(r.issuer_key.ed25519), mldsa65: dec(r.issuer_key.mldsa65) },
+        logRootKey: dec(r.log_root_key),
       };
     }
     // Canonicalise the trusted revoked-delegate fingerprints so the byte-set comparison against
@@ -960,8 +982,8 @@ export class Verifier {
   ): Verifier | null {
     let ed: Uint8Array, slh: Uint8Array;
     try {
-      ed = b64uDecode(rootEd25519B64);
-      slh = b64uDecode(rootSlhB64);
+      ed = dec(rootEd25519B64);
+      slh = dec(rootSlhB64);
     } catch {
       return null;
     }
@@ -978,7 +1000,7 @@ export class Verifier {
       // Doing this before decodePresentation means an unauthenticated presenter fails here, BEFORE the status list is
       // ever decompressed — so a compression-amplification DoS (a tiny blob that inflates to a huge bitmap) can never
       // allocate. Only a list the registrar genuinely signed is decompressed (and even then bounded, see unpackStatus).
-      const p = parseChecked(b64uDecode(bundle.claims)); // throws Reject (correct reason) on a malformed passport
+      const p = parseChecked(dec(bundle.claims)); // throws Reject (correct reason) on a malformed passport
       const registrar = parseDidRegistrar(p.iss);
       if (registrar === null) throw new Reject("name_malformed");
       if (!Object.hasOwn(this.anchors, registrar)) throw new Reject("unknown_registrar");
@@ -1027,11 +1049,11 @@ interface WireDeltaCert {
 }
 function decodeDeltaCert(c: WireDeltaCert): DelegateCert {
   return {
-    delegateEd25519: b64uDecode(c.delegate_ed25519),
+    delegateEd25519: dec(c.delegate_ed25519),
     scopes: c.scopes,
     nbf: c.nbf,
     exp: c.exp,
-    sigSlh: b64uDecode(c.sig_slh),
+    sigSlh: dec(c.sig_slh),
   };
 }
 export interface WireDeltaVector {
@@ -1060,7 +1082,7 @@ export interface WireDeltaVector {
 /** The accept/reason a delta or fresh-head vector reduces to under the sdk-ts verifier — the diff-harness compares
  *  this to the ainra-core-baked `expect`. */
 export function runDeltaVector(v: WireDeltaVector): { accept: boolean; reason?: string } {
-  const rootKey = b64uDecode(v.root_pub_slh);
+  const rootKey = dec(v.root_pub_slh);
   const cert = decodeDeltaCert(v.cert);
   let r: Reason | null;
   if (v.kind === "delta") {
@@ -1071,12 +1093,12 @@ export function runDeltaVector(v: WireDeltaVector): { accept: boolean; reason?: 
       ts: v.ts!,
       idx: v.idx!,
       newStatus: v.new_status!,
-      sigRegistrar: { ed25519: b64uDecode(v.sig_registrar!.ed25519), mldsa65: b64uDecode(v.sig_registrar!.mldsa65) },
-      countersigDelegate: b64uDecode(v.countersig_delegate!),
+      sigRegistrar: { ed25519: dec(v.sig_registrar!.ed25519), mldsa65: dec(v.sig_registrar!.mldsa65) },
+      countersigDelegate: dec(v.countersig_delegate!),
     };
     const registrarPub: HybridPublic = {
-      ed25519: b64uDecode(v.registrar_pub!.ed25519),
-      mldsa65: b64uDecode(v.registrar_pub!.mldsa65),
+      ed25519: dec(v.registrar_pub!.ed25519),
+      mldsa65: dec(v.registrar_pub!.mldsa65),
     };
     r = verifyDelta(delta, registrarPub, rootKey, cert, v.now);
   } else {
@@ -1084,8 +1106,8 @@ export function runDeltaVector(v: WireDeltaVector): { accept: boolean; reason?: 
       uri: v.uri!,
       seq: v.seq!,
       ts: v.ts!,
-      statusHash: b64uDecode(v.status_hash!),
-      sigDelegate: b64uDecode(v.sig_delegate!),
+      statusHash: dec(v.status_hash!),
+      sigDelegate: dec(v.sig_delegate!),
     };
     r = verifyFreshHead(head, rootKey, cert, v.now, v.freshness ?? "F1");
   }
@@ -1141,7 +1163,7 @@ export function verifyDirectory(d: WireDirectory, rootEd25519: Uint8Array, rootS
   // (1) FROST/Ed25519 root signature.
   let edSig: Uint8Array;
   try {
-    edSig = b64uDecode(d.sig_root_ed25519);
+    edSig = dec(d.sig_root_ed25519);
   } catch {
     return null;
   }
@@ -1149,7 +1171,7 @@ export function verifyDirectory(d: WireDirectory, rootEd25519: Uint8Array, rootS
   // (2) SLH-DSA root signature — BOTH must verify.
   let slhSig: Uint8Array;
   try {
-    slhSig = b64uDecode(d.sig_root_slh);
+    slhSig = dec(d.sig_root_slh);
   } catch {
     return null;
   }
@@ -1196,7 +1218,7 @@ export interface WireDirectoryVector {
   root_slh: string;
 }
 export function runDirectoryVector(v: WireDirectoryVector): { accept: boolean; registrars?: number } {
-  const acc = verifyDirectory(v.directory, b64uDecode(v.root_ed25519), b64uDecode(v.root_slh));
+  const acc = verifyDirectory(v.directory, dec(v.root_ed25519), dec(v.root_slh));
   if (acc === null) return { accept: false };
   return { accept: true, registrars: Object.keys(acc.anchors).length };
 }

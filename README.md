@@ -72,7 +72,7 @@ make drill            # witness QUORUM catches an injected fork (5 witnesses, k=
 make drill-networked  # the same quorum over HTTP — independently-operated witnesses (kits/witness)
 make ceremony-dry-run # rehearse the 5-of-9 ceremony choreography; a witness recomputes the transcript hash
 make soak-smoke       # measure revocation propagation (p50/95/99) into a signed, tamper-evident report
-make repro            # rebuild every published artifact byte-for-byte from source (782 files)
+make repro            # rebuild every published artifact byte-for-byte from source (790 files)
 make verify-mirror MIRROR=<dir>   # any third party byte-verifies a mirror, root dark
 ```
 
@@ -123,7 +123,7 @@ Deploy is one GitHub Pages workflow the owner enables at publish time (see `site
 ```
 
 The verify path is **RFCs + FIPS + OSI-licensed deps only** — no vendor, no bespoke crypto. Three independent
-implementations (core, sdk-ts, P0) agree on every one of the 737 vectors (`make diff`).
+implementations (core, sdk-ts, P0) agree on every one of the 745 vectors (`make diff`).
 
 **Validity (ADR-017):** the *identity* — the lineage and its AINRA Number — is permanent; the *credential* defaults
 to **366 days** and renews invisibly (ACME-style at T−30 d, overlap issuance, a logged REISSUE whose `prev_leaf`

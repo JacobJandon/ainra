@@ -10,6 +10,18 @@ We **publicly own fixed security bugs** — hiding them would be the opposite of
 
 ## [Unreleased]
 
+### M12.1 — canonical-encoding sweep (D-029)
+
+- The base64 fail-open class (M9 dedup, M12 prev_leaf) is closed at every base64url ingestion point: core was already
+  strict (base64ct); the SDK now routes EVERY external decode through one strict gateway (`strictB64u` + canonical
+  round-trip, `dec(s, reason)` fails closed) — claims-internal fields keep core's reason (hop sigs → `alg_downgrade`,
+  `log.leaf`/hop `log_leaf` → `not_logged`), boundary decodes → `schema_violation`.
+- New differential vector class `noncanon-*` + extended `renewal-invalid-prevleaf-*` cover trailing-bits, padding,
+  whitespace, and standard-alphabet swaps; both implementations reject identically. Corpus 737 → **745** (745/745).
+- Locked by unit tests: core `b64::decoder_is_canonical_only`, SDK `test/canonical.test.mjs` (exhaustive last-char
+  sweep = the 16 canonical values). The two M12 prev_leaf differentials were independently re-verified closed
+  (202 + 151 adversarial inputs, zero divergences). D-029.
+
 ### M12 — validity & renewal (ADR-017): identity eternal, credentials bounded, renewal invisible
 
 - **One duration ladder** in `ainra_core::consts` — `PASSPORT_VALIDITY_DEFAULT_SECS` (366 d), `RENEWAL_LEAD_SECS`

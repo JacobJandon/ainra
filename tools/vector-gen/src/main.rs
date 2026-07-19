@@ -206,6 +206,47 @@ fn checkpoint_sig(
 }
 
 fn build(p: &CredParams) -> Built {
+    build_mut(p, |_| {})
+}
+
+const B64URL_ALPHABET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+
+/// A non-canonical-encoding transform (D-029 canonical-encoding sweep vectors).
+type NcFn = fn(&str) -> String;
+
+/// Turn a CANONICAL 32-byte (43-char) base64url string into a NON-canonical one with nonzero trailing bits: the
+/// last char of a 43-char string has value ≡ 0 mod 4 (its 2 excess bits are zero), so `+1` keeps the same 4 data
+/// bits but sets a trailing bit — still a valid alphabet char, but base64ct (and the SDK round-trip) reject it.
+fn nc_trailing_bits(s: &str) -> String {
+    let mut b = s.as_bytes().to_vec();
+    let last = *b.last().expect("non-empty");
+    let idx = B64URL_ALPHABET
+        .iter()
+        .position(|&c| c == last)
+        .expect("alphabet char");
+    assert_eq!(
+        idx % 4,
+        0,
+        "expected a 32-byte canonical last char (value ≡ 0 mod 4)"
+    );
+    *b.last_mut().unwrap() = B64URL_ALPHABET[idx + 1];
+    String::from_utf8(b).unwrap()
+}
+/// Embed whitespace (base64ct rejects it; Node's lenient decoder would strip it).
+fn nc_whitespace(s: &str) -> String {
+    format!("{} {}", &s[..4], &s[4..])
+}
+/// Add base64 padding (both implementations decode UNPADDED base64url; `=` is rejected).
+fn nc_padding(s: &str) -> String {
+    format!("{s}=")
+}
+
+/// D-029 non-canonical-encoding vectors: build a credential exactly like [`build`], but apply `mutate` to the full
+/// claim body **before it is signed**, so a field carrying a non-canonical base64url encoding is genuinely part of
+/// the issuer-signed credential (a mutate-after-sign would just fail the issuer signature at step 4, never reaching
+/// the field's own decode). The issuer signature is valid; only the field's ENCODING is non-canonical, so core
+/// rejects it at that field's decode (base64ct) and the SDK must reject identically via the one strict gateway.
+fn build_mut(p: &CredParams, mutate: impl FnOnce(&mut Value)) -> Built {
     let mut rng = ChaCha20Rng::seed_from_u64(0x4149_4E52_4100_0000 ^ p.seed); // "AINRA" ⊕ seed
     let issuer = crypto::HybridKeypair::generate(&mut rng);
     let root = crypto::TestRootSlh::generate(&mut rng);
@@ -300,12 +341,12 @@ fn build(p: &CredParams) -> Built {
         .map(|&i| (i, log.inclusion_proof(i).expect("hop proof")))
         .collect();
 
-    // Attach the log back-reference, sign the full claims.
+    // Attach the log back-reference, apply any non-canonical-field mutation, then sign the full claims.
     let mut full = body;
     full["log"] =
         json!({ "leaf": b64::encode(&leaf), "root": b64::encode(&cp.root), "checkpoint": "cp-1" });
+    mutate(&mut full);
     let claims = canon::canonicalize(&full).expect("canon full").into_bytes();
-    debug_assert_eq!(verify::prelog_leaf(&claims).expect("prelog"), leaf);
     let issuer_sig = issuer.sign(&claims).expect("sign claims");
 
     // Status list of `status_len` bits; set the lineage bit iff revoked.
@@ -986,7 +1027,18 @@ fn generate() -> Vec<Vector> {
     // bits). Rust's base64ct decoder rejects it; Node's lenient Buffer.from would silently accept 32 bytes — so
     // the SDK must apply a canonical round-trip or it fails OPEN where Rust fails closed (M12 review finding).
     let noncanonical = "A".repeat(42) + "B"; // 43 base64url chars, last char carries nonzero trailing bits
-    let bad_links: [&str; 4] = ["AAAA", "not!!b64", "", noncanonical.as_str()];
+    let nc_pad = "A".repeat(43) + "="; // padding on an otherwise-canonical 32-byte encoding
+    let nc_ws = "A".repeat(21) + " " + &"A".repeat(21); // embedded whitespace
+    let nc_alpha = "A".repeat(42) + "+"; // a standard-alphabet char ('+') — not valid unpadded base64url
+    let bad_links: [&str; 7] = [
+        "AAAA",                // wrong length (decodes to 3 bytes)
+        "not!!b64",            // non-alphabet
+        "",                    // empty
+        noncanonical.as_str(), // nonzero trailing bits
+        nc_pad.as_str(),       // padding
+        nc_ws.as_str(),        // whitespace
+        nc_alpha.as_str(),     // standard-alphabet swap
+    ];
     for (i, bad) in bad_links.iter().enumerate() {
         let (_, new_gen) = build_renewal_pair(3_100 + i as u64);
         let mut v = wire_valid(&format!("renewal-invalid-prevleaf-{:04}", i), "", &new_gen);
@@ -1010,6 +1062,50 @@ fn generate() -> Vec<Vector> {
         "prev_leaf: null is treated as absent (first issuance) by both implementations — verifies",
         &build_prevleaf_null(3_120),
     ));
+
+    // ── D-029 canonical-encoding sweep: a non-canonical base64url encoding of a CLAIMS-INTERNAL decoded field
+    //    (signed IN the body via build_mut, so the issuer signature is valid and the field's OWN decode is what
+    //    fails). Core rejects at that field's decode (base64ct is strict); the SDK must reject IDENTICALLY via its
+    //    one strict gateway (strictB64u round-trip). Presentation-level fields are the trusted boundary (the
+    //    reference `run()` decodes them out-of-band), so the differential covers the claims-internal fields;
+    //    per-variant exhaustiveness is locked by the b64/strictB64u unit tests. ──
+    // log.leaf (decoded at step 9 → not_logged): the `log` object is stripped from the pre-log body, so mutating
+    // its ENCODING isolates the decode cleanly. 32-byte field → all three variant shapes apply.
+    let logleaf_variants: [(&str, NcFn); 3] = [
+        ("trailingbits", nc_trailing_bits),
+        ("whitespace", nc_whitespace),
+        ("padding", nc_padding),
+    ];
+    for (i, (kind, tf)) in logleaf_variants.iter().enumerate() {
+        let b = build_mut(&valid_params(4_000 + i), |full| {
+            let s = full["log"]["leaf"].as_str().unwrap().to_string();
+            full["log"]["leaf"] = json!(tf(&s));
+        });
+        let v = wire_valid(&format!("noncanon-logleaf-{kind}-{:04}", 0), "", &b);
+        out.push(invalid(
+            v,
+            Reason::NotLogged,
+            "non-canonical base64url log.leaf — core rejects at decode, the SDK rejects identically",
+        ));
+    }
+    // hop sig (decoded at step 6 → alg_downgrade, BEFORE the log step): a chained credential with one hop
+    // signature re-encoded non-canonically. 64/3309-byte fields → use the length-agnostic whitespace/padding.
+    let hopsig_variants: [(&str, &str, NcFn); 2] = [
+        ("sig_ed25519", "whitespace", nc_whitespace),
+        ("sig_mldsa65", "padding", nc_padding),
+    ];
+    for (i, (field, kind, tf)) in hopsig_variants.iter().enumerate() {
+        let b = build_mut(&valid_chain_params(50 + i), |full| {
+            let s = full["act_chain"][0][field].as_str().unwrap().to_string();
+            full["act_chain"][0][*field] = json!(tf(&s));
+        });
+        let v = wire_valid(&format!("noncanon-hopsig-{kind}-{:04}", 0), "", &b);
+        out.push(invalid(
+            v,
+            Reason::AlgDowngrade,
+            "non-canonical base64url hop signature — core rejects at decode, the SDK rejects identically",
+        ));
+    }
 
     // registrar
     for i in 0..per {

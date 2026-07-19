@@ -18,9 +18,9 @@ use rand_chacha::ChaCha20Rng;
 use rand_core::SeedableRng;
 use serde_json::json;
 
-// A readable, fixed one-year window (2026-04-11 .. 2027-04-11 UTC). A plain constant — no runtime clock.
+// A readable, fixed window: the ADR-017 366-day default from 2026-04-11 UTC. No runtime clock.
 const NBF: u64 = 1_775_865_600;
-const EXP: u64 = 1_807_401_600;
+const EXP: u64 = NBF + ainra_core::consts::PASSPORT_VALIDITY_DEFAULT_SECS;
 
 fn main() {
     let which = std::env::args()

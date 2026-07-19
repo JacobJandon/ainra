@@ -28,8 +28,9 @@ use rand_core::SeedableRng;
 use serde_json::json;
 
 // A coherent demo timeline (issuance ≈ nbf; verification within the 90-day checkpoint-delegate window).
+// The window is the ADR-017 default: 366 days from nbf, cited from the one constants module.
 const NBF: u64 = 1_775_865_600; // 2026-04-11
-const EXP: u64 = 1_807_401_600; // 2027-04-11
+const EXP: u64 = NBF + ainra_core::consts::PASSPORT_VALIDITY_DEFAULT_SECS;
 
 fn qparam(path: &str, key: &str) -> Option<String> {
     let q = path.split('?').nth(1)?;

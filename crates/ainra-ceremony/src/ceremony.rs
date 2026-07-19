@@ -42,8 +42,10 @@ pub struct Genesis {
 
 /// FROST quorum used to sign at the rehearsal (custodians 1..5 of 9). Production rotates the quorum.
 const QUORUM_5_OF_9: &[u16] = &[1, 2, 3, 4, 5];
-/// Delegate/cert validity for the rehearsal (90 days, inside the ADR-002 ≤ 92-day cap).
+/// Delegate/cert validity for the rehearsal (90 days, inside the ADR-002 ≤ 92-day cap from
+/// [`ainra_core::consts`] — the compile-time assert keeps the rehearsal honest to the cap).
 const VALIDITY: u64 = 90 * 24 * 60 * 60;
+const _: () = assert!(VALIDITY <= ainra_core::consts::DELEGATE_CERT_MAX_SECS);
 
 impl Genesis {
     /// Run the whole genesis rehearsal. `registrar_ids` are accredited (each gets a fresh issuer key, log root, and

@@ -21,7 +21,7 @@ use rand_core::{RngCore, SeedableRng};
 use serde_json::json;
 
 const NBF: u64 = 1_775_865_600;
-const EXP: u64 = 1_807_401_600;
+const EXP: u64 = NBF + ainra_core::consts::PASSPORT_VALIDITY_DEFAULT_SECS; // ADR-017 366 d default
 const VERIFY_NOW: u64 = NBF + 10 * 24 * 60 * 60;
 
 fn ms(d: std::time::Duration) -> f64 {
@@ -423,6 +423,7 @@ fn issuance_and_sharding() {
                 capabilities: vec!["read:data".into()],
                 scope_ceiling: vec!["read:data".into()],
                 hops: vec![],
+                audit: None,
             };
             rb.issue(&spec, &[], rng).expect("issue");
         }
@@ -494,6 +495,7 @@ fn issuance_and_sharding() {
                         capabilities: vec!["read:data".into()],
                         scope_ceiling: vec!["read:data".into()],
                         hops: vec![],
+                        audit: None,
                     };
                     rb.issue(&spec, &[], &mut rng).expect("issue");
                 }

@@ -24,6 +24,7 @@ fn main() {
         "init" => cmd_init(rest),
         "accredit" => cmd_accredit(rest),
         "issue" => cmd_issue(rest),
+        "renew" => cmd_renew(rest),
         "list" => cmd_list(rest),
         "verify" => cmd_verify(rest),
         "revoke" => cmd_revoke(rest),
@@ -186,6 +187,13 @@ fn cmd_issue(a: &[String]) -> i32 {
         },
         scope_ceiling: ceiling,
         hops: vec![],
+        // ADR-017: L3+ requires current tier-audit evidence; the engine refuses without it (or past its expiry).
+        audit: opt(a, "audit-expires")
+            .and_then(|e| e.parse().ok())
+            .map(|expires| ainra_services::registrar::AuditEvidence {
+                reference: opt(a, "audit-ref").unwrap_or("audit-evidence").into(),
+                expires,
+            }),
     };
     let mut rb = match load(dir) {
         Ok(rb) => rb,
@@ -213,6 +221,108 @@ fn cmd_issue(a: &[String]) -> i32 {
         }
         Err(e) => {
             eprintln!("issue failed: {e}");
+            1
+        }
+    }
+}
+
+fn cmd_renew(a: &[String]) -> i32 {
+    let (Some(dir), Some(sub)) = (pos(a, 0), pos(a, 1)) else {
+        eprintln!("usage: ainra renew <dir> <sub> [--version V] [--now T] [--audit-ref R --audit-expires T] [--dry-run]");
+        return 2;
+    };
+    let mut rb = match load(dir) {
+        Ok(rb) => rb,
+        Err(c) => return c,
+    };
+    let now = now_or_default(a);
+    let Some(old) = rb.get(sub).cloned() else {
+        eprintln!("unknown subject: {sub}");
+        return 1;
+    };
+    let new_exp = now.saturating_add(ainra_core::consts::PASSPORT_VALIDITY_DEFAULT_SECS);
+    let audit = opt(a, "audit-expires")
+        .and_then(|e| e.parse().ok())
+        .map(|expires| ainra_services::registrar::AuditEvidence {
+            reference: opt(a, "audit-ref").unwrap_or("audit-evidence").into(),
+            expires,
+        });
+    if a.iter().any(|x| x == "--dry-run") {
+        let head = rb
+            .lineage_head(&old.operator, &old.lineage)
+            .map(|(_, leaf)| leaf)
+            .unwrap_or_default();
+        // Honest dry-run: name the guards the REAL reissue would apply, so a dry-run never says "would reissue"
+        // for a subject that the real command refuses (revoked / chained / expired / L3+ audit).
+        let mut blockers: Vec<String> = Vec::new();
+        if old.revoked {
+            blockers.push("subject is REVOKED — a revoked lineage cannot renew (re-admission is a new accreditation)".into());
+        }
+        if now >= old.exp {
+            blockers.push(format!("subject has EXPIRED (exp {}, now {now}) — renew before expiry; a lapsed credential needs fresh issuance", old.exp));
+        }
+        if !old.hops.is_empty() {
+            blockers.push("subject carries a delegation chain — a chained passport cannot be auto-renewed (renewal is a re-delegation)".into());
+        }
+        if matches!(old.tier.as_str(), "L3" | "L4") {
+            match &audit {
+                None => blockers.push(format!("tier {} requires --audit-expires (current tier-audit evidence)", old.tier)),
+                Some(a) if new_exp > a.expires => blockers.push(format!("tier {} audit expires {} — before the new window end {new_exp}; renew the audit first", old.tier, a.expires)),
+                _ => {}
+            }
+        }
+        if blockers.is_empty() {
+            println!("DRY RUN — would reissue {sub} (ADR-017 renewal):");
+            println!(
+                "  window     [{}, {}] → [{now}, {new_exp}] (fresh 366-day window)",
+                old.nbf, old.exp
+            );
+            println!("  prev_leaf  {head} (the lineage head this renewal chains from)");
+            println!(
+                "  version    {} → {}",
+                old.version,
+                opt(a, "version").unwrap_or(&old.version)
+            );
+            println!(
+                "  overlap    both generations verify until the old exp {} — no grace after it",
+                old.exp
+            );
+            return 0;
+        }
+        eprintln!("DRY RUN — reissue of {sub} WOULD BE REFUSED:");
+        for b in &blockers {
+            eprintln!("  ✗ {b}");
+        }
+        return 1;
+    }
+    let mut rng = rand_chacha::ChaCha20Rng::seed_from_u64(default_seed(sub) ^ now);
+    match rb.reissue(sub, opt(a, "version"), now, audit.as_ref(), &mut rng) {
+        Ok(rec) => {
+            if let Err(e) = rb.save() {
+                eprintln!("save failed: {e}");
+                return 1;
+            }
+            println!("reissued {} (renewal of {sub})", rec.sub);
+            println!(
+                "  window [{}, {}] · status idx {} · prev_leaf {} · leaf {}",
+                rec.nbf,
+                rec.exp,
+                rec.status_idx,
+                serde_json::from_str::<serde_json::Value>(&rec.claims)
+                    .ok()
+                    .and_then(|v| v["prev_leaf"].as_str().map(String::from))
+                    .unwrap_or_default(),
+                rec.leaf_index
+            );
+            println!("  overlap: the old credential keeps verifying until its exp {} — then it fails closed (expired)", old.exp);
+            println!(
+                "  verdict(new): {}",
+                verdict_str(&rb.verify_record(&rec.sub, now + 1))
+            );
+            0
+        }
+        Err(e) => {
+            eprintln!("renew failed: {e}");
             1
         }
     }
@@ -518,6 +628,11 @@ fn cmd_demo() -> i32 {
             "read:payments".into(),
         ],
         hops: vec![],
+        // L3 demands current tier-audit evidence (ADR-017); the demo's placeholder audit outlives the window.
+        audit: Some(ainra_services::registrar::AuditEvidence {
+            reference: "audit-demo-invoicing".into(),
+            expires: seed::EXP,
+        }),
     };
     let rec = match rb.issue(&spec, &[], &mut rng) {
         Ok(r) => r,
@@ -593,6 +708,11 @@ REGISTRAR LIFECYCLE (operate on a local data dir)
   init <dir> <id> [--seed N] [--capacity N]   create + persist a registrar
   accredit <dir>                              print the registrar's public keys (directory entry)
   issue <dir> --operator O --lineage L --version V [--tier L2] [--auth A2] [--cap C]* [--ceiling C]*
+        [--audit-ref R --audit-expires T]     L3+ requires current tier-audit evidence (ADR-017)
+  renew <dir> <sub> [--version V] [--now T] [--audit-ref R --audit-expires T] [--dry-run]
+        ADR-017 reissue: fresh 366-day window, prev_leaf continuity, new status index; the old credential
+        keeps verifying until its own exp (overlap), then fails closed. Run it at T−30 d before exp (the
+        RENEWAL_LEAD default) — the lead is a deployment cadence, not a protocol rule; nothing here schedules.
   list <dir> [--now T]                        list credentials + live verdicts
   verify <dir> <sub> [--now T]                verify one credential (the REAL verifier)
   log-verify <dir> <sub> [--now T]            check ONLY logged-before-valid (RFC 6962 inclusion)

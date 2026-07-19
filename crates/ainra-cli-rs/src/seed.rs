@@ -14,10 +14,11 @@ use rand_chacha::ChaCha20Rng;
 use rand_core::SeedableRng;
 use serde_json::json;
 
-// A coherent demo timeline: certs issued just before `NBF`; every credential's window is one year; verification in
-// the export happens 10 days in — comfortably inside the 90-day checkpoint-delegate window (ADR-002 cap).
+// A coherent demo timeline: certs issued just before `NBF`; every credential's window is the ADR-017 366-day
+// default; verification in the export happens 10 days in — comfortably inside the 90-day checkpoint-delegate
+// window (ADR-002 cap).
 pub const NBF: u64 = 1_775_865_600; // 2026-04-11 UTC
-pub const EXP: u64 = 1_807_401_600; // 2027-04-11 UTC
+pub const EXP: u64 = NBF + ainra_core::consts::PASSPORT_VALIDITY_DEFAULT_SECS;
 pub const CREATE_NOW: u64 = NBF - 3600;
 pub const VERIFY_NOW: u64 = NBF + 10 * 24 * 60 * 60;
 
@@ -248,6 +249,14 @@ pub fn build(out_root: &std::path::Path) -> std::io::Result<serde_json::Value> {
                         granted: granted.iter().map(|s| s.to_string()).collect(),
                     })
                     .collect(),
+                // ADR-017: every L3+ fixture lineage carries deterministic placeholder audit evidence whose
+                // expiry equals the credential window's end (the cap binds exactly); below L3 none is needed.
+                audit: matches!(l.tier, "L3" | "L4").then(|| {
+                    ainra_services::registrar::AuditEvidence {
+                        reference: format!("audit-{}-{}", plan.id, l.lineage),
+                        expires: EXP,
+                    }
+                }),
             };
             let rec = rb
                 .issue(&spec, &[], &mut rng)

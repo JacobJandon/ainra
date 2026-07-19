@@ -28,9 +28,10 @@ use serde_json::json;
 use crate::log::Logd;
 use crate::status::Statusd;
 
-/// How long issued credentials / the delegate certs live, in seconds. One year for the passport window; 90 days for
-/// the delegate certs (inside the ADR-002 ≤ 92-day cap).
+/// Operational delegate-cert lifetime: 90 days, inside the ADR-002 ≤ 92-day cap. The cap itself lives in
+/// [`ainra_core::consts`]; the compile-time assert keeps this operational choice from ever drifting past it.
 const CERT_VALIDITY: u64 = 90 * 24 * 60 * 60;
+const _: () = assert!(CERT_VALIDITY <= ainra_core::consts::DELEGATE_CERT_MAX_SECS);
 
 /// A single delegation hop to author (pre-signing). `granted` MUST be ⊆ the delegator's effective set — the engine
 /// does not widen for you; a widening chain will simply verify to `chain_widening`.
@@ -39,6 +40,17 @@ pub struct HopSpec {
     pub from: String,
     pub to: String,
     pub granted: Vec<String>,
+}
+
+/// ADR-017 tier-audit evidence, held REGISTRAR-SIDE (Standard §4: evidence lives at the registrar, never at the
+/// root and never on the wire — the passport format is unchanged). L3+ issuance/renewal is refused unless this
+/// is present and the requested passport `exp` does not exceed `expires`.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct AuditEvidence {
+    /// Opaque reference to the audit artifact in the registrar's evidence store (e.g. a digest). Never PII.
+    pub reference: String,
+    /// Unix seconds the audit attestation itself expires.
+    pub expires: u64,
 }
 
 /// Everything needed to issue one credential. `operator`/`lineage`/`version` compose the `ainra:` subject under the
@@ -55,6 +67,62 @@ pub struct IssueSpec {
     pub scope_ceiling: Vec<String>,
     #[serde(default)]
     pub hops: Vec<HopSpec>,
+    /// ADR-017: current tier-audit evidence — REQUIRED for L3/L4 (see [`AuditEvidence`]); ignored below L3.
+    #[serde(default)]
+    pub audit: Option<AuditEvidence>,
+}
+
+/// The tier and authority-class vocabularies are CLOSED (MTS §15: L0..L4, A1..A4). Issuance refuses anything
+/// else — a free-string tier like `"l3"` or `"L5"` would dodge the ADR-017 audit cap while minting a credential
+/// the verifier rejects anyway; the engine surfaces the error honestly at issue time instead.
+fn validate_tier_auth(tier: &str, auth: &str) -> Result<(), IssueError> {
+    if !matches!(tier, "L0" | "L1" | "L2" | "L3" | "L4") {
+        return Err(IssueError::Malformed(format!(
+            "unknown tier '{tier}' — the tier vocabulary is closed: L0..L4 (MTS §15)"
+        )));
+    }
+    if !matches!(auth, "A1" | "A2" | "A3" | "A4") {
+        return Err(IssueError::Malformed(format!(
+            "unknown authority class '{auth}' — the class vocabulary is closed: A1..A4 (MTS §15)"
+        )));
+    }
+    Ok(())
+}
+
+/// ADR-017's audit cap: an L3+ passport may never outlive the audit behind its tier. Below L3 no audit is
+/// required (that's what keeps L2 issuance permission-light); at L3+ a missing audit refuses issuance and a
+/// window past the audit's own expiry refuses with the reason spelled out.
+fn check_audit_cap(tier: &str, exp: u64, audit: Option<&AuditEvidence>) -> Result<(), IssueError> {
+    if !matches!(tier, "L3" | "L4") {
+        return Ok(());
+    }
+    let Some(a) = audit else {
+        return Err(IssueError::AuditRequired(format!(
+            "tier {tier} issuance/renewal requires current tier-audit evidence — ADR-017: an L3+ passport may \
+             never outlive its audit"
+        )));
+    };
+    if exp > a.expires {
+        return Err(IssueError::AuditStale(format!(
+            "requested passport exp {exp} exceeds the tier audit's expiry {} — ADR-017: \"audited\" must mean \
+             audited recently, so the credential may not outlive the evidence behind its tier; renew the audit \
+             first or request a shorter window",
+            a.expires
+        )));
+    }
+    Ok(())
+}
+
+/// Read one field out of a stored record's signed claim JSON (e.g. `/authority/principal_proof`). `None` if the
+/// claims fail to parse or the pointer is absent — callers treat that as "unknown", never as a default identity.
+fn passport_field(rec: &IssuedRecord, pointer: &str) -> Option<String> {
+    let v: serde_json::Value = serde_json::from_str(&rec.claims).ok()?;
+    v.pointer(pointer)?.as_str().map(|s| s.to_string())
+}
+
+/// A stored record's own credential leaf (base64url) — the `log.leaf` its claims commit to.
+fn record_leaf(rec: &IssuedRecord) -> Option<String> {
+    passport_field(rec, "/log/leaf")
 }
 
 /// A fully self-describing issued credential: the signed claims, the issuer signature, the transparency-log anchor
@@ -185,6 +253,13 @@ pub struct RegistrarBox {
     log: Logd,
     status: Statusd,
     records: BTreeMap<String, IssuedRecord>,
+    /// ADR-017 overlap: generations displaced by a same-sub REISSUE. They stay fully verifiable until their own
+    /// `exp` (that IS the overlap window — nothing is deleted, no grace period exists) and stay revocable (a
+    /// lineage revocation flips EVERY unexpired generation, or renewal would be a 30-day revocation bypass).
+    superseded: Vec<IssuedRecord>,
+    /// ADR-017 continuity heads: `operator:lineage` → (current sub, current credential leaf b64). A REISSUE must
+    /// chain from exactly this leaf — renewing a superseded generation is a fork and is refused, fail closed.
+    lineage_heads: BTreeMap<String, (String, String)>,
     next_status_idx: usize,
     status_capacity: usize,
     dir: PathBuf,
@@ -209,6 +284,17 @@ pub enum IssueError {
     Malformed(String),
     /// An I/O failure in the log/datastore.
     Io(String),
+    /// ADR-017: a REISSUE whose claimed `prev_leaf` is not the lineage's current head leaf (wrong, missing, or
+    /// pointing at a superseded generation — a renewal fork). Rejected before anything is logged; fail closed.
+    ReissueContinuity(String),
+    /// ADR-017: a revoked lineage attempted to renew — revocation is the kill switch; renewal is for lineages
+    /// in good standing, so a reissue can never launder a revoked lineage into a fresh status index.
+    LineageRevoked(String),
+    /// ADR-017: L3+ issuance/renewal requires current tier-audit evidence, and none was supplied.
+    AuditRequired(String),
+    /// ADR-017: the requested passport `exp` exceeds the tier audit's own expiry — "audited" must mean audited
+    /// recently, so the credential may never outlive the evidence behind its tier.
+    AuditStale(String),
 }
 
 impl core::fmt::Display for IssueError {
@@ -218,6 +304,10 @@ impl core::fmt::Display for IssueError {
             IssueError::StatusFull => write!(f, "status segment full"),
             IssueError::Malformed(s) => write!(f, "malformed issuance: {s}"),
             IssueError::Io(s) => write!(f, "io: {s}"),
+            IssueError::ReissueContinuity(s) => write!(f, "reissue continuity: {s}"),
+            IssueError::LineageRevoked(s) => write!(f, "lineage revoked: {s}"),
+            IssueError::AuditRequired(s) => write!(f, "audit required: {s}"),
+            IssueError::AuditStale(s) => write!(f, "audit stale: {s}"),
         }
     }
 }
@@ -258,6 +348,8 @@ impl RegistrarBox {
             log,
             status,
             records: BTreeMap::new(),
+            superseded: Vec::new(),
+            lineage_heads: BTreeMap::new(),
             next_status_idx: 0,
             status_capacity,
             dir: dir.to_path_buf(),
@@ -323,6 +415,47 @@ impl RegistrarBox {
                 let rec: IssuedRecord = serde_json::from_value(r.clone())
                     .map_err(|e| IssueError::Malformed(format!("record: {e}")))?;
                 me.records.insert(rec.sub.clone(), rec);
+            }
+        }
+        // ADR-017: restore superseded generations + the lineage continuity heads. Absent in pre-M12 snapshots —
+        // then every lineage's sole record is its head (derived below, latest leaf_index wins deterministically).
+        if let Some(sup) = snap["superseded"].as_array() {
+            for r in sup {
+                let rec: IssuedRecord = serde_json::from_value(r.clone())
+                    .map_err(|e| IssueError::Malformed(format!("superseded record: {e}")))?;
+                me.superseded.push(rec);
+            }
+        }
+        if let Some(heads) = snap["lineage_heads"].as_object() {
+            for (k, v) in heads {
+                let (Some(sub), Some(leaf)) = (v["sub"].as_str(), v["leaf"].as_str()) else {
+                    return Err(IssueError::Malformed(format!("lineage head {k}")));
+                };
+                me.lineage_heads
+                    .insert(k.clone(), (sub.to_string(), leaf.to_string()));
+            }
+        } else {
+            let derived: Vec<(String, String, String, u64)> = me
+                .records
+                .values()
+                .filter_map(|r| {
+                    Some((
+                        format!("{}:{}", r.operator, r.lineage),
+                        r.sub.clone(),
+                        record_leaf(r)?,
+                        r.leaf_index,
+                    ))
+                })
+                .collect();
+            for (key, sub, leaf, idx) in derived {
+                let newer = me
+                    .lineage_heads
+                    .get(&key)
+                    .and_then(|(s, _)| me.records.get(s))
+                    .is_some_and(|cur| cur.leaf_index >= idx);
+                if !newer {
+                    me.lineage_heads.insert(key, (sub, leaf));
+                }
             }
         }
         me.next_status_idx = snap["next_status_idx"].as_u64().unwrap_or(0) as usize;
@@ -416,6 +549,8 @@ impl RegistrarBox {
 
     /// Issue one credential. Performs REAL work: build claims → (dual-)sign hops → append to the log → snapshot +
     /// delegate-sign a checkpoint → compute inclusion proofs → sign claims → store. Returns the new record.
+    /// The validity window is the registrar's configured `[nbf, exp]`; for L3+ tiers the ADR-017 audit cap
+    /// applies (`spec.audit` must be present and outlive `exp`).
     pub fn issue(
         &mut self,
         spec: &IssueSpec,
@@ -429,6 +564,32 @@ impl RegistrarBox {
         if self.records.contains_key(&sub) {
             return Err(IssueError::Duplicate(sub));
         }
+        check_audit_cap(&spec.tier, self.exp, spec.audit.as_ref())?;
+        let (nbf, exp) = (self.nbf, self.exp);
+        self.issue_with(spec, sub, (nbf, exp), None, chain_party_keys, rng)
+    }
+
+    /// The shared issuance engine behind [`Self::issue`] and [`Self::reissue`]: `window` is this credential's own
+    /// `[nbf, exp]` (per-credential — ADR-017 renewal mints fresh windows), and `prev_leaf` (base64url, 32 B) marks
+    /// a REISSUE by committing the predecessor's leaf into the SIGNED AND LOGGED claim body. On success the new
+    /// credential becomes its lineage's continuity head. Callers do the policy checks (duplicate/continuity/audit).
+    fn issue_with(
+        &mut self,
+        spec: &IssueSpec,
+        sub: String,
+        window: (u64, u64),
+        prev_leaf: Option<&str>,
+        chain_party_keys: &[crypto::HybridKeypair],
+        rng: &mut impl CryptoRngCore,
+    ) -> Result<IssuedRecord, IssueError> {
+        validate_tier_auth(&spec.tier, &spec.auth_class)?;
+        // The constructed subject MUST be a well-formed ainra name — this rejects an operator/lineage/version
+        // carrying a `:` or `@` that would otherwise (a) desync the `operator:lineage` continuity/revocation
+        // composite key (colliding two different lineages onto one head/bit) and (b) mint a credential the
+        // verifier rejects at its own name gate anyway. Catch it honestly at issue time. (ainra-core AinraName.)
+        ainra_core::AinraName::parse(&sub).map_err(|e| {
+            IssueError::Malformed(format!("subject is not a well-formed ainra name: {e:?}"))
+        })?;
         if self.next_status_idx >= self.status_capacity {
             return Err(IssueError::StatusFull);
         }
@@ -466,7 +627,7 @@ impl RegistrarBox {
                 from: h.from.clone(),
                 to: h.to.clone(),
                 granted: h.granted.clone(),
-                exp: self.exp,
+                exp: window.1,
                 sig_ed25519: String::new(),
                 sig_mldsa65: String::new(),
                 sig_child_ed25519: String::new(),
@@ -514,7 +675,7 @@ impl RegistrarBox {
             "vct": ainra_core::PASSPORT_VCT,
             "iss": format!("did:ainra:{}:{}:{}", self.id, spec.operator, spec.lineage),
             "sub": sub,
-            "nbf": self.nbf, "exp": self.exp,
+            "nbf": window.0, "exp": window.1,
             "authority": { "class": spec.auth_class, "principal_proof": spec.principal_proof },
             "tier": spec.tier,
             "capabilities": spec.capabilities,
@@ -526,6 +687,11 @@ impl RegistrarBox {
         if !act_chain.is_empty() {
             body["act_chain"] = serde_json::to_value(&act_chain)
                 .map_err(|e| IssueError::Malformed(format!("act_chain: {e}")))?;
+        }
+        // ADR-017: a REISSUE commits its predecessor's leaf into the signed AND logged body (it must be part of
+        // what the log commits, so renewals walk back through the log as one unbroken chain).
+        if let Some(pl) = prev_leaf {
+            body["prev_leaf"] = json!(pl);
         }
         let body_bytes = canon::canonicalize(&body)
             .map_err(|e| IssueError::Malformed(format!("canon body: {e:?}")))?
@@ -605,8 +771,8 @@ impl RegistrarBox {
             scope_ceiling: spec.scope_ceiling.clone(),
             status_idx,
             status_uri: self.status_uri(),
-            nbf: self.nbf,
-            exp: self.exp,
+            nbf: window.0,
+            exp: window.1,
             issued_at: now_from_cert(&signed),
             claims: String::from_utf8(claims.clone())
                 .map_err(|e| IssueError::Malformed(format!("claims utf8: {e}")))?,
@@ -626,26 +792,194 @@ impl RegistrarBox {
             hop_proofs,
             revoked: false,
         };
+        // The new credential is now its lineage's continuity head (ADR-017): future reissues chain from THIS leaf.
+        self.lineage_heads.insert(
+            format!("{}:{}", spec.operator, spec.lineage),
+            (sub.clone(), b64::encode(&cred_leaf)),
+        );
         self.records.insert(sub, record.clone());
         Ok(record)
+    }
+
+    /// ADR-017 renewal: reissue `sub` with a FRESH `[now, now + 366 d]` window, a NEW status index, and a
+    /// `prev_leaf` continuity link to the credential it renews. The old credential is kept and keeps verifying
+    /// until its own `exp` — that IS the overlap window; after it, the old one fails closed `expired` while the
+    /// new one continues. `new_version` optionally bumps the version (policy allows same or bumped). For L3+
+    /// tiers, `audit` must be present and outlive the new window (ADR-017's audit cap). Delegated (chained)
+    /// passports are NOT auto-renewable: the delegation parties' consent signatures are theirs to give, not the
+    /// registrar's to re-mint — renewal of a delegation is a re-delegation.
+    pub fn reissue(
+        &mut self,
+        sub: &str,
+        new_version: Option<&str>,
+        now: u64,
+        audit: Option<&AuditEvidence>,
+        rng: &mut impl CryptoRngCore,
+    ) -> Result<IssuedRecord, IssueError> {
+        let head_leaf = self
+            .records
+            .get(sub)
+            .ok_or_else(|| IssueError::Malformed(format!("unknown subject: {sub}")))
+            .map(|r| format!("{}:{}", r.operator, r.lineage))
+            .map(|key| self.lineage_heads.get(&key).map(|(_, l)| l.clone()))?
+            .unwrap_or_default();
+        self.reissue_with_prev(sub, &head_leaf, new_version, now, audit, rng)
+    }
+
+    /// The ACME-style reissue: the caller CLAIMS which credential it renews (`claimed_prev_leaf`), and the
+    /// registrar validates that claim against the lineage's recorded continuity head **before anything is
+    /// logged** — a wrong, missing, or superseded-generation link is [`IssueError::ReissueContinuity`], fail
+    /// closed. [`Self::reissue`] is the convenience wrapper that claims the recorded head.
+    pub fn reissue_with_prev(
+        &mut self,
+        sub: &str,
+        claimed_prev_leaf: &str,
+        new_version: Option<&str>,
+        now: u64,
+        audit: Option<&AuditEvidence>,
+        rng: &mut impl CryptoRngCore,
+    ) -> Result<IssuedRecord, IssueError> {
+        let old = self
+            .records
+            .get(sub)
+            .cloned()
+            .ok_or_else(|| IssueError::Malformed(format!("unknown subject: {sub}")))?;
+        // A REVOKED lineage must never renew itself into a fresh, clean status index — revocation is the kill
+        // switch, and renewal is for lineages in good standing (ADR-017). Re-admitting a revoked lineage is a
+        // fresh accreditation DECISION, not a mechanical reissue. Fail closed.
+        if old.revoked {
+            return Err(IssueError::LineageRevoked(format!(
+                "{sub} is revoked — a revoked lineage cannot renew; re-admission is a new accreditation \
+                 decision, not a reissue"
+            )));
+        }
+        // Renewal is for a credential in GOOD STANDING — ADR-017's rhythm is reissue at T−30 d, BEFORE expiry,
+        // with an overlap. An already-expired credential is not renewed, it is re-issued (a fresh accreditation
+        // decision). Refusing it also closes the durability gap where revoking one generation while every
+        // generation is expired would otherwise leave a lapsed sibling reissue-able into a clean status index.
+        if now >= old.exp {
+            return Err(IssueError::Malformed(format!(
+                "{sub} has expired (exp {}, now {now}) — renewal happens before expiry (ADR-017 T−30 d overlap); \
+                 a lapsed credential requires fresh issuance, not a reissue",
+                old.exp
+            )));
+        }
+        if !old.hops.is_empty() {
+            return Err(IssueError::Malformed(format!(
+                "{sub} carries a delegation chain — a chained passport cannot be auto-renewed; renewal of a \
+                 delegation is a re-delegation (the parties must dual-sign a fresh chain, ADR-017)"
+            )));
+        }
+        let key = format!("{}:{}", old.operator, old.lineage);
+        let Some((head_sub, head_leaf)) = self.lineage_heads.get(&key).cloned() else {
+            return Err(IssueError::ReissueContinuity(format!(
+                "lineage {key} has no continuity head recorded"
+            )));
+        };
+        if claimed_prev_leaf.is_empty() {
+            return Err(IssueError::ReissueContinuity(
+                "missing prev_leaf — a reissue must name the credential it renews".into(),
+            ));
+        }
+        if head_sub != sub || claimed_prev_leaf != head_leaf {
+            return Err(IssueError::ReissueContinuity(format!(
+                "claimed prev_leaf {claimed_prev_leaf} does not match the lineage head {head_leaf} (head \
+                 generation {head_sub}) — renewing a superseded or foreign generation would fork the renewal \
+                 chain; refused"
+            )));
+        }
+        // checked_add: a hostile/absurd `now` near u64::MAX must never wrap into an exp < nbf window (which would
+        // vacuously pass the audit cap and mint a structurally-broken credential). Fail closed instead.
+        let exp = now
+            .checked_add(ainra_core::consts::PASSPORT_VALIDITY_DEFAULT_SECS)
+            .ok_or_else(|| IssueError::Malformed("reissue window overflows u64".into()))?;
+        let window = (now, exp);
+        check_audit_cap(&old.tier, window.1, audit)?;
+        let version = new_version.unwrap_or(&old.version);
+        let new_sub = format!(
+            "ainra:{}:{}:{}@{}",
+            self.id, old.operator, old.lineage, version
+        );
+        if new_sub != sub && self.records.contains_key(&new_sub) {
+            return Err(IssueError::Duplicate(new_sub));
+        }
+        let spec = IssueSpec {
+            operator: old.operator.clone(),
+            lineage: old.lineage.clone(),
+            version: version.to_string(),
+            tier: old.tier.clone(),
+            auth_class: old.auth_class.clone(),
+            principal_proof: passport_field(&old, "/authority/principal_proof")
+                .unwrap_or_else(|| "reissued".into()),
+            capabilities: old.capabilities.clone(),
+            scope_ceiling: old.scope_ceiling.clone(),
+            hops: vec![],
+            audit: audit.cloned(),
+        };
+        let new_rec =
+            self.issue_with(&spec, new_sub.clone(), window, Some(&head_leaf), &[], rng)?;
+        // Same-sub renewal displaced the old record from the map (`issue_with` inserted the new one under the
+        // same key); keep the old generation verifiable + revocable until its own exp. A bumped version leaves
+        // the old record in place under its own sub — same overlap, different key.
+        if new_sub == sub {
+            self.superseded.push(old);
+        }
+        Ok(new_rec)
+    }
+
+    /// The superseded (renewed-away) generations still inside their validity windows or expired-but-retained.
+    pub fn superseded_records(&self) -> impl Iterator<Item = &IssuedRecord> {
+        self.superseded.iter()
+    }
+
+    /// The lineage continuity head (current sub + credential leaf) for `operator:lineage`, if issued.
+    pub fn lineage_head(&self, operator: &str, lineage: &str) -> Option<(String, String)> {
+        self.lineage_heads
+            .get(&format!("{operator}:{lineage}"))
+            .cloned()
     }
 
     /// Revoke a lineage: flip its status bit through the signed-delta path and mark the record. Returns the emitted
     /// [`status::StatusDelta`]. `now` stamps the delta. Fails closed if the subject is unknown or the delta is
     /// rejected by the core codec.
+    ///
+    /// ADR-017 + MTS §16 (the status list is one bit **per lineage**): revocation is lineage-wide — it flips the
+    /// named record's bit AND every other unexpired generation of the same lineage (superseded by renewal or
+    /// version-bumped), so a freshly-renewed lineage cannot dodge revocation by presenting its still-valid
+    /// predecessor during the overlap window.
     pub fn revoke(&mut self, sub: &str, now: u64) -> Result<status::StatusDelta, IssueError> {
-        let idx = self
+        let rec = self
             .records
             .get(sub)
-            .ok_or_else(|| IssueError::Malformed(format!("unknown subject: {sub}")))?
-            .status_idx as usize;
+            .ok_or_else(|| IssueError::Malformed(format!("unknown subject: {sub}")))?;
+        let key = format!("{}:{}", rec.operator, rec.lineage);
+        let mut idxs = vec![rec.status_idx as usize];
+        let mut marked: Vec<String> = vec![rec.sub.clone()];
+        for r in self.records.values() {
+            if r.sub != sub && format!("{}:{}", r.operator, r.lineage) == key && now < r.exp {
+                idxs.push(r.status_idx as usize);
+                marked.push(r.sub.clone());
+            }
+        }
+        let mut superseded_hit = Vec::new();
+        for (i, r) in self.superseded.iter().enumerate() {
+            if format!("{}:{}", r.operator, r.lineage) == key && now < r.exp && !r.revoked {
+                idxs.push(r.status_idx as usize);
+                superseded_hit.push(i);
+            }
+        }
         let delta = self
             .status
-            .revoke_delta(&[idx], now)
+            .revoke_delta(&idxs, now)
             .ok_or_else(|| IssueError::Malformed("status delegate not configured".into()))?
             .map_err(|r| IssueError::Malformed(format!("delta rejected: {r}")))?;
-        if let Some(r) = self.records.get_mut(sub) {
-            r.revoked = true;
+        for s in marked {
+            if let Some(r) = self.records.get_mut(&s) {
+                r.revoked = true;
+            }
+        }
+        for i in superseded_hit {
+            self.superseded[i].revoked = true;
         }
         Ok(delta)
     }
@@ -753,6 +1087,12 @@ impl RegistrarBox {
             "status_seq": self.status.current_seq(),
             "deltas": deltas,
             "records": self.records.values().collect::<Vec<_>>(),
+            // ADR-017: renewed-away generations (still verifiable/revocable until their own exp) + the lineage
+            // continuity heads the next reissue must chain from.
+            "superseded": self.superseded,
+            "lineage_heads": self.lineage_heads.iter().map(|(k, (sub, leaf))| {
+                (k.clone(), json!({ "sub": sub, "leaf": leaf }))
+            }).collect::<serde_json::Map<_, _>>(),
         });
         let path = self.dir.join("registrar.json");
         std::fs::write(
@@ -950,9 +1290,9 @@ mod tests {
     use rand_core::SeedableRng;
 
     const NBF: u64 = 1_775_865_600;
-    const EXP: u64 = 1_807_401_600;
-    // Verification happens WITHIN the checkpoint delegate cert's 90-day window (ADR-002 cap). The credential's own
-    // 1-year window is independent; cert rotation across 90-day boundaries is M4 operational work.
+    // ADR-017 366 d default window. Verification happens WITHIN the checkpoint delegate cert's 90-day window
+    // (ADR-002 cap); the credential's own window is independent — cert rotation across 90-day boundaries is M4.
+    const EXP: u64 = NBF + ainra_core::consts::PASSPORT_VALIDITY_DEFAULT_SECS;
     const VERIFY_NOW: u64 = NBF + 10 * 24 * 60 * 60; // 10 days after issuance
 
     fn spec(op: &str, lineage: &str, ver: &str) -> IssueSpec {
@@ -966,6 +1306,7 @@ mod tests {
             capabilities: vec!["read:invoices".into()],
             scope_ceiling: vec!["read:invoices".into(), "sign:invoice".into()],
             hops: vec![],
+            audit: None,
         }
     }
 
@@ -1047,6 +1388,383 @@ mod tests {
             .unwrap();
         let again = rb.issue(&spec("acme", "invoicing", "1.0.0"), &[], &mut rng);
         assert!(matches!(again, Err(IssueError::Duplicate(_))));
+    }
+
+    // ── ADR-017: renewal (REISSUE), overlap, continuity, and the L3+ audit cap ─────────────────────────────────
+
+    /// A renewal window that begins inside the checkpoint-delegate cert's 90-day window, so the reissued
+    /// credential verifies without M4 cert-rotation machinery (which is out of ADR-017's scope).
+    const RENEW_AT: u64 = NBF + 20 * 24 * 60 * 60;
+
+    #[test]
+    fn reissue_overlap_then_old_expires() {
+        let tmp = std::env::temp_dir().join("ainra-rb-reissue-overlap");
+        let _ = std::fs::remove_dir_all(&tmp);
+        // A SHORT first window (40 d) so `old.exp` sits inside the checkpoint delegate cert's 90-day window —
+        // the post-expiry verdicts below then exercise the PASSPORT window, not M4 cert rotation.
+        let mut rng = ChaCha20Rng::seed_from_u64(20);
+        let mut rb = RegistrarBox::create(
+            &tmp,
+            "registrar-07",
+            64,
+            NBF - 1000,
+            NBF,
+            NBF + 40 * 24 * 60 * 60,
+            &mut rng,
+        )
+        .unwrap();
+        let old = rb
+            .issue(&spec("acme", "invoicing", "1.0.0"), &[], &mut rng)
+            .unwrap();
+        let new = rb
+            .reissue(&old.sub, None, RENEW_AT, None, &mut rng)
+            .unwrap();
+        // Fresh 366-day window + a new status index + the continuity link.
+        assert_eq!(new.nbf, RENEW_AT);
+        assert_eq!(
+            new.exp,
+            RENEW_AT + ainra_core::consts::PASSPORT_VALIDITY_DEFAULT_SECS
+        );
+        assert_ne!(new.status_idx, old.status_idx, "renewal burns a NEW index");
+        assert_eq!(
+            passport_field(&new, "/prev_leaf").as_deref(),
+            record_leaf(&old).as_deref(),
+            "the reissue commits its predecessor's leaf"
+        );
+        // OVERLAP: inside [new.nbf, old.exp] BOTH generations verify as the same lineage in good standing.
+        let inside = RENEW_AT + 1;
+        assert_eq!(rb.verify_record(&new.sub, inside), Verdict::Valid);
+        let old_stored = rb.superseded_records().next().unwrap().clone();
+        assert_eq!(old_stored.sub, old.sub);
+        assert_eq!(
+            rb.verify_reconstructed(&old_stored, inside, status::Freshness::F3),
+            Verdict::Valid,
+            "the superseded generation stays valid during the overlap"
+        );
+        // AFTER old.exp: the old one fails closed `expired` (no grace), the new one continues.
+        let after = old.exp;
+        assert_eq!(
+            rb.verify_reconstructed(&old_stored, after, status::Freshness::F3),
+            Verdict::invalid(ainra_core::Reason::Expired)
+        );
+        assert_eq!(rb.verify_record(&new.sub, after), Verdict::Valid);
+    }
+
+    #[test]
+    fn reissue_chain_walks_back_unbroken() {
+        let tmp = std::env::temp_dir().join("ainra-rb-reissue-chain");
+        let _ = std::fs::remove_dir_all(&tmp);
+        let mut rb = engine(&tmp);
+        let mut rng = ChaCha20Rng::seed_from_u64(21);
+        let g1 = rb
+            .issue(&spec("acme", "dispatch", "1.0.0"), &[], &mut rng)
+            .unwrap();
+        let g2 = rb.reissue(&g1.sub, None, RENEW_AT, None, &mut rng).unwrap();
+        let g3 = rb
+            .reissue(&g2.sub, Some("1.1.0"), RENEW_AT + 60, None, &mut rng)
+            .unwrap();
+        // The continuity chain: g3 → g2 → g1 → (first issuance, no link). Each link is the predecessor's leaf,
+        // and every generation's body is IN the log — a verifier walks renewals back as one unbroken chain.
+        assert_eq!(
+            passport_field(&g3, "/prev_leaf").as_deref(),
+            record_leaf(&g2).as_deref()
+        );
+        assert_eq!(
+            passport_field(&g2, "/prev_leaf").as_deref(),
+            record_leaf(&g1).as_deref()
+        );
+        assert_eq!(passport_field(&g1, "/prev_leaf"), None);
+        // The head moved with each renewal (version bump included).
+        assert_eq!(
+            rb.lineage_head("acme", "dispatch").unwrap().0,
+            g3.sub,
+            "the newest generation is the lineage head"
+        );
+    }
+
+    #[test]
+    fn reissue_wrong_missing_or_forked_prev_leaf_rejected() {
+        let tmp = std::env::temp_dir().join("ainra-rb-reissue-continuity");
+        let _ = std::fs::remove_dir_all(&tmp);
+        let mut rb = engine(&tmp);
+        let mut rng = ChaCha20Rng::seed_from_u64(22);
+        let g1 = rb
+            .issue(&spec("acme", "payroll", "1.0.0"), &[], &mut rng)
+            .unwrap();
+        // Wrong prev_leaf: rejected before anything is logged.
+        let wrong = b64::encode(&[9u8; 32]);
+        let log_size_before = rb.log.size();
+        assert!(matches!(
+            rb.reissue_with_prev(&g1.sub, &wrong, None, RENEW_AT, None, &mut rng),
+            Err(IssueError::ReissueContinuity(_))
+        ));
+        // Missing prev_leaf: same, fail closed.
+        assert!(matches!(
+            rb.reissue_with_prev(&g1.sub, "", None, RENEW_AT, None, &mut rng),
+            Err(IssueError::ReissueContinuity(_))
+        ));
+        assert_eq!(rb.log.size(), log_size_before, "nothing was logged");
+        // Fork refusal: after a genuine renewal (version bump), renewing the SUPERSEDED generation again — even
+        // with its once-correct leaf — is a fork of the renewal chain and is refused.
+        let g1_leaf = record_leaf(&g1).unwrap();
+        rb.reissue(&g1.sub, Some("2.0.0"), RENEW_AT, None, &mut rng)
+            .unwrap();
+        assert!(matches!(
+            rb.reissue_with_prev(
+                &g1.sub,
+                &g1_leaf,
+                Some("3.0.0"),
+                RENEW_AT + 60,
+                None,
+                &mut rng
+            ),
+            Err(IssueError::ReissueContinuity(_))
+        ));
+    }
+
+    #[test]
+    fn revoke_kills_every_unexpired_generation() {
+        let tmp = std::env::temp_dir().join("ainra-rb-reissue-revoke");
+        let _ = std::fs::remove_dir_all(&tmp);
+        let mut rb = engine(&tmp);
+        let mut rng = ChaCha20Rng::seed_from_u64(23);
+        let old = rb
+            .issue(&spec("acme", "collector", "1.0.0"), &[], &mut rng)
+            .unwrap();
+        let new = rb
+            .reissue(&old.sub, None, RENEW_AT, None, &mut rng)
+            .unwrap();
+        let inside = RENEW_AT + 1;
+        // Revoke the lineage: the status list is one bit per LINEAGE (MTS §16), so the delta must flip the new
+        // AND the still-unexpired superseded generation — otherwise renewal would be a 30-day revocation bypass.
+        let delta = rb.revoke(&new.sub, inside).unwrap();
+        let mut idx = delta.idx.clone();
+        idx.sort_unstable();
+        assert_eq!(
+            idx,
+            vec![
+                old.status_idx.min(new.status_idx),
+                old.status_idx.max(new.status_idx)
+            ]
+        );
+        assert_eq!(
+            rb.verify_record(&new.sub, inside),
+            Verdict::invalid(ainra_core::Reason::Revoked)
+        );
+        let old_stored = rb.superseded_records().next().unwrap().clone();
+        assert_eq!(
+            rb.verify_reconstructed(&old_stored, inside, status::Freshness::F3),
+            Verdict::invalid(ainra_core::Reason::Revoked),
+            "the superseded generation is revoked too — no bypass through the overlap"
+        );
+    }
+
+    #[test]
+    fn tier_vocabulary_is_closed_no_case_dodge() {
+        let tmp = std::env::temp_dir().join("ainra-rb-tier-vocab");
+        let _ = std::fs::remove_dir_all(&tmp);
+        let mut rb = engine(&tmp);
+        let mut rng = ChaCha20Rng::seed_from_u64(29);
+        // "l3"/"L5"/garbage tiers could otherwise dodge the ADR-017 audit cap while minting an unverifiable
+        // credential — issuance refuses the closed vocabulary honestly instead.
+        for bad in ["l3", "L5", "gold"] {
+            let mut s = spec("acme", "vocab", "1.0.0");
+            s.tier = bad.into();
+            assert!(
+                matches!(rb.issue(&s, &[], &mut rng), Err(IssueError::Malformed(ref m)) if m.contains("closed")),
+                "tier {bad:?} must be refused"
+            );
+        }
+        let mut s = spec("acme", "vocab", "1.0.0");
+        s.auth_class = "A9".into();
+        assert!(matches!(
+            rb.issue(&s, &[], &mut rng),
+            Err(IssueError::Malformed(_))
+        ));
+    }
+
+    #[test]
+    fn expired_credential_cannot_be_renewed() {
+        let tmp = std::env::temp_dir().join("ainra-rb-reissue-expired");
+        let _ = std::fs::remove_dir_all(&tmp);
+        // 40-day window so the credential can lapse well inside the checkpoint delegate cert's 90-day window.
+        let mut rng = ChaCha20Rng::seed_from_u64(30);
+        let mut rb = RegistrarBox::create(
+            &tmp,
+            "registrar-07",
+            64,
+            NBF - 1000,
+            NBF,
+            NBF + 40 * 24 * 60 * 60,
+            &mut rng,
+        )
+        .unwrap();
+        let rec = rb
+            .issue(&spec("acme", "lapsed", "1.0.0"), &[], &mut rng)
+            .unwrap();
+        // ADR-017: renewal is at T−30 d, BEFORE expiry (the overlap). A credential renewed AFTER it has expired
+        // is not a renewal — that is fresh issuance / re-accreditation. Refused, fail closed. (This also closes
+        // the durability gap: a lapsed generation can never be reissued into a clean status index.)
+        let after_expiry = rec.exp + 1;
+        assert!(matches!(
+            rb.reissue(&rec.sub, None, after_expiry, None, &mut rng),
+            Err(IssueError::Malformed(ref m)) if m.contains("expired")
+        ));
+    }
+
+    #[test]
+    fn revoked_lineage_cannot_renew_itself_clean() {
+        let tmp = std::env::temp_dir().join("ainra-rb-reissue-revoked");
+        let _ = std::fs::remove_dir_all(&tmp);
+        let mut rb = engine(&tmp);
+        let mut rng = ChaCha20Rng::seed_from_u64(28);
+        let rec = rb
+            .issue(&spec("acme", "escapist", "1.0.0"), &[], &mut rng)
+            .unwrap();
+        rb.revoke(&rec.sub, RENEW_AT - 60).unwrap();
+        // The kill switch stays killed: a revoked lineage cannot launder itself into a fresh status index via
+        // renewal (with or without a version bump).
+        assert!(matches!(
+            rb.reissue(&rec.sub, None, RENEW_AT, None, &mut rng),
+            Err(IssueError::LineageRevoked(_))
+        ));
+        assert!(matches!(
+            rb.reissue(&rec.sub, Some("2.0.0"), RENEW_AT, None, &mut rng),
+            Err(IssueError::LineageRevoked(_))
+        ));
+    }
+
+    #[test]
+    fn chained_passport_cannot_auto_renew() {
+        let tmp = std::env::temp_dir().join("ainra-rb-reissue-chained");
+        let _ = std::fs::remove_dir_all(&tmp);
+        let mut rb = engine(&tmp);
+        let mut rng = ChaCha20Rng::seed_from_u64(24);
+        let reg = "registrar-07";
+        let mut s = spec("acme", "helper-bot", "1.0.0");
+        s.hops = vec![HopSpec {
+            from: format!("ainra:{reg}:acme:owner@1.0.0"),
+            to: format!("ainra:{reg}:acme:helper-bot@1.0.0"),
+            granted: vec!["read:invoices".into()],
+        }];
+        let rec = rb.issue(&s, &[], &mut rng).unwrap();
+        // The delegation parties' consent signatures are theirs to give — renewal of a delegation is a
+        // re-delegation, so the registrar refuses to auto-renew a chained passport.
+        let err = rb.reissue(&rec.sub, None, RENEW_AT, None, &mut rng);
+        assert!(matches!(err, Err(IssueError::Malformed(ref m)) if m.contains("re-delegation")));
+    }
+
+    #[test]
+    fn audit_cap_l3_requires_current_audit() {
+        let tmp = std::env::temp_dir().join("ainra-rb-audit-cap");
+        let _ = std::fs::remove_dir_all(&tmp);
+        let mut rb = engine(&tmp);
+        let mut rng = ChaCha20Rng::seed_from_u64(25);
+        // L3 with NO audit: refused, and the error says why.
+        let mut l3 = spec("acme", "treasury", "1.0.0");
+        l3.tier = "L3".into();
+        assert!(matches!(
+            rb.issue(&l3, &[], &mut rng),
+            Err(IssueError::AuditRequired(ref m)) if m.contains("ADR-017")
+        ));
+        // L3 with a STALE audit (expires before the passport would): refused, error names both times.
+        l3.audit = Some(AuditEvidence {
+            reference: "audit-acme-treasury".into(),
+            expires: EXP - 1,
+        });
+        assert!(matches!(
+            rb.issue(&l3, &[], &mut rng),
+            Err(IssueError::AuditStale(ref m)) if m.contains("exceeds the tier audit")
+        ));
+        // The SAME request at L2 (no audit required) succeeds.
+        let mut l2 = spec("acme", "treasury", "1.0.0");
+        l2.tier = "L2".into();
+        let rec = rb.issue(&l2, &[], &mut rng).unwrap();
+        assert_eq!(rb.verify_record(&rec.sub, VERIFY_NOW), Verdict::Valid);
+        // L3 with a CURRENT audit (outlives the window) succeeds.
+        let mut l3ok = spec("acme", "settlement", "1.0.0");
+        l3ok.tier = "L3".into();
+        l3ok.audit = Some(AuditEvidence {
+            reference: "audit-acme-settlement".into(),
+            expires: EXP,
+        });
+        let rec = rb.issue(&l3ok, &[], &mut rng).unwrap();
+        assert_eq!(rb.verify_record(&rec.sub, VERIFY_NOW), Verdict::Valid);
+        // RENEWAL of that L3: the fresh 366-day window now exceeds the old audit's expiry → refused until the
+        // audit itself is renewed. With a renewed audit it succeeds — "audited" means audited recently.
+        assert!(matches!(
+            rb.reissue(
+                &rec.sub,
+                None,
+                RENEW_AT,
+                Some(&AuditEvidence {
+                    reference: "audit-acme-settlement".into(),
+                    expires: EXP,
+                }),
+                &mut rng
+            ),
+            Err(IssueError::AuditStale(_))
+        ));
+        let renewed_audit = AuditEvidence {
+            reference: "audit-acme-settlement-2".into(),
+            expires: RENEW_AT + ainra_core::consts::PASSPORT_VALIDITY_DEFAULT_SECS,
+        };
+        let new = rb
+            .reissue(&rec.sub, None, RENEW_AT, Some(&renewed_audit), &mut rng)
+            .unwrap();
+        assert_eq!(rb.verify_record(&new.sub, RENEW_AT + 1), Verdict::Valid);
+    }
+
+    #[test]
+    fn reissue_survives_persist_reload() {
+        let tmp = std::env::temp_dir().join("ainra-rb-reissue-reload");
+        let _ = std::fs::remove_dir_all(&tmp);
+        let old_sub;
+        let new_sub;
+        {
+            let mut rb = RegistrarBox::create_seeded(
+                &tmp,
+                "registrar-07",
+                64,
+                0xC0FFEE,
+                NBF - 1000,
+                NBF,
+                EXP,
+            )
+            .unwrap();
+            let mut rng = ChaCha20Rng::seed_from_u64(26);
+            let old = rb
+                .issue(&spec("acme", "archivist", "1.0.0"), &[], &mut rng)
+                .unwrap();
+            old_sub = old.sub.clone();
+            let new = rb
+                .reissue(&old.sub, None, RENEW_AT, None, &mut rng)
+                .unwrap();
+            new_sub = new.sub.clone();
+            rb.save().unwrap();
+        }
+        let mut rb = RegistrarBox::load(&tmp).unwrap();
+        let inside = RENEW_AT + 1;
+        assert_eq!(rb.verify_record(&new_sub, inside), Verdict::Valid);
+        let old_stored = rb.superseded_records().next().unwrap().clone();
+        assert_eq!(old_stored.sub, old_sub);
+        assert_eq!(
+            rb.verify_reconstructed(&old_stored, inside, status::Freshness::F3),
+            Verdict::Valid,
+            "overlap survives a reload"
+        );
+        // The continuity head survived too: a further renewal chains cleanly from the reloaded head. (The bump
+        // leaves the head generation in `records` under its own sub — compare against that record's leaf.)
+        let head_leaf = rb.get(&new_sub).and_then(record_leaf);
+        let mut rng = ChaCha20Rng::seed_from_u64(27);
+        let g3 = rb
+            .reissue(&new_sub, Some("1.1.0"), RENEW_AT + 120, None, &mut rng)
+            .unwrap();
+        assert_eq!(
+            passport_field(&g3, "/prev_leaf"),
+            head_leaf,
+            "the reloaded head is what the next renewal chained from"
+        );
     }
 
     #[test]

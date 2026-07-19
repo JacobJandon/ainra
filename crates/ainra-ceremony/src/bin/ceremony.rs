@@ -26,7 +26,7 @@ use serde_json::json;
 use sha2::{Digest, Sha256};
 
 const NBF: u64 = 1_775_865_600; // 2026-04-11
-const EXP: u64 = 1_807_401_600; // 2027-04-11
+const EXP: u64 = NBF + ainra_core::consts::PASSPORT_VALIDITY_DEFAULT_SECS; // ADR-017 366 d default
 const NOW: u64 = NBF - 3600; // ceremony time
 const VERIFY_AT: u64 = NBF + 10 * 24 * 3600; // within the 90-day delegate window
 

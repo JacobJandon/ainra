@@ -166,7 +166,7 @@ function cmdIssue(name, opts) {
     registrar: n.registrar,
     authority: { class: opts.class || 'A1', proof: (opts.class || 'A1') === 'A1' ? 'zk:commitment:' + hex(crypto.randomBytes(8)) : 'org:attest' },
     tier: opts.tier || 'L3',
-    validity: { issued: now(), expires: plusDays(365), renewable: true },
+    validity: { issued: now(), expires: plusDays(366), renewable: true }, // ADR-017: 366-day passport default
     key: { alg: 'Ed25519', pub: agentKey.pub, fp: fingerprint(agentKey.pub) }
   };
   const sig = sign(Buffer.from(cjson(passport)), fs.readFileSync(path.join(regDir, 'registrar.key'), 'utf8'));

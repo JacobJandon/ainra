@@ -1,6 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 // AINRA verify-only SDK — a faithful mirror of ainra-core (independent implementation #2 for the diff-harness).
 // The nine verify steps, their fixed order, and the 15 frozen reason strings match crates/ainra-core/src/verify.rs.
+//
+// Validity (ADR-017): the IDENTITY (lineage + AINRA Number) is permanent; the CREDENTIAL defaults to 366 days and
+// renews invisibly (T−30 d reissue, overlap issuance, a logged `prev_leaf` continuity chain). The window check is
+// exact — nbf inclusive, exp exclusive, no skew, no grace period. Long credentials are safe here because
+// revocation fails closed in <60 s; short certificates are what you need when it doesn't.
 
 import { inflateSync } from "node:zlib";
 import { canonicalize } from "./canon.js";
@@ -95,7 +100,7 @@ const FORBIDDEN_KEYS = new Set([
 ]);
 const ALLOWED_TOP = new Set([
   "vct", "iss", "sub", "nbf", "exp", "authority", "tier", "capabilities", "scope_ceiling", "keys", "cnf",
-  "status", "log", "act_chain", "mandates", "mandates_root", "mandates_size", "transfer_history",
+  "status", "log", "act_chain", "mandates", "mandates_root", "mandates_size", "transfer_history", "prev_leaf",
 ]);
 // Nested deny-unknown-fields sets — mirror each Rust struct's #[serde(deny_unknown_fields)] (review finding #7).
 const ALLOWED_AUTHORITY = new Set(["class", "principal_proof"]);
@@ -229,6 +234,20 @@ function parseChecked(claims: Uint8Array): Passport {
   if (o.mandates !== undefined && !Array.isArray(o.mandates)) throw new Reject("schema_violation");
   for (const n of mandates) denyUnknown(n, ALLOWED_MANDATE);
   if (o.mandates_root !== undefined || o.mandates_size !== undefined) throw new Reject("schema_violation");
+  // ADR-017 renewal continuity: `prev_leaf` present ⇒ a REISSUE; it must strictly decode to a 32-byte leaf hash
+  // (mirrors Rust's `b64::decode_array::<32>` gate — a malformed link would make the renewal chain unwalkable
+  // while still looking like a renewal, so it fails closed here). Two parity subtleties with the Rust side:
+  //   * Rust's `Option<String>` maps a JSON `null` to `None` (= absent, first issuance), so `null` is NOT an
+  //     error here either — treat null exactly like a missing field;
+  //   * Rust decodes with base64ct (STRICT, unpadded) which rejects a non-canonical last char (nonzero trailing
+  //     bits), whereas Node's `Buffer.from(_, "base64")` silently accepts it. So a canonical round-trip
+  //     (`b64uEncode(decode(s)) === s`) is REQUIRED — without it a 43-char non-canonical link is accepted here
+  //     and rejected by Rust, a fail-open verdict split in the SDK.
+  if (o.prev_leaf !== undefined && o.prev_leaf !== null) {
+    if (typeof o.prev_leaf !== "string") throw new Reject("schema_violation");
+    const pl = strictB64u(o.prev_leaf);
+    if (pl === null || pl.length !== 32 || b64uEncode(pl) !== o.prev_leaf) throw new Reject("schema_violation");
+  }
   return {
     iss: o.iss as string,
     sub: o.sub as string,
@@ -367,7 +386,20 @@ export interface Presentation {
 }
 
 const SCOPE_CHECKPOINT = "checkpoint-daily";
+/** ≤ 92-day delegate-cert cap (ADR-002) — mirrors `ainra_core::consts::DELEGATE_CERT_MAX_SECS`. */
 const DELEGATE_CERT_MAX_SECS = 92 * 24 * 60 * 60;
+
+/** Default passport validity — 366 days (ADR-017). Mirrors `ainra_core::consts::PASSPORT_VALIDITY_DEFAULT_SECS`.
+ *  Identity (the lineage + AINRA Number) is eternal; the CREDENTIAL is bounded. Long validity is affordable
+ *  because revocation fails closed (<60 s) — short certs are what you need when it doesn't. */
+export const PASSPORT_VALIDITY_DEFAULT_SECS = 366 * 24 * 60 * 60;
+/** Renewal lead — REISSUE at T−30 d (ADR-017). Mirrors `ainra_core::consts::RENEWAL_LEAD_SECS`. */
+export const RENEWAL_LEAD_SECS = 30 * 24 * 60 * 60;
+/** True once a credential has entered its ADR-017 renewal window (now ≥ exp − 30 d). A scheduling hint for
+ *  holders — the verifier's window check is unaffected (no grace period anywhere; expiry is expiry). */
+export function renewalDue(exp: number, now: number): boolean {
+  return now >= exp - RENEWAL_LEAD_SECS;
+}
 
 /** SHA-256 fingerprint of a delegate cert = hash of its canonical signing bytes (mirrors DelegateCert::fingerprint).
  *  Returned base64url so it compares directly against the wire/directory `revoked_delegates` list. */

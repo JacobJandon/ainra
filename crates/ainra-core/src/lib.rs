@@ -24,6 +24,7 @@ pub mod b64;
 pub mod canon;
 pub mod chain;
 pub mod checkpoint;
+pub mod consts;
 pub mod crypto;
 pub mod directory;
 pub mod error;

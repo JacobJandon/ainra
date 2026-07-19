@@ -29,8 +29,10 @@ pub const SCOPE_CHECKPOINT: &str = "checkpoint-daily";
 pub const SCOPE_DELTA: &str = "delta-countersign";
 /// The scope a delegate must carry to sign a 30-second fresh head (ADR-002 / ADR-007, MTS §16).
 pub const SCOPE_FRESH_HEAD: &str = "fresh-head";
-/// Maximum delegate certificate lifetime — ≤ 92 days (ADR-002).
-pub const DELEGATE_CERT_MAX_SECS: u64 = 92 * 24 * 60 * 60;
+/// Maximum delegate certificate lifetime — ≤ 92 days (ADR-002). Lives in [`crate::consts`] (the ADR-017
+/// single-source duration ladder); re-exported here so existing `checkpoint::DELEGATE_CERT_MAX_SECS` call
+/// sites keep working.
+pub use crate::consts::DELEGATE_CERT_MAX_SECS;
 
 /// A log checkpoint: the tree the log commits to at `tree_size`, rooted at `root`, for a named `origin`.
 #[derive(Debug, Clone, PartialEq, Eq)]

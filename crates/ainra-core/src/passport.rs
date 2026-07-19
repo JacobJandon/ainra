@@ -155,6 +155,14 @@ pub struct Passport {
     /// Prior holders, if the lineage was transferred (opaque records; denylist-scanned).
     #[serde(default)]
     pub transfer_history: Vec<Value>,
+    /// **ADR-017 renewal continuity.** base64url(RFC 6962 leaf hash, 32 B) of the SAME lineage's previous
+    /// credential body. Present ⇒ this passport is a REISSUE (a renewal); absent ⇒ first issuance. It is a
+    /// top-level SIGNED claim deliberately NOT inside `log` — the `log` back-reference is stripped from the
+    /// pre-log body, and the continuity link must be part of what the transparency log commits to, so renewals
+    /// are walkable through the log as one unbroken chain. Issuance-side consistency (the claimed predecessor
+    /// must be the lineage's actual latest leaf) is enforced by the registrar at reissue, fail closed.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub prev_leaf: Option<String>,
 }
 
 /// Keys that MUST NOT appear anywhere in a passport (recursively). AINRA is neutral identity: no personal data,
@@ -259,6 +267,13 @@ impl Passport {
         }
         if let Some(last) = self.act_chain.last() {
             if last.to != self.sub {
+                return Err(Reason::SchemaViolation);
+            }
+        }
+        // ADR-017: a REISSUE's continuity link must be a well-formed 32-byte leaf hash. A malformed link would
+        // make the renewal chain unwalkable while still LOOKING like a renewal — fail closed at the schema gate.
+        if let Some(pl) = &self.prev_leaf {
+            if crate::b64::decode_array::<32>(pl).is_err() {
                 return Err(Reason::SchemaViolation);
             }
         }
@@ -394,6 +409,32 @@ mod tests {
             Passport::parse_checked(&bytes(&v)),
             Err(Reason::SchemaViolation)
         );
+    }
+
+    #[test]
+    fn prev_leaf_reissue_claim() {
+        // ADR-017: absent ⇒ first issuance (parses, None).
+        let p = Passport::parse_checked(&bytes(&base())).expect("valid passport");
+        assert!(p.prev_leaf.is_none());
+        // A well-formed 32-byte base64url leaf hash parses as a renewal.
+        let mut v = base();
+        v["prev_leaf"] = serde_json::json!(crate::b64::encode(&[7u8; 32]));
+        let p = Passport::parse_checked(&bytes(&v)).expect("reissue passport");
+        assert!(p.prev_leaf.is_some());
+        // Malformed links fail closed at the schema gate: wrong length, non-b64, empty.
+        for bad in [
+            crate::b64::encode(&[7u8; 31]),
+            "not!!b64".to_string(),
+            String::new(),
+        ] {
+            let mut v = base();
+            v["prev_leaf"] = serde_json::json!(bad);
+            assert_eq!(
+                Passport::parse_checked(&bytes(&v)),
+                Err(Reason::SchemaViolation),
+                "prev_leaf {bad:?} must be rejected"
+            );
+        }
     }
 
     #[test]

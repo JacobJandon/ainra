@@ -31,7 +31,7 @@ curl -sf "http://127.0.0.1:$PORT/accreditation" > "$WORK/acc.json"
 SUB="ainra:registrar-07:acme:invoicing@1.0.0"
 echo "== 3. issue $SUB, fetch its presentation bundle, verify =="
 curl -sf -X POST "http://127.0.0.1:$PORT/issue" \
-  -d '{"operator":"acme","lineage":"invoicing","version":"1.0.0","tier":"L3","auth_class":"A2","principal_proof":"deadbeef7f3a2c1d","capabilities":["read:invoices"],"scope_ceiling":["read:invoices"],"hops":[]}' >/dev/null
+  -d '{"operator":"acme","lineage":"invoicing","version":"1.0.0","tier":"L3","auth_class":"A2","principal_proof":"deadbeef7f3a2c1d","capabilities":["read:invoices"],"scope_ceiling":["read:invoices"],"audit":{"reference":"audit-acme-invoicing","expires":1900000000},"hops":[]}' >/dev/null
 curl -sf "http://127.0.0.1:$PORT/present?sub=$SUB&now=$NOW" > "$WORK/bundle.json"
 echo -n "   verdict: "; node tools/ainra-verify.mjs --directory "$WORK/directory.json" --roots "$WORK/roots.json" --bundle "$WORK/bundle.json" --now "$NOW"
 

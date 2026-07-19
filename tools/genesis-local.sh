@@ -59,9 +59,9 @@ echo "== 2. each registrar issues a passport (logged-before-valid) =="
 SUB1="ainra:registrar-07:acme:invoicing@1.0.0"
 SUB2="ainra:registrar-02:globex:payments@1.0.0"
 curl -sf -X POST "http://127.0.0.1:$P1/issue" \
-  -d '{"operator":"acme","lineage":"invoicing","version":"1.0.0","tier":"L3","auth_class":"A2","principal_proof":"deadbeef7f3a2c1d","capabilities":["read:invoices"],"scope_ceiling":["read:invoices"],"hops":[]}' >/dev/null
+  -d '{"operator":"acme","lineage":"invoicing","version":"1.0.0","tier":"L3","auth_class":"A2","principal_proof":"deadbeef7f3a2c1d","capabilities":["read:invoices"],"scope_ceiling":["read:invoices"],"audit":{"reference":"audit-acme-invoicing","expires":1900000000},"hops":[]}' >/dev/null
 curl -sf -X POST "http://127.0.0.1:$P2/issue" \
-  -d '{"operator":"globex","lineage":"payments","version":"1.0.0","tier":"L3","auth_class":"A2","principal_proof":"cafef00d12345678","capabilities":["read:ledger"],"scope_ceiling":["read:ledger"],"hops":[]}' >/dev/null
+  -d '{"operator":"globex","lineage":"payments","version":"1.0.0","tier":"L3","auth_class":"A2","principal_proof":"cafef00d12345678","capabilities":["read:ledger"],"scope_ceiling":["read:ledger"],"audit":{"reference":"audit-globex-payments","expires":1900000000},"hops":[]}' >/dev/null
 curl -sf "http://127.0.0.1:$P1/present?sub=$SUB1&now=$NOW" >"$OUT/bundle-07.json"
 curl -sf "http://127.0.0.1:$P2/present?sub=$SUB2&now=$NOW" >"$OUT/bundle-02.json"
 

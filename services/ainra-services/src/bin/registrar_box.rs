@@ -17,11 +17,13 @@
 //!
 //! Usage: `registrar-box [addr] [registrar-id] [data-dir]` (defaults 127.0.0.1:4900 / registrar-07 / ./rb-data).
 
+use std::collections::VecDeque;
 use std::sync::Mutex;
+use std::time::Instant;
 
 use ainra_core::{b64, Verdict};
 use ainra_services::http::{serve, Request};
-use ainra_services::registrar::{IssueSpec, RegistrarBox};
+use ainra_services::registrar::{AuditEvidence, IssueSpec, RegistrarBox};
 use ainra_services::status::{WireDelta, WireFreshHead};
 use rand_chacha::ChaCha20Rng;
 use rand_core::SeedableRng;
@@ -47,6 +49,45 @@ fn qnow(path: &str) -> u64 {
 struct State {
     rb: RegistrarBox,
     rng: ChaCha20Rng,
+    /// Online-exposure hardening (SECURITY-STAGING). When set (env `AINRA_STAGE_ISSUE_TOKEN`), the WRITE endpoints
+    /// (`/issue`, `/revoke`, `/renew`) require `Authorization: Bearer <token>`. The READ path stays open (it is
+    /// public static data). Unset ⇒ open (local dev). This is a bearer secret for a TEST-ROOT staging registrar,
+    /// never production key control.
+    issue_token: Option<String>,
+    /// Coarse token bucket over the WRITE endpoints: at most `WRITE_BURST` in any `WRITE_WINDOW`. A blunt DoS/abuse
+    /// guard for an internet-exposed staging registrar — not a substitute for real quotas.
+    writes: VecDeque<Instant>,
+}
+
+const WRITE_BURST: usize = 30;
+const WRITE_WINDOW: std::time::Duration = std::time::Duration::from_secs(60);
+
+/// `true` iff the request is authorized to write. Open when no token is configured; else requires the bearer token.
+fn write_authorized(req: &Request, token: &Option<String>) -> bool {
+    match token {
+        None => true,
+        Some(t) => req
+            .headers
+            .get("authorization")
+            .and_then(|h| h.strip_prefix("Bearer "))
+            .map(|got| got == t)
+            .unwrap_or(false),
+    }
+}
+/// `true` iff a write is within the rate budget; records the write time when allowed.
+fn rate_ok(writes: &mut VecDeque<Instant>) -> bool {
+    let now = Instant::now();
+    while writes
+        .front()
+        .is_some_and(|t| now.duration_since(*t) > WRITE_WINDOW)
+    {
+        writes.pop_front();
+    }
+    if writes.len() >= WRITE_BURST {
+        return false;
+    }
+    writes.push_back(now);
+    true
 }
 
 fn main() {
@@ -79,28 +120,110 @@ fn main() {
         &mut rng,
     )
     .expect("create registrar-box");
-    let state = Mutex::new(State { rb, rng });
-    eprintln!("registrar-box '{id}' data={dir}");
+    let issue_token = std::env::var("AINRA_STAGE_ISSUE_TOKEN")
+        .ok()
+        .filter(|t| !t.is_empty());
+    let staging = std::env::var("AINRA_STAGE").ok().as_deref() == Some("1");
+    let state = Mutex::new(State {
+        rb,
+        rng,
+        issue_token: issue_token.clone(),
+        writes: VecDeque::new(),
+    });
+    eprintln!(
+        "registrar-box '{id}' data={dir}{}{}",
+        if staging {
+            " [STAGING · TEST-ROOT]"
+        } else {
+            ""
+        },
+        if issue_token.is_some() {
+            " [write-auth: bearer token]"
+        } else {
+            " [write-auth: OPEN — dev]"
+        }
+    );
 
     serve(&addr, move |req: &Request| {
         let mut st = state.lock().unwrap();
         let route = req.path.split('?').next().unwrap_or("");
         match (req.method.as_str(), route) {
+            // Staging health/board: network + root labels, checkpoint height, record count. Read-only, open.
+            ("GET", "/health") => (
+                200,
+                json!({
+                    "network": if staging { "staging" } else { "dev" },
+                    "root": "test-root",
+                    "registrar": st.rb.id(),
+                    "records": st.rb.len(),
+                    "status_seq": st.rb.status_seq(),
+                    "write_auth": st.issue_token.is_some(),
+                    "ok": true,
+                })
+                .to_string(),
+            ),
+
             ("GET", "/accreditation") => ok(&st.rb.accreditation()),
 
-            ("POST", "/issue") => match serde_json::from_str::<IssueSpec>(&req.body) {
-                Ok(spec) => {
-                    let State { rb, rng } = &mut *st;
-                    match rb.issue(&spec, &[], rng) {
-                        Ok(rec) => ok(&rec),
-                        Err(e) => (400, json!({ "error": e.to_string() }).to_string()),
-                    }
+            ("POST", "/issue") => {
+                if !write_authorized(req, &st.issue_token) {
+                    return (
+                        401,
+                        r#"{"error":"unauthorized (bearer token required)"}"#.to_string(),
+                    );
                 }
-                Err(e) => (
-                    400,
-                    json!({ "error": format!("bad spec: {e}") }).to_string(),
-                ),
-            },
+                if !rate_ok(&mut st.writes) {
+                    return (429, r#"{"error":"rate limited"}"#.to_string());
+                }
+                match serde_json::from_str::<IssueSpec>(&req.body) {
+                    Ok(spec) => {
+                        let State { rb, rng, .. } = &mut *st;
+                        match rb.issue(&spec, &[], rng) {
+                            Ok(rec) => ok(&rec),
+                            Err(e) => (400, json!({ "error": e.to_string() }).to_string()),
+                        }
+                    }
+                    Err(e) => (
+                        400,
+                        json!({ "error": format!("bad spec: {e}") }).to_string(),
+                    ),
+                }
+            }
+
+            // ADR-017 renewal over HTTP: reissue `sub` (fresh window, prev_leaf continuity). Body:
+            // {sub, new_version?, now, audit?{reference,expires}}. Write endpoint (auth + rate limited).
+            ("POST", "/renew") => {
+                if !write_authorized(req, &st.issue_token) {
+                    return (
+                        401,
+                        r#"{"error":"unauthorized (bearer token required)"}"#.to_string(),
+                    );
+                }
+                if !rate_ok(&mut st.writes) {
+                    return (429, r#"{"error":"rate limited"}"#.to_string());
+                }
+                let v: serde_json::Value =
+                    serde_json::from_str(&req.body).unwrap_or(serde_json::Value::Null);
+                let Some(sub) = v.get("sub").and_then(|x| x.as_str()).map(String::from) else {
+                    return (400, r#"{"error":"sub required"}"#.to_string());
+                };
+                let now = v
+                    .get("now")
+                    .and_then(|x| x.as_u64())
+                    .unwrap_or(NBF + 5 * 24 * 3600);
+                let new_version = v.get("new_version").and_then(|x| x.as_str());
+                let audit = v.get("audit").and_then(|a| {
+                    Some(AuditEvidence {
+                        reference: a.get("reference")?.as_str()?.to_string(),
+                        expires: a.get("expires")?.as_u64()?,
+                    })
+                });
+                let State { rb, rng, .. } = &mut *st;
+                match rb.reissue(&sub, new_version, now, audit.as_ref(), rng) {
+                    Ok(rec) => ok(&rec),
+                    Err(e) => (400, json!({ "error": e.to_string() }).to_string()),
+                }
+            }
 
             ("GET", "/records") => {
                 let list: Vec<_> = st
@@ -152,6 +275,15 @@ fn main() {
             }
 
             ("POST", "/revoke") => {
+                if !write_authorized(req, &st.issue_token) {
+                    return (
+                        401,
+                        r#"{"error":"unauthorized (bearer token required)"}"#.to_string(),
+                    );
+                }
+                if !rate_ok(&mut st.writes) {
+                    return (429, r#"{"error":"rate limited"}"#.to_string());
+                }
                 let v: serde_json::Value =
                     serde_json::from_str(&req.body).unwrap_or(serde_json::Value::Null);
                 let sub = v.get("sub").and_then(|x| x.as_str()).map(|s| s.to_string());
@@ -239,6 +371,9 @@ fn export_json(rb: &RegistrarBox, now: u64) -> String {
         "accreditation": rb.accreditation(),
         "root_pub_slh": b64::encode(&rb.root_public()),
         "status_seq": rb.status_seq(),
+        // The signed status list travels WITH the export so a client can recheck revocation offline (mirrors the
+        // CLI seed export). Published to the static artifact surface for AINRAscan / mirrors.
+        "status_list": serde_json::to_value(rb.publish_status(now.saturating_sub(1))).unwrap(),
         "verified_at": now,
         "records": records,
     })

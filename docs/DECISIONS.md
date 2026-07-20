@@ -355,3 +355,44 @@ independence colophon + oath, mechanical ordering, zero telemetry, self-containe
 **Scope discipline.** This is the client half: it does NOT deploy a network (no containers / multi-region / domain /
 CDN), does not touch DoD rows, publishes nothing, and claims no usage. The deployment half remains a separate
 milestone needing an operator's hosts. See PLAN-M14.
+
+## D-031 — M14: the public artifact contract (the interface the world reads)
+
+The only globally-distributed AINRA surface is static files; scale is a CDN configuration of them, not a protocol
+problem (measured in `docs/SCALE.md`). `docs/ARTIFACT-CONTRACT.md` specifies the URL scheme + HTTP behaviour;
+`tools/artifact-server.mjs` implements it (a production deploy fronts the same paths with a real CDN):
+
+- **Immutable vs mutable is by PATH**, decided by the server from the URL (`…/checkpoints/`, `…/tiles/`,
+  `.immutable.` → `Cache-Control: max-age=1y, immutable`; else `max-age=5, must-revalidate` + a strong ETag). Two
+  cache rules keyed on path prefix — a CDN needs no per-object config.
+- **CORS `*` on every response** (+ OPTIONS preflight, `Access-Control-Expose-Headers: ETag, X-AINRA-Network,
+  X-AINRA-Root`). Browser client-verification dies without it, and the read path has nothing to protect (a
+  transparency log is world-readable).
+- **Every artifact + page carries the banner** `X-AINRA-Network: staging` / `X-AINRA-Root: test-root` (machine +
+  human readable). Asserted live by `make stage-smoke`.
+- Reference server measured at **~8000 req/s (immutable) / ~5000 req/s (mutable)** on one laptop Node process, 0
+  failures — before any CDN.
+
+## D-032 — M14: staging is a different trust domain from production (key separation)
+
+What goes online now is a **staging network on a TEST-ROOT**, not production. The production root is born only at
+the recorded 5-of-9 genesis ceremony (a pending DoD row). This is deliberate and load-bearing (`docs/SECURITY-STAGING.md`):
+
+- **Different root, different keys, labeled everywhere.** No staging key, directory, or credential is trusted by a
+  production verifier. Owning the entire staging network — even the write token — teaches an attacker nothing about
+  the ceremony-born root, and tampered public data fails closed at every verifier by signature/inclusion. The
+  staging `/directory.json` states in its own `note` field that the production directory is dual-root-**signed** at
+  genesis; staging publishes real accreditations, unsigned-by-a-root, on purpose.
+- **Write path guarded** (the only new attack surface): bearer-token auth (`AINRA_STAGE_ISSUE_TOKEN`, never in an
+  image/repo — compose reads `deploy/.env`) + a coarse rate limit (30/60s) + the existing 1 MiB body cap. The read
+  path stays open (public data). Proven: `make stage-smoke` step 4, unauth `POST /issue` → 401.
+- This is standard infrastructure practice — staging before mainnet — and it is what lets real crypto go online
+  *now* without faking the production root. `make stage-up|status|smoke|down` runs the whole network on one host;
+  `deploy/` containers + the 3-host layout are the multi-region path (operator supplies hosts/domains).
+
+**Honest scope (M14).** This milestone builds and runs the staging network + the artifact contract + the scale
+measurements + AINRAscan-on-staging, all labeled TEST-ROOT. It advances the *machinery* for two pending DoD rows —
+witness recruitment (deploy/witness-quickstart.md: an outsider witnesses staging in <10 min) and the 14-day/3-region
+soak (the 3-host deployment IS the soak platform; docs/runbooks/soak.md is the human's start procedure). It does
+NOT start the 14-day clock, run the ceremony, register a domain, publish a repo, or claim any usage — adoption is
+earned by the humans running those rows. The DoD table is untouched and unfaked.

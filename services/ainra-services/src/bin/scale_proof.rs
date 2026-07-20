@@ -251,6 +251,11 @@ fn status_at_scale() -> (usize, usize) {
     println!("| Lineages | Encode (pack+zlib) | Compressed size | Decode | 1 M lookups |");
     println!("|---|---|---|---|---|");
 
+    // A single status list is bounded to one shard segment (MAX_STATUS_BITS = 2²⁴, a DoS guard); a billion-lineage
+    // NETWORK is sharded into ~60 such segments (MTS §16), never one decoded blob. So: measure the full-blob
+    // COMPRESSED size at every n (the extreme herd-privacy wire cost), but decode + do lookups on a real ≤2²⁴
+    // SEGMENT — exactly what a device holds. For n past the cap the decode column is labelled per-segment.
+    let cap = ainra_core::status::MAX_STATUS_BITS;
     let mut rng = ChaCha20Rng::seed_from_u64(0xB175);
     for n in [10_000_000usize, 100_000_000, 1_000_000_000] {
         let mut bits = vec![false; n];
@@ -262,13 +267,30 @@ fn status_at_scale() -> (usize, usize) {
         let t = Instant::now();
         let compressed = list.encode().expect("encode");
         let enc = t.elapsed();
+        // decode + lookup on a segment ≤ cap (the real per-device object)
+        let seg = n.min(cap);
+        let sharded = n > cap;
+        let seg_list = if sharded {
+            let mut sb = vec![false; seg];
+            for _ in 0..(seg / 1000) {
+                sb[(rng.next_u64() % seg as u64) as usize] = true;
+            }
+            StatusList::from_bits(sb)
+        } else {
+            list
+        };
+        let seg_compressed = if sharded {
+            seg_list.encode().expect("encode segment")
+        } else {
+            compressed.clone()
+        };
         let t = Instant::now();
-        let back = StatusList::decode(&compressed, n).expect("decode");
+        let back = StatusList::decode(&seg_compressed, seg).expect("decode");
         let dec = t.elapsed();
         let t = Instant::now();
         let mut acc = 0u64;
         for _ in 0..1_000_000 {
-            let i = rng.next_u64() % n as u64;
+            let i = rng.next_u64() % seg as u64;
             if matches!(
                 back.status_of(i),
                 ainra_core::status::LineageStatus::Revoked
@@ -282,15 +304,20 @@ fn status_at_scale() -> (usize, usize) {
         } else {
             format!("{} M", n / 1_000_000)
         };
+        let dec_note = if sharded {
+            format!("{:.0} ms /2²⁴-seg", ms(dec))
+        } else {
+            format!("{:.0} ms", ms(dec))
+        };
         println!(
-            "| {label} | {:.0} ms | **{}** | {:.0} ms | {:.0} ms ({acc} hits) |",
+            "| {label} | {:.0} ms | **{}** | {dec_note} | {:.0} ms ({acc} hits) |",
             ms(enc),
             size_h(compressed.len()),
-            ms(dec),
             ms(lookups)
         );
     }
-    println!();
+    println!("\n*Decode + lookups are on a ≤2²⁴ segment (what a device holds); a billion-lineage network shards");
+    println!("into ~60 such segments (MTS §16). The compressed size is the full-blob herd-privacy wire cost.*\n");
 
     // The delta stream at 1 B: build/verify/apply cost is independent of list size.
     let registrar = crypto::HybridKeypair::generate(&mut rng);

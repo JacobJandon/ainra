@@ -207,9 +207,19 @@ function btoaU(u){ let s=""; for(let i=0;i<u.length;i++) s+=String.fromCharCode(
 
 // ── load ──
 async function load(){
-  let reg;
-  try { const r = await fetch("data/registry.json", {cache:"no-store"}); if(!r.ok) throw 0; reg = await r.json(); }
-  catch(e){ $("#listmeta").textContent = "Could not load data/registry.json — run `make ainrascan` to build the staging data + SDK bundle, then serve this directory."; return; }
+  // Point at a live staging network's public artifact server with ?net=<baseUrl> (reads <baseUrl>/registry.json
+  // over CORS — the exact planet-scale static surface). Default: the locally-built data/ bundle.
+  const net = new URLSearchParams(location.search).get("net");
+  const src = net ? net.replace(/\/$/, "") + "/registry.json" : "data/registry.json";
+  let reg, banner = null;
+  try {
+    const r = await fetch(src, {cache:"no-store"}); if(!r.ok) throw 0;
+    banner = r.headers.get("X-AINRA-Network"); reg = await r.json();
+  }
+  catch(e){ $("#listmeta").textContent = net
+    ? `Could not reach the staging network at ${esc(net)} — is it up? (make stage-up)`
+    : "Could not load data/registry.json — run `make ainrascan` to build the staging data + SDK bundle, then serve this directory."; return; }
+  if (net) $("#stageEndpoint").textContent = (banner === "staging" ? "STAGING · TEST-ROOT @ " : "") + net;
   S.now = reg.generated_window?.verified_at ?? 0;
   for (const R of reg.registrars){
     for (const e of R.records){
@@ -219,7 +229,7 @@ async function load(){
   }
   S.rows.sort((a,b)=> a.sub < b.sub ? -1 : a.sub > b.sub ? 1 : 0);   // mechanical ordering, always
   renderStats(reg); renderChips(); render();
-  $("#stageEndpoint").textContent = location.host || "local file";
+  if (!net) $("#stageEndpoint").textContent = location.host || "local file";
   $("#fmeta").innerHTML = [
     `network: STAGING`, `root: TEST-ROOT`, `registrars: ${reg.registrars.length}`,
     `verified at: ${new Date(S.now*1000).toISOString().slice(0,10)}`,

@@ -15,11 +15,11 @@ no rate limit.
 
 | Operation (single core) | Cost | Rate |
 |---|---|---|
-| Full 9-step passport verify (incl. SLH-DSA cert chain + RFC 6962 + status) | **0.72 ms** | 1394/s | 
-| Hybrid Ed25519 + ML-DSA-65 signature verify | 0.31 ms | 3259/s |
+| Full 9-step passport verify (incl. SLH-DSA cert chain + RFC 6962 + status) | **0.47 ms** | 2123/s | 
+| Hybrid Ed25519 + ML-DSA-65 signature verify | 0.21 ms | 4769/s |
 
-A device verifies a passport in ~0.72 ms of CPU **once per relationship** (then caches until
-expiry/status change). One billion devices verifying is one billion × 0.72 ms **of their own
+A device verifies a passport in ~0.47 ms of CPU **once per relationship** (then caches until
+expiry/status change). One billion devices verifying is one billion × 0.47 ms **of their own
 local CPU** — the root's infrastructure does no per-verify work at all. That is the design: the root
 publishes signed artifacts; the world verifies them locally. (measured)
 
@@ -31,12 +31,12 @@ Verified below by building REAL trees and generating REAL proofs at growing size
 
 | Leaves | Build root (measured) | Proof size (measured) | Verify (measured) |
 |---|---|---|---|
-| 2^10 = 1024 | 0.2 ms | 10 hashes = 320 B | 1.4 µs |
-| 2^16 = 65536 | 16.2 ms | 16 hashes = 512 B | 2.2 µs |
-| 2^20 = 1048576 | 263.6 ms | 20 hashes = 640 B | 2.7 µs |
-| 2^24 = 16777216 | 3938.3 ms | 24 hashes = 768 B | 2.1 µs |
+| 2^10 = 1024 | 0.2 ms | 10 hashes = 320 B | 0.9 µs |
+| 2^16 = 65536 | 10.6 ms | 16 hashes = 512 B | 1.5 µs |
+| 2^20 = 1048576 | 172.6 ms | 20 hashes = 640 B | 1.8 µs |
+| 2^24 = 16777216 | 2707.7 ms | 24 hashes = 768 B | 2.2 µs |
 
-Extrapolating with the measured per-hop cost (89 ns/hash-hop) — structural:
+Extrapolating with the measured per-hop cost (90 ns/hash-hop) — structural:
 
 | Leaves | Proof size | Verify cost |
 |---|---|---|
@@ -53,17 +53,20 @@ One bit per lineage, zlib-compressed, 0.1 % revoked. Built and timed AT SIZE in 
 
 | Lineages | Encode (pack+zlib) | Compressed size | Decode | 1 M lookups |
 |---|---|---|---|---|
-| 10 M | 9 ms | **26 KB** | 15 ms | 10 ms (977 hits) |
-| 100 M | 90 ms | **260 KB** | 153 ms | 18 ms (1032 hits) |
-| 1 B | 898 ms | **2.6 MB** | 1439 ms | 19 ms (1015 hits) |
+| 10 M | 9 ms | **26 KB** | 15 ms | 11 ms (977 hits) |
+| 100 M | 93 ms | **260 KB** | 25 ms /2²⁴-seg | 14 ms (1007 hits) |
+| 1 B | 939 ms | **2.6 MB** | 26 ms /2²⁴-seg | 17 ms (980 hits) |
+
+*Decode + lookups are on a ≤2²⁴ segment (what a device holds); a billion-lineage network shards
+into ~60 such segments (MTS §16). The compressed size is the full-blob herd-privacy wire cost.*
 
 At the **1-billion-lineage** list just built (measured):
 
 | Artifact | Cost | Wire size (JSON) |
 |---|---|---|
-| Signed delta (100 revocations): build + verify(2 sigs + cert) + apply | 1.1 ms | **6 KB** |
+| Signed delta (100 revocations): build + verify(2 sigs + cert) + apply | 1.3 ms | **6 KB** |
 | Fresh head over a 10 M-lineage shard segment (the production shape) | 9 ms per 30 s tick | **222 B** |
-| Fresh head over the whole 1 B list in ONE segment (worst-case monolith) | 912 ms per tick | 222 B |
+| Fresh head over the whole 1 B list in ONE segment (worst-case monolith) | 951 ms per tick | 222 B |
 | Fresh head: device-side verify | 0.24 ms | — |
 
 A revocation reaches every device as a 6 KB signed delta + a 222 B fresh head — costs that depend
@@ -73,10 +76,10 @@ on the **revocation rate**, never on how many devices listen (static content, CD
 
 | Configuration | Measured |
 |---|---|
-| 1 shard, 1 core — full issuance (hybrid sign + fsync'd log + checkpoint + proof) | **1053 passports/s** |
-| Same, into a log PRE-POPULATED with 1,000,000 real entries | **1154 passports/s** — flat, O(log N) tree |
+| 1 shard, 1 core — full issuance (hybrid sign + fsync'd log + checkpoint + proof) | **978 passports/s** |
+| Same, into a log PRE-POPULATED with 1,000,000 real entries | **1064 passports/s** — flat, O(log N) tree |
 | One-time reopen of that million-record log (tree rebuild from disk) | 0.7 s |
-| 4 independent shards on 4 threads (issue window; setup excluded) | **3248 passports/s** aggregate |
+| 4 independent shards on 4 threads (issue window; setup excluded) | **3700 passports/s** aggregate |
 | 4-shard wall clock incl. per-shard key ceremonies | 0.6 s |
 
 Shards share **nothing** — a registrar owns its log + status segment outright (spec: shard-per-
@@ -85,8 +88,8 @@ one laptop. Structural projections from the single-shard rate:
 
 | Target | Arithmetic (structural) |
 |---|---|
-| One laptop shard, 24 h | 91.0 M passports/day |
-| 1 B agents in 1 year | needs 32 sustained issues/s network-wide — **one measured shard covers that with ~33× headroom** |
+| One laptop shard, 24 h | 84.5 M passports/day |
+| 1 B agents in 1 year | needs 32 sustained issues/s network-wide — **one measured shard covers that with ~31× headroom** |
 | 100 registrars × 10 M lineages | 1 B lineages; per-shard status list is the 10 M row of §3 |
 
 The per-issue log work is O(log N) (the services' incremental RFC 6962 tree, byte-identical to the
@@ -122,3 +125,33 @@ they actually meet. Trust-anchor state for all 100 shards is ~200 KB, held once.
   shards absorb a billion agents a year (measured §4 + arithmetic).
 - What this run does NOT prove: multi-region operations, witness-network behavior at scale, adversarial
   load, HSM ceremonies — that is M4–M8 operational work, stated in STATUS.md, not faked here.
+
+## 6 · Distribution: the static read surface (measured + the CDN argument)
+
+The only globally-distributed surface is static files (docs/ARTIFACT-CONTRACT.md). Load-tested here against
+the *reference* Node artifact server (`tools/artifact-server.mjs`) — a single process on this laptop, not a
+real CDN or even nginx:
+
+| Object | Cache policy | Throughput (measured, 1 node, c=64) |
+|---|---|---|
+| immutable checkpoint | `max-age=1y, immutable` | **8038 req/s**, 0 failures |
+| mutable fresh-head   | `max-age=5` + ETag       | **9225 req/s**, 0 failures |
+
+**[measured]** on `AMD Ryzen 5 5600H with Radeon Graphics`.
+
+**The CDN argument, honestly [extrapolated].** A single laptop-class node already serves thousands of req/s of these
+objects. But the read surface is *content-addressed static files* — the most cacheable objects on the internet
+(immutable checkpoints/tiles never change; heads carry an ETag so revalidation is a header, not a download). Global
+scale is therefore a **CDN configuration** — two cache rules keyed on path prefix (docs/ARTIFACT-CONTRACT.md) —
+delivered by infrastructure that already serves the web's static assets at planetary scale. It is not a protocol
+problem, and it adds **zero** load to the root or any registrar: the root publishes; edges cache; devices verify
+locally.
+
+## What these numbers prove — and do not
+
+They prove the **architecture holds at planetary scale**: verification is local (the root does zero per-verify
+work), proofs and revocation stay tiny (KB, logarithmic), issuance shards with no shared state, and the only global
+surface is cacheable static files. They do **not** prove that anyone uses it — adoption is not a number you can
+benchmark. It is earned by the humans running the pending DoD rows (a recorded ceremony, external verifiers, a
+3-region soak). This document measures the property that *makes* billions possible; it never claims billions, or any,
+users.

@@ -1,0 +1,20 @@
+# SPDX-License-Identifier: Apache-2.0 OR MIT
+# AINRA Rust service daemons (registrar-box, logd, statusd, witnessd) — one minimal image, non-root.
+# Build:  docker build -f deploy/Dockerfile.services -t ainra/services:staging .
+# Pin the digest in production (docker inspect --format '{{index .RepoDigests 0}}').
+FROM rust:1.97-slim-bookworm AS build
+WORKDIR /src
+COPY . .
+RUN cargo build --release -p ainra-services --bin registrar-box --bin logd --bin statusd --bin witnessd
+
+FROM debian:bookworm-slim
+RUN useradd -r -u 10001 ainra && apt-get update && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
+COPY --from=build /src/target/release/registrar-box /src/target/release/logd /src/target/release/statusd /src/target/release/witnessd /usr/local/bin/
+USER 10001
+WORKDIR /data
+# health: the registrar-box /health endpoint (compose overrides the CMD per service)
+HEALTHCHECK --interval=15s --timeout=3s --retries=5 CMD curl -fsS http://127.0.0.1:4900/health || exit 1
+ENV AINRA_STAGE=1
+ENTRYPOINT ["registrar-box"]
+CMD ["0.0.0.0:4900", "registrar-07", "/data"]

@@ -10,6 +10,10 @@ pub struct Request {
     pub method: String,
     pub path: String,
     pub body: String,
+    /// Request headers, keys lowercased (e.g. `authorization`). Populated by [`serve`]; empty for client calls.
+    pub headers: std::collections::BTreeMap<String, String>,
+    /// Peer IP (no port), for coarse per-source rate limiting in a staging deployment. `""` if unavailable.
+    pub peer: String,
 }
 
 /// A minimal blocking HTTP/1.1 CLIENT (std::net only) so the service daemons can talk to each other — e.g. a relying
@@ -61,11 +65,16 @@ where
         if reader.read_line(&mut request_line).is_err() || request_line.is_empty() {
             continue;
         }
+        let peer = stream
+            .peer_addr()
+            .map(|a| a.ip().to_string())
+            .unwrap_or_default();
         let mut parts = request_line.split_whitespace();
         let method = parts.next().unwrap_or("").to_string();
         let path = parts.next().unwrap_or("/").to_string();
-        // headers → content-length
+        // headers → content-length + captured map (lowercased keys)
         let mut content_length = 0usize;
+        let mut headers = std::collections::BTreeMap::new();
         loop {
             let mut line = String::new();
             if reader.read_line(&mut line).is_err() {
@@ -75,8 +84,12 @@ where
             if t.is_empty() {
                 break;
             }
-            if let Some(v) = t.to_ascii_lowercase().strip_prefix("content-length:") {
-                content_length = v.trim().parse().unwrap_or(0);
+            if let Some((k, v)) = t.split_once(':') {
+                let key = k.trim().to_ascii_lowercase();
+                if key == "content-length" {
+                    content_length = v.trim().parse().unwrap_or(0);
+                }
+                headers.insert(key, v.trim().to_string());
             }
         }
         // Cap the body so an attacker-controlled `Content-Length` cannot force an unbounded allocation (review #5).
@@ -95,6 +108,8 @@ where
             method,
             path,
             body: String::from_utf8_lossy(&body).into_owned(),
+            headers,
+            peer,
         };
         // A browser preflights cross-origin POSTs; answer OPTIONS directly so the LOCAL explorer can talk to the
         // daemon. These daemons are reference/dev tools: they bind 127.0.0.1, carry no auth, and use permissive

@@ -1,6 +1,6 @@
 # AINRA — the acceptance bar (MTS §28, brief §8): a stranger clones, runs `make test && make vectors && make diff`,
 # and everything is green in under 10 minutes on a laptop.
-.PHONY: all test vectors vectors-check diff fmt clippy fuzz-smoke bench sdk-build sdk-test ci clean status console samples drill explorer demo scale ceremony testbed wedge-build wedge-test repro mirror verify-mirror check-freeze freeze genesis-local verifier-kit-smoke ceremony-dry-run soak-smoke drill-networked preflight s7 license gitleaks audit verify-as-external verifier-triple-drill soak-verify genesis-status verify-transcript genesis-board-demo release doctor verifier-operator-drill site ainrascan
+.PHONY: all test vectors vectors-check diff fmt clippy fuzz-smoke bench sdk-build sdk-test ci clean status console samples drill explorer demo scale ceremony testbed wedge-build wedge-test repro mirror verify-mirror check-freeze freeze genesis-local verifier-kit-smoke ceremony-dry-run soak-smoke drill-networked preflight s7 license gitleaks audit verify-as-external verifier-triple-drill soak-verify genesis-status verify-transcript genesis-board-demo release doctor verifier-operator-drill site ainrascan stage-up stage-down stage-status stage-smoke
 
 all: fmt clippy test vectors diff
 
@@ -95,8 +95,7 @@ wedge-build: sdk-build
 # The billion-device scale proof: builds a REAL 1-billion-lineage status list, 16M-leaf RFC 6962 trees, sharded
 # issuance — measures everything and writes the honest report (measured vs structural, labeled).
 scale:
-	cargo run --release -q -p ainra-services --bin scale-proof > docs/SCALE.md
-	@echo "wrote docs/SCALE.md"
+	bash tools/scale.sh
 
 # The M2 transparency pipeline end-to-end (logd → witness catches an injected fork → statusd), in-process.
 drill:
@@ -205,6 +204,16 @@ site:
 # The independent AINRAscan explorer, built against a real seeded network + the real SDK bundled for the browser.
 ainrascan:
 	bash tools/ainrascan.sh
+
+# The AINRA STAGING network on one host (real deployment, real crypto, TEST-ROOT, honest labels).
+stage-up:
+	bash tools/stage.sh up
+stage-down:
+	bash tools/stage.sh down
+stage-status:
+	bash tools/stage.sh status
+stage-smoke:
+	bash tools/stage-smoke.sh
 
 # M10 — the "clone it and it works" promise: run every gate a stranger runs, print a green/red board (QUICK=1 skips repro).
 preflight:

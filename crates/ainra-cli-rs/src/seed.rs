@@ -33,6 +33,10 @@ struct Lineage {
     ceiling: &'static [&'static str],
     hops: &'static [(&'static str, &'static str, &'static [&'static str])],
     revoke: bool,
+    /// ADR-017: if `Some(new_version)`, this lineage is RENEWED (reissued) after issuance — a fresh 366-day window,
+    /// a new status index, and a `prev_leaf` continuity link. Both generations verify during the overlap, so the
+    /// export shows the renewal lifecycle state with real cryptography.
+    renew: Option<&'static str>,
 }
 
 struct RegistrarPlan {
@@ -58,6 +62,7 @@ const PLAN: &[RegistrarPlan] = &[
                 ceiling: &["read:invoices", "sign:invoice", "read:payments"],
                 hops: &[],
                 revoke: false,
+                renew: None,
             },
             Lineage {
                 operator: "acme",
@@ -69,6 +74,7 @@ const PLAN: &[RegistrarPlan] = &[
                 ceiling: &["export:data"],
                 hops: &[],
                 revoke: true,
+                renew: None,
             },
             Lineage {
                 operator: "acme",
@@ -92,6 +98,7 @@ const PLAN: &[RegistrarPlan] = &[
                     ),
                 ],
                 revoke: false,
+                renew: None,
             },
             Lineage {
                 operator: "globex",
@@ -103,6 +110,7 @@ const PLAN: &[RegistrarPlan] = &[
                 ceiling: &["read:ledger", "post:entry", "close:period"],
                 hops: &[],
                 revoke: false,
+                renew: None,
             },
             Lineage {
                 operator: "globex",
@@ -114,6 +122,7 @@ const PLAN: &[RegistrarPlan] = &[
                 ceiling: &["read:transactions", "flag:transaction"],
                 hops: &[],
                 revoke: false,
+                renew: None,
             },
         ],
     },
@@ -131,6 +140,7 @@ const PLAN: &[RegistrarPlan] = &[
                 ceiling: &["read:calendar", "book:slot", "cancel:slot"],
                 hops: &[],
                 revoke: false,
+                renew: Some("2.3.0"), // ADR-017: renewed → 2.3.0; both generations verify during the overlap
             },
             Lineage {
                 operator: "operator-03",
@@ -142,6 +152,7 @@ const PLAN: &[RegistrarPlan] = &[
                 ceiling: &["fetch:public"],
                 hops: &[],
                 revoke: true,
+                renew: None,
             },
             Lineage {
                 operator: "operator-05",
@@ -158,6 +169,7 @@ const PLAN: &[RegistrarPlan] = &[
                     &["read:catalog", "raise:po"],
                 )],
                 revoke: false,
+                renew: None,
             },
             Lineage {
                 operator: "operator-05",
@@ -169,6 +181,7 @@ const PLAN: &[RegistrarPlan] = &[
                 ceiling: &["send:notification"],
                 hops: &[],
                 revoke: false,
+                renew: None,
             },
         ],
     },
@@ -186,6 +199,7 @@ const PLAN: &[RegistrarPlan] = &[
                 ceiling: &["translate:text"],
                 hops: &[],
                 revoke: false,
+                renew: None,
             },
             Lineage {
                 operator: "operator-08",
@@ -197,6 +211,7 @@ const PLAN: &[RegistrarPlan] = &[
                 ceiling: &["summarize:document"],
                 hops: &[],
                 revoke: false,
+                renew: None,
             },
             Lineage {
                 operator: "acme",
@@ -208,6 +223,7 @@ const PLAN: &[RegistrarPlan] = &[
                 ceiling: &["run:batch"],
                 hops: &[],
                 revoke: true,
+                renew: None,
             },
         ],
     },
@@ -264,6 +280,26 @@ pub fn build(out_root: &std::path::Path) -> std::io::Result<serde_json::Value> {
             totals.0 += 1;
             if !rec.hops.is_empty() {
                 totals.2 += 1;
+            }
+            // ADR-017 renewal (version-bumped reissue) at T = nbf + 5 days — inside the window, before the export's
+            // verify time, so BOTH generations verify (the overlap). The new one carries the prev_leaf link.
+            if let Some(new_version) = l.renew {
+                let renew_at = NBF + 5 * 24 * 60 * 60;
+                let audit = matches!(l.tier, "L3" | "L4").then(|| {
+                    ainra_services::registrar::AuditEvidence {
+                        reference: format!("audit-{}-{}-renew", plan.id, l.lineage),
+                        expires: renew_at + ainra_core::consts::PASSPORT_VALIDITY_DEFAULT_SECS,
+                    }
+                });
+                rb.reissue(
+                    &rec.sub,
+                    Some(new_version),
+                    renew_at,
+                    audit.as_ref(),
+                    &mut rng,
+                )
+                .map_err(|e| std::io::Error::other(e.to_string()))?;
+                totals.0 += 1;
             }
             if l.revoke {
                 to_revoke.push(rec.sub.clone());

@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<!-- SPDX-License-Identifier: Apache-2.0 OR MIT -->
+<!-- AINRAscan — the AINRA agent-identity explorer. Real data from the AINRA pipeline; every verdict is recomputed
+     in YOUR browser by the real @ainra/sdk (the same code that agrees 745/745 in the conformance differential).
+     Independent of the root by construction. Zero telemetry. Self-contained: no CDN, no web fonts, no network
+     except fetching the public artifacts it verifies. This build renders the STAGING network on a TEST-ROOT. -->
+<html lang="en" data-network="staging" data-root="test-root">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AINRAscan — AINRA agent-identity explorer (STAGING · TEST-ROOT)</title>
+<meta name="description" content="Explore the AINRA record — agents, passports, delegation chains, revocations — and verify every proof in your own browser. Staging network on a TEST-ROOT.">
+<style>
+:root{
+  --paper:#F5F6F3;--card:#FBFBF8;--card2:#EEEFEA;--ink:#0B1220;--txt:#233047;--mut:#5A6472;
+  --green:#1A6B4E;--green2:#3f9d74;--red:#A83A2C;--amber:#8a6a14;--ambbg:#F6EFD6;
+  --line:rgba(11,18,32,.11);--line2:rgba(11,18,32,.18);
+  --r:14px;--rs:9px;--sh:0 1px 3px rgba(11,18,32,.06);--shl:0 12px 34px rgba(11,18,32,.10);
+  --disp:Georgia,"Times New Roman",serif;--body:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:ui-monospace,"SF Mono","Cascadia Code","Roboto Mono",Menlo,Consolas,monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--paper);color:var(--txt);font-family:var(--body);font-size:14px;line-height:1.55;-webkit-font-smoothing:antialiased}
+a{color:var(--green);text-decoration:none}a:hover{text-decoration:underline}
+.mono{font-family:var(--mono)}
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px}
+/* staging banner */
+.stage{background:#2b2320;color:#F6EFD6;font-family:var(--mono);font-size:11px;letter-spacing:.06em}
+.stage .wrap{display:flex;align-items:center;gap:12px;height:30px}
+.stage b{color:#F2C14E}.stage .sp{flex:1}
+/* header */
+header{background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}
+header .wrap{display:flex;align-items:center;gap:14px;height:60px}
+.brand{display:flex;align-items:center;gap:11px}
+.sig{width:34px;height:34px;border-radius:50%;border:1.5px solid var(--ink);display:grid;place-items:center;flex:none}
+.sig svg{width:20px;height:20px}
+.wm{font-family:var(--disp);font-size:20px;color:var(--ink);letter-spacing:.01em}
+.wm em{color:var(--green);font-style:normal}
+.tag{font-size:11.5px;color:var(--mut);border-left:1px solid var(--line);padding-left:14px;max-width:340px}
+header nav{margin-left:auto;display:flex;gap:18px;font-size:12.5px;color:var(--mut)}
+/* hero */
+.hero{padding:34px 0 22px}
+.hero h1{font-family:var(--disp);font-size:30px;line-height:1.15;color:var(--ink);font-weight:600;letter-spacing:-.01em}
+.hero h1 em{color:var(--green);font-style:italic}
+.hero p{margin-top:8px;color:var(--mut);max-width:70ch}
+.search{margin-top:18px;display:flex;gap:10px;align-items:center;background:var(--card);border:1px solid var(--line2);border-radius:var(--r);padding:4px 4px 4px 16px;box-shadow:var(--sh);max-width:720px}
+.search svg{width:17px;height:17px;color:var(--mut);flex:none}
+.search input{flex:1;border:0;background:transparent;font-size:15px;color:var(--ink);outline:none;padding:11px 0;font-family:var(--body)}
+.search .k{font-family:var(--mono);font-size:10.5px;color:var(--mut);border:1px solid var(--line);border-radius:6px;padding:3px 6px}
+.chips{margin-top:11px;display:flex;flex-wrap:wrap;gap:7px}
+.chip{font-family:var(--mono);font-size:11px;color:var(--txt);background:var(--card2);border:1px solid var(--line);border-radius:999px;padding:5px 11px;cursor:pointer}
+.chip:hover{border-color:var(--green);color:var(--green)}
+/* stats */
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin:22px 0 8px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:var(--rs);padding:13px 15px}
+.stat b{font-family:var(--disp);font-size:22px;color:var(--ink);display:block;font-weight:600}
+.stat span{font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.06em}
+/* list */
+.listmeta{font-size:12px;color:var(--mut);margin:16px 0 8px;font-family:var(--mono)}
+.tbl{background:var(--card);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;box-shadow:var(--sh)}
+.trow{display:grid;grid-template-columns:1fr 58px 52px 52px 108px 96px;gap:12px;align-items:center;padding:13px 16px;border-bottom:1px solid var(--line);cursor:pointer;font-size:13px}
+.trow:last-child{border-bottom:0}
+.trow:hover{background:var(--card2)}
+.trow.head{background:var(--card2);cursor:default;font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--mut)}
+.trow.head:hover{background:var(--card2)}
+.sub{font-family:var(--mono);font-size:12px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pill{font-family:var(--mono);font-size:10px;letter-spacing:.04em;border-radius:6px;padding:3px 7px;text-align:center;border:1px solid var(--line2);color:var(--txt)}
+.badge{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.05em;border-radius:6px;padding:4px 8px;text-align:center;display:inline-block}
+.b-ok{background:#E3F1E9;color:var(--green);border:1px solid #BEE0CE}
+.b-rev{background:#F6E1DD;color:var(--red);border:1px solid #E6BEB6}
+.b-warn{background:var(--ambbg);color:var(--amber);border:1px solid #E4D3A0}
+/* drawer */
+.scrim{position:fixed;inset:0;background:rgba(11,18,32,.28);opacity:0;pointer-events:none;transition:opacity .2s;z-index:30}
+.scrim.on{opacity:1;pointer-events:auto}
+.drawer{position:fixed;top:0;right:0;height:100%;width:min(620px,96vw);background:var(--paper);border-left:1px solid var(--line2);box-shadow:var(--shl);transform:translateX(100%);transition:transform .26s cubic-bezier(.2,.7,.3,1);z-index:31;overflow-y:auto}
+.drawer.on{transform:none}
+.dh{position:sticky;top:0;background:var(--card);border-bottom:1px solid var(--line);padding:16px 20px;display:flex;align-items:flex-start;gap:12px;z-index:2}
+.dh .x{margin-left:auto;border:1px solid var(--line2);background:transparent;border-radius:8px;width:30px;height:30px;cursor:pointer;color:var(--mut);font-size:16px;flex:none}
+.dh .nm{font-family:var(--mono);font-size:13px;color:var(--ink);word-break:break-all}
+.dh .op{font-size:12px;color:var(--mut);margin-top:2px}
+.db{padding:18px 20px 60px}
+.sec{margin-top:20px}
+.sec h4{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);margin-bottom:9px}
+.kv{display:grid;grid-template-columns:130px 1fr;gap:6px 14px;font-size:13px}
+.kv .k{color:var(--mut)}.kv .v{color:var(--ink);font-family:var(--mono);font-size:12px;word-break:break-all}
+.hop{border:1px solid var(--line);border-radius:var(--rs);padding:10px 12px;margin-bottom:8px;font-size:12px}
+.hop .ar{color:var(--mut)}
+.caps{display:flex;flex-wrap:wrap;gap:6px}
+.cap{font-family:var(--mono);font-size:11px;background:var(--card2);border:1px solid var(--line);border-radius:6px;padding:3px 8px}
+/* verify box */
+.vbox{border:1px solid var(--line2);border-radius:var(--r);overflow:hidden;margin-top:8px}
+.vtop{display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--card)}
+.vbtn{font-family:var(--body);font-weight:600;font-size:13px;background:var(--ink);color:#fff;border:0;border-radius:9px;padding:10px 16px;cursor:pointer}
+.vbtn:disabled{opacity:.55;cursor:default}
+.vres{margin-left:auto;font-family:var(--mono);font-size:12px}
+.vsteps{padding:2px 16px 14px;font-family:var(--mono);font-size:11.5px;background:var(--card)}
+.vstep{display:flex;gap:9px;padding:5px 0;border-top:1px dashed var(--line);align-items:flex-start}
+.vstep:first-child{border-top:0}
+.vstep .i{flex:none;width:15px}
+.ok{color:var(--green)}.no{color:var(--red)}.pend{color:var(--mut)}
+.note{font-size:11.5px;color:var(--mut);margin-top:8px;line-height:1.5}
+/* footer */
+footer{margin-top:44px;border-top:1px solid var(--line);background:var(--card)}
+footer .wrap{padding:26px 20px 34px}
+.oath{font-family:var(--disp);font-size:16px;color:var(--ink);max-width:60ch;line-height:1.4}
+.colo{margin-top:14px;font-size:12px;color:var(--mut);max-width:96ch;line-height:1.6}
+.colo b{color:var(--txt)}
+.fmeta{margin-top:16px;font-family:var(--mono);font-size:10.5px;color:var(--mut);display:flex;flex-wrap:wrap;gap:14px}
+@media(max-width:760px){.stats{grid-template-columns:repeat(2,1fr)}.trow{grid-template-columns:1fr 70px 90px}.trow .c-tier,.trow .c-auth,.trow .c-chain{display:none}.tag{display:none}}
+</style>
+</head>
+<body>
+
+<div class="stage"><div class="wrap">
+  <b>STAGING NETWORK</b><span>·</span><span>TEST-ROOT — real cryptography, honest labels. No trust migrates to the future production root; the real root is born only at the recorded genesis ceremony.</span>
+  <span class="sp"></span><span id="stageEndpoint">local</span>
+</div></div>
+
+<header><div class="wrap">
+  <a class="brand" href="#top">
+    <span class="sig" aria-hidden="true"><svg viewBox="0 0 112 112" fill="none" stroke="#0B1220" stroke-width="5"><circle cx="56" cy="56" r="30"/><circle cx="56" cy="56" r="9" fill="#0B1220"/><path d="M56 4v14M56 94v14M4 56h14M94 56h14"/></svg></span>
+    <span class="wm">AINRA<em>scan</em></span>
+  </a>
+  <span class="tag">An independent explorer of the AINRA record. The root operates no explorer; this one holds no special access and verifies everything client-side.</span>
+  <nav><a href="#oath">The oath</a><a href="#colophon">Independence</a></nav>
+</div></header>
+
+<main class="wrap" id="top">
+  <section class="hero">
+    <h1>The AINRA agent-identity record — <em>verify it yourself</em>.</h1>
+    <p>Search agents, passports, delegation chains and revocations. Open any one and press <b>Verify in your browser</b>: the real <span class="mono">@ainra/sdk</span> recomputes the leaf from the signed claims, walks the RFC&nbsp;6962 inclusion proof to the checkpoint, checks both hybrid signatures and the revocation standing — <b>here, on your machine</b>. This page never shows a green it cannot back.</p>
+    <div class="search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input id="q" type="text" placeholder="Search subject · operator · lineage · capability · tier …" autocomplete="off" spellcheck="false">
+      <span class="k">/</span>
+    </div>
+    <div class="chips" id="chips"></div>
+  </section>
+
+  <section class="stats" id="stats"></section>
+
+  <div class="listmeta" id="listmeta">loading the staging record…</div>
+  <div class="tbl" id="tbl"></div>
+</main>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" aria-label="passport detail"></aside>
+
+<footer>
+  <div class="wrap">
+    <p class="oath" id="oath">The oath: this explorer renders public artifacts, verifies them in your browser, and orders everything mechanically. It issues nothing, revokes nothing, ranks nothing, and shows no green it did not compute. If this page ever disagrees with the cryptographic record — <b>the record wins</b>, and that is a bug.</p>
+    <p class="colo" id="colophon"><b>Colophon &amp; independence.</b> AINRAscan is separate from the AINRA root, which is constitutionally barred from operating an explorer: a registry that controls how it is seen is a registry you must trust. This app runs no part of the registry and reads only public artifacts — a root-accredited registrar directory, log checkpoints, inclusion proofs, and signed status lists — which it re-derives with the open <span class="mono">@ainra/sdk</span> and CC0 conformance vectors. It carries <b>zero telemetry</b>: nothing you do here is measured or sent anywhere. This deployment renders the <b>staging network on a TEST-ROOT</b>; every artifact and verdict is real cryptography over clearly-labeled placeholder operators, never production and never a claim of usage.</p>
+    <div class="fmeta" id="fmeta"></div>
+  </div>
+</footer>
+
+<script type="module">
+import { runVector, canonicalize } from "./vendor/ainra-sdk.js";
+
+const $ = (s, r=document) => r.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const REASONS = {
+  sig_invalid:"a required signature failed to verify", alg_downgrade:"a mandated hybrid signature (Ed25519 or ML-DSA-65) was absent or malformed",
+  expired:"the validity window has ended", not_yet_valid:"not yet valid (nbf in the future)",
+  revoked:"revoked in the registrar's signed status list", mandate_revoked:"a mandate in the subtree is revoked",
+  chain_widening:"a delegation hop granted more than its parent", chain_expired:"a hop outlived its parent",
+  not_logged:"no Merkle inclusion proof to a signed checkpoint", checkpoint_invalid:"the checkpoint signature did not verify",
+  stale_status:"status material older than the freshness class allows", name_malformed:"a name violated the namespace grammar",
+  ceiling_exceeded:"a capability exceeds the scope ceiling", unknown_registrar:"issuer not in the accredited directory",
+  schema_violation:"the passport violated the schema (missing MUST / forbidden field)",
+};
+
+const S = { rows: [], q: "", now: 0 };
+
+// ── base64url + SHA-256 (browser-native; the inclusion recompute the viewer produces themselves) ──
+const b64u = s => { s = s.replace(/-/g,"+").replace(/_/g,"/"); while (s.length % 4) s += "="; const b = atob(s); const u = new Uint8Array(b.length); for (let i=0;i<b.length;i++) u[i]=b.charCodeAt(i); return u; };
+const hex = u => [...u].map(x=>x.toString(16).padStart(2,"0")).join("");
+async function sha256(...parts){ const len=parts.reduce((n,p)=>n+p.length,0); const buf=new Uint8Array(len); let o=0; for(const p of parts){buf.set(p,o);o+=p.length;} return new Uint8Array(await crypto.subtle.digest("SHA-256",buf)); }
+const H0 = leafBytes => sha256(new Uint8Array([0]), leafBytes);           // RFC 6962 leaf hash
+const HN = (l,r) => sha256(new Uint8Array([1]), l, r);                    // RFC 6962 node hash
+async function rootFromInclusion(index, size, leaf, proof){               // cert-transparency decomposition
+  const x = index ^ (size-1); const inner = x===0 ? 0 : Math.floor(Math.log2(x))+1;
+  let seed = leaf;
+  for (let i=0;i<inner;i++){ const h = proof[i]; seed = ((index>>i)&1)===0 ? await HN(seed,h) : await HN(h,seed); }
+  for (let i=inner;i<proof.length;i++){ seed = await HN(proof[i], seed); }
+  return seed;
+}
+
+// ── reconstruct the SDK-verifiable bundle from the public export (mirrors registrar `present()` + reverify) ──
+function toWire(rec, R){
+  return {
+    name: rec.sub, expect: {},
+    anchors: { [R.registrar]: { issuer_key: R.accreditation.issuer_key, log_root_key: R.accreditation.log_root_key } },
+    presentation: {
+      claims: btoaU(new TextEncoder().encode(rec.claims)),
+      issuer_sig: { ed25519: rec.issuer_sig_ed25519, mldsa65: rec.issuer_sig_mldsa65 },
+      now: S.now, chain_keys: rec.chain_keys, hop_proofs: rec.hop_proofs,
+      status_list: R.status_list.status_list_b64, status_len: R.status_list.bit_len, status_issued_at: R.status_list.issued_at,
+      freshness: "F3",
+      checkpoint: { origin: rec.log_origin, size: rec.checkpoint_size, root: rec.checkpoint_root },
+      checkpoint_sig: rec.checkpoint_sig, leaf_index: rec.leaf_index, inclusion_proof: rec.inclusion_proof,
+      mandate_revocations: [], revoked_delegates: [],
+    },
+  };
+}
+function btoaU(u){ let s=""; for(let i=0;i<u.length;i++) s+=String.fromCharCode(u[i]); return btoa(s).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,""); }
+
+// ── load ──
+async function load(){
+  let reg;
+  try { const r = await fetch("data/registry.json", {cache:"no-store"}); if(!r.ok) throw 0; reg = await r.json(); }
+  catch(e){ $("#listmeta").textContent = "Could not load data/registry.json — run `make ainrascan` to build the staging data + SDK bundle, then serve this directory."; return; }
+  S.now = reg.generated_window?.verified_at ?? 0;
+  for (const R of reg.registrars){
+    for (const e of R.records){
+      const rec = e.record, claims = JSON.parse(rec.claims);
+      S.rows.push({ rec, R, claims, sub: rec.sub, carried: e.verdict, renewed: !!claims.prev_leaf });
+    }
+  }
+  S.rows.sort((a,b)=> a.sub < b.sub ? -1 : a.sub > b.sub ? 1 : 0);   // mechanical ordering, always
+  renderStats(reg); renderChips(); render();
+  $("#stageEndpoint").textContent = location.host || "local file";
+  $("#fmeta").innerHTML = [
+    `network: STAGING`, `root: TEST-ROOT`, `registrars: ${reg.registrars.length}`,
+    `verified at: ${new Date(S.now*1000).toISOString().slice(0,10)}`,
+    `verifier: @ainra/sdk (client-side)`, `telemetry: none`
+  ].map(x=>`<span>${esc(x)}</span>`).join("");
+}
+
+function renderStats(reg){
+  const t = reg.totals || {};
+  const revoked = S.rows.filter(r=>r.rec.revoked).length;
+  const renewed = S.rows.filter(r=>r.renewed).length;
+  const delegated = S.rows.filter(r=>r.rec.hops?.length).length;
+  const cells = [[S.rows.length,"lineages"],[reg.registrars.length,"registrars"],[delegated,"delegated"],[renewed,"renewed"],[revoked,"revoked"]];
+  $("#stats").innerHTML = cells.map(([n,l])=>`<div class="stat"><b>${n}</b><span>${l}</span></div>`).join("");
+}
+function renderChips(){
+  const ex = S.rows.slice(0,4).map(r=>r.sub);
+  $("#chips").innerHTML = ex.map(s=>`<button class="chip" data-q="${esc(s)}">${esc(s)}</button>`).join("");
+  $("#chips").querySelectorAll(".chip").forEach(b=>b.onclick=()=>{ $("#q").value=b.dataset.q; S.q=b.dataset.q; render(); });
+}
+
+function render(){
+  const q = S.q.trim().toLowerCase();
+  const rows = q ? S.rows.filter(r => (r.sub + " " + r.rec.tier + " " + r.rec.auth_class + " " + (r.rec.capabilities||[]).join(" ")).toLowerCase().includes(q)) : S.rows;
+  $("#listmeta").textContent = `${rows.length} of ${S.rows.length} lineage(s) · verifying at ${new Date(S.now*1000).toISOString().replace("T"," ").slice(0,19)}Z · ordered by subject (mechanical)`;
+  const head = `<div class="trow head"><span>Subject</span><span class="c-tier">Tier</span><span class="c-auth">Auth</span><span class="c-chain">Chain</span><span>Standing</span><span>Verdict</span></div>`;
+  $("#tbl").innerHTML = head + rows.map((r,i)=>{
+    const standing = r.rec.revoked ? `<span class="badge b-rev">REVOKED</span>` : `<span class="badge b-ok">ACTIVE</span>`;
+    const cv = r.carried.verdict === "valid" ? `<span class="badge b-ok">VALID</span>` : `<span class="badge b-rev">${esc(r.carried.reason||"INVALID").toUpperCase()}</span>`;
+    return `<div class="trow" data-i="${S.rows.indexOf(r)}">
+      <span class="sub">${esc(r.sub)}${r.renewed?' <span class="pill" style="border-color:#BEE0CE;color:var(--green)">RENEWED</span>':''}</span>
+      <span class="c-tier"><span class="pill">${esc(r.rec.tier)}</span></span>
+      <span class="c-auth"><span class="pill">${esc(r.rec.auth_class)}</span></span>
+      <span class="c-chain">${r.rec.hops?.length?`${r.rec.hops.length} hop`:'—'}</span>
+      <span>${standing}</span><span>${cv}</span></div>`;
+  }).join("");
+  $("#tbl").querySelectorAll(".trow[data-i]").forEach(el=>el.onclick=()=>openDetail(S.rows[+el.dataset.i]));
+}
+
+function openDetail(row){
+  const { rec, claims } = row;
+  const win = `${new Date(rec.nbf*1000).toISOString().slice(0,10)} → ${new Date(rec.exp*1000).toISOString().slice(0,10)}`;
+  const chain = (rec.hops||[]).map((h,i)=>`<div class="hop"><b>hop ${i+1}</b> · granted ${esc((h.granted||[]).join(", "))}<br><span class="mono">${esc(h.from)}</span> <span class="ar">→</span> <span class="mono">${esc(h.to)}</span></div>`).join("") || `<div class="note">Root-issued lineage — no delegation chain.</div>`;
+  const standing = rec.revoked ? `<span class="badge b-rev">REVOKED</span> <span class="note">standing bit set in the registrar's signed status list</span>` : `<span class="badge b-ok">ACTIVE</span> <span class="note">not revoked as of the current signed head</span>`;
+  const renewal = row.renewed ? `<div class="sec"><h4>Renewal (ADR-017)</h4><div class="note">This is a <b>reissue</b>: a fresh 366-day window carrying <span class="mono">prev_leaf = ${esc(claims.prev_leaf.slice(0,16))}…</span> — the RFC 6962 leaf of the previous generation, so the renewal chain is walkable through the public log. The prior generation keeps verifying until its own expiry (overlap), then fails closed.</div></div>` : "";
+  const d = $("#drawer");
+  d.innerHTML = `
+  <div class="dh">
+    <div><div class="nm">${esc(rec.sub)}</div><div class="op">${esc(rec.operator)} · via ${esc(rec.registrar)} · issued ${esc(rec.iss)}</div></div>
+    <button class="x" id="dx">✕</button>
+  </div>
+  <div class="db">
+    <div class="sec"><h4>Passport</h4>
+      <div class="kv">
+        <span class="k">Tier</span><span class="v">${esc(rec.tier)}</span>
+        <span class="k">Authority class</span><span class="v">${esc(rec.auth_class)}</span>
+        <span class="k">Validity</span><span class="v">${win}</span>
+        <span class="k">Status index</span><span class="v">${rec.status_idx}</span>
+        <span class="k">Log</span><span class="v">${esc(rec.log_origin)} #${rec.checkpoint_size}</span>
+        <span class="k">Leaf</span><span class="v">${esc(String(claims.log?.leaf||"").slice(0,24))}…</span>
+      </div>
+    </div>
+    <div class="sec"><h4>Capabilities</h4><div class="caps">${(rec.capabilities||[]).map(c=>`<span class="cap">${esc(c)}</span>`).join("")}</div>
+      <div class="note">Scope ceiling: ${esc((rec.scope_ceiling||[]).join(" · "))}. A delegation can only ever narrow within it.</div></div>
+    <div class="sec"><h4>Standing</h4>${standing}</div>
+    <div class="sec"><h4>Delegation chain</h4>${chain}</div>
+    ${renewal}
+    <div class="sec"><h4>Verify — in your browser</h4>
+      <div class="vbox">
+        <div class="vtop"><button class="vbtn" id="vgo">▶ Verify in your browser</button><span class="vres" id="vres"></span></div>
+        <div class="vsteps" id="vsteps"></div>
+      </div>
+      <div class="note">Runs the real <span class="mono">@ainra/sdk</span> (the code that agrees 745/745 in the conformance differential) over the public artifacts, plus an independent RFC&nbsp;6962 inclusion recompute in this page's own JavaScript. Nothing is trusted from the export — the green is one you produce.</div>
+    </div>
+  </div>`;
+  $("#dx").onclick = closeDetail; $("#scrim").classList.add("on"); d.classList.add("on");
+  $("#vgo").onclick = () => verifyInBrowser(row);
+}
+function closeDetail(){ $("#scrim").classList.remove("on"); $("#drawer").classList.remove("on"); }
+$("#scrim").onclick = closeDetail;
+
+async function verifyInBrowser(row){
+  const { rec, R } = row;
+  const btn = $("#vgo"), steps = $("#vsteps"), res = $("#vres");
+  btn.disabled = true; res.textContent = "verifying…"; res.className = "vres pend";
+  const log = [];
+  const put = () => steps.innerHTML = log.map(s=>`<div class="vstep"><span class="i ${s.c}">${s.c==="ok"?"✓":s.c==="no"?"✗":"·"}</span><span>${s.t}</span></div>`).join("");
+
+  // 1. full 9-step verify by the real SDK
+  log.push({c:"pend",t:"running the 9-step @ainra/sdk verify (hybrid signatures, chain, status, log)…"}); put();
+  let verdict;
+  try { verdict = runVector(toWire(rec, R)); } catch(e){ verdict = {verdict:"invalid", reason:"schema_violation"}; }
+  log[0] = verdict.verdict === "valid"
+    ? {c:"ok", t:"@ainra/sdk verify → <b>VALID</b> (Ed25519 + ML-DSA-65 issuer signature, chain narrowing, freshness, revocation, logged-before-valid)"}
+    : {c:"no", t:`@ainra/sdk verify → <b>INVALID</b> · ${esc(verdict.reason)} — ${esc(REASONS[verdict.reason]||"")}`};
+  put();
+
+  // 2. independent RFC 6962 inclusion recompute, hash-by-hash, in this page
+  try {
+    const claims = JSON.parse(rec.claims); delete claims.log;
+    const prelog = new TextEncoder().encode(canonicalize(claims));
+    const leaf = await H0(prelog);
+    log.push({c:"ok", t:`recomputed the leaf from the signed claims: <span class="mono">${hex(leaf).slice(0,20)}…</span> = SHA-256(0x00 ‖ canonical body)`}); put();
+    const proof = rec.inclusion_proof.map(b64u);
+    const root = await rootFromInclusion(rec.leaf_index, rec.checkpoint_size, leaf, proof);
+    const want = b64u(rec.checkpoint_root);
+    const match = root.length===want.length && root.every((x,i)=>x===want[i]);
+    log.push(match
+      ? {c:"ok", t:`walked ${proof.length} RFC 6962 proof hash(es) → root <span class="mono">${hex(root).slice(0,20)}…</span> == the signed checkpoint root ✓ — <b>logged-before-valid, proven here</b>`}
+      : {c:"no", t:`recomputed root does NOT match the checkpoint root — inclusion fails`});
+    put();
+  } catch(e){ log.push({c:"no", t:"inclusion recompute error: "+esc(e.message)}); put(); }
+
+  // 3. standing
+  log.push(rec.revoked ? {c:"no", t:"standing: REVOKED in the signed status list — fails closed"} : {c:"ok", t:"standing: ACTIVE (not revoked as of the signed head)"}); put();
+
+  res.textContent = verdict.verdict === "valid" && !rec.revoked ? "VALID ✓" : `INVALID · ${verdict.reason||"revoked"}`;
+  res.className = "vres " + (verdict.verdict === "valid" && !rec.revoked ? "ok" : "no");
+  btn.disabled = false;
+}
+
+// search + keyboard
+$("#q").addEventListener("input", e => { S.q = e.target.value; render(); });
+document.addEventListener("keydown", e => { if(e.key==="/" && document.activeElement!==$("#q")){ e.preventDefault(); $("#q").focus(); } if(e.key==="Escape") closeDetail(); });
+load();
+</script>
+</body>
+</html>

@@ -329,3 +329,29 @@ Independent re-verification of the two M12 differentials this milestone was aske
 adversarial refuters built 202- and 151-input batteries through both real implementations and found **zero
 divergences**; both accept exactly the 16 canonical last-chars. No frozen doc changed (freeze stays valid). DoD
 table unchanged.
+
+## D-030 — M14 (partial): AINRAscan is a real client-verifying app; the SDK runs in the browser
+
+The AINRAscan landing was a polished shell with hardcoded specimen data. It is now a **real explorer** rendering
+real pipeline data and recomputing every verdict in the browser — the "verify it yourself" promise made literal.
+
+**The real `@ainra/sdk` bundled for the browser (no reimplementation).** `packages/sdk-ts/browser/` esbuild-bundles
+`src/index.ts` into one self-contained ESM: `@noble/*` inlined, `Buffer` shimmed, and the single Node dependency
+`node:zlib.inflateSync` aliased to a shim over **`fflate.unzlibSync`** (the matching ZLIB-wrapped decoder —
+`fflate.inflateSync` is raw RFC-1951 and was the first-try bug). Zero external requests. **Proven equivalent:** the
+browser bundle reproduces core's verdict on all **745** vectors and all **13** seeded records — the browser runs the
+exact code that anchors the differential. esbuild + fflate are build-time devDeps; they don't affect the `tsc` build
+or the differential.
+
+**Real data, every lifecycle state.** `seed.rs` gained an ADR-017 `renew` field; `make ainrascan` seeds a real
+network (real hybrid signing / RFC 6962 inclusion / signed status deltas) including a renewal chain (`prev_leaf`),
+self-checked by the core verifier. Data + bundle are derived (gitignored); `ainrascan/index.html` is committed.
+
+**Two independent client-side checks, honest labels.** On click the app runs the full 9-step SDK verify AND an
+independent RFC 6962 recompute in the page's own JS (SHA-256 leaf from the canonical body → walk the audit path →
+equals the signed checkpoint root). Persistent `STAGING NETWORK · TEST-ROOT` banner (machine + human readable),
+independence colophon + oath, mechanical ordering, zero telemetry, self-contained. Placeholder operators only.
+
+**Scope discipline.** This is the client half: it does NOT deploy a network (no containers / multi-region / domain /
+CDN), does not touch DoD rows, publishes nothing, and claims no usage. The deployment half remains a separate
+milestone needing an operator's hosts. See PLAN-M14.

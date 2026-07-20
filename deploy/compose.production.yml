@@ -1,0 +1,52 @@
+# SPDX-License-Identifier: Apache-2.0 OR MIT
+# AINRA PRODUCTION network. IDENTICAL to compose.staging.yml except the four allowed axes (config-diff pins this):
+#   1. name (ainra-production), 2. banner env (AINRA_NETWORK=production — no TEST banner; the running services show
+#   PRODUCTION by key-detection), 3. volumes (prod_* — separate from staging), 4. KEY SOURCE: the root chain comes
+#   from the recorded genesis ceremony (mounted into prod_reg* on first boot), NOT first-boot dev generation.
+# NOTHING trusted migrates from staging (D-033). deploy/README.md + docs/genesis-day/CUTOVER.md. Secrets: the write token comes from the environment / an .env file, NEVER baked into an image.
+name: ainra-production
+services:
+  registrar-07:
+    build: { context: .., dockerfile: deploy/Dockerfile.services }
+    image: ainra/services:staging
+    command: ["0.0.0.0:4907", "registrar-07", "/data"]
+    environment:
+      AINRA_NETWORK: "production"
+      AINRA_STAGE_ISSUE_TOKEN: "${AINRA_STAGE_ISSUE_TOKEN:?set a staging issue token in deploy/.env}"
+    volumes: ["prod_reg07:/data"]
+    healthcheck: { test: ["CMD", "curl", "-fsS", "http://127.0.0.1:4907/health"], interval: 15s, retries: 5 }
+    ports: ["4907:4907"]
+    read_only: true
+    tmpfs: ["/tmp"]
+
+  registrar-11:                       # a DISTINCT registrar class (distinct keys) — mirrors the accreditation story
+    image: ainra/services:staging
+    command: ["0.0.0.0:4911", "registrar-11", "/data"]
+    environment:
+      AINRA_NETWORK: "production"
+      AINRA_STAGE_ISSUE_TOKEN: "${AINRA_STAGE_ISSUE_TOKEN:?set a staging issue token in deploy/.env}"
+    volumes: ["prod_reg11:/data"]
+    healthcheck: { test: ["CMD", "curl", "-fsS", "http://127.0.0.1:4911/health"], interval: 15s, retries: 5 }
+    ports: ["4911:4911"]
+    read_only: true
+    tmpfs: ["/tmp"]
+    depends_on: [registrar-07]
+
+  prod_witness:                            # an independent witness; more join from other hosts (witness-quickstart.md)
+    image: ainra/services:staging
+    entrypoint: ["witnessd"]
+    command: ["0.0.0.0:4891", "/data"]
+    volumes: ["prod_witness:/data"]
+    ports: ["4891:4891"]
+    read_only: true
+    tmpfs: ["/tmp"]
+
+  artifacts:                          # the public CDN-shaped read surface (front this with a real CDN in production)
+    build: { context: .., dockerfile: deploy/Dockerfile.artifacts }
+    image: ainra/artifacts:staging
+    environment: { AINRA_NETWORK: "production" }
+    volumes: ["prod_public:/prod_public:ro"]    # populated by the publisher step (tools/stage.sh publish / a cron job)
+    ports: ["8091:8091"]
+    read_only: true
+
+volumes: { prod_reg07: {}, prod_reg11: {}, prod_witness: {}, prod_public: {} }

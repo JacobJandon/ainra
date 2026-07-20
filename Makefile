@@ -1,6 +1,6 @@
 # AINRA — the acceptance bar (MTS §28, brief §8): a stranger clones, runs `make test && make vectors && make diff`,
 # and everything is green in under 10 minutes on a laptop.
-.PHONY: all test vectors vectors-check diff fmt clippy fuzz-smoke bench sdk-build sdk-test ci clean status console samples drill explorer demo scale ceremony testbed wedge-build wedge-test repro mirror verify-mirror check-freeze freeze genesis-local verifier-kit-smoke ceremony-dry-run soak-smoke drill-networked preflight s7 license gitleaks audit verify-as-external verifier-triple-drill soak-verify genesis-status verify-transcript genesis-board-demo release doctor verifier-operator-drill site ainrascan stage-up stage-down stage-status stage-smoke
+.PHONY: all test vectors vectors-check diff fmt clippy fuzz-smoke bench sdk-build sdk-test ci clean status console samples drill explorer demo scale ceremony testbed wedge-build wedge-test repro mirror verify-mirror check-freeze freeze genesis-local verifier-kit-smoke ceremony-dry-run soak-smoke drill-networked preflight s7 license gitleaks audit verify-as-external verifier-triple-drill soak-verify genesis-status verify-transcript genesis-board-demo release doctor verifier-operator-drill site ainrascan stage-up stage-down stage-status stage-smoke config-diff declaration genesis-rehearsal
 
 all: fmt clippy test vectors diff
 
@@ -214,6 +214,14 @@ stage-status:
 	bash tools/stage.sh status
 stage-smoke:
 	bash tools/stage-smoke.sh
+
+# Genesis (M15): production≡staging parity gate · the fail-closed founding-declaration pipeline · the dress rehearsal.
+config-diff:
+	node tools/config-diff.mjs
+declaration:
+	node tools/declaration.mjs $(if $(EVIDENCE),--evidence "$(EVIDENCE)",)
+genesis-rehearsal:
+	bash tools/genesis-rehearsal.sh
 
 # M10 — the "clone it and it works" promise: run every gate a stranger runs, print a green/red board (QUICK=1 skips repro).
 preflight:

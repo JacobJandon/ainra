@@ -111,8 +111,8 @@ footer .wrap{padding:26px 20px 34px}
 </head>
 <body>
 
-<div class="stage"><div class="wrap">
-  <b>STAGING NETWORK</b><span>·</span><span>TEST-ROOT — real cryptography, honest labels. No trust migrates to the future production root; the real root is born only at the recorded genesis ceremony.</span>
+<div class="stage" id="banner"><div class="wrap">
+  <b id="bannerNet">STAGING NETWORK</b><span>·</span><span id="bannerText">TEST-ROOT — real cryptography, honest labels. No trust migrates to the future production root; the real root is born only at the recorded genesis ceremony.</span>
   <span class="sp"></span><span id="stageEndpoint">local</span>
 </div></div>
 
@@ -214,7 +214,16 @@ async function load(){
   let reg, banner = null;
   try {
     const r = await fetch(src, {cache:"no-store"}); if(!r.ok) throw 0;
-    banner = r.headers.get("X-AINRA-Network"); reg = await r.json();
+    banner = r.headers.get("X-AINRA-Network"); const root = r.headers.get("X-AINRA-Root"); reg = await r.json();
+    // Data-driven banner (D-033): decide STAGING vs PRODUCTION display from the network/root the artifact server
+    // declares (which the deploy profile sets from the real signing root) — one codebase, honest either way.
+    if (banner === "production") {
+      $("#bannerNet").textContent = "PRODUCTION NETWORK";
+      $("#bannerText").textContent = `Live AINRA root${root && root!=="production-root" ? " ("+root+")" : ""} — every verdict recomputed in your browser.`;
+      $("#banner").style.background = "#0B1220";
+    } else if (banner === "staging") {
+      $("#bannerText").textContent = "TEST-ROOT — real cryptography, honest labels. No trust migrates to the production root, born only at the recorded genesis ceremony.";
+    }
   }
   catch(e){ $("#listmeta").textContent = net
     ? `Could not reach the staging network at ${esc(net)} — is it up? (make stage-up)`

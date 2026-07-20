@@ -75,3 +75,8 @@ packages/sdk-ts/browser/ainra-sdk.js
 # staging network runtime state (make stage-up)
 stage/
 deploy/.env
+
+# genesis evidence (real ceremony/verifier/soak artifacts, collected on the day)
+genesis-evidence/
+docs/genesis-day/declaration/founding-declaration.md
+deploy/.env.production

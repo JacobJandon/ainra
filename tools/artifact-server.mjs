@@ -21,7 +21,10 @@ import crypto from "node:crypto";
 
 const ROOT = path.resolve(process.argv[2] || "stage/public");
 const PORT = parseInt(process.argv[3] || "8091", 10);
-const NETWORK = process.env.AINRA_STAGE === "0" ? "dev" : "staging";
+// Data-driven banner (D-033): the deploy profile sets AINRA_NETWORK/AINRA_ROOT — staging emits staging/test-root,
+// the production profile emits production + the production root fingerprint. One codebase, honest either way.
+const NETWORK = process.env.AINRA_NETWORK || (process.env.AINRA_STAGE === "1" ? "staging" : "dev");
+const ROOT_LABEL = process.env.AINRA_ROOT || (NETWORK === "production" ? "production-root" : "test-root");
 
 const CT = { ".json": "application/json", ".txt": "text/plain; charset=utf-8", ".html": "text/html; charset=utf-8", ".js": "text/javascript" };
 const isImmutable = p => /\/checkpoints\/|\/tiles\/|\.immutable\./.test(p);
@@ -30,7 +33,7 @@ function bannerHeaders(h = {}) {
   h["Access-Control-Allow-Origin"] = "*";
   h["Access-Control-Expose-Headers"] = "ETag, X-AINRA-Network, X-AINRA-Root";
   h["X-AINRA-Network"] = NETWORK;   // machine-readable: this is a staging network…
-  h["X-AINRA-Root"] = "test-root";  // …on a TEST-ROOT. No trust migrates to the future production root.
+  h["X-AINRA-Root"] = ROOT_LABEL;  // …on a TEST-ROOT (staging) or the production root fingerprint (production).
   return h;
 }
 
@@ -65,4 +68,4 @@ const server = http.createServer((req, res) => {
     res.end(req.method === "HEAD" ? undefined : body);
   });
 });
-server.listen(PORT, "0.0.0.0", () => console.error(`artifact-server [${NETWORK}·test-root] root=${ROOT} → http://0.0.0.0:${PORT}`));
+server.listen(PORT, "0.0.0.0", () => console.error(`artifact-server [${NETWORK}·${ROOT_LABEL}] root=${ROOT} → http://0.0.0.0:${PORT}`));

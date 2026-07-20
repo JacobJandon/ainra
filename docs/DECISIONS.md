@@ -396,3 +396,20 @@ witness recruitment (deploy/witness-quickstart.md: an outsider witnesses staging
 soak (the 3-host deployment IS the soak platform; docs/runbooks/soak.md is the human's start procedure). It does
 NOT start the 14-day clock, run the ceremony, register a domain, publish a repo, or claim any usage — adoption is
 earned by the humans running those rows. The DoD table is untouched and unfaked.
+
+## D-033 — M15: production cutover is config, not a fork (staging↔production parity, data-driven banner)
+
+Genesis brings production up as the **same reviewed staging deployment** with four axes changed — name, banner env,
+volumes, and key source (the ceremony root chain vs staging's dev first-boot keys). A fifth difference is a fork,
+and a fork is where a "production" deploy silently drifts from what was tested. So parity is **pinned by
+`make config-diff`** (tools/config-diff.mjs): it masks the four allowed axes and asserts the two compose files are
+otherwise byte-identical, failing closed (with the diverging lines) otherwise — proven by a negative test (a rogue
+port change is caught). A divergence may be introduced only with a written D-0xx waiver.
+
+The STAGING-vs-PRODUCTION display is **data-driven, not code-forked**: the artifact server emits
+`X-AINRA-Network`/`X-AINRA-Root` from `AINRA_NETWORK`/`AINRA_ROOT` (set by the deploy profile from the real signing
+root); AINRAscan and the services read them and label themselves accordingly. One codebase is honest as either
+network — on genesis day AINRAscan flips to PRODUCTION by key-detection, showing honest near-zeros becoming real
+entries (its empty-state design), never a hardcoded claim. **Nothing trusted migrates from staging** (different
+root, keys, domains, volumes; the banner says which you are reading). docs/genesis-day/CUTOVER.md holds the DNS
+checklist + the `v1.0.0-genesis` release/freeze/re-tag discipline.

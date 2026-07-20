@@ -18,7 +18,10 @@ STAGE=stage
 PUB="$STAGE/public"
 REG1_ADDR=127.0.0.1:4907 ; REG1_ID=registrar-07
 REG2_ADDR=127.0.0.1:4911 ; REG2_ID=registrar-11
-WIT_ADDR=127.0.0.1:4891
+# 4991, NOT 4891: `make drill-networked` uses 4891–4895 for its witness-quorum test, and that test fails closed on
+# a leftover process on its port. Keeping the staging witness off that range lets the staging network and the test
+# suite run at the same time.
+WIT_ADDR=127.0.0.1:4991
 ART_PORT=8091
 NBF=1775865600 ; RENEW_AT=$((NBF + 5*24*3600)) ; NOW=$((NBF + 10*24*3600)) ; AUDIT_EXP=1900000000
 export AINRA_STAGE=1

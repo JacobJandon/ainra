@@ -10,12 +10,12 @@ witness recruitment (a pending DoD row) begins for real.
 ```sh
 # from a clone (or the released image)
 cargo build --release -p ainra-services --bin witnessd
-./target/release/witnessd 0.0.0.0:4891 ./witness-data
-# or:  docker run -p 4891:4891 -v witness:/data ainra/services:staging witnessd 0.0.0.0:4891 /data
+./target/release/witnessd 0.0.0.0:4991 ./witness-data
+# or:  docker run -p 4991:4991 -v witness:/data ainra/services:staging witnessd 0.0.0.0:4991 /data
 ```
 
 Your witness generates its OWN key on first boot (into `./witness-data`) — you are a *distinct* witness, not a copy
-of ours. Tell the network operator your `http://<your-host>:4891` and your public key (`GET /root`); they add you to
+of ours. Tell the network operator your `http://<your-host>:4991` and your public key (`GET /root`); they add you to
 the witness set. A relying party sets its own quorum `k` (never a cert's) — see D-021.
 
 ## Prove it works (catch a fork)

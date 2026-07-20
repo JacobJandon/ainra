@@ -36,9 +36,12 @@ console.log(`${ok} valid / ${rev} revoked / ${tot} total (SDK over public artifa
 echo "$V" | grep -q "total" && echo "  ✓ $V" || fail "SDK verify over public artifacts failed: $V"
 
 echo "== 3. LIVE write path: issue → verify → revoke → propagate (registrar daemon, authed) =="
-SUB="ainra:$RID:acme:smoke-agent@1.0.0"
+# A UNIQUE lineage per run so the smoke is idempotent against the long-lived daemon (re-running never collides with
+# an already-issued-and-revoked subject from a previous run).
+LIN="smoke-$$-$RANDOM"
+SUB="ainra:$RID:acme:$LIN@1.0.0"
 curl -s -m 8 -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" \
-  -d '{"operator":"acme","lineage":"smoke-agent","version":"1.0.0","tier":"L2","auth_class":"A2","principal_proof":"deadbeefsmoke","capabilities":["read:x"],"scope_ceiling":["read:x"],"hops":[]}' \
+  -d "{\"operator\":\"acme\",\"lineage\":\"$LIN\",\"version\":\"1.0.0\",\"tier\":\"L2\",\"auth_class\":\"A2\",\"principal_proof\":\"deadbeefsmoke\",\"capabilities\":[\"read:x\"],\"scope_ceiling\":[\"read:x\"],\"hops\":[]}" \
   "http://$REG/issue" >/dev/null
 V1=$(curl -s -m 8 "http://$REG/verify?sub=$(python3 -c "import urllib.parse,sys;print(urllib.parse.quote(sys.argv[1]))" "$SUB")&now=$NOW" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>console.log(JSON.parse(s).verdict.verdict))')
 [ "$V1" = "valid" ] && echo "  ✓ issued + verified VALID via the daemon" || fail "fresh issue did not verify ($V1)"

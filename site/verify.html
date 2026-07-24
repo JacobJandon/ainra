@@ -323,7 +323,25 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
   .passport{transform:none!important}
 }
 
-.doc{max-width:840px}.doc h1{font-size:clamp(30px,4.4vw,44px);line-height:1.06;margin:0 0 14px}.doc h2{font-size:clamp(21px,2.6vw,27px);margin:44px 0 10px}.doc h3{font-size:17px;margin:30px 0 8px}.doc p{margin:0 0 14px;color:var(--ink);opacity:.92}.doc li{margin:0 0 8px}.doc ul{padding-left:20px;margin:0 0 16px}.doc code{font-family:var(--mono);font-size:.86em;background:rgba(11,18,32,.06);padding:1px 5px;border-radius:4px}.doc .tbl{font-family:var(--mono);font-size:12.5px;line-height:1.65;background:rgba(11,18,32,.04);border:1px solid rgba(11,18,32,.1);border-radius:10px;padding:14px 16px;overflow-x:auto;white-space:pre;margin:0 0 16px}.doc hr{border:none;border-top:1px solid rgba(11,18,32,.12);margin:34px 0}</style></head><body id="top">
+.doc{max-width:840px}.doc h1{font-size:clamp(30px,4.4vw,44px);line-height:1.06;margin:0 0 14px}.doc h2{font-size:clamp(21px,2.6vw,27px);margin:44px 0 10px}.doc h3{font-size:17px;margin:30px 0 8px}.doc p{margin:0 0 14px;color:var(--ink);opacity:.92}.doc li{margin:0 0 8px}.doc ul{padding-left:20px;margin:0 0 16px}.doc code{font-family:var(--mono);font-size:.86em;background:rgba(11,18,32,.06);padding:1px 5px;border-radius:4px}.doc .tbl{font-family:var(--mono);font-size:12.5px;line-height:1.65;background:rgba(11,18,32,.04);border:1px solid rgba(11,18,32,.1);border-radius:10px;padding:14px 16px;overflow-x:auto;white-space:pre;margin:0 0 16px}.doc hr{border:none;border-top:1px solid rgba(11,18,32,.12);margin:34px 0}
+/* ── shared chrome (merged design) ── */
+.announce{background:var(--ink);color:#E2E8F0;font-size:12.5px;text-align:center;padding:9px 16px}
+.announce a{color:var(--green-br);font-weight:600}
+.announce a:hover{text-decoration:underline}
+.mi{position:relative}
+.mi>button{display:inline-flex;align-items:center;gap:5px;font-size:14px;font-weight:500;color:var(--muted);padding:9px 12px;border-radius:10px}
+.mi>button:hover{color:var(--ink);background:rgba(11,18,32,.045)}
+.car{font-size:9px;opacity:.6}
+.dd{position:absolute;top:calc(100% + 6px);left:0;min-width:238px;background:var(--card);border:1px solid rgba(11,18,32,.14);border-radius:14px;padding:7px;display:none;box-shadow:0 24px 60px rgba(11,18,32,.12);z-index:70}
+.mi.open .dd{display:block}
+.dd a{display:block;font-size:13.5px;font-weight:500;color:var(--muted);padding:9px 11px;border-radius:9px}
+.dd a span{display:block;font-size:11.5px;font-weight:400;color:var(--muted);opacity:.85;margin-top:1px}
+.dd a:hover{background:rgba(26,107,78,.06);color:var(--ink)}
+.nav-r{margin-left:auto;display:flex;gap:10px;align-items:center}
+.openbadge{display:inline-flex;align-items:center;gap:9px;font-size:11px;font-weight:600;color:var(--muted);border:1px solid rgba(11,18,32,.14);border-radius:99px;padding:6px 13px;font-family:var(--body);letter-spacing:0}
+@media(min-width:901px){.nav-links{display:none!important}}
+@media(max-width:900px){.mi,.nav-hide{display:none}}
+</style></head><body id="top">
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
     <g id="ainra-sigil">
@@ -352,15 +370,43 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
       <path d="M56 30 a26 26 0 0 1 26 26" stroke="#57C08F" stroke-width="3" stroke-linecap="round" fill="none"/>
       <circle cx="56" cy="56" r="2.4" fill="#E7EAF0"/>
     </g>
+    <g id="ainra-crest">
+      <circle cx="80" cy="80" r="78" fill="none" stroke="currentColor" stroke-width="2.5"/>
+      <circle cx="80" cy="80" r="70" fill="none" stroke="currentColor" stroke-width="1"/>
+      <circle cx="80" cy="80" r="46" fill="none" stroke="currentColor" stroke-width="1.4"/>
+      <path id="crestpath" d="M 80 22 a 58 58 0 1 1 -0.01 0" fill="none"/>
+      <text font-family="B612 Mono,monospace" font-size="10.5" letter-spacing="3.2" fill="currentColor" font-weight="700"><textPath href="#crestpath" startOffset="0">· AINRA · THE IDENTITY LAYER · EST. GENESIS ·</textPath></text>
+      <circle cx="80" cy="80" r="6" fill="currentColor"/>
+    </g>
   </defs>
 </svg>
+<div class="announce">The neutral identity stack for AI agents — engineering-complete, 745/745 conformance. <a href="status.html">Learn more →</a></div>
 <nav><div class="wrap nav-in">
   <a class="brand" href="index.html" aria-label="AINRA — Agent Identity and Naming Registry Authority">
     <span class="sigil" aria-hidden="true"><svg viewBox="0 0 112 112"><use href="#ainra-sigil"/></svg></span>
     <span class="wm">AINRA</span><span class="mean">Agent Identity &amp; Naming<br>Registry Authority</span></a>
+  <div class="mi"><button type="button" data-dd>Protocol <span class="car">▼</span></button><div class="dd">
+    <a href="standard.html">The open standard<span>Names, passports, tiers, mandates</span></a>
+    <a href="verify.html">Verification<span>Five lines, offline, fail-closed</span></a>
+    <a href="claim.html">Claim &amp; Reach<span>Bring an existing agent into the record</span></a>
+  </div></div>
+  <div class="mi"><button type="button" data-dd>Developers <span class="car">▼</span></button><div class="dd">
+    <a href="index.html#developers">Quickstart<span>SDK, middleware, CLI</span></a>
+    <a href="standard.html">Conformance vectors<span>CC0 · three implementations agree</span></a>
+    <a href="AINRA_I_The_Standard.md">The standard, verbatim<span>Read the source document</span></a>
+  </div></div>
+  <div class="mi"><button type="button" data-dd>Foundation <span class="car">▼</span></button><div class="dd">
+    <a href="foundations.html">Charter &amp; four rules<span>What the root can never do</span></a>
+    <a href="status.html">Honest status<span>What exists · what doesn't yet</span></a>
+    <a href="foundations.html#faq">FAQ<span>Straight answers</span></a>
+  </div></div>
+  <div class="nav-r">
+    <a class="btn btn-ghost nav-hide" href="standard.html">Read the standard</a>
+    <a class="btn btn-ink" href="verify.html">Start verifying</a>
+    <button class="burger" id="burger" aria-label="Menu" aria-expanded="false">≡</button>
+  </div>
   <div class="nav-links" id="navLinks"><a href="index.html">The root</a><a href="standard.html">Standard</a><a href="verify.html" style="color:var(--green)">Verify</a><a href="claim.html">Claim &amp; Reach</a><a href="foundations.html">Foundations</a><a href="status.html">Status</a></div>
-  <div style="display:flex;gap:10px;align-items:center"><a class="btn btn-ink" href="index.html#access">Get involved</a>
-  <button class="burger" id="burger" aria-label="Menu" aria-expanded="false">≡</button></div></div></nav>
+</div></nav>
 <main><section style="padding-top:118px"><div class="wrap">
 <div class="sec-head rv"><span class="eyebrow">For verifiers &amp; builders</span>
 <h2>Verify anything.<br>Trust the source, not us.</h2>
@@ -546,7 +592,8 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
       <span class="live"><i aria-hidden="true"></i> ROOT STATUS: PRE-CEREMONY</span>
       <span>LOGS SEALED: 0 · WITNESSES: RECRUITING · SPEC PUBLIC · CLI v0.1.0</span>
       <span>ISSUES NOTHING · SCORES NOTHING · SEES NO PII · FAVORS NO ONE</span>
-    </div>
+    
+      <span class="openbadge"><svg style="width:26px;height:26px;color:#8A93A0" viewBox="0 0 160 160" aria-hidden="true"><use href="#ainra-crest"/></svg>An open standard · held by no one</span></div>
   </div>
 </footer>
 <script>
@@ -662,6 +709,16 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
   if(cf){
     cf.addEventListener('submit',e=>{e.preventDefault();const em=$('ctaEmail');if(!em.value||!em.value.includes('@')){em.focus();return;}e.target.style.display='none';const ok=$('ctaOk');if(ok)ok.style.display='block';});
   }
+})();
+</script>
+<script>
+/* shared chrome: dropdown menus */
+(function(){
+  document.querySelectorAll('[data-dd]').forEach(function(b){b.addEventListener('click',function(e){e.stopPropagation();
+    var mi=b.parentElement,was=mi.classList.contains('open');
+    document.querySelectorAll('.mi.open').forEach(function(m){m.classList.remove('open')});
+    if(!was)mi.classList.add('open');});});
+  document.addEventListener('click',function(){document.querySelectorAll('.mi.open').forEach(function(m){m.classList.remove('open')})});
 })();
 </script>
 </body></html>

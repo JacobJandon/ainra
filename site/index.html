@@ -6,9 +6,13 @@
 <title>AINRA — The identity layer for autonomous AI</title>
 <meta name="description" content="The identity layer for autonomous AI. AINRA is its neutral root: an open standard — passports for agents, authority classes, sub-minute global revocation, and a public record anyone can verify.">
 <style>
+/* AINRA landing — merged design: the original page's substance (passport, orbit, four jobs, lifecycle, founding
+   table) with the new draft's frame (announcement bar, centered short hero, facts strip, code tabs, statement,
+   disclosure, crest). Self-contained: no CDN, no web fonts, zero telemetry. */
 :root{
   --ink:#0B1220; --ink-2:#111B30; --paper:#F5F6F3; --card:#FFFFFF;
-  --green:#1A6B4E; --green-br:#57C08F; --muted:#5A6372; --line:#E2E5DF;
+  --green:#1A6B4E; --green-br:#57C08F; --muted:#5A6372; --line:#E2E5DF; --line2:rgba(11,18,32,.14);
+  --amber:#8a6a14;
   --mono:'B612 Mono',ui-monospace,'SFMono-Regular',Menlo,Consolas,monospace;
   --body:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
   --display:'Bricolage Grotesque',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
@@ -18,61 +22,80 @@ html{scroll-behavior:smooth}
 body{font-family:var(--body);background:var(--paper);color:var(--ink);font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased}
 ::selection{background:var(--green);color:#fff}
 a{color:inherit;text-decoration:none}
-.wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+.wrap{max-width:1120px;margin:0 auto;padding:0 24px}
 .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--green)}
 h1,h2,h3{font-family:var(--display);letter-spacing:-.02em}
 button{font-family:var(--body);cursor:pointer;border:none;background:none;color:inherit}
 :focus-visible{outline:2px solid var(--green);outline-offset:3px;border-radius:4px}
+.rv{opacity:0;transform:translateY(12px);transition:opacity .55s,transform .55s}
+.rv.in{opacity:1;transform:none}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+@media(prefers-reduced-motion:reduce){.rv,.t-line{opacity:1!important;transform:none!important;transition:none}.verify-line{opacity:1;transform:none}.passport{transform:none!important}}
 
-.brand{display:flex;align-items:center;gap:12px;min-width:0}
-.brand .sigil{width:48px;height:48px;flex:none}
+/* announcement (new) */
+.announce{background:var(--ink);color:#E2E8F0;font-size:12.5px;text-align:center;padding:9px 16px}
+.announce a{color:var(--green-br);font-weight:600}
+.announce a:hover{text-decoration:underline}
+
+/* nav — brand + dropdown menus (desktop) + burger drawer (mobile) */
+nav{position:sticky;top:0;z-index:60;background:rgba(245,246,243,.86);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+.nav-in{display:flex;align-items:center;gap:6px;height:68px}
+.brand{display:flex;align-items:center;gap:11px;min-width:0;margin-right:16px}
+.brand .sigil{width:42px;height:42px;flex:none}
 .brand .sigil svg{display:block;width:100%;height:100%}
-.brand .wm{font-family:var(--display);font-weight:800;font-size:21px;letter-spacing:.02em}
-.brand .mean{border-left:1px solid var(--line);padding-left:12px;font-family:var(--mono);font-size:8.5px;line-height:1.5;letter-spacing:.16em;color:var(--muted);text-transform:uppercase;white-space:nowrap}
-@media(max-width:560px){.brand .mean{display:none}}
-
-nav{position:sticky;top:0;z-index:50;background:rgba(245,246,243,.86);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
-.nav-in{display:flex;align-items:center;justify-content:space-between;height:70px;gap:16px}
-.nav-links{display:flex;gap:24px;font-size:14px;font-weight:500;color:var(--muted)}
-.nav-links a:hover{color:var(--ink)}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:99px;font-weight:600;font-size:14.5px;padding:10px 20px;border:1px solid transparent;transition:transform .15s ease,background .15s ease,border-color .15s ease}
+.brand .wm{font-family:var(--display);font-weight:800;font-size:20px;letter-spacing:.02em}
+.brand .mean{border-left:1px solid var(--line);padding-left:11px;font-family:var(--mono);font-size:8.5px;line-height:1.5;letter-spacing:.15em;color:var(--muted);text-transform:uppercase;white-space:nowrap}
+@media(max-width:700px){.brand .mean{display:none}}
+.mi{position:relative}
+.mi>button{display:inline-flex;align-items:center;gap:5px;font-size:14px;font-weight:500;color:var(--muted);padding:9px 12px;border-radius:10px}
+.mi>button:hover{color:var(--ink);background:rgba(11,18,32,.045)}
+.car{font-size:9px;opacity:.6}
+.dd{position:absolute;top:calc(100% + 6px);left:0;min-width:238px;background:var(--card);border:1px solid var(--line2);border-radius:14px;padding:7px;display:none;box-shadow:0 24px 60px rgba(11,18,32,.12)}
+.mi.open .dd{display:block}
+.dd a{display:block;font-size:13.5px;font-weight:500;color:var(--muted);padding:9px 11px;border-radius:9px}
+.dd a span{display:block;font-size:11.5px;font-weight:400;color:var(--muted);opacity:.85;margin-top:1px}
+.dd a:hover{background:rgba(26,107,78,.06);color:var(--ink)}
+.nav-r{margin-left:auto;display:flex;gap:10px;align-items:center}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:99px;font-weight:600;font-size:14.5px;padding:11px 21px;border:1px solid transparent;transition:transform .15s ease,background .15s ease,border-color .15s ease,filter .15s ease}
 .btn:active{transform:scale(.98)}
 .btn-ink{background:var(--ink);color:#fff}
 .btn-ink:hover{background:#1d2a44}
 .btn-ghost{border-color:var(--line);background:var(--card);color:var(--ink)}
 .btn-ghost:hover{border-color:var(--ink)}
+.btn-green{background:var(--green);color:#fff}
+.btn-green:hover{filter:brightness(1.1)}
 .burger{display:none;width:40px;height:40px;border:1px solid var(--line);border-radius:10px;background:var(--card);place-items:center;font-family:var(--mono);font-size:15px}
+.nav-links{display:none}
 @media(max-width:900px){
-  .nav-links{display:none;position:absolute;top:70px;left:0;right:0;background:var(--paper);border-bottom:1px solid var(--line);flex-direction:column;gap:0;padding:8px 24px}
-  .nav-links a{padding:12px 0;border-top:1px solid var(--line)}
-  .nav-links.open{display:flex}
+  .mi,.nav-hide{display:none}
   .burger{display:grid}
+  .nav-links{position:absolute;top:68px;left:0;right:0;background:var(--paper);border-bottom:1px solid var(--line);flex-direction:column;gap:0;padding:8px 24px;font-size:14px;font-weight:500;color:var(--muted)}
+  .nav-links a{padding:12px 0;border-top:1px solid var(--line);display:block}
+  .nav-links.open{display:flex}
 }
 
-.hero{padding:70px 0 60px;position:relative;overflow:hidden}
-.hero-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:48px;align-items:center}
-@media(max-width:960px){.hero-grid{grid-template-columns:1fr;gap:48px}.hero{padding:48px 0 44px}}
-.pill{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;letter-spacing:.06em;padding:7px 14px;border:1px solid var(--line);border-radius:99px;background:var(--card);color:var(--muted);margin-bottom:26px;transition:border-color .15s}
-.pill:hover{border-color:var(--green)}
-.pill .dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2.4s infinite}
-.pill .arr{color:var(--green)}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
-.hero h1{font-size:clamp(2.7rem,6.2vw,4.4rem);font-weight:780;line-height:1;letter-spacing:-.038em}
+/* hero — centered, short, colour-merged kicker (new) */
+.hero{padding:72px 0 18px;text-align:center;position:relative;overflow:hidden;
+  background:radial-gradient(760px 340px at 50% -70px,rgba(26,107,78,.12),transparent 70%)}
+.kick{font-family:var(--mono);font-size:10.5px;letter-spacing:.3em;font-weight:700;
+  background:linear-gradient(90deg,var(--green) 0%,var(--green-br) 45%,var(--ink) 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+.hero h1{font-size:clamp(2.6rem,6vw,4.2rem);font-weight:780;line-height:1.02;letter-spacing:-.035em;max-width:840px;margin:14px auto 0}
 .hero h1 .u{box-shadow:inset 0 -0.13em 0 rgba(26,107,78,.26)}
-.hero .sub{margin-top:22px;font-size:17.5px;color:var(--muted);max-width:36em;line-height:1.65}
-.cta-row{display:flex;gap:12px;margin-top:28px;flex-wrap:wrap}
-.cmd{margin-top:16px;display:inline-flex;align-items:center;gap:14px;background:var(--ink);color:#D7DCE5;border-radius:10px;padding:12px 16px;font-family:var(--mono);font-size:12px;letter-spacing:.02em;max-width:100%}
+.hero .sub{margin:16px auto 0;max-width:640px;font-size:17px;color:var(--muted)}
+.cta-row{display:flex;gap:12px;justify-content:center;margin-top:26px;flex-wrap:wrap}
+.cmd{margin:20px auto 0;display:inline-flex;align-items:center;gap:14px;background:var(--ink);color:#D7DCE5;border-radius:10px;padding:12px 16px;font-family:var(--mono);font-size:12px;letter-spacing:.02em;max-width:100%}
 .cmd .p{color:var(--green-br)}
 .cmd code{white-space:nowrap;overflow-x:auto;scrollbar-width:none}
 .cmd button{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:rgba(255,255,255,.55);border:1px solid rgba(255,255,255,.18);border-radius:6px;padding:4px 9px;flex:none;transition:color .15s,border-color .15s}
 .cmd button:hover{color:#fff;border-color:rgba(255,255,255,.4)}
-.badges{margin-top:18px;display:flex;gap:8px 18px;flex-wrap:wrap}
+.badges{margin-top:18px;display:flex;gap:8px 18px;flex-wrap:wrap;justify-content:center}
 .badges span{font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--muted)}
 .badges b{color:var(--green);font-weight:700}
 
-/* passport — right of hero, full data */
-.pass-wrap{perspective:1600px;display:flex;justify-content:center}
-.passport{width:min(560px,100%);background:var(--card);border:1px solid var(--line);border-radius:12px;
+/* the passport — the ORIGINAL design, merged lightly with the new (crest stamp · status chip · caption) */
+.pass-wrap{perspective:1600px;display:flex;justify-content:center;margin:44px auto 0}
+.passport{width:min(580px,100%);background:var(--card);border:1px solid var(--line);border-radius:12px;text-align:left;
   box-shadow:0 1px 2px rgba(11,18,32,.05),0 22px 52px -24px rgba(11,18,32,.22);
   position:relative;overflow:hidden;transition:box-shadow .25s ease;will-change:transform}
 .passport::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.16;
@@ -101,9 +124,13 @@ nav{position:sticky;top:0;z-index:50;background:rgba(245,246,243,.86);backdrop-f
 .dr b{color:var(--muted);font-weight:400;letter-spacing:.12em;font-size:8.5px}
 .dr span{color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .dr span i{font-style:normal;color:var(--green)}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:600;border-radius:99px;padding:2px 9px;font-family:var(--body)}
+.c-ok{background:rgba(26,107,78,.1);color:var(--green)}
+.c-ok:before{content:"";width:5px;height:5px;border-radius:50%;background:currentColor}
 .authority{padding:10px 18px 12px;position:relative}
 .authority label{display:block;font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase;margin-bottom:3px}
 .authority div{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;color:var(--ink);font-weight:700}
+.p-crest{position:absolute;right:14px;bottom:88px;width:92px;height:92px;color:#8A93A0;opacity:.4;transform:rotate(-9deg);pointer-events:none}
 .mrz-zone{margin:0 12px 12px;background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:11px 13px;position:relative}
 .mrz{font-family:var(--mono);font-size:clamp(8.5px,1.9vw,11px);letter-spacing:.06em;line-height:1.75;color:var(--ink);white-space:pre;overflow:hidden}
 .mrz .caret{display:inline-block;width:.55em;height:1em;background:var(--green);vertical-align:-2px;animation:pulse 1s infinite}
@@ -111,15 +138,25 @@ nav{position:sticky;top:0;z-index:50;background:rgba(245,246,243,.86);backdrop-f
 .verify-line.in{opacity:1;transform:none;transition:opacity .45s ease,transform .45s ease}
 .verify-line i{width:6px;height:6px;border-radius:50%;background:var(--green);flex:none}
 .verify-line span{color:var(--muted)}
-@media(max-width:480px){.pass-body{grid-template-columns:88px 1fr;gap:12px}.portrait{width:88px;height:88px}.pass-wm{font-size:88px}.dr{grid-template-columns:66px 1fr}}
+.p-cap{text-align:center;margin-top:13px;font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;color:var(--amber)}
+@media(max-width:480px){.pass-body{grid-template-columns:88px 1fr;gap:12px}.portrait{width:88px;height:88px}.pass-wm{font-size:88px}.dr{grid-template-columns:66px 1fr}.p-crest{display:none}}
 
+/* facts strip (new) */
+.facts{margin-top:36px;text-align:center;padding-bottom:6px}
+.facts .cap{font-size:12.5px;color:var(--muted)}
+.facts .row{display:flex;gap:12px 34px;justify-content:center;flex-wrap:wrap;margin-top:14px;font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--muted)}
+.facts .row b{color:var(--ink)}
+.facts .row .g{color:var(--green)}
+
+/* interop + belief strips (original) */
 .interop{border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:var(--card);padding:24px 0}
 .interop .wrap{display:flex;flex-direction:column;gap:14px;align-items:center}
 .interop .row{display:flex;align-items:center;gap:12px 32px;flex-wrap:wrap;justify-content:center}
 .interop span{font-family:var(--mono);font-size:12px;letter-spacing:.08em;color:var(--muted)}
 .interop .lead{color:var(--ink);font-weight:700;font-size:10.5px;text-transform:uppercase;letter-spacing:.16em}
 
-.stats{padding:72px 0 8px}
+/* stats (original) */
+.stats{padding:64px 0 8px}
 .stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:14px;overflow:hidden}
 .stat{background:var(--card);padding:26px 22px}
 .stat .n{font-family:var(--display);font-size:clamp(1.7rem,3.4vw,2.4rem);font-weight:750;letter-spacing:-.03em}
@@ -129,26 +166,17 @@ nav{position:sticky;top:0;z-index:50;background:rgba(245,246,243,.86);backdrop-f
 @media(max-width:820px){.stat-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:480px){.stat-grid{grid-template-columns:1fr}}
 
-section{padding:92px 0}
+section{padding:88px 0}
 .sec-head{max-width:680px;margin-bottom:44px}
 .sec-head h2{font-size:clamp(1.9rem,4vw,2.75rem);font-weight:730;line-height:1.1;margin-top:12px;letter-spacing:-.03em}
 .sec-head .lede{margin-top:14px;color:var(--muted);font-size:16.5px}
 
-.does{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
-@media(max-width:820px){.does{grid-template-columns:1fr}}
-.do-cell{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:28px}
-.do-cell .k{font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--green);text-transform:uppercase;display:block;margin-bottom:12px}
-.do-cell h3{font-size:18px;font-weight:700;margin-bottom:8px;letter-spacing:-.015em}
-.do-cell p{font-size:14.5px;color:var(--muted)}
-.do-cell .not{margin-top:14px;font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--muted)}
-.do-cell .not b{color:var(--green)}
-
+/* dark orbit (original, one-to-one) */
 .dark{background:var(--ink);color:#E7EAF0;position:relative}
 .dark::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.13;
   background:repeating-radial-gradient(circle at 112% -22%,rgba(87,192,143,.09) 0 2px,transparent 2px 11px)}
 .dark .eyebrow{color:var(--green-br)}
 .dark .sec-head .lede{color:#98A1B3}
-
 .orbit-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:48px;align-items:center;position:relative;z-index:1}
 @media(max-width:900px){.orbit-grid{grid-template-columns:1fr}}
 .orbit{width:100%;max-width:560px;margin:0 auto}
@@ -160,107 +188,18 @@ section{padding:92px 0}
 .leg.core{border-color:rgba(87,192,143,.5);background:rgba(87,192,143,.06)}
 .leg.core b{color:#fff}
 
-.defs{display:grid;grid-template-columns:1fr 1fr;gap:0 48px}
-@media(max-width:820px){.defs{grid-template-columns:1fr}}
-.def{display:flex;gap:14px;padding:16px 0;border-bottom:1px solid var(--line)}
-.mark{display:inline-grid;place-items:center;width:17px;height:17px;border-radius:50%;background:var(--green);color:#fff;font-family:var(--mono);font-size:9.5px;font-weight:700;flex:none;margin-top:2px}
-.def .body b{font-family:var(--mono);font-size:11px;letter-spacing:.12em;color:var(--ink);display:block;margin-bottom:3px}
-.def .body p{font-size:14px;color:var(--muted);line-height:1.55}
-.def .body p em{font-style:normal;color:var(--green);font-family:var(--mono);font-size:11px}
+/* four jobs (original) */
+.does{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+@media(max-width:820px){.does{grid-template-columns:1fr}}
+.do-cell{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:28px}
+.do-cell .k{font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--green);text-transform:uppercase;display:block;margin-bottom:12px}
+.do-cell h3{font-size:18px;font-weight:700;margin-bottom:8px;letter-spacing:-.015em}
+.do-cell p{font-size:14.5px;color:var(--muted)}
+.do-cell p+p{margin-top:8px}
+.do-cell .not{margin-top:14px;font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--muted)}
+.do-cell .not b{color:var(--green)}
 
-.rail{display:flex;gap:8px;margin-top:4px;flex-wrap:wrap}
-.rail button{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.06em;border:1px solid var(--line);border-radius:8px;padding:9px 14px;color:var(--muted);transition:all .15s;background:var(--card)}
-.rail button:hover{border-color:var(--green);color:var(--green)}
-.rail button[aria-pressed="true"]{background:var(--green);border-color:var(--green);color:#fff}
-.rail-info{margin-top:18px;border-left:2px solid var(--green);padding:4px 0 4px 16px;max-width:680px}
-.rail-info b{font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--green)}
-.rail-info p{font-size:14.5px;color:var(--muted);margin-top:4px}
-.mini-code{margin-top:22px;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:12px;font-family:var(--mono);font-size:11px;line-height:1.7;color:var(--ink);overflow-x:auto;white-space:pre;max-width:680px}
-.mini-code .g{color:var(--green)}.mini-code .m{color:var(--muted)}
-
-.split{display:grid;grid-template-columns:1fr auto 1fr;gap:20px;align-items:stretch;max-width:900px;margin:0 auto 52px;position:relative;z-index:1}
-.split .fx{display:grid;place-items:center;font-family:var(--mono);color:var(--green-br);font-size:22px}
-.half{border:1px solid rgba(255,255,255,.14);border-radius:14px;padding:22px 24px;background:rgba(255,255,255,.03)}
-.half b{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--green-br);display:block;margin-bottom:8px}
-.half p{font-size:13.5px;color:#B9C1CF;line-height:1.6}
-.half.you{border-color:rgba(87,192,143,.45)}
-@media(max-width:760px){.split{grid-template-columns:1fr}.split .fx{transform:rotate(90deg)}}
-
-.flow{display:grid;grid-template-columns:repeat(7,auto);gap:10px;align-items:stretch;justify-content:center;margin-bottom:52px}
-.flow .fx{display:grid;place-items:center;font-family:var(--mono);color:var(--green-br);font-size:16px}
-.fstep{background:var(--ink-2);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:16px 18px;max-width:200px}
-.fstep b{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;color:var(--green-br);display:block;margin-bottom:5px}
-.fstep p{font-size:12.5px;color:#98A1B3;line-height:1.5}
-@media(max-width:900px){.flow{grid-template-columns:1fr;justify-items:stretch}.flow .fx{transform:rotate(90deg)}.fstep{max-width:none}}
-
-.term{background:var(--ink-2);border:1px solid rgba(255,255,255,.09);border-radius:14px;overflow:hidden;max-width:820px;margin:0 auto;position:relative;z-index:1;box-shadow:0 24px 56px -30px rgba(11,18,32,.5)}
-.term-bar{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.08)}
-.term-bar i{width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.16)}
-.term-bar span{margin-left:auto;font-family:var(--mono);font-size:10.5px;color:rgba(255,255,255,.4);letter-spacing:.08em}
-.term-body{padding:20px 22px;font-family:var(--mono);font-size:13px;line-height:1.85;color:#D7DCE5;min-height:236px}
-.term-body .p{color:#8B94A6}.term-body .g{color:var(--green-br)}.term-body .w{color:#fff}
-.t-line{opacity:0;transform:translateY(3px)}
-.t-line.show{opacity:1;transform:none;transition:opacity .22s ease,transform .22s ease}
-.term-run{margin:0 22px 22px;display:inline-flex}
-.term-run .btn{background:#fff;color:var(--ink);font-family:var(--mono);font-size:12.5px;padding:9px 18px}
-.term-run .btn:hover{background:var(--paper)}
-
-.scan{max-width:900px;margin:0 auto;background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:0 24px 56px -30px rgba(11,18,32,.25)}
-.scan-top{display:flex;align-items:center;gap:14px;padding:14px 18px;border-bottom:1px solid var(--line);background:var(--paper)}
-.scan-top .sigil{width:22px;height:22px;flex:none}
-.scan-top .sigil svg{display:block;width:100%;height:100%}
-.scan-top .name{font-family:var(--display);font-weight:800;font-size:15px;letter-spacing:.02em}
-.scan-top .name span{color:var(--green)}
-.scan-top .tags{margin-left:auto;display:flex;gap:8px}
-.scan-top .tag{font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:var(--muted);border:1px dashed var(--line);border-radius:5px;padding:3px 8px}
-.scan-top .tag.ind{color:var(--green);border:1px solid var(--green)}
-.scan-search{display:flex;gap:10px;padding:16px 18px;border-bottom:1px solid var(--line)}
-.scan-search input{flex:1;min-width:0;border:1px solid var(--line);border-radius:9px;background:var(--paper);padding:11px 14px;font-family:var(--mono);font-size:12px;color:var(--ink)}
-.scan-search input::placeholder{color:var(--muted);opacity:.8}
-.scan-search .btn{background:var(--ink);color:#fff;border-radius:9px;font-family:var(--mono);font-size:11px;padding:0 18px}
-.scan-stats{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid var(--line)}
-.scan-stats div{padding:14px 18px;border-right:1px solid var(--line)}
-.scan-stats div:last-child{border-right:none}
-.scan-stats b{font-family:var(--display);font-size:19px;font-weight:750;display:block;letter-spacing:-.02em}
-.scan-stats span{font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;color:var(--muted)}
-@media(max-width:640px){.scan-stats{grid-template-columns:repeat(2,1fr)}.scan-stats div:nth-child(2){border-right:none}}
-.scan-rows{font-family:var(--mono)}
-.scan-row{display:grid;grid-template-columns:64px 1fr auto auto;gap:14px;align-items:center;padding:13px 18px;border-bottom:1px solid var(--line);font-size:11.5px}
-.scan-row.hide{display:none}
-.scan-empty{display:none;padding:16px 18px;font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.06em}
-.scan-row .ev{font-size:9px;letter-spacing:.12em;font-weight:700;border-radius:5px;padding:3px 0;text-align:center}
-.ev.issue{color:var(--green);border:1px solid var(--green)}
-.ev.revoke{color:#fff;background:var(--ink)}
-.ev.xfer{color:var(--muted);border:1px solid var(--line)}
-.scan-row .nm{color:var(--ink);letter-spacing:.02em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.scan-row .nm s{color:var(--muted);text-decoration:none}
-.scan-row .tr{font-size:9.5px;letter-spacing:.08em;color:var(--muted)}
-.scan-row .st{font-size:9.5px;letter-spacing:.1em;font-weight:700}
-.st.ok{color:var(--green)}
-.st.rv{color:var(--ink)}
-.scan-row.flash{animation:rowin .5s ease}
-@keyframes rowin{from{background:rgba(26,107,78,.12)}to{background:transparent}}
-.scan-foot{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:13px 18px;background:var(--paper);border-top:1px solid var(--line);font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;color:var(--muted)}
-.scan-foot .btn{background:var(--ink);color:#fff;border-radius:8px;font-size:10.5px;padding:8px 14px;font-family:var(--mono)}
-.scan-note{max-width:900px;margin:14px auto 0;font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;color:var(--muted);text-align:center;line-height:1.8}
-@media(max-width:640px){.scan-row{grid-template-columns:56px 1fr auto}.scan-row .tr{display:none}}
-
-.gloss{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
-@media(max-width:820px){.gloss{grid-template-columns:1fr}}
-.g-cell{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px 24px;transition:border-color .18s,box-shadow .18s}
-.g-cell:hover{border-color:#CBD4CC;box-shadow:0 12px 30px -20px rgba(26,107,78,.3)}
-.g-cell b{font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--ink);display:block}
-.g-cell p{font-size:13.5px;color:var(--muted);margin-top:6px;line-height:1.55}
-.g-cell .role{margin-top:10px;font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--green)}
-
-.align{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
-@media(max-width:820px){.align{grid-template-columns:1fr}}
-.a-cell{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px 24px}
-.a-cell h3{font-size:15.5px;font-weight:700;letter-spacing:-.01em;margin-bottom:12px}
-.a-row{display:grid;grid-template-columns:74px 1fr;gap:10px;font-size:12.5px;padding:5px 0;border-top:1px dashed var(--line)}
-.a-row b{font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:var(--green);padding-top:2px}
-.a-row span{color:var(--muted);line-height:1.5}
-
+/* lifecycle (original) */
 .steps{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;counter-reset:step}
 .step{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:24px;position:relative}
 .step::before{counter-increment:step;content:"0" counter(step);font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--green);font-weight:700}
@@ -269,37 +208,35 @@ section{padding:92px 0}
 @media(max-width:900px){.steps{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:560px){.steps{grid-template-columns:1fr}}
 
-.org{background:var(--card);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
-.org-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
-@media(max-width:820px){.org-grid{grid-template-columns:1fr}}
-.org-cell{border:1px solid var(--line);border-radius:14px;padding:26px;background:var(--paper)}
-.org-cell h3{font-size:16.5px;margin-bottom:10px;display:flex;align-items:baseline;gap:10px}
-.org-cell h3 span{font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--green)}
-.org-cell p{font-size:14px;color:var(--muted)}
-.org-cell ul{list-style:none;margin-top:12px;display:grid;gap:7px}
-.org-cell li{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;color:var(--muted);padding-left:16px;position:relative}
-.org-cell li::before{content:"—";position:absolute;left:0;color:var(--green)}
-.open-strip{margin-top:16px;border:1px solid var(--line);border-radius:14px;background:var(--paper);padding:18px 22px;display:flex;gap:10px 28px;flex-wrap:wrap;align-items:center;justify-content:center}
-.open-strip span{font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--muted)}
-.open-strip b{color:var(--green)}
-.org-quote{margin-top:44px;border-left:3px solid var(--green);padding:6px 0 6px 26px;max-width:760px}
-.org-quote p{font-family:var(--display);font-size:clamp(1.2rem,2.4vw,1.55rem);font-weight:600;line-height:1.42;letter-spacing:-.015em}
-.org-quote cite{display:block;margin-top:12px;font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--muted);font-style:normal;text-transform:uppercase}
+/* developers + code tabs (new) */
+.dev-in{display:grid;grid-template-columns:.92fr 1.08fr;gap:44px;align-items:center}
+@media(max-width:900px){.dev-in{grid-template-columns:1fr;gap:28px}}
+.dev-in h2{font-size:clamp(1.8rem,3.6vw,2.5rem);font-weight:750;line-height:1.1;margin-top:10px}
+.dev-in .d{margin-top:12px;color:var(--muted);font-size:15px}
+.dsteps{margin-top:20px}
+.dstep{display:flex;gap:14px;padding:13px 0;border-top:1px solid var(--line)}
+.dstep .n{width:26px;height:26px;border-radius:50%;background:var(--card);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--ink);flex:0 0 26px}
+.dstep h3{font-size:15px;font-weight:700;color:var(--ink)}
+.dstep p{font-size:13px;color:var(--muted);margin-top:2px}
+.codecard{background:var(--ink);border-radius:18px;box-shadow:0 24px 60px rgba(11,18,32,.12);overflow:hidden}
+.tabs{display:flex;gap:2px;padding:12px 14px 0;flex-wrap:wrap}
+.tab{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;color:#7C8698;background:none;border:1px solid transparent;border-radius:9px 9px 0 0;padding:8px 14px}
+.tab.on{color:var(--green-br);background:#0A101E;border-color:rgba(245,246,243,.1);border-bottom-color:#0A101E}
+.codebox{background:#0A101E;border-top:1px solid rgba(245,246,243,.1);margin:0 14px 14px;border-radius:0 12px 12px 12px;padding:17px;font-family:var(--mono);font-size:11.5px;line-height:1.8;color:#c9d2e0;white-space:pre;overflow-x:auto;min-height:206px}
+.codebox .c{color:#5A6472}.codebox .g{color:var(--green-br)}.codebox .w{color:#F5F6F3}
 
-.faq{max-width:760px}
-.faq details{border-bottom:1px solid var(--line);padding:20px 0}
-.faq summary{cursor:pointer;font-family:var(--display);font-weight:650;font-size:17px;letter-spacing:-.015em;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:16px}
-.faq summary::-webkit-details-marker{display:none}
-.faq summary::after{content:"+";font-family:var(--mono);color:var(--green);font-size:18px;transition:transform .2s}
-.faq details[open] summary::after{transform:rotate(45deg)}
-.faq details p{margin-top:12px;color:var(--muted);font-size:15px;max-width:56ch}
+/* statement (new) */
+.statement{text-align:center;padding:8px 24px 0}
+.statement h2{font-size:clamp(1.9rem,4.4vw,3rem);font-weight:760;letter-spacing:-.032em}
+.statement p{margin:14px auto 0;max-width:560px;color:var(--muted)}
 
-.cta-final{background:var(--ink);color:#fff;border-radius:20px;padding:68px 32px;text-align:center;position:relative;overflow:hidden}
+/* founding table (original) */
+.cta-final{background:var(--ink);color:#fff;border-radius:20px;padding:64px 32px;text-align:center;position:relative;overflow:hidden}
 .cta-final::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.12;
   background:repeating-radial-gradient(circle at 110% -30%,rgba(87,192,143,.12) 0 2px,transparent 2px 10px)}
 .cta-final h2{font-size:clamp(1.9rem,4.4vw,2.9rem);font-weight:760;letter-spacing:-.032em;line-height:1.08}
 .cta-final p{color:rgba(255,255,255,.62);margin:16px auto 30px;max-width:34em;font-size:16px}
-.email-row{display:flex;gap:10px;justify-content:center;max-width:460px;margin:0 auto;position:relative;z-index:1}
+.email-row{display:flex;gap:10px;justify-content:center;max-width:520px;margin:0 auto;position:relative;z-index:1}
 .email-row input{flex:1;min-width:0;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);border-radius:99px;color:#fff;padding:12px 20px;font-size:14.5px;font-family:var(--body)}
 .email-row input::placeholder{color:rgba(255,255,255,.45)}
 .email-row .btn{background:#fff;color:var(--ink)}
@@ -307,29 +244,27 @@ section{padding:92px 0}
 .email-ok{display:none;font-family:var(--mono);font-size:13px;color:var(--green-br);letter-spacing:.04em;position:relative;z-index:1}
 .cta-final .alt{position:relative;z-index:1;display:inline-block;margin-top:18px;font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:rgba(255,255,255,.5)}
 .cta-final .alt:hover{color:#fff}
-@media(max-width:480px){.email-row{flex-direction:column}}
+@media(max-width:520px){.email-row{flex-direction:column}}
 
-footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
+/* disclosure (new) */
+.legal{max-width:900px;margin:0 auto;border-top:1px solid var(--line2);padding:30px 0 0;font-size:11.5px;line-height:1.9;color:var(--muted)}
+.legal b{color:var(--ink)}
+.legal p+p{margin-top:10px}
+
+/* footer (original + crest badge) */
+footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;background:var(--card)}
 .foot{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:32px}
 .foot h4{font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:var(--muted);text-transform:uppercase;margin-bottom:14px}
 .foot ul{list-style:none;display:grid;gap:9px;font-size:13.5px;color:var(--muted)}
 .foot ul a:hover{color:var(--ink)}
-.status{margin-top:52px;padding-top:20px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--muted)}
+.status{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--muted)}
 .status .live{display:inline-flex;align-items:center;gap:7px}
 .status .live i{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2.4s infinite}
+.openbadge{display:inline-flex;align-items:center;gap:9px;font-size:11px;font-weight:600;color:var(--muted);border:1px solid var(--line2);border-radius:99px;padding:6px 13px;font-family:var(--body);letter-spacing:0}
 @media(max-width:760px){.foot{grid-template-columns:1fr 1fr}}
-
-.rv{opacity:0;transform:translateY(22px)}
-.rv.in{opacity:1;transform:none;transition:opacity .7s cubic-bezier(.16,.84,.34,1),transform .7s cubic-bezier(.16,.84,.34,1)}
-@media(prefers-reduced-motion:reduce){
-  *{animation:none!important;transition:none!important}
-  .rv,.t-line{opacity:1!important;transform:none!important}
-  .verify-line{opacity:1;transform:none}
-  .passport{transform:none!important}
-}
 </style>
 </head>
-<body>
+<body id="top">
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
@@ -359,56 +294,71 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
       <path d="M56 30 a26 26 0 0 1 26 26" stroke="#57C08F" stroke-width="3" stroke-linecap="round" fill="none"/>
       <circle cx="56" cy="56" r="2.4" fill="#E7EAF0"/>
     </g>
+    <g id="ainra-crest">
+      <circle cx="80" cy="80" r="78" fill="none" stroke="currentColor" stroke-width="2.5"/>
+      <circle cx="80" cy="80" r="70" fill="none" stroke="currentColor" stroke-width="1"/>
+      <circle cx="80" cy="80" r="46" fill="none" stroke="currentColor" stroke-width="1.4"/>
+      <path id="crestpath" d="M 80 22 a 58 58 0 1 1 -0.01 0" fill="none"/>
+      <text font-family="B612 Mono,monospace" font-size="10.5" letter-spacing="3.2" fill="currentColor" font-weight="700"><textPath href="#crestpath" startOffset="0">· AINRA · THE IDENTITY LAYER · EST. GENESIS ·</textPath></text>
+      <circle cx="80" cy="80" r="6" fill="currentColor"/>
+    </g>
   </defs>
 </svg>
 
-<nav>
-  <div class="wrap nav-in">
-    <a class="brand" href="#top" aria-label="AINRA — Agent Identity and Naming Registry Authority">
-      <span class="sigil" aria-hidden="true"><svg viewBox="0 0 112 112"><use href="#ainra-sigil"/></svg></span>
-      <span class="wm">AINRA</span>
-      <span class="mean">Agent Identity &amp; Naming<br>Registry Authority</span>
-    </a>
-    <div class="nav-links" id="navLinks">
-      <a href="standard.html">Standard</a>
-      <a href="verify.html">Verify</a>
-      <a href="claim.html">Claim &amp; Reach</a>
-      <a href="foundations.html">Foundations</a>
-      <a href="status.html">Status</a>
-    </div>
-    <div style="display:flex;gap:10px;align-items:center">
-      <a class="btn btn-ink" href="#access">Get involved</a>
-      <button class="burger" id="burger" aria-label="Menu" aria-expanded="false">≡</button>
-    </div>
+<div class="announce">The neutral identity stack for AI agents — engineering-complete, 745/745 conformance. <a href="status.html">Learn more →</a></div>
+
+<nav><div class="wrap nav-in">
+  <a class="brand" href="#top" aria-label="AINRA — Agent Identity and Naming Registry Authority">
+    <span class="sigil" aria-hidden="true"><svg viewBox="0 0 112 112"><use href="#ainra-sigil"/></svg></span>
+    <span class="wm">AINRA</span>
+    <span class="mean">Agent Identity &amp; Naming<br>Registry Authority</span>
+  </a>
+  <div class="mi"><button type="button" data-dd>Protocol <span class="car">▼</span></button><div class="dd">
+    <a href="standard.html">The open standard<span>Names, passports, tiers, mandates</span></a>
+    <a href="verify.html">Verification<span>Five lines, offline, fail-closed</span></a>
+    <a href="claim.html">Claim &amp; Reach<span>Bring an existing agent into the record</span></a>
+  </div></div>
+  <div class="mi"><button type="button" data-dd>Developers <span class="car">▼</span></button><div class="dd">
+    <a href="#developers">Quickstart<span>SDK, middleware, CLI</span></a>
+    <a href="standard.html">Conformance vectors<span>CC0 · three implementations agree</span></a>
+    <a href="AINRA_I_The_Standard.md">The standard, verbatim<span>Read the source document</span></a>
+  </div></div>
+  <div class="mi"><button type="button" data-dd>Foundation <span class="car">▼</span></button><div class="dd">
+    <a href="foundations.html">Charter &amp; four rules<span>What the root can never do</span></a>
+    <a href="status.html">Honest status<span>What exists · what doesn't yet</span></a>
+    <a href="foundations.html#faq">FAQ<span>Straight answers</span></a>
+  </div></div>
+  <div class="nav-r">
+    <a class="btn btn-ghost nav-hide" href="standard.html">Read the standard</a>
+    <a class="btn btn-ink" href="verify.html">Start verifying</a>
+    <button class="burger" id="burger" aria-label="Menu" aria-expanded="false">≡</button>
   </div>
-</nav>
+  <div class="nav-links" id="navLinks">
+    <a href="#top" style="color:var(--green)">The root</a><a href="standard.html">Standard</a><a href="verify.html">Verify</a><a href="claim.html">Claim &amp; Reach</a><a href="foundations.html">Foundations</a><a href="status.html">Status</a>
+  </div>
+</div></nav>
 
-<header class="hero" id="top">
-  <div class="wrap hero-grid">
-    <div>
-      <a class="pill" href="AINRA_I_The_Standard.md"><span class="dot" aria-hidden="true"></span> OPEN STANDARD · SPEC PUBLIC · REFERENCE CLI v0.1.0 WORKING <span class="arr">→</span></a>
-      <h1>The identity layer for <span class="u">autonomous&nbsp;AI</span>.</h1>
-      <p class="sub">Half the internet's traffic is now agents no one can verify — and machine-marking obligations reach the EU this August. AINRA is the open standard that builds it: one neutral root, free for any player to implement. One lookup tells you who an agent is, who stands behind it, and whether it's still trusted. One switch revokes a compromised one worldwide in under 60&nbsp;seconds.</p>
-      <div class="cta-row">
-        <a class="btn btn-ink" href="#access">Join the founding table</a>
-        <a class="btn btn-ghost" href="verify.html#decision">Watch it verify ↓</a>
-      </div>
-      <div class="cmd">
-        <code><span class="p">$</span> npx ainra verify ainra:registrar-07:acme:invoicing@4.2.1</code>
-        <button id="copyBtn" aria-label="Copy command">COPY</button>
-      </div>
-      <div class="badges">
-        <span><b>✓</b> OPEN STANDARD</span>
-        <span><b>✓</b> OPEN-SOURCE REFERENCE</span>
-        <span><b>✓</b> NON-PROFIT FEDERATION</span>
-        <span><b>✓</b> ZERO PII, EVER</span>
-      </div>
-      <div class="badges" style="margin-top:10px">
-        <span style="color:var(--ink)">REAL TODAY → <a href="AINRA_I_The_Standard.md" style="color:var(--green);font-weight:700">STANDARD v5.1 ✓</a> · <a href="ainra-cli-v0.1.0.zip" style="color:var(--green);font-weight:700">WORKING CLI v0.1.0 ✓</a> · LOGS SEALED: 0 — FIRST KEY CEREMONY AHEAD, HELD IN PUBLIC</span>
-      </div>
+<header class="hero">
+  <div class="wrap">
+    <div class="kick rv in">TURNING FUTURE INTO A WORKING PRESENT</div>
+    <h1 class="rv in">The identity layer for <span class="u">autonomous&nbsp;AI</span>.</h1>
+    <p class="sub rv in">One neutral root, free for anyone to implement. One lookup says who an agent is and who stands behind it; one switch revokes it worldwide in under 60&nbsp;seconds — verifiable offline, in five lines.</p>
+    <div class="cta-row rv in">
+      <a class="btn btn-green" href="verify.html">Get started</a>
+      <a class="btn btn-ghost" href="#access">Join the founding table</a>
+    </div>
+    <div class="rv in"><div class="cmd">
+      <code><span class="p">$</span> npx ainra verify ainra:registrar-07:acme:invoicing@4.2.1</code>
+      <button id="copyBtn" aria-label="Copy command">COPY</button>
+    </div></div>
+    <div class="badges rv in">
+      <span><b>✓</b> OPEN STANDARD</span>
+      <span><b>✓</b> OPEN-SOURCE REFERENCE</span>
+      <span><b>✓</b> NON-PROFIT FEDERATION</span>
+      <span><b>✓</b> ZERO PII, EVER</span>
     </div>
 
-    <div class="pass-wrap">
+    <div class="pass-wrap rv in">
       <div class="passport" id="passportCard" aria-label="Sample agent passport — specimen data, registrar is a placeholder">
         <div class="pass-wm" aria-hidden="true">AINRA</div>
         <div class="pass-head">
@@ -430,7 +380,9 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
           <div class="dr"><b>NAME</b><span>ainra:registrar-07:acme-corp:invoicing@4.2.1</span></div>
           <div class="dr"><b>VALIDITY</b><span>ISSUED 11 APR 2026 · EXPIRES 11 APR 2027 · <i>RENEWABLE</i></span></div>
           <div class="dr"><b>KEY</b><span>ED25519 + ML-DSA-65 · FP 9C41:8F2E:AA07:D356</span></div>
+          <div class="dr"><b>STATUS</b><span><span class="chip c-ok">IN GOOD STANDING · as of 12s ago</span></span></div>
         </div>
+        <svg class="p-crest" viewBox="0 0 160 160" aria-hidden="true"><use href="#ainra-crest"/></svg>
         <div class="authority">
           <label>⑦ Issuing authority</label>
           <div>AINRA — AGENT IDENTITY &amp; NAMING REGISTRY AUTHORITY</div>
@@ -441,6 +393,18 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
             <i aria-hidden="true"></i> ⑧ ROOT SIGNATURE VALID <span>· WITNESSES 3/5 · LOG #8F2E…C41</span>
           </div>
         </div>
+      </div>
+    </div>
+    <div class="p-cap rv in">SPECIMEN PASSPORT — PLACEHOLDER REGISTRAR · NOT A LIVE CREDENTIAL · EVERY REAL ONE IS LOGGED BEFORE IT IS VALID</div>
+
+    <div class="facts rv in">
+      <div class="cap">Built as neutral infrastructure for the agent economy</div>
+      <div class="row">
+        <span>STANDARD <b class="g">v5.1 ✓</b></span>
+        <span>REFERENCE <b class="g">v0.1.0 ✓</b></span>
+        <span>CONFORMANCE <b>745/745</b></span>
+        <span>REVOCATION <b>&lt;60s [MEASURED]</b></span>
+        <span>PRODUCTION LOGS <b>0 (HONEST)</b></span>
       </div>
     </div>
   </div>
@@ -471,8 +435,7 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
   </div>
 </div>
 
-
-<section class="dark" id="root" style="padding-top:80px">
+<section class="dark" id="root">
   <div class="wrap">
     <div class="sec-head rv">
       <span class="eyebrow">The core, drawn</span>
@@ -538,20 +501,6 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
   </div>
 </section>
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <section id="does">
   <div class="wrap">
     <div class="sec-head rv">
@@ -588,6 +537,7 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
     </div>
   </div>
 </section>
+
 <section style="padding-top:0" id="how">
   <div class="wrap">
     <div class="sec-head rv">
@@ -602,7 +552,37 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
     </div>
   </div>
 </section>
-<section id="access" style="padding-top:0">
+
+<section id="developers" style="padding-top:0;padding-bottom:24px">
+  <div class="wrap dev-in">
+    <div class="rv">
+      <span class="eyebrow">Developers</span>
+      <h2>Integrate agent verification in minutes.</h2>
+      <p class="d">No account with us. No calls to us. The registry publishes signed facts; your code checks them locally — with the root switched off.</p>
+      <div class="dsteps">
+        <div class="dstep"><span class="n">1</span><div><h3>Point at the directory</h3><p>Load the root-signed registrar directory from any mirror — a static, cacheable file.</p></div></div>
+        <div class="dstep"><span class="n">2</span><div><h3>Verify the bundle</h3><p>Signature, authority chain, freshness, revocation, log inclusion — one call, fail-closed, milliseconds.</p></div></div>
+        <div class="dstep"><span class="n">3</span><div><h3>Gate on the verdict</h3><p>VALID proceeds; anything else returns a named reason. The decision stays yours.</p></div></div>
+      </div>
+    </div>
+    <div class="codecard rv">
+      <div class="tabs">
+        <button class="tab on" data-t="ts">TypeScript</button>
+        <button class="tab" data-t="mw">Middleware</button>
+        <button class="tab" data-t="rs">Rust</button>
+        <button class="tab" data-t="cli">CLI</button>
+      </div>
+      <div class="codebox" id="codebox"></div>
+    </div>
+  </div>
+</section>
+
+<div class="statement rv">
+  <h2>One record. Every agent.</h2>
+  <p>The root does four things — accredit, anchor, revoke, log — and is constitutionally barred from everything else. No scores, no prices, no rankings, no personal data, no company ever featured.</p>
+</div>
+
+<section id="access" style="padding-top:56px">
   <div class="wrap">
     <div class="cta-final rv">
       <h2>The founding table is forming.<br>Pick your seat.</h2>
@@ -626,6 +606,11 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
   </div>
 </section>
 
+<div class="wrap"><div class="legal rv">
+  <p><b>Status disclosure.</b> AINRA is a neutral, non-profit root for AI-agent identity, currently pre-genesis. The open standard (v5.1) and the reference implementation (v0.1.0) are complete and independently checkable: three implementations agree on all 745 CC0 conformance vectors, every published artifact rebuilds byte-for-byte from source, and revocation propagation is measured at under 60 seconds. Verification is offline-capable and free, permanently, and phones home to no one.</p>
+  <p>The production root does not yet exist: it is created only at a recorded, in-person 5-of-9 key ceremony across independent custodians in multiple jurisdictions, after which its transcript hash is published for anyone to recompute. Until that day, the number of production log entries is exactly zero, and this page says so. The interface shown above is a specimen with placeholder registrars, labeled as such. The root issues no passports itself, computes no scores, holds no personal data, features no company, and sells nothing — these are charter prohibitions enforced in code, not policies.</p>
+</div></div>
+
 <footer>
   <div class="wrap">
     <div class="foot">
@@ -640,25 +625,27 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
       <div>
         <h4>Protocol</h4>
         <ul>
-          <li><a href="AINRA_I_The_Standard.md">The standard</a></li>
-          <li><a href="ainra-cli-v0.1.0.zip">Reference CLI v0.1.0</a></li>
+          <li><a href="standard.html">The standard</a></li>
+          <li><a href="AINRA_I_The_Standard.md">The standard, verbatim</a></li>
           <li><a href="claim.html#passport">The passport</a></li>
           <li><a href="verify.html#authority">Authority model</a></li>
-          </ul>
+        </ul>
       </div>
       <div>
         <h4>Ecosystem</h4>
         <ul>
           <li><a href="verify.html#align">Where you plug in</a></li>
           <li><a href="verify.html#tiers">Assurance tiers</a></li>
-          <li><a href="index.html#how">The lifecycle</a></li>
+          <li><a href="#how">The lifecycle</a></li>
+          <li><a href="#developers">Quickstart</a></li>
         </ul>
       </div>
       <div>
         <h4>Root</h4>
         <ul>
-          <li><a href="index.html#does">What the root does</a></li>
+          <li><a href="#does">What the root does</a></li>
           <li><a href="foundations.html">Foundations</a></li>
+          <li><a href="status.html">Honest status</a></li>
           <li><a href="foundations.html#faq">FAQ</a></li>
           <li><a href="#access">Get involved</a></li>
         </ul>
@@ -667,7 +654,7 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
     <div class="status">
       <span class="live"><i aria-hidden="true"></i> ROOT STATUS: PRE-CEREMONY</span>
       <span>LOGS SEALED: 0 · WITNESSES: RECRUITING · SPEC PUBLIC · CLI v0.1.0</span>
-      <span>ISSUES NOTHING · SCORES NOTHING · SEES NO PII · FAVORS NO ONE</span>
+      <span class="openbadge"><svg style="width:26px;height:26px;color:#8A93A0" viewBox="0 0 160 160" aria-hidden="true"><use href="#ainra-crest"/></svg>An open standard · held by no one</span>
     </div>
   </div>
 </footer>
@@ -678,12 +665,30 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
   const touch = matchMedia('(pointer: coarse)').matches;
   const $ = id => document.getElementById(id);
 
+  /* reveal on scroll */
+  const io=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}})},{threshold:.1});
+  document.querySelectorAll('.rv').forEach(el=>io.observe(el));
+
+  /* nav dropdowns */
+  document.querySelectorAll('[data-dd]').forEach(b=>{b.addEventListener('click',e=>{e.stopPropagation();
+    const mi=b.parentElement,was=mi.classList.contains('open');
+    document.querySelectorAll('.mi.open').forEach(m=>m.classList.remove('open'));
+    if(!was)mi.classList.add('open');});});
+  document.addEventListener('click',()=>document.querySelectorAll('.mi.open').forEach(m=>m.classList.remove('open')));
+
   /* mobile menu */
   const burger=$('burger'), links=$('navLinks');
   if(burger&&links){
     burger.addEventListener('click',()=>{const open=links.classList.toggle('open');burger.setAttribute('aria-expanded',open?'true':'false');});
     links.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>{links.classList.remove('open');burger.setAttribute('aria-expanded','false');}));
   }
+
+  /* copy the verify command */
+  const cp=$('copyBtn');
+  if(cp){cp.addEventListener('click',()=>{
+    const txt='npx ainra verify ainra:registrar-07:acme:invoicing@4.2.1';
+    (navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(()=>{cp.textContent='COPIED';setTimeout(()=>{cp.textContent='COPY'},1400);},()=>{});
+  });}
 
   /* agent portrait — deterministic identicon from passport number */
   const g=$('portrait');
@@ -713,74 +718,41 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
 
   /* subtle pointer tilt */
   const card=$('passportCard');
-  if(card && !reduce && !touch){
-    const stage=card.parentElement;
-    stage.addEventListener('mousemove',e=>{const r=card.getBoundingClientRect();const x=(e.clientX-r.left)/r.width-.5, y=(e.clientY-r.top)/r.height-.5;card.style.transform=`rotateY(${x*4}deg) rotateX(${-y*4}deg)`;});
-    stage.addEventListener('mouseleave',()=>{card.style.transform='none';});
+  if(card&&!reduce&&!touch){
+    const wrapEl=card.parentElement;
+    wrapEl.addEventListener('mousemove',e=>{
+      const r=card.getBoundingClientRect();
+      const x=(e.clientX-r.left)/r.width-.5, y=(e.clientY-r.top)/r.height-.5;
+      card.style.transform=`rotateY(${x*7}deg) rotateX(${-y*5}deg)`;
+    });
+    wrapEl.addEventListener('mouseleave',()=>{card.style.transform='';});
   }
 
-  /* copy command */
-  const cp=$('copyBtn');
-  if(cp){
-    cp.addEventListener('click',()=>{if(navigator.clipboard)navigator.clipboard.writeText('npx ainra verify ainra:registrar-07:acme:invoicing@4.2.1');cp.textContent='COPIED ✓';setTimeout(()=>cp.textContent='COPY',1600);});
-  }
-
-  /* reveals */
-  const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}}),{threshold:.12});
-  document.querySelectorAll('.rv').forEach(function(el){try{var gg=[].slice.call(el.parentElement.children).filter(function(c){return c.classList.contains('rv')});el.style.transitionDelay=(Math.min(gg.indexOf(el),6)*70)+'ms';}catch(e){}io.observe(el);});
-
-  /* stat counters */
-  const so=new IntersectionObserver(es=>es.forEach(e=>{
-    if(!e.isIntersecting)return; so.unobserve(e.target);
-    const el=e.target, end=+el.dataset.count;
-    if(reduce){el.textContent=end.toLocaleString();return;}
-    const t0=performance.now(), dur=1100;
-    (function step(t){const p=Math.min(1,(t-t0)/dur), v=Math.round(end*(1-Math.pow(1-p,3)));el.textContent=v.toLocaleString();if(p<1)requestAnimationFrame(step);})(t0);
-  }),{threshold:.6});
+  /* count-up stats */
+  const so=new IntersectionObserver(es=>{es.forEach(e=>{
+    if(!e.isIntersecting)return;so.unobserve(e.target);
+    const el=e.target,t=+el.dataset.count;
+    if(reduce){el.textContent=t;return;}
+    const s=performance.now();
+    (function f(n){const p=Math.min((n-s)/900,1);el.textContent=Math.round(t*(1-Math.pow(1-p,3)));if(p<1)requestAnimationFrame(f);})(s);
+  })},{threshold:.6});
   document.querySelectorAll('[data-count]').forEach(el=>so.observe(el));
 
-  /* terminal */
-  const termOut=$('termOut');
-  if(termOut){
-    const lines=[...termOut.querySelectorAll('.t-line')];
-    const play=()=>{lines.forEach(l=>l.classList.remove('show'));if(reduce){lines.forEach(l=>l.classList.add('show'));return;}lines.forEach((l,i)=>setTimeout(()=>l.classList.add('show'),260+i*340));};
-    const to=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){play();to.unobserve(e.target);}}),{threshold:.4});
-    to.observe(termOut);
-    const rb=$('runBtn'); if(rb)rb.addEventListener('click',play);
+  /* dev code tabs — real surfaces only */
+  const S={
+ts:'<span class="c">// five lines — offline, root dark, fail-closed</span>\n<span class="w">import</span> { Verifier } <span class="w">from</span> <span class="g">"@ainra/sdk"</span>;\n\n<span class="w">const</span> v = <span class="w">await</span> Verifier.fromDirectory(dir);\n<span class="w">const</span> verdict = v.verify(bundle, now);\n\n<span class="c">// → { status: "VALID" }</span>\n<span class="c">//   or a named reason: revoked | stale_status | …</span>',
+mw:'<span class="c">// gate any route on a verified passport</span>\n<span class="w">import</span> { ainraGate, Verifier } <span class="w">from</span> <span class="g">"@ainra/middleware"</span>;\n\napp.use(<span class="g">"/agent"</span>, ainraGate(verifier));\n\n<span class="c">// invalid agents receive 403</span>\n<span class="c">// + x-ainra-reason header, fail-closed</span>',
+rs:'<span class="c">// the reference core — pure, no I/O, no clock</span>\n<span class="w">let</span> verdict = ainra_core::verify(\n    &bundle, &directory, now,\n);\n\n<span class="c">// 9 documented checks, first failure wins;</span>\n<span class="c">// three implementations agree 745/745</span>',
+cli:'<span class="c"># the whole lifecycle, locally, no server</span>\n$ ainra init ./reg registrar-07\n$ ainra issue ./reg --operator acme \\\n    --lineage invoicing --version 1.0.0 --tier L2\n$ ainra verify ./reg \\\n    ainra:registrar-07:acme:invoicing@1.0.0\n<span class="g">VALID</span>   <span class="c"># the real verifier’s output</span>'
+  };
+  const cb=$('codebox');
+  if(cb){
+    const setTab=k=>{cb.innerHTML=S[k];document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.t===k));};
+    document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>setTab(t.dataset.t)));
+    setTab('ts');
   }
 
-  /* authority rail */
-  const authData=[
-    ['A1 · HUMAN-DELEGATED','A verified person stands behind the agent — proven in zero-knowledge, so accountability exists while privacy stays intact. A signed consent mandate sets scopes, time limits, and spend ceilings; the person can revoke it at any moment, everywhere at once.'],
-    ['A2 · ORGANIZATION-DELEGATED','A verified legal entity is the principal. The mandate is an organizational authorization whose accountability resolves to responsible officers through the registrar of record.'],
-    ['A3 · AGENT-DELEGATED','Another passported agent is the principal. Every hop is dual-signed, scopes can only narrow, depth is capped — and the whole chain stays provable back to its ultimate anchor from the credential alone.'],
-    ['A4 · AUTONOMOUS','Fully self-directed — and declared truthfully as such. Requirements: a reachable governance endpoint, a dead-man renewal timer, and a bond, insurance, or steward of record to climb the tiers. Verifiers choose how much A4 to accept; honest existence is always guaranteed.']
-  ];
-  const authBtns=[...document.querySelectorAll('[data-a]')];
-  authBtns.forEach(b=>b.addEventListener('click',()=>{
-    authBtns.forEach(x=>x.setAttribute('aria-pressed','false'));
-    b.setAttribute('aria-pressed','true');
-    const d=authData[+b.dataset.a], at=$('authTier'), ax=$('authText');
-    if(at)at.textContent=d[0]; if(ax)ax.textContent=d[1];
-  }));
-
-  /* tier rail */
-  const tierData=[
-    ['L0 · DECLARED','Valid keypair + logged registration + revocation endpoint. Permissionless by charter — anyone, including fully on-chain agents. Sandbox and attributed-crawl access.'],
-    ['L1 · ANCHORED','L0 plus verified control of a domain or established wallet history. Rate-limited APIs and low-value machine micropayments.'],
-    ['L2 · OPERATED','L1 plus a KYB-verified legal operator, declared model lineage, and a soulbound lineage. Standard commerce and B2B data exchange.'],
-    ['L3 · BACKED','KYB-verified operator + zero-knowledge principal + liability insurance attestation. The floor for consumer-scale payments and contract execution.'],
-    ['L4 · REGULATED','L3 plus sector license, independent audit, and third-party work validation. High-value autonomous transactions and critical infrastructure.']
-  ];
-  const railBtns=[...document.querySelectorAll('[data-t]')];
-  railBtns.forEach(b=>b.addEventListener('click',()=>{
-    railBtns.forEach(x=>x.setAttribute('aria-pressed','false'));
-    b.setAttribute('aria-pressed','true');
-    const d=tierData[+b.dataset.t], rt=$('railTier'), rx=$('railText');
-    if(rt)rt.textContent=d[0]; if(rx)rx.textContent=d[1];
-  }));
-
-  /* email capture (demo) */
+  /* founding-table form (local only — no network) */
   const cf=$('ctaForm');
   if(cf){
     cf.addEventListener('submit',e=>{e.preventDefault();const em=$('ctaEmail');if(!em.value||!em.value.includes('@')){em.focus();return;}e.target.style.display='none';const ok=$('ctaOk');if(ok)ok.style.display='block';});

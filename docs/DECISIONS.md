@@ -413,3 +413,16 @@ network — on genesis day AINRAscan flips to PRODUCTION by key-detection, showi
 entries (its empty-state design), never a hardcoded claim. **Nothing trusted migrates from staging** (different
 root, keys, domains, volumes; the banner says which you are reading). docs/genesis-day/CUTOVER.md holds the DNS
 checklist + the `v1.0.0-genesis` release/freeze/re-tag discipline.
+
+## D-034 — M16: the open registrar console is neutral open-core (the reference never advantages anyone)
+
+Registrar-in-a-box serves a minimal web console at `GET /console` (issue / renew / revoke / list with live verdicts,
+the ADR-017 fleet expiry horizon, and delegation/mandate views). It is deliberately **unbranded and neutral**: no
+company styling, no pricing, no accounts beyond the registrar's own operator write-token (kept in memory, never
+stored). This is a **constitutional constraint, not a style choice** — the console is the open-core every registrar
+inherits, so commercial registrars may skin it downstream while the reference advantages no one. The **root gains no
+console and no self-serve surface** (M16's first constitutional constraint): issuance UI lives only in the registrar
+layer, exactly as the ICANN model demands. The M14 write-path rate limits apply unchanged (the console drives the same
+guarded API). The CLI remains the power surface; the console exists so a first-time operator sees the whole lifecycle
+without reading anything. Baked into the binary (`include_str!`) so every registrar serves it with zero extra files;
+self-contained, zero telemetry, talks only to its own registrar.

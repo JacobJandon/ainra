@@ -34,6 +34,9 @@ use serde_json::json;
 const NBF: u64 = 1_775_865_600; // 2026-04-11
 const EXP: u64 = NBF + ainra_core::consts::PASSPORT_VALIDITY_DEFAULT_SECS;
 
+/// The open registrar console (M16 Task 5), baked into the binary so every registrar serves it with zero extra files.
+const CONSOLE_HTML: &str = include_str!("../../../../apps/registrar-box/console.html");
+
 fn qparam(path: &str, key: &str) -> Option<String> {
     let q = path.split('?').nth(1)?;
     q.split('&')
@@ -148,6 +151,10 @@ fn main() {
         let mut st = state.lock().unwrap();
         let route = req.path.split('?').next().unwrap_or("");
         match (req.method.as_str(), route) {
+            // M16 Task 5 (D-034): the OPEN registrar console — neutral, unbranded, no pricing/accounts, zero telemetry.
+            // Self-contained HTML that drives THIS registrar's read + rate-limited write API. Every registrar inherits it.
+            ("GET", "/console") | ("GET", "/") => (200, CONSOLE_HTML.to_string()),
+
             // Staging health/board: network + root labels, checkpoint height, record count. Read-only, open.
             ("GET", "/health") => (
                 200,

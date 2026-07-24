@@ -128,8 +128,11 @@ where
             404 => "Not Found",
             _ => "Error",
         };
+        // A JSON body never starts with '<'; an HTML body (the registrar console) does. This lets a handler serve
+        // the console as text/html without changing the (u16, String) handler signature every route shares.
+        let ctype = if json.trim_start().starts_with('<') { "text/html; charset=utf-8" } else { "application/json" };
         let resp = format!(
-            "HTTP/1.1 {code} {reason}\r\nContent-Type: application/json\r\nAccess-Control-Allow-Origin: *\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{json}",
+            "HTTP/1.1 {code} {reason}\r\nContent-Type: {ctype}\r\nAccess-Control-Allow-Origin: *\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{json}",
             json.len()
         );
         let _ = stream.write_all(resp.as_bytes());

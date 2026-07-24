@@ -80,3 +80,6 @@ deploy/.env
 genesis-evidence/
 docs/genesis-day/declaration/founding-declaration.md
 deploy/.env.production
+
+# M16 onramp: the persistent local registrar make issue-first creates
+my-registrar/

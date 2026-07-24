@@ -8,7 +8,7 @@
 //!   * `ainraGate(verifier, opts)` → Connect/Express `(req, res, next)` middleware.
 //!   * `checkRequest(verifier, bundle, opts)` → framework-agnostic `{ allow, reason?, verdict }` (edge/fetch).
 
-import { Verifier, type PresentationBundle, type Verdict } from "@ainra/sdk";
+import { Verifier, verdictEvent, serializeVerdictEvent, type PresentationBundle, type Verdict, type VerdictEvent } from "@ainra/sdk";
 
 export interface GateOptions {
   /** Verifier's clock, unix seconds. Default: `Date.now()/1000`. Pass a fixed value for a demo/test window. */
@@ -23,6 +23,8 @@ export interface GateResult {
   allow: boolean;
   reason?: string;
   verdict: Verdict;
+  /** The canonical verdict event (docs/PRESENTATION.md) — identical shape across CLI, MCP, and this middleware. */
+  event: VerdictEvent;
 }
 
 const DENY_SCHEMA: Verdict = { verdict: "invalid", reason: "schema_violation" };
@@ -44,14 +46,14 @@ export function checkRequest(
     } else if (bundle && typeof bundle === "object") {
       parsed = bundle as PresentationBundle;
     } else {
-      return { allow: false, reason: "schema_violation", verdict: DENY_SCHEMA };
+      return { allow: false, reason: "schema_violation", verdict: DENY_SCHEMA, event: verdictEvent({}, DENY_SCHEMA, now) };
     }
   } catch {
-    return { allow: false, reason: "schema_violation", verdict: DENY_SCHEMA };
+    return { allow: false, reason: "schema_violation", verdict: DENY_SCHEMA, event: verdictEvent({}, DENY_SCHEMA, now) };
   }
   const verdict = verifier.verify(parsed, now); // never throws; invalid on any failure
   const allow = verdict.verdict === "valid";
-  return { allow, reason: allow ? undefined : verdict.reason, verdict };
+  return { allow, reason: allow ? undefined : verdict.reason, verdict, event: verdictEvent(parsed, verdict, now) };
 }
 
 // Minimal structural types so we don't depend on Express at build time.
@@ -80,11 +82,13 @@ export function ainraGate(verifier: Verifier, opts: GateOptions = {}) {
   const header = (opts.header ?? "x-ainra-passport").toLowerCase();
   return (req: ReqLike, res: ResLike, next: Next): void => {
     const raw = req.headers[header] ?? (req.body as { ainra_passport?: unknown } | undefined)?.ainra_passport;
-    const result =
+    const result: GateResult =
       raw === undefined
-        ? { allow: false, reason: "schema_violation" as const, verdict: DENY_SCHEMA }
+        ? { allow: false, reason: "schema_violation", verdict: DENY_SCHEMA, event: verdictEvent({}, DENY_SCHEMA, (opts.now ?? (() => Math.floor(Date.now() / 1000)))()) }
         : checkRequest(verifier, Array.isArray(raw) ? raw[0] : raw, opts);
     req.ainra = result;
+    // Emit the canonical verdict event on every request (allow or deny) — one event shape everywhere (PRESENTATION.md).
+    res.setHeader("x-ainra-verdict", serializeVerdictEvent(result.event));
     if (result.allow) {
       next();
       return;
@@ -95,4 +99,4 @@ export function ainraGate(verifier: Verifier, opts: GateOptions = {}) {
   };
 }
 
-export { Verifier } from "@ainra/sdk";
+export { Verifier, verdictEvent, serializeVerdictEvent, type VerdictEvent } from "@ainra/sdk";

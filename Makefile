@@ -1,6 +1,6 @@
 # AINRA — the acceptance bar (MTS §28, brief §8): a stranger clones, runs `make test && make vectors && make diff`,
 # and everything is green in under 10 minutes on a laptop.
-.PHONY: all test vectors vectors-check diff fmt clippy fuzz-smoke bench sdk-build sdk-test ci clean status console samples drill explorer demo scale ceremony testbed wedge-build wedge-test repro mirror verify-mirror check-freeze freeze genesis-local verifier-kit-smoke ceremony-dry-run soak-smoke drill-networked preflight s7 license gitleaks audit verify-as-external verifier-triple-drill soak-verify genesis-status verify-transcript genesis-board-demo release doctor verifier-operator-drill site ainrascan stage-up stage-down stage-status stage-smoke config-diff declaration genesis-rehearsal
+.PHONY: all test vectors vectors-check diff fmt clippy fuzz-smoke bench sdk-build sdk-test ci clean status console samples drill explorer demo scale ceremony testbed wedge-build wedge-test repro mirror verify-mirror check-freeze freeze genesis-local verifier-kit-smoke ceremony-dry-run soak-smoke drill-networked preflight s7 license gitleaks audit verify-as-external verifier-triple-drill soak-verify genesis-status verify-transcript genesis-board-demo release doctor verifier-operator-drill site ainrascan stage-up stage-down stage-status stage-smoke config-diff declaration genesis-rehearsal verify issue-first registrar-console mcp-test skills-replay presentation-diff
 
 all: fmt clippy test vectors diff
 
@@ -73,6 +73,37 @@ explorer:
 # The M3 end-to-end lifecycle demo (issue → verify → revoke → re-verify), one process, real crypto.
 demo:
 	cargo run --release -q -p ainra-cli-rs -- demo
+
+# M16 — the sixty-second VERIFY path: one command, no account/server/config. Verifies bundled sample credentials
+# ROOT DARK (LOCAL TESTBED); set AINRA_NET=http://host:8091 to verify a live network's public record (STAGING·TEST-ROOT).
+verify: sdk-build
+	@node tools/verify-60s.mjs
+
+# M16 — the five-minute ISSUE path: boot a LOCAL registrar, issue your first passport, verify it, keep the registrar.
+issue-first:
+	@bash tools/issue-first.sh
+
+# M16 — the MCP server's wrapper-fidelity differential: ainra_verify ≡ @ainra/sdk byte-for-byte over sampled vectors,
+# plus safety-annotation + confirm-gate checks. Proves the MCP verify tool stays a thin wrapper, never a fork.
+mcp-test: sdk-build
+	node --test packages/mcp/test/*.test.mjs
+
+# M16 — the one-verdict-event-shape differential: the `ainra` CLI (Rust), the middleware, and the MCP server all
+# serialize the SAME verdict event byte-identically over a seeded registry (docs/PRESENTATION.md). Fails on any drift.
+presentation-diff: sdk-build wedge-build
+	cargo build --release -q -p ainra-cli-rs
+	node tools/presentation-diff.mjs
+
+# M16 — replay skills.md end to end: prove the agent-onboarding file is executable exactly as written (CI gate).
+skills-replay: sdk-build
+	@bash tools/skills-replay.sh
+
+# M16 — the OPEN registrar console (neutral open-core, D-034): start a registrar-in-a-box and serve its lifecycle UI.
+# Also served by every staging registrar at /console. DIR/PORT/ID override; write path is open locally, token on staging.
+registrar-console:
+	cargo build --release -q -p ainra-services --bin registrar-box
+	@echo "→ open the registrar console:  http://127.0.0.1:$(or $(PORT),4899)/console   (Ctrl-C to stop)"
+	@AINRA_STAGE=1 ./target/release/registrar-box 127.0.0.1:$(or $(PORT),4899) $(or $(ID),registrar-07) $(or $(DIR),stage/console-registrar)
 
 # The M4 genesis ceremony rehearsal: FROST 5-of-9 DKG + SLH-DSA dual root → signed directory → mint+verify a real
 # passport → revoke the delegate (passport goes checkpoint_invalid) → rotate (VALID again) → replayable transcript.

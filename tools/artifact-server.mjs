@@ -26,7 +26,7 @@ const PORT = parseInt(process.argv[3] || "8091", 10);
 const NETWORK = process.env.AINRA_NETWORK || (process.env.AINRA_STAGE === "1" ? "staging" : "dev");
 const ROOT_LABEL = process.env.AINRA_ROOT || (NETWORK === "production" ? "production-root" : "test-root");
 
-const CT = { ".json": "application/json", ".txt": "text/plain; charset=utf-8", ".html": "text/html; charset=utf-8", ".js": "text/javascript" };
+const CT = { ".json": "application/json", ".txt": "text/plain; charset=utf-8", ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".md": "text/markdown; charset=utf-8" };
 const isImmutable = p => /\/checkpoints\/|\/tiles\/|\.immutable\./.test(p);
 
 function bannerHeaders(h = {}) {

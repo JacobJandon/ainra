@@ -60,8 +60,10 @@ publish(){ # fetch each daemon's public artifacts → static files with the cont
     let issued=0,revoked=0; for(const R of regs) for(const e of R.records){issued++; if(e.record.revoked)revoked++;}
     fs.writeFileSync(pub+"/registry.json", JSON.stringify({generated_window:w, registrars:regs, totals:{registrars:regs.length,issued,revoked}}));
     fs.writeFileSync(pub+"/directory.json", JSON.stringify({network:"staging",root:"test-root",note:"Staging directory: real registrar accreditations. The production dual-root-SIGNED directory is minted at the recorded genesis ceremony (a pending DoD row) — no trust migrates from staging.",registrars:regs.map(r=>({registrar:r.registrar,accreditation:r.accreditation,root_pub_slh:r.root_pub_slh}))}));
-    fs.writeFileSync(pub+"/index.json", JSON.stringify({network:"staging",root:"test-root",label:"AINRA STAGING NETWORK · TEST-ROOT",generated_window:w,registrars:ids,artifacts:{directory:"/directory.json",registry:"/registry.json",per_registrar:"/registrars/<id>/{accreditation,export,fresh-head,status/current,status/deltas,checkpoints/<height>}.json"},telemetry:"none"}));
+    fs.writeFileSync(pub+"/index.json", JSON.stringify({network:"staging",root:"test-root",label:"AINRA STAGING NETWORK · TEST-ROOT",generated_window:w,registrars:ids,artifacts:{directory:"/directory.json",registry:"/registry.json",skills:"/skills.md",per_registrar:"/registrars/<id>/{accreditation,export,fresh-head,status/current,status/deltas,checkpoints/<height>}.json"},telemetry:"none"}));
   ' "$PUB"
+  # M16: the agent-readable onboarding file on the public surface (repo canonical → served at /skills.md and /agents.md).
+  cp skills.md "$PUB/skills.md"; cp skills.md "$PUB/agents.md"
 }
 
 case "${1:-up}" in

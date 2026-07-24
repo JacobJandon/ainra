@@ -36,6 +36,7 @@ fn main() {
         "export" => cmd_export(rest),
         "seed" => cmd_seed(rest),
         "reverify" => cmd_reverify(rest),
+        "events" => cmd_events(rest),
         "demo" => cmd_demo(),
         "help" | "-h" | "--help" => {
             print_help();
@@ -95,7 +96,7 @@ fn now_or_default(args: &[String]) -> u64 {
 /// Load a persisted registrar or print a friendly error.
 fn load(dir: &str) -> Result<RegistrarBox, i32> {
     RegistrarBox::load(Path::new(dir)).map_err(|e| {
-        eprintln!("cannot load registrar at '{dir}': {e}");
+        eprintln!("cannot load registrar at '{dir}': {e}\n  next: create one with `ainra init {dir} <registrar-id>` (or `make issue-first` for a ready one).");
         1
     })
 }
@@ -165,7 +166,7 @@ fn cmd_issue(a: &[String]) -> i32 {
     let (Some(operator), Some(lineage), Some(version)) =
         (opt(a, "operator"), opt(a, "lineage"), opt(a, "version"))
     else {
-        eprintln!("issue requires --operator, --lineage, --version");
+        eprintln!("issue requires --operator, --lineage, --version\n  e.g. ainra issue {dir} --operator acme --lineage assistant --version 1.0.0 --tier L2 --cap read:data");
         return 2;
     };
     let caps = opt_multi(a, "cap");
@@ -367,6 +368,10 @@ fn cmd_verify(a: &[String]) -> i32 {
         Ok(rb) => rb,
         Err(c) => return c,
     };
+    if rb.get(sub).is_none() {
+        eprintln!("no such subject in this registrar: {sub}\n  next: list what's here with `ainra list {dir}`, or issue it with `ainra issue {dir} …`.");
+        return 1;
+    }
     let v = rb.verify_record(sub, now_or_default(a));
     println!("{}", verdict_str(&v));
     i32::from(!v.is_valid())
@@ -586,6 +591,75 @@ fn cmd_reverify(a: &[String]) -> i32 {
         }
         1
     }
+}
+
+// M16 Task 4 — emit the canonical verdict EVENT (docs/PRESENTATION.md) for every record in a registry export, one
+// compact JSON line each. Byte-identical to the SDK's `serializeVerdictEvent` (a differential asserts it), so the
+// `ainra` CLI, the middleware, and the MCP server all speak one event shape. The verdict is the registry's own
+// core-computed verdict (self-checked at seed time by the pure verifier).
+fn number_from_name(sub: &str) -> Option<String> {
+    // ainra:reg:op:lineage@ver → did:ainra:reg:op:lineage (the permanent AINRA Number). Mirrors sdk numberFromName.
+    if !sub.contains('@') {
+        return None;
+    }
+    let body = sub.strip_prefix("ainra:")?;
+    let before_at = body.split('@').next()?;
+    let parts: Vec<&str> = before_at.split(':').collect();
+    let ok = parts.len() == 3
+        && parts
+            .iter()
+            .all(|p| !p.is_empty() && p.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-'));
+    ok.then(|| format!("did:ainra:{}:{}:{}", parts[0], parts[1], parts[2]))
+}
+fn jstr(o: Option<&str>) -> String {
+    o.map_or_else(|| "null".to_string(), |v| serde_json::to_string(v).unwrap_or_else(|_| "null".into()))
+}
+fn event_json(status: &str, reason: Option<&str>, name: Option<&str>, number: Option<&str>, tier: Option<&str>, age: Option<i64>) -> String {
+    format!(
+        r#"{{"status":{},"reason":{},"name":{},"number":{},"tier":{},"freshness_age_s":{}}}"#,
+        serde_json::to_string(status).unwrap(),
+        jstr(reason),
+        jstr(name),
+        jstr(number),
+        jstr(tier),
+        age.map_or_else(|| "null".to_string(), |v| v.to_string()),
+    )
+}
+fn cmd_events(a: &[String]) -> i32 {
+    let Some(path) = pos(a, 0) else {
+        eprintln!("usage: ainra events <registry.json>   (e.g. run `ainra seed <dir>` first, then `ainra events <dir>/registry.json`)");
+        return 2;
+    };
+    let data = match std::fs::read_to_string(path) {
+        Ok(d) => d,
+        Err(e) => {
+            eprintln!("read failed: {e} — run `ainra seed <dir>` to produce a registry.json");
+            return 1;
+        }
+    };
+    let reg: serde_json::Value = match serde_json::from_str(&data) {
+        Ok(v) => v,
+        Err(e) => {
+            eprintln!("parse failed: {e}");
+            return 1;
+        }
+    };
+    let now = reg["generated_window"]["verified_at"].as_i64().unwrap_or(0);
+    let empty = Vec::new();
+    for r in reg["registrars"].as_array().unwrap_or(&empty) {
+        let issued_at = r["status_list"]["issued_at"].as_i64();
+        for e in r["records"].as_array().unwrap_or(&empty) {
+            let rec = &e["record"];
+            let sub = rec["sub"].as_str();
+            let tier = rec["tier"].as_str();
+            let status = e["verdict"]["verdict"].as_str().unwrap_or("invalid");
+            let reason = e["verdict"]["reason"].as_str();
+            let number = sub.and_then(number_from_name);
+            let age = issued_at.map(|i| now - i);
+            println!("{}", event_json(status, reason, sub, number.as_deref(), tier, age));
+        }
+    }
+    0
 }
 
 fn cmd_demo() -> i32 {

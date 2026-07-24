@@ -11,6 +11,19 @@ now* — with **facts, never scores, never a price, never the decision itself.**
 decision is the verifier's.** Everything is built so a stranger can verify **offline, in ~5 lines, with the root
 dark**, trusting the **source** — not us.
 
+## Start here — two commands
+
+```sh
+make verify        # verify a valid + a revoked credential with the real verifier, offline. No account, no server, no config.
+make issue-first   # boot a local registrar, issue your first passport, verify it — and keep the registrar for reuse.
+```
+
+Measured on a warm toolchain: `make verify` ≈ **1.7 s**, `make issue-first` ≈ **2.2 s** (both far under the 60 s / 5 min
+targets). From there: the [cookbook](docs/quickstarts/) · the [MCP server](docs/quickstarts/mcp.md) (AINRA as native
+agent tools) · the [registrar console](docs/quickstarts/console.md) (`make registrar-console`) · the
+[examples](examples/) · and **[`skills.md`](skills.md)** — an agent onboards itself end to end from that one file.
+Every command prints honest labels (`LOCAL TESTBED` / `STAGING · TEST-ROOT`) and names the next step on failure.
+
 This repository is the production-track reference implementation. The **normative spec** is
 [docs/AINRA_Master_Technical_Specification_v1.md](docs/AINRA_Master_Technical_Specification_v1.md) (it wins
 conflicts); the **public standard** is [docs/AINRA_I_The_Standard.md](docs/AINRA_I_The_Standard.md); every deliberate

@@ -57,6 +57,9 @@ run "S7 neutrality"      "no brands / no impersonation" node tools/s7-lint.mjs
 run "license headers"    "SPDX on every source file"    node tools/license-check.mjs
 run "status honesty"     "README == STATUS claim"       node tools/status-consistency.mjs
 run "doc freeze"         "normative docs unchanged"     make check-freeze
+run "MCP fidelity"       "ainra_verify ≡ SDK on vectors" make mcp-test
+run "presentation shape" "CLI≡middleware≡MCP event"     make presentation-diff
+run "skills replay"      "skills.md runs as written"    make skills-replay
 if [ "$QUICK" != "1" ]; then
   run "reproducibility"  "artifacts rebuild byte-exact" make repro
 fi

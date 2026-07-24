@@ -1222,3 +1222,46 @@ export function runDirectoryVector(v: WireDirectoryVector): { accept: boolean; r
   if (acc === null) return { accept: false };
   return { accept: true, registrars: Object.keys(acc.anchors).length };
 }
+
+// ── M16 Task 4: the ONE verdict EVENT shape every AINRA-aware surface emits (see docs/PRESENTATION.md) ──
+// Fields, fixed order: status · reason · name · number · tier · freshness_age_s. `number` is the PERMANENT identity
+// (the version-less DID `did:ainra:reg:op:lineage`); `name` is the full versioned credential. `freshness_age_s` is
+// `now - status_issued_at` (how old the revocation info is). The middleware, the MCP server, and the `ainra` CLI all
+// emit exactly this, byte-identical — a differential asserts it.
+export interface VerdictEvent {
+  status: "valid" | "invalid";
+  reason: Reason | null;
+  name: string | null;
+  number: string | null;
+  tier: string | null;
+  freshness_age_s: number | null;
+}
+/** The permanent AINRA Number: strip `@version` from a name → `did:ainra:reg:op:lineage`. `null` if it doesn't parse. */
+export function numberFromName(sub: string): string | null {
+  const m = /^ainra:([a-z0-9-]+):([a-z0-9-]+):([a-z0-9-]+)@/.exec(sub);
+  return m ? `did:ainra:${m[1]}:${m[2]}:${m[3]}` : null;
+}
+/** Build the canonical verdict event from a presentation bundle (wire form), its verdict, and the verifier's `now`. */
+export function verdictEvent(
+  pres: { claims?: string; status_issued_at?: number },
+  verdict: Verdict,
+  now: number,
+): VerdictEvent {
+  let name: string | null = null, number: string | null = null, tier: string | null = null, age: number | null = null;
+  try {
+    if (typeof pres.claims === "string") {
+      const bytes = strictB64u(pres.claims);
+      if (bytes) {
+        const c = JSON.parse(new TextDecoder().decode(bytes)) as { sub?: unknown; tier?: unknown };
+        if (typeof c.sub === "string") { name = c.sub; number = numberFromName(c.sub); }
+        if (typeof c.tier === "string") tier = c.tier;
+      }
+    }
+    if (typeof pres.status_issued_at === "number") age = Math.max(0, Math.trunc(now - pres.status_issued_at));
+  } catch { /* undecodable claims → null fields; still a well-formed event */ }
+  return { status: verdict.verdict, reason: verdict.verdict === "valid" ? null : verdict.reason, name, number, tier, freshness_age_s: age };
+}
+/** Canonical serialization — fixed key order, compact. MUST byte-match the Rust `ainra verify --event` emitter. */
+export function serializeVerdictEvent(e: VerdictEvent): string {
+  return JSON.stringify({ status: e.status, reason: e.reason, name: e.name, number: e.number, tier: e.tier, freshness_age_s: e.freshness_age_s });
+}

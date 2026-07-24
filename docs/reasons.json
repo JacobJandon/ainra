@@ -1,0 +1,19 @@
+{
+  "_note": "The 15 frozen INVALID reasons, in verify order, each in plain words. Single source for the CLI/SDK/MCP/console legends and docs. The strings themselves are frozen (they match crates/ainra-core/src/verify.rs and packages/sdk-ts Reason); only these glosses are editorial.",
+  "valid": "All nine checks passed — genuine, in-window, in-scope, logged, and not revoked.",
+  "schema_violation": "Not a well-formed passport, or it carries a forbidden (identity/score/money) field.",
+  "name_malformed": "The subject or issuer name doesn't fit the AINRA name grammar.",
+  "unknown_registrar": "The issuing registrar isn't in the signed directory (not accredited).",
+  "not_yet_valid": "Presented before its validity window opens (now < nbf).",
+  "expired": "Its validity window has closed (now >= exp) — no grace, no skew.",
+  "sig_invalid": "An issuer signature failed to verify.",
+  "alg_downgrade": "Only one of the two required signatures (Ed25519 + ML-DSA-65) was present or valid.",
+  "ceiling_exceeded": "The capabilities claimed exceed the scope ceiling.",
+  "chain_widening": "A delegation hop granted more than it held — delegation may only narrow.",
+  "chain_expired": "A delegation hop is outside its own validity window.",
+  "stale_status": "The revocation status is too old for the required freshness class (fails closed).",
+  "revoked": "The lineage's revocation bit is set — it has been revoked.",
+  "mandate_revoked": "A mandate in the signed permission path has been revoked.",
+  "not_logged": "The credential can't be proven present in the transparency log (logged-before-valid failed).",
+  "checkpoint_invalid": "The log checkpoint isn't signed by a currently-valid delegate."
+}

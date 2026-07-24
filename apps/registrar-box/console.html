@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<!-- SPDX-License-Identifier: Apache-2.0 OR MIT -->
+<!-- The OPEN registrar console (M16 Task 5). Neutral, unbranded open-core: no company styling, no pricing, no accounts
+     beyond the registrar's own operator write-token. Served by registrar-in-a-box at GET /console (and by every
+     staging registrar). Self-contained: no CDN, no web fonts, zero telemetry. The CLI stays the power surface; this
+     exists so a first-time operator sees the whole lifecycle without reading anything. Talks only to this registrar. -->
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AINRA registrar console</title>
+<style>
+  :root{--ink:#12181f;--txt:#2b3540;--mut:#6b7480;--line:#dfe3df;--card:#fbfbf9;--paper:#f3f4f1;--grn:#1a6b4e;--red:#a8402f;--gold:#8a6d1a;--mono:ui-monospace,"SF Mono","Cascadia Code",Menlo,monospace}
+  @media(prefers-color-scheme:dark){:root{--ink:#eef1ec;--txt:#c3cbd4;--mut:#8b95a1;--line:#28303a;--card:#141a22;--paper:#0d1117;--grn:#5fbf94;--red:#e8836f;--gold:#d8b64e}}
+  *{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--txt);font:14px/1.5 system-ui,-apple-system,Segoe UI,sans-serif}
+  header{border-bottom:1px solid var(--line);padding:12px 18px;display:flex;gap:12px;align-items:center;background:var(--card);position:sticky;top:0;z-index:5}
+  header b{color:var(--ink);font-size:16px}.tag{font:11px var(--mono);letter-spacing:.05em;padding:2px 8px;border-radius:5px;border:1px solid var(--line);color:var(--mut)}
+  .tag.stg{color:var(--gold);border-color:var(--gold)}.tag.prod{color:var(--ink);background:var(--ink);color:var(--paper)}
+  main{max-width:1080px;margin:0 auto;padding:18px}
+  .row{display:flex;gap:14px;flex-wrap:wrap}.col{flex:1;min-width:280px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:14px}
+  h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);margin:0 0 10px}
+  label{display:block;font-size:12px;color:var(--mut);margin:8px 0 2px}
+  input,select{width:100%;padding:7px 9px;border:1px solid var(--line);border-radius:6px;background:var(--paper);color:var(--ink);font:13px var(--mono)}
+  button{background:var(--ink);color:var(--paper);border:0;border-radius:6px;padding:8px 14px;font-size:13px;cursor:pointer;margin-top:10px}
+  button.ghost{background:transparent;color:var(--txt);border:1px solid var(--line)}button.danger{background:var(--red)}
+  table{width:100%;border-collapse:collapse;font-size:12.5px}th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut)}
+  .sub{font:12px var(--mono);color:var(--ink);word-break:break-all}.pill{font:11px var(--mono);border:1px solid var(--line);border-radius:4px;padding:0 6px;color:var(--mut)}
+  .v-ok{color:var(--grn);font-weight:600}.v-no{color:var(--red);font-weight:600}
+  .due{color:var(--gold)}.exp{color:var(--red)}
+  .msg{font:12px var(--mono);padding:8px 10px;border-radius:6px;margin-top:8px;white-space:pre-wrap;display:none}
+  .msg.ok{display:block;color:var(--grn);border:1px solid var(--grn)}.msg.err{display:block;color:var(--red);border:1px solid var(--red)}
+  .hops{font:11px var(--mono);color:var(--mut)}.note{font-size:12px;color:var(--mut);margin-top:6px}
+  code{font:12px var(--mono);background:var(--paper);padding:1px 5px;border-radius:4px}
+</style>
+
+<header>
+  <b>AINRA registrar console</b>
+  <span id="regid" class="pill">…</span>
+  <span id="netlabel" class="tag">…</span>
+  <span style="margin-left:auto;color:var(--mut);font-size:12px">open-core · neutral · zero telemetry · the CLI is the power surface</span>
+</header>
+
+<main>
+  <div class="card">
+    <h2>Operator auth</h2>
+    <div class="row">
+      <div class="col">
+        <label>Write token (this registrar's <code>AINRA_STAGE_ISSUE_TOKEN</code>) — kept in memory only, no account</label>
+        <input id="token" type="password" placeholder="leave blank if this registrar's write path is open (local dev)">
+      </div>
+    </div>
+    <div class="note">Read is open (public artifacts). Issue / renew / revoke are rate-limited writes and need this token when the registrar sets one.</div>
+  </div>
+
+  <div class="row">
+    <div class="col card">
+      <h2>Issue a passport</h2>
+      <div class="row">
+        <div class="col"><label>operator</label><input id="i-op" value="acme"></div>
+        <div class="col"><label>lineage</label><input id="i-lin" value="assistant"></div>
+      </div>
+      <div class="row">
+        <div class="col"><label>version</label><input id="i-ver" value="1.0.0"></div>
+        <div class="col"><label>tier</label><select id="i-tier"><option>L0</option><option>L1</option><option selected>L2</option><option>L3</option><option>L4</option></select></div>
+        <div class="col"><label>auth</label><select id="i-auth"><option>A1</option><option selected>A2</option><option>A3</option><option>A4</option></select></div>
+      </div>
+      <label>capabilities (comma-separated)</label><input id="i-cap" value="read:data">
+      <button onclick="issue()">Issue</button>
+      <div id="i-msg" class="msg"></div>
+    </div>
+    <div class="col card">
+      <h2>Renew / revoke</h2>
+      <label>subject</label><input id="r-sub" placeholder="ainra:reg:op:lineage@version">
+      <div class="row">
+        <div class="col"><label>new version (renew)</label><input id="r-ver" value="1.0.1"></div>
+      </div>
+      <button onclick="renew()">Renew</button>
+      <button class="danger" onclick="revoke()">Revoke</button>
+      <div id="r-msg" class="msg"></div>
+      <div class="note">Renew mints a fresh 366-day window with <code>prev_leaf</code> continuity (ADR-017). Revoke fails closed within the freshness window.</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Fleet — live verdicts &amp; expiry horizon (ADR-017) <button class="ghost" style="margin:0 0 0 8px;padding:3px 10px" onclick="load()">refresh</button></h2>
+    <table><thead><tr><th>Subject</th><th>Tier</th><th>Auth</th><th>Standing</th><th>Verdict</th><th>Expires</th><th>Chain</th></tr></thead><tbody id="rows"><tr><td colspan="7" class="note">loading…</td></tr></tbody></table>
+    <div id="horizon" class="note"></div>
+  </div>
+</main>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const tok = () => $("#token").value.trim();
+const hdr = () => tok() ? { "Content-Type": "application/json", Authorization: "Bearer " + tok() } : { "Content-Type": "application/json" };
+const show = (el, ok, text) => { const m = $(el); m.className = "msg " + (ok ? "ok" : "err"); m.textContent = text; };
+let NOW = 0;
+
+async function post(path, body, msgEl) {
+  try {
+    const r = await fetch(path, { method: "POST", headers: hdr(), body: JSON.stringify(body) });
+    const text = await r.text();
+    if (!r.ok) { show(msgEl, false, `HTTP ${r.status}: ${text || "(need the write token?)"}`); return false; }
+    show(msgEl, true, text || "done"); load(); return true;
+  } catch (e) { show(msgEl, false, "network error: " + e.message); return false; }
+}
+function issue() {
+  const caps = $("#i-cap").value.split(",").map(s => s.trim()).filter(Boolean);
+  post("/issue", { operator: $("#i-op").value, lineage: $("#i-lin").value, version: $("#i-ver").value, tier: $("#i-tier").value, auth_class: $("#i-auth").value, principal_proof: "deadbeef" + $("#i-lin").value, capabilities: caps, scope_ceiling: caps, hops: [] }, "#i-msg");
+}
+function renew() { post("/renew", { sub: $("#r-sub").value, new_version: $("#r-ver").value, now: NOW }, "#r-msg"); }
+function revoke() { if (confirm("Revoke " + $("#r-sub").value + "? It fails closed everywhere.")) post("/revoke", { sub: $("#r-sub").value, now: NOW }, "#r-msg"); }
+
+async function load() {
+  try {
+    const h = await (await fetch("/health")).json();
+    $("#regid").textContent = h.registrar || h.id || "registrar";
+    const net = (h.network || "staging");
+    $("#netlabel").textContent = net === "production" ? "PRODUCTION" : "STAGING · TEST-ROOT";
+    $("#netlabel").className = "tag " + (net === "production" ? "prod" : "stg");
+  } catch {}
+  const exp = await (await fetch("/export")).json();
+  NOW = exp.generated_window?.verified_at ?? exp.verified_at ?? exp.now ?? 0; // raw registrar export uses verified_at
+  const recs = exp.records || [];
+  const day = 86400, dueSoon = 30 * day;
+  let due = 0, expired = 0;
+  $("#rows").innerHTML = recs.map((e) => {
+    const r = e.record, v = e.verdict || {};
+    const ok = v.verdict === "valid";
+    const secs = (r.exp ?? 0) - NOW, days = Math.floor(secs / day);
+    let expCell, cls = "";
+    if (secs <= 0) { expCell = "expired"; cls = "exp"; expired++; }
+    else if (secs <= dueSoon) { expCell = days + "d — renewal due"; cls = "due"; due++; }
+    else expCell = days + "d";
+    const hops = (r.hops || []).length ? `${r.hops.length} hop → ${r.hops.map(h => (h.granted || []).join("+")).join(", ")}` : "—";
+    return `<tr><td class="sub">${r.sub}</td><td><span class="pill">${r.tier}</span></td><td><span class="pill">${r.auth_class}</span></td>
+      <td>${r.revoked ? '<span class="v-no">REVOKED</span>' : '<span class="v-ok">ACTIVE</span>'}</td>
+      <td>${ok ? '<span class="v-ok">VALID</span>' : `<span class="v-no">${(v.reason || "INVALID")}</span>`}</td>
+      <td class="${cls}">${expCell}</td><td class="hops">${hops}</td></tr>`;
+  }).join("") || `<tr><td colspan="7" class="note">no passports yet — issue one above</td></tr>`;
+  $("#horizon").textContent = `${recs.length} lineage(s) · ${due} renewal-due (≤30d) · ${expired} expired · verifying at ${new Date(NOW * 1000).toISOString().slice(0, 10)} · every verdict recomputed by the registrar's core verifier`;
+}
+load();
+</script>

@@ -4,6 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AINRA — The identity layer for autonomous AI</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 112 112%27%3E%3Crect width=%27112%27 height=%27112%27 rx=%2722%27 fill=%27%23F5F6F3%27/%3E%3Ccircle cx=%2756%27 cy=%2756%27 r=%2736%27 stroke=%27%230B1220%27 stroke-width=%275%27 fill=%27none%27/%3E%3Cellipse cx=%2756%27 cy=%2756%27 rx=%2715%27 ry=%2736%27 stroke=%27%230B1220%27 stroke-width=%274%27 fill=%27none%27/%3E%3Cline x1=%2720%27 y1=%2756%27 x2=%2792%27 y2=%2756%27 stroke=%27%230B1220%27 stroke-width=%274%27/%3E%3Cpath d=%27M56 20 a36 36 0 0 1 36 36%27 stroke=%27%231A6B4E%27 stroke-width=%277%27 stroke-linecap=%27round%27 fill=%27none%27/%3E%3C/svg%3E">
+<meta name="theme-color" content="#F5F6F3">
+<noscript><style>.rv,.t-line,.verify-line{opacity:1!important;transform:none!important}.skip{position:absolute;left:-9999px;top:0;z-index:99;background:var(--ink);color:#fff;padding:10px 18px;border-radius:0 0 10px 0;font-weight:600}.skip:focus{left:0}
+</style></noscript>
 <meta name="description" content="The identity layer for autonomous AI. AINRA is its neutral root: an open standard — passports for agents, authority classes, sub-minute global revocation, and a public record anyone can verify.">
 <style>
 /* AINRA landing — merged design: the original page's substance (passport, orbit, four jobs, lifecycle, founding
@@ -265,6 +269,7 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
 </style>
 </head>
 <body id="top">
+<a class="skip" href="#main">Skip to content</a>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
@@ -319,11 +324,11 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
   </div></div>
   <div class="mi"><button type="button" data-dd>Developers <span class="car">▼</span></button><div class="dd">
     <a href="#developers">Quickstart<span>SDK, middleware, CLI</span></a>
-    <a href="standard.html">Conformance vectors<span>CC0 · three implementations agree</span></a>
+    <a href="status.html">Conformance<span>745/745 — measured, see status</span></a>
     <a href="AINRA_I_The_Standard.md" download>Canonical file<span>AINRA_I_The_Standard.md — raw download</span></a>
   </div></div>
   <div class="mi"><button type="button" data-dd>Foundation <span class="car">▼</span></button><div class="dd">
-    <a href="foundations.html">Charter &amp; four rules<span>What the root can never do</span></a>
+    <a href="foundations.html">Charter &amp; rules<span>What the root can never do</span></a>
     <a href="status.html">Honest status<span>What exists · what doesn't yet</span></a>
     <a href="foundations.html#faq">FAQ<span>Straight answers</span></a>
   </div></div>
@@ -337,7 +342,7 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
   </div>
 </div></nav>
 
-<header class="hero">
+<header class="hero" id="main">
   <div class="wrap">
     <div class="kick rv in">TURNING FUTURE INTO A WORKING PRESENT</div>
     <h1 class="rv in">The identity layer for <span class="u">autonomous&nbsp;AI</span>.</h1>
@@ -347,13 +352,13 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
       <a class="btn btn-ghost" href="#access">Join the founding table</a>
     </div>
     <div class="rv in"><div class="cmd">
-      <code><span class="p">$</span> npx ainra verify ainra:registrar-07:acme:invoicing@4.2.1</code>
+      <code><span class="p">$</span> unzip ainra-cli-v0.1.0.zip &amp;&amp; node ainra-cli/bin/ainra.js demo</code>
       <button id="copyBtn" aria-label="Copy command">COPY</button>
     </div></div>
     <div class="badges rv in">
       <span><b>✓</b> OPEN STANDARD</span>
       <span><b>✓</b> OPEN-SOURCE REFERENCE</span>
-      <span><b>✓</b> NON-PROFIT FEDERATION</span>
+      <span><b>✓</b> NON-PROFIT CHARTER</span>
       <span><b>✓</b> ZERO PII, EVER</span>
     </div>
 
@@ -376,10 +381,10 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
           </div>
         </div>
         <div class="datarows">
-          <div class="dr"><b>NAME</b><span>ainra:registrar-07:acme-corp:invoicing@4.2.1</span></div>
+          <div class="dr"><b>NAME</b><span>ainra:registrar-07:acme:invoicing@4.2.1</span></div>
           <div class="dr"><b>VALIDITY</b><span>ISSUED 11 APR 2026 · EXPIRES 11 APR 2027 · <i>RENEWABLE</i></span></div>
           <div class="dr"><b>KEY</b><span>ED25519 + ML-DSA-65 · FP 9C41:8F2E:AA07:D356</span></div>
-          <div class="dr"><b>STATUS</b><span><span class="chip c-ok">IN GOOD STANDING · as of 12s ago</span></span></div>
+          <div class="dr"><b>STATUS</b><span><span class="chip c-ok">IN GOOD STANDING · SPECIMEN</span></span></div>
         </div>
         <svg class="p-crest" viewBox="0 0 160 160" aria-hidden="true"><use href="#ainra-crest"/></svg>
         <div class="authority">
@@ -389,7 +394,7 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
         <div class="mrz-zone">
           <div class="mrz" id="mrz" aria-label="Machine readable zone"></div>
           <div class="verify-line" id="verifyLine">
-            <i aria-hidden="true"></i> ⑧ ROOT SIGNATURE VALID <span>· WITNESSES 3/5 · LOG #8F2E…C41</span>
+            <i aria-hidden="true"></i> ⑧ ROOT SIGNATURE VALID <span>· WITNESSES 3/5 · LOG #8F2E…C41 · SPECIMEN</span>
           </div>
         </div>
       </div>
@@ -415,7 +420,6 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
     <div class="stat rv"><div class="n"><em data-count="53">0</em>%</div><p>of web traffic is already automated. Humans are the minority online.</p><span class="src">INDUSTRY TRAFFIC REPORTS '26</span></div>
     <div class="stat rv"><div class="n"><em data-count="80">0</em>:1</div><p>machine identities to every human in the enterprise — most of them ungoverned.</p><span class="src">ENTERPRISE IDENTITY ANALYSES '26</span></div>
     <div class="stat rv"><div class="n"><em data-count="24">0</em>%</div><p>of organizations can fully see their agent-to-agent traffic. The rest are trusting the dark.</p><span class="src">AGENT SECURITY SURVEYS '26</span></div>
-    <div class="stat rv"><div class="n">&lt;<em data-count="60">0</em>s</div><p>the standard's global revocation target. One switch. Every verifier. Everywhere.</p><span class="src">AINRA PROTOCOL TARGET</span></div>
   </div>
 </div>
 
@@ -477,7 +481,7 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
       </div>
       <div class="legend rv">
         <div class="leg core"><b>THE ROOT — AINRA</b><p>Holds the keys, the rules, the revocation feed, and the logs. Everything below chains up to it, so every check stays local and fast.</p></div>
-        <div class="leg"><b>RING 1 · INDEPENDENT REGISTRARS</b><p>Separate organizations, accredited under identical published rules — licensed issuers, enterprise directories crossing the boundary, permissionless chains for the open ecosystem.</p></div>
+        <div class="leg"><b>RING 1 · INDEPENDENT REGISTRARS</b><p>Separate organizations, accredited under identical published rules — licensed issuers, enterprise directories bridging internal identity to the public root, permissionless chains for the open ecosystem.</p></div>
         <div class="leg"><b>RING 2 · AGENTS</b><p>Every agent carries a passport chained to the root. Running copies use short-lived local credentials under it, so scale stays at the edge.</p></div>
         <div class="leg"><b>RING 3 · VERIFIERS</b><p>Anyone deciding whether to trust an agent — verifying inward against cached root keys (the dashed rays), each setting its own floor.</p></div>
       </div>
@@ -497,13 +501,12 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
         <span class="k">01 · Namespace</span>
         <h3>Names every agent</h3>
         <p>One canonical, resolvable name per agent — <span style="font-family:var(--mono);font-size:12px">ainra:registrar:operator:lineage@version</span> — that any system can look up and get the signed passport back.</p>
-        <p>Every lineage also carries an <b>AINRA Number</b> — a compact, check-digited identifier for payment rails and databases. Numbers are never reused: a retired identity stays retired forever.</p>
         <p class="not"><b>BY DESIGN</b> · NAMES POINT — REGISTRARS SERVE THE FILES.</p>
       </div>
       <div class="do-cell rv">
         <span class="k">02 · Accreditation</span>
         <h3>Licenses the passport offices</h3>
-        <p>Independent registrars — licensed issuers, enterprise directories, permissionless chains — do the verifying and issuing. The root audits them against published rules and can revoke one wholesale.</p>
+        <p>Independent registrars do the verifying and issuing. The root audits them against published rules and can revoke one wholesale.</p>
         <p class="not"><b>BY DESIGN</b> · REGISTRARS ISSUE — THE ROOT KEEPS THEM HONEST.</p>
       </div>
       <div class="do-cell rv">
@@ -529,7 +532,7 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
       <h2>Register. Present. Verify. Revoke.</h2>
     </div>
     <div class="steps">
-      <div class="step rv"><h3>Register</h3><p>Through an independent registrar of your class. The lineage gets a soulbound passport, authority class declared, event sealed in the public log.</p></div>
+      <div class="step rv"><h3>Register</h3><p>Through an independent registrar of your class. The lineage gets a non-transferable passport, authority class declared, event sealed in the public log.</p></div>
       <div class="step rv"><h3>Present</h3><p>The passport rides in the signed requests the agent already sends, disclosing exactly what each counterparty needs.</p></div>
       <div class="step rv"><h3>Verify</h3><p>Anyone checks chain, authority, mandate, and live status against cached root keys — milliseconds, works offline.</p></div>
       <div class="step rv"><h3>Revoke</h3><p>One logged event stops a version's entire fleet — or a principal recalls a mandate and its whole subtree — everywhere, in under a minute.</p></div>
@@ -563,7 +566,7 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
 
 <div class="statement rv">
   <h2>One record. Every agent.</h2>
-  <p>The root does four things — accredit, anchor, revoke, log — and is constitutionally barred from everything else. No scores, no prices, no rankings, no personal data, no company ever featured.</p>
+  <p>The root does four things — accredit, anchor, revoke, log — and is constitutionally barred from everything else.</p>
 </div>
 
 <section id="access" style="padding-top:56px">
@@ -581,17 +584,17 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
           <option value="builder" style="color:#111">Builder / operator</option>
           <option value="other" style="color:#111">Other</option>
         </select>
-        <input type="email" id="ctaEmail" placeholder="you@company.com" aria-label="Work email" required>
+        <input type="email" id="ctaEmail" placeholder="you@example.com" aria-label="Work email" required>
         <button class="btn" type="submit">Take a seat</button>
       </form>
-      <p class="email-ok" id="ctaOk">✓ Seat noted — the standard and founding brief are on their way.</p>
+      <p class="email-ok" id="ctaOk" role="status">✓ Noted — in this browser only. Founding intake opens with the public release; nothing was sent anywhere.</p>
       <a class="alt" href="standard.html">READ THE STANDARD FIRST →</a>
     </div>
   </div>
 </section>
 
 <div class="wrap"><div class="legal rv">
-  <p><b>Status disclosure.</b> AINRA is a neutral, non-profit root for AI-agent identity, currently pre-genesis. The open standard (v5.1) and the reference implementation (v0.1.0) are complete and independently checkable: three implementations agree on all 745 CC0 conformance vectors, every published artifact rebuilds byte-for-byte from source, and revocation propagation is measured at under 60 seconds. Verification is offline-capable and free, permanently, and phones home to no one.</p>
+  <p><b>Status disclosure.</b> AINRA is a neutral, non-profit root for AI-agent identity, currently pre-genesis. The open standard (v5.1) is public and the reference CLI (v0.1.0) is downloadable and checkable today; the full reference implementation is engineering-complete and pre-release: three implementations agree on all 745 CC0 conformance vectors, every published artifact rebuilds byte-for-byte from source, and revocation propagation is measured at under 60 seconds. Verification is offline-capable and free, permanently, and phones home to no one. Canonical live status: <a href="status.html" style="color:var(--green)">status.html</a>.</p>
   <p>The production root does not yet exist: it is created only at a recorded, in-person 5-of-9 key ceremony across independent custodians in multiple jurisdictions, after which its transcript hash is published for anyone to recompute. Until that day, the number of production log entries is exactly zero, and this page says so. The interface shown above is a specimen with placeholder registrars, labeled as such. The root issues no passports itself, computes no scores, holds no personal data, features no company, and sells nothing — these are charter prohibitions enforced in code, not policies.</p>
 </div></div>
 
@@ -604,7 +607,7 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
           <span class="wm" style="font-size:17px">AINRA</span>
           <span class="mean">Agent Identity &amp; Naming<br>Registry Authority</span>
         </a>
-        <p style="margin-top:16px;font-size:13px;color:var(--muted);max-width:26ch">The neutral root of AI agent identity. Est. 2026.</p>
+        <p style="margin-top:16px;font-size:13px;color:var(--muted);max-width:26ch">The neutral root of AI agent identity. Founding 2026.</p>
       </div>
       <div>
         <h4>Protocol</h4>
@@ -670,7 +673,7 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
   /* copy the verify command */
   const cp=$('copyBtn');
   if(cp){cp.addEventListener('click',()=>{
-    const txt='npx ainra verify ainra:registrar-07:acme:invoicing@4.2.1';
+    const txt='unzip ainra-cli-v0.1.0.zip && node ainra-cli/bin/ainra.js demo';
     (navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(()=>{cp.textContent='COPIED';setTimeout(()=>{cp.textContent='COPY'},1400);},()=>{});
   });}
 
@@ -724,7 +727,7 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
 
   /* dev code tabs — real surfaces only */
   const S={
-ts:'<span class="c">// five lines — offline, root dark, fail-closed</span>\n<span class="w">import</span> { Verifier } <span class="w">from</span> <span class="g">"@ainra/sdk"</span>;\n\n<span class="w">const</span> v = <span class="w">await</span> Verifier.fromDirectory(dir);\n<span class="w">const</span> verdict = v.verify(bundle, now);\n\n<span class="c">// → { status: "VALID" }</span>\n<span class="c">//   or a named reason: revoked | stale_status | …</span>',
+ts:'<span class="c">// five lines — offline, root dark, fail-closed</span>\n<span class="c">// (the reference SDK ships in the CLI bundle — npm publish at genesis)</span>\n<span class="w">import</span> { Verifier } <span class="w">from</span> <span class="g">"@ainra/sdk"</span>;\n\n<span class="w">const</span> v = <span class="w">await</span> Verifier.fromDirectory(dir);\n<span class="w">const</span> verdict = v.verify(bundle, now);\n\n<span class="c">// → { status: "VALID" }</span>\n<span class="c">//   or a named reason: revoked | stale_status | …</span>',
 mw:'<span class="c">// gate any route on a verified passport</span>\n<span class="w">import</span> { ainraGate, Verifier } <span class="w">from</span> <span class="g">"@ainra/middleware"</span>;\n\napp.use(<span class="g">"/agent"</span>, ainraGate(verifier));\n\n<span class="c">// invalid agents receive 403</span>\n<span class="c">// + x-ainra-reason header, fail-closed</span>',
 rs:'<span class="c">// the reference core — pure, no I/O, no clock</span>\n<span class="w">let</span> verdict = ainra_core::verify(\n    &bundle, &directory, now,\n);\n\n<span class="c">// 9 documented checks, first failure wins;</span>\n<span class="c">// three implementations agree 745/745</span>',
 cli:'<span class="c"># the whole lifecycle, locally, no server</span>\n$ ainra init ./reg registrar-07\n$ ainra issue ./reg --operator acme \\\n    --lineage invoicing --version 1.0.0 --tier L2\n$ ainra verify ./reg \\\n    ainra:registrar-07:acme:invoicing@1.0.0\n<span class="g">VALID</span>   <span class="c"># the real verifier’s output</span>'

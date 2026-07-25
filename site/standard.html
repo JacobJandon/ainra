@@ -1,5 +1,10 @@
 <!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>The Standard — AINRA</title><meta name="description" content="The complete public AINRA specification, v5.1 — namespace, passports, authority classes, revocation, logs, and governance.">
+<title>The Standard — AINRA</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 112 112%27%3E%3Crect width=%27112%27 height=%27112%27 rx=%2722%27 fill=%27%23F5F6F3%27/%3E%3Ccircle cx=%2756%27 cy=%2756%27 r=%2736%27 stroke=%27%230B1220%27 stroke-width=%275%27 fill=%27none%27/%3E%3Cellipse cx=%2756%27 cy=%2756%27 rx=%2715%27 ry=%2736%27 stroke=%27%230B1220%27 stroke-width=%274%27 fill=%27none%27/%3E%3Cline x1=%2720%27 y1=%2756%27 x2=%2792%27 y2=%2756%27 stroke=%27%230B1220%27 stroke-width=%274%27/%3E%3Cpath d=%27M56 20 a36 36 0 0 1 36 36%27 stroke=%27%231A6B4E%27 stroke-width=%277%27 stroke-linecap=%27round%27 fill=%27none%27/%3E%3C/svg%3E">
+<meta name="theme-color" content="#F5F6F3">
+<noscript><style>.rv,.t-line,.verify-line{opacity:1!important;transform:none!important}.skip{position:absolute;left:-9999px;top:0;z-index:99;background:var(--ink);color:#fff;padding:10px 18px;border-radius:0 0 10px 0;font-weight:600}.skip:focus{left:0}
+@media print{nav,.announce,footer,.skip{display:none!important}.rv{opacity:1!important;transform:none!important}body{background:#fff}}
+</style></noscript><meta name="description" content="The complete public AINRA specification, v5.1 — namespace, passports, authority classes, revocation, logs, and governance.">
 <style>
 :root{
   --ink:#0B1220; --ink-2:#111B30; --paper:#F5F6F3; --card:#FFFFFF;
@@ -342,6 +347,7 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
 @media(min-width:901px){.nav-links{display:none!important}}
 @media(max-width:900px){.mi,.nav-hide{display:none}}
 </style></head><body id="top">
+<a class="skip" href="#main">Skip to content</a>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
     <g id="ainra-sigil">
@@ -391,11 +397,11 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
   </div></div>
   <div class="mi"><button type="button" data-dd>Developers <span class="car">▼</span></button><div class="dd">
     <a href="index.html#developers">Quickstart<span>SDK, middleware, CLI</span></a>
-    <a href="standard.html">Conformance vectors<span>CC0 · three implementations agree</span></a>
+    <a href="status.html">Conformance<span>745/745 — measured, see status</span></a>
     <a href="AINRA_I_The_Standard.md" download>Canonical file<span>AINRA_I_The_Standard.md — raw download</span></a>
   </div></div>
   <div class="mi"><button type="button" data-dd>Foundation <span class="car">▼</span></button><div class="dd">
-    <a href="foundations.html">Charter &amp; four rules<span>What the root can never do</span></a>
+    <a href="foundations.html">Charter &amp; rules<span>What the root can never do</span></a>
     <a href="status.html">Honest status<span>What exists · what doesn't yet</span></a>
     <a href="foundations.html#faq">FAQ<span>Straight answers</span></a>
   </div></div>
@@ -406,17 +412,17 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
   </div>
   <div class="nav-links" id="navLinks"><a href="index.html">The root</a><a href="standard.html" style="color:var(--green)">Standard</a><a href="verify.html">Verify</a><a href="foundations.html">Foundations</a><a href="status.html">Status</a></div>
 </div></nav>
-<main><section style="padding-top:118px"><div class="wrap"><div class="sec-head rv">
+<main id="main"><section style="padding-top:118px"><div class="wrap"><div class="sec-head rv">
 <span class="eyebrow">Document I · Public normative specification</span>
 <h2>The Standard, in full.</h2>
 <p class="lede">The complete public specification — v5.1, July 2026. Implementable by anyone — no license, fee, or permission. Also available as the canonical file: <a href="AINRA_I_The_Standard.md" download style="color:var(--green);font-weight:600">AINRA_I_The_Standard.md</a> (raw markdown, downloads).</p></div>
 <article class="doc rv"><h1>AINRA — THE STANDARD</h1>
-<h2>Agent Identity &amp; Naming Registry Authority · Master Specification v5.1 · July 2026</h2>
-<p><i>Document I of III. Public. Supersedes and consolidates all prior specification versions (v1–v5.0) and the one-pager. This document names no third party anywhere; every example uses placeholder registrars by constitutional rule. Category, stated once: <b>the identity layer for autonomous AI</b>. Canonical description of AINRA&#x27;s role in it, used verbatim everywhere: &quot;The neutral root of AI agent identity.&quot; (38 characters.) v5.1 changes: root cryptography reissued for assumption diversity (Part I, key architecture); delegated online signing named honestly; no semantic changes elsewhere.</i></p>
+<h3>Agent Identity &amp; Naming Registry Authority · Master Specification v5.1 · July 2026</h3>
+<p><i>Document I of III. Public. Supersedes and consolidates all prior specification versions (v1–v5.0) and the one-pager. This document names no third party anywhere; every example uses placeholder registrars by constitutional rule. Category: <b>the identity layer for autonomous AI</b>. Canonical description: &quot;The neutral root of AI agent identity.&quot; v5.1 changes: root cryptography reissued for assumption diversity (Part I, key architecture); delegated online signing named honestly; no semantic changes elsewhere.</i></p>
 
 <hr>
 
-<h1>PART 0 — PRINCIPLES (NORMATIVE, CONSTITUTIONAL)</h1>
+<h2>PART 0 — PRINCIPLES (NORMATIVE, CONSTITUTIONAL)</h2>
 
 <p><b>0.1 The problem, stated once.</b> The majority of internet traffic is automated; machine identities outnumber humans roughly 80:1 inside enterprises; most organizations cannot see their agent-to-agent traffic; and every major platform, network, and directory has shipped its own agent identity that no other system can verify. A legitimate agent cannot prove itself away from home; a malicious one banned in one place walks into the next; nothing stops a compromised fleet everywhere at once; and past one hop of delegation, no deployed protocol proves who authorized what. The missing piece is a root — the one component nobody can build alone.</p>
 
@@ -436,9 +442,9 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
 
 <hr>
 
-<h1>PART I — THE ROOT (AINRA)</h1>
+<h2>PART I — THE ROOT (AINRA)</h2>
 
-<h2>1. The Charter — six prohibitions</h2>
+<h3>1. The Charter — six prohibitions</h3>
 <p>Amendable only by supermajority within <i>every</i> constituency after twelve months of public comment:</p>
 <p>1. <b>Issues no passports.</b> Accreditation only; never retail.</p>
 <p>2. <b>Computes no scores.</b> Facts and proofs; judgment belongs to verifiers. Others may build scoring atop the public record — the root never does.</p>
@@ -449,36 +455,34 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
 
 <p><b>Article S — Structural Separation.</b> S1: the root holds no equity in, and receives no revenue share from, any registrar or explorer. S2: no shared staff, systems, offices, or credentials with any registrar. S3: any affiliated registrar receives zero non-public access of any kind. S4: board interlocks target zero and are published. S5: the affiliated registrar is sunset-reviewed on a fixed public cadence until indistinguishable from competitors. S6: all inter-body dealings are published (Part IV interface table). S7: <b>example neutrality</b> — all root-published examples, schemas, demos, documentation, and interface defaults use neutral placeholder registrars; the affiliated registrar may never appear in them; canonical-explorer registrar listings are ordered mechanically (time, name, or volume — labeled), never curated.</p>
 
-<h2>2. Namespace</h2>
+<h3>2. Namespace</h3>
 <p>Grammar: <code>ainra:{registrar}:{operator}:{lineage}@{version}</code> — lowercase alphanumerics and hyphens; version is semver (1–3 numeric fields). Every <code>ainra:</code> name is a DID underneath (method <code>did:ainra</code>), resolvable by standard tooling. Resolution returns the signed passport document; names point, registrars serve. The <b>lineage</b> is the permanent identity — soulbound, non-transferable, the anchor of all history; a genuine ownership transfer is a <i>logged event</i> that resets assurance evidence while preserving the historical record. The <b>version</b> is re-certified on every material change (model, permissions, operator), so old trust never silently covers new behavior.</p>
 
-<h2>3. Accreditation</h2>
+<h3>3. Accreditation</h3>
 <p>The root publishes one rulebook and one contract, identical for all registrar classes: <b>licensed issuers</b> (regulated-market lane, L3–L4), <b>enterprise directories</b> (mint a passport when an internal agent crosses the boundary; internal actor chains feed the authority chain), and <b>permissionless chains</b> (on-chain registries whose entries auto-map to L0–L1; transfers logged, assurance reset). Obligations: uniform verification standards per tier; evidence retention at the registrar (never at the root); mandatory funding of one transparency monitor watching a <i>competitor</i>; annual audit; breach disclosure ≤72h. Enforcement ladder: finding → remediation window → suspension of new issuance → <b>wholesale de-accreditation</b> (registrar certificate revoked; its passports enter a grace window for supervised transfer to other registrars — customers are never punished for their registrar&#x27;s sins). Fees: capped, cents-scale per lineage-year plus flat accreditation; the cap may only <i>fall</i> as volume grows (Part V economics).</p>
 
-<h2>4. Root of trust</h2>
+<h3>4. Root of trust</h3>
 <p>Root keys are <b>threshold keys (5-of-9)</b> held by custodians spanning ≥5 jurisdictions and ≥3 institution types (civil-society, academic, industry, public-interest technical, archival), used only in public, recorded <b>key ceremonies</b>, with a quorum-activated standby in escrow. The classical root is a <b>FROST threshold Ed25519 key (RFC 9591)</b> — it emits standard signatures, so any stock verifier validates the root without special code. Its post-quantum counterpart is deliberately <b>hash-based (SLH-DSA-SHA2-128s, FIPS 205)</b> rather than lattice-based: agent and registrar keys are lattice-signed (<b>hybrid Ed25519 + ML-DSA-65</b>, both signatures mandatory), and the anchor that must survive to re-certify successor algorithms must not share the assumption it would be recovering from. Sub-minute freshness signals are signed by <b>delegated online keys</b> — quarterly-certified by the root, scope-limited to freshness duties only, so the true root stays offline and any compromise is bounded to one quarter. Published rotation and algorithm-migration procedures govern all of it. Verifiers cache the root set and registrar certificates; every verification is local and offline-capable in milliseconds.</p>
 
-<h2>5. The passport</h2>
+<h3>5. The passport</h3>
 <p>An SD-JWT verifiable credential; selective disclosure by field. Canonical schema (illustrative values; placeholder registrar by S7):</p>
-<p>```json</p>
-<p>{</p>
-<p>  &quot;type&quot;: &quot;agent-passport&quot;, &quot;v&quot;: 1, &quot;serial&quot;: &quot;AP-8F2E-C41&quot;,</p>
-<p>  &quot;ainra_name&quot;: &quot;ainra:registrar-07:acme-corp:invoicing@4.2.1&quot;,</p>
-<p>  &quot;lineage&quot;: &quot;invoicing&quot;, &quot;version&quot;: &quot;4.2.1&quot;,</p>
-<p>  &quot;operator&quot;: { &quot;name&quot;: &quot;Acme Corp&quot;, &quot;kyb&quot;: true, &quot;jurisdiction&quot;: &quot;US-DE&quot; },</p>
-<p>  &quot;registrar&quot;: &quot;registrar-07&quot;,</p>
-<p>  &quot;authority&quot;: { &quot;class&quot;: &quot;A1&quot;, &quot;proof&quot;: &quot;zk:commitment:…&quot;, &quot;act_chain_ref&quot;: &quot;…&quot; },</p>
-<p>  &quot;tier&quot;: &quot;L3&quot;,</p>
-<p>  &quot;validity&quot;: { &quot;issued&quot;: &quot;2026-04-11&quot;, &quot;expires&quot;: &quot;2027-04-11&quot;, &quot;renewable&quot;: true },</p>
-<p>  &quot;key&quot;: { &quot;alg&quot;: &quot;Ed25519+ML-DSA-65&quot;, &quot;pub&quot;: &quot;…&quot;, &quot;fp&quot;: &quot;9C41:8F2E:AA07:D356&quot; },</p>
-<p>  &quot;history&quot;: { &quot;soulbound&quot;: true, &quot;reputation_pointers&quot;: [&quot;…&quot;] },</p>
-<p>  &quot;log&quot;: { &quot;seq&quot;: 2, &quot;hash&quot;: &quot;…&quot; },</p>
-<p>  &quot;registrar_sig&quot;: &quot;…&quot;, &quot;registrar_cert&quot;: { &quot;…chains to root…&quot; }</p>
-<p>}</p>
-<p>```</p>
+<div class="tbl">{
+  &quot;type&quot;: &quot;agent-passport&quot;, &quot;v&quot;: 1, &quot;serial&quot;: &quot;AP-8F2E-C41&quot;,
+  &quot;ainra_name&quot;: &quot;ainra:registrar-07:acme-corp:invoicing@4.2.1&quot;,
+  &quot;lineage&quot;: &quot;invoicing&quot;, &quot;version&quot;: &quot;4.2.1&quot;,
+  &quot;operator&quot;: { &quot;name&quot;: &quot;Acme Corp&quot;, &quot;kyb&quot;: true, &quot;jurisdiction&quot;: &quot;US-DE&quot; },
+  &quot;registrar&quot;: &quot;registrar-07&quot;,
+  &quot;authority&quot;: { &quot;class&quot;: &quot;A1&quot;, &quot;proof&quot;: &quot;zk:commitment:…&quot;, &quot;act_chain_ref&quot;: &quot;…&quot; },
+  &quot;tier&quot;: &quot;L3&quot;,
+  &quot;validity&quot;: { &quot;issued&quot;: &quot;2026-04-11&quot;, &quot;expires&quot;: &quot;2027-04-11&quot;, &quot;renewable&quot;: true },
+  &quot;key&quot;: { &quot;alg&quot;: &quot;Ed25519+ML-DSA-65&quot;, &quot;pub&quot;: &quot;…&quot;, &quot;fp&quot;: &quot;9C41:8F2E:AA07:D356&quot; },
+  &quot;history&quot;: { &quot;soulbound&quot;: true, &quot;reputation_pointers&quot;: [&quot;…&quot;] },
+  &quot;log&quot;: { &quot;seq&quot;: 2, &quot;hash&quot;: &quot;…&quot; },
+  &quot;registrar_sig&quot;: &quot;…&quot;, &quot;registrar_cert&quot;: { &quot;…chains to root…&quot; }
+}</div>
 <p>Registry-record fields only; mandates and fleets live outside the document (0.5.v). Presentation rides <b>HTTP message signatures</b>: the request signature names the passport key, so the credential travels inside ordinary web traffic. Instance credentials: running copies carry minutes-scale credentials minted locally under the passport, bound to the connection (mTLS) — a stolen token expires before it matters (I1).</p>
 
-<h2>6. Authority classes</h2>
+<h3>6. Authority classes</h3>
 <p>Every passport declares who stands behind it; delegation may only narrow; chains stay provable to their anchor at any depth from the credential alone.</p>
 <ul>
 <li><b>A1 — Human-delegated.</b> A verified person, proven via zero-knowledge commitment: accountability exists while privacy stays intact. Backed by a signed <b>consent mandate</b>.</li>
@@ -489,54 +493,54 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
 
 <p><b>Consent mandates</b> (the authority instrument): grant → attenuate → exercise → review → revoke. A signed permission slip from the principal — scopes, time limits, spend ceilings, revocation address — which downstream delegation can only narrow. Revoking a mandate recalls its entire subtree, everywhere, within the revocation SLO. The <b>trust graph</b> — the log-derivable map of delegation edges (never behavior) — gives the ecosystem structure with privacy intact; expired-mandate orphans surface globally.</p>
 
-<h2>7. Assurance tiers</h2>
+<h3>7. Assurance tiers</h3>
 <div class="tbl">| Tier | Requirements | Typical consequence granted by verifiers |
 |---|---|---|
-| **L0 Declared** | Valid keypair + logged registration + revocation endpoint. Permissionless by charter. | Sandbox, attributed crawl |
-| **L1 Anchored** | + verified domain control or established wallet history | Rate-limited APIs, low-value micropayments |
-| **L2 Operated** | + KYB-verified operator, declared model lineage, soulbound lineage | Standard commerce, B2B data exchange |
-| **L3 Backed** | + zero-knowledge principal + liability-insurance attestation | Consumer-scale payments, contract execution |
-| **L4 Regulated** | + sector license, independent audit, third-party work validation | High-value autonomy, critical infrastructure |</div>
+| <b>L0 Declared</b> | Valid keypair + logged registration + revocation endpoint. Permissionless by charter. | Sandbox, attributed crawl |
+| <b>L1 Anchored</b> | + verified domain control or established wallet history | Rate-limited APIs, low-value micropayments |
+| <b>L2 Operated</b> | + KYB-verified operator, declared model lineage, soulbound lineage | Standard commerce, B2B data exchange |
+| <b>L3 Backed</b> | + zero-knowledge principal + liability-insurance attestation | Consumer-scale payments, contract execution |
+| <b>L4 Regulated</b> | + sector license, independent audit, third-party work validation | High-value autonomy, critical infrastructure |</div>
 <p>The root labels; every verifier sets its own floor. Five levels; you set the floor.</p>
 
-<h2>8. Verification protocol (normative sequence)</h2>
+<h3>8. Verification protocol (normative sequence)</h3>
 <p>1 <b>Present</b> — signed request names the passport key. 2 <b>Chain</b> — passport → registrar cert → root set; plus authority chain to anchor; cached keys, milliseconds, offline-capable. 3 <b>Status</b> — fresh revocation proof (freshness class by tier: L3–L4 require proofs ≤5 min; high-assurance actions demand a fresh proof so a blocked feed <b>fails closed</b>) + log-inclusion proof. 4 <b>Decide</b> — verifier policy: tier floor, accepted classes, required scopes, fail mode. Reference CLI exit codes: 0 valid / 1 invalid; <code>--json</code> for machines.</p>
 
-<h2>9. Revocation fabric &amp; transparency logs</h2>
+<h3>9. Revocation fabric &amp; transparency logs</h3>
 <p>One compressed, signed status structure every verifier mirrors; push channels propagate deltas with a <b>global SLO of &lt;60 seconds</b> issue-to-rejection. Revocation scopes: a version (kills its entire fleet), a lineage, a mandate subtree, or a registrar (wholesale). Every event — registration, issuance, re-certification, transfer, mandate grant/revoke, accreditation action — is sealed <b>before validity</b> in append-only, hash-chained Merkle logs whose checkpoints are cosigned by <b>independent witnesses</b>; anyone may run a monitor; registrars must fund one watching a competitor; the logs are mirrorable and the whole system forkable, so history cannot be rewritten and the root cannot quietly lie. &quot;Logged before valid&quot; is load-bearing: unlogged is invalid.</p>
 
-<h2>10. Threat model (condensed register)</h2>
+<h3>10. Threat model (condensed register)</h3>
 <p>Root-key compromise → threshold + standby + ceremony-only use. Registrar fraud → audits, monitors, wholesale de-accreditation with customer grace. Impersonation → key-in-signature binding + mTLS instance creds. Replay/theft → minutes-TTL local credentials. Delegation laundering → dual-signed narrowing chains, depth caps. Sybil floods → L0 grants existence, not consequence. Revocation suppression → freshness classes fail closed. Log fork/rewrite → witness cosigning, open monitors. Jurisdictional coercion → custodian spread; namespace censorship is structurally impossible below quorum. Privacy attack → no PII at root; zk principals; selective disclosure; graph shows structure, never behavior. Capture of governance → constituency supermajorities, 12-month comment, public everything. Price abuse → charter fee caps that only fall. Explorer manipulation → independence + client-side verification. Metaphor-imported failure modes (registrar race-to-bottom, registry price creep, public-record privacy conflict) → uniform tier standards + falling caps + zero-PII design, respectively. Successor standard emerges → managed-migration clause (Part V.4). Root institutional failure → fork-readiness drills; the standard outlives the institution.</p>
 
 <hr>
 
-<h1>PART II — THE PUBLIC RECORD &amp; EXPLORERS</h1>
+<h2>PART II — THE PUBLIC RECORD &amp; EXPLORERS</h2>
 
 <p>The record — every passport, registrar, checkpoint, revocation — is public, witness-cosigned, and shows <b>what exists, never what agents did</b>. Independent explorers render it; <b>the root operates no explorer and funds none.</b> Explorer requirements (any implementation claiming conformance): facts, never scores; no rankings, ads, or promotion; mechanical ordering, labeled; structurally identical registrar pages; every fact one click from its cryptographic proof; client-side verification available (&quot;don&#x27;t trust, verify&quot;); open-source and mirrorable. Search grammar: free text plus typed prefixes <code>name: lineage: operator: registrar: log: witness: tier: class:</code>, grouped by object type, ordered by recency, zero personalization. Freshness SLOs: log-to-page &lt;30 s; revocation-to-page &lt;5 s. Root→explorer interface: public endpoints only, identical to what any mirror receives — no funding, staffing, instruction, emphasis, or private channel.</p>
 
 <hr>
 
-<h1>PART III — INTEROP PROFILES (GENERIC)</h1>
+<h2>PART III — INTEROP PROFILES (GENERIC)</h2>
 
 <p>How existing layers plug in without replacement — keep what you built, gain everyone else: <b>payment networks</b> keep tokens and checkout; key-directory lookups resolve through the root; gain cross-network recognition and the shared switch. <b>Runtime identity/control planes</b> keep gateways and per-action policy; consume the record as the standardized input to every decision; gain cross-boundary trust. <b>Edge/bot defense</b> keeps signature checks; mirrors the root directory behind them; gains operator/tier/status behind every signature — a welcome lane. <b>Enterprise identity</b> keeps internal directories; mints a passport at boundary-crossing; internal chains feed the authority chain. <b>On-chain registries</b> keep permissionless registration; entries auto-map to L0–L1; transfers logged; gain off-chain acceptance. <b>Merchants/APIs</b>: one verify middleware plus a tier floor — an afternoon. <b>Insurers/auditors</b> read passports, chains, logs — attributable history, the raw material for pricing agents. <b>Regulators</b> recognize tiers and classes and read the same public logs as anyone — oversight without operating anything or holding anyone&#x27;s data.</p>
 
 <hr>
 
-<h1>PART IV — THE FIRST REGISTRAR (ARM&#x27;S-LENGTH)</h1>
+<h2>PART IV — THE FIRST REGISTRAR (ARM&#x27;S-LENGTH)</h2>
 
-<p><b>Meridian</b> exists to prove the flows and seed the market, under posture declared honestly: an issuer, therefore not neutral, therefore kept <b>outside, visible, and equal-footed.</b> Obligations: (i) identical public rules, fees, audits, timelines as every registrar; (ii) zero non-public access; (iii) never appears in root examples, defaults, or interfaces (Charter 6, S7); permitted distinctions are &quot;first&quot; and &quot;reference,&quot; both expiring; its materials may carry the standard attribution mark — <b>&quot;Built on the AINRA open standard&quot;</b> — available to every registrar identically, direction strictly one-way (registrars reference the standard; the root displays no one&#x27;s mark); (iv) conflicts register, interlocks (target zero), and inter-body payments published annually; (v) open-sources its full registrar stack (&quot;registrar-in-a-box&quot;) to seed competitors; (vi) recurring <b>sunset review</b> until ordinary — continue as one-of-many, spin fully out, or wind down. Scope: L1–L3 only; the licensed L4 lane belongs to regulated registrars. Mechanically it is a registrar in the full Part 0.5 sense: every issuance registers into the root; every customer may leave with history intact.</p>
+<p><b>Meridian</b> (named here as required disclosure — never in examples, defaults, or interfaces) exists to prove the flows and seed the market, under posture declared honestly: an issuer, therefore not neutral, therefore kept <b>outside, visible, and equal-footed.</b> Obligations: (i) identical public rules, fees, audits, timelines as every registrar; (ii) zero non-public access; (iii) never appears in root examples, defaults, or interfaces (Charter 6, S7); permitted distinctions are &quot;first&quot; and &quot;reference,&quot; both expiring; its materials may carry the standard attribution mark — <b>&quot;Built on the AINRA open standard&quot;</b> — available to every registrar identically, direction strictly one-way (registrars reference the standard; the root displays no one&#x27;s mark); (iv) conflicts register, interlocks (target zero), and inter-body payments published annually; (v) open-sources its full registrar stack (&quot;registrar-in-a-box&quot;) to seed competitors; (vi) recurring <b>sunset review</b> until ordinary — continue as one-of-many, spin fully out, or wind down. Scope: L1–L3 only; the licensed L4 lane belongs to regulated registrars. Mechanically it is a registrar in the full Part 0.5 sense: every issuance registers into the root; every customer may leave with history intact.</p>
 
 <p><b>Inter-body interface table (all published):</b> Root→registrars: rulebook, contract, fees, audits — identical for all; never leads, capital, or preview access. Root→explorers: public endpoints only. Registrar↔explorer: none beyond public data. Any exception: none permitted; exceptions are the scandal.</p>
 
 <hr>
 
-<h1>PART V — GOVERNANCE, ECONOMICS, ROADMAP</h1>
+<h2>PART V — GOVERNANCE, ECONOMICS, ROADMAP</h2>
 
 <p><b>1. Bodies.</b> AINRA is constituted as an <b>international, member-governed, non-profit federation</b> — the same organizational species that gave sport, aviation, and the internet their neutral coordinating bodies: legitimacy flows <i>from</i> the members, the rules bind only those who join, and the federation itself never competes with them (it fields no team). Membership classes span the whole ecosystem: <b>issuer members</b> (accredited registrars of every class), <b>attestor members</b> (principal-proof providers), <b>verifier members</b> (edges, gateways, merchants, control planes), <b>resolution and data members</b>, <b>witness members</b>, and <b>public-interest members</b> — each class a constituency in the assembly, which elects the board under charter constraints; membership dues are the capped per-lineage fees of §2, identical within class. Custodians (keys) and witnesses (logs) remain structurally separate from board and assembly alike. Everything material is public: statutes, minutes, budgets, audits, fee schedules, and ceremonies (recorded). Existing identity systems join as members through the door that fits their function — an issuer&#x27;s credentials upgrade in place to passports, an attestor&#x27;s proof becomes a first-class field available through every registrar, a verifier consumes the record — so federation replaces the quadratic cost of pairwise integrations with a single membership.</p>
 
 <p><b>2. Economics — position, not profit.</b> Revenue = capped per-lineage-year fees (cents-scale) + flat accreditation + grants. The design intent is a <b>position where value must pass without being taxed</b>: every agent interaction of consequence resolves a verification; every verification chains to the root; the root&#x27;s cut is deliberately negligible — cheap enough that removing it costs more than keeping it. Worked shape: at 10M lineages × $0.10 = $1M/yr (lean root sustained); at 100M, the charter&#x27;s falling cap <i>reduces</i> the fee; at 1B, the fee approaches archival cost. Anti-creep is constitutional because the toll position, not the toll, is the asset.</p>
 
-<p><b>3. Status line (honest, live).</b> ROOT: PRE-CEREMONY · LOGS SEALED: 0 · WITNESSES: RECRUITING · SPEC: PUBLIC (this document) · REFERENCE CLI: v0.1.0 WORKING (real Ed25519 chain verification, signed revocation, hash-chained checkpointed log; labeled limits: single-key root pending threshold ceremony, local witness keys pending independent witnesses, poll-based status pending push fabric). Every public number is a cited external figure or a shipped artifact; an honest zero beats a decorated maybe.</p>
+<p><b>3. Status.</b> Live project status — implementations, logs, witnesses, measured numbers — is maintained at <a href="status.html">status.html</a>; this document is normative as of v5.1 (July 2026).</p>
 
 <p><b>4. Roadmap, planned to the end.</b> <b>Prove</b> (now): external verifier trials against pre-registered gates; venue filing of this standard as community submission/Internet-Draft with the CLI as conformance suite. <b>Anchor</b>: institutional co-conveners; charter ratification; first public 5-of-9 ceremony sealing log #1; two registrar classes issuing live; one revocation propagated worldwide, watchably. <b>Endure</b>: the long middle — adoption plateaus and pressure met with pre-decided responses (Document II obstacle ledger), principles fixed, pace flexible. <b>Disappear</b> (the goal): verification as boring as the clock — everywhere, invisible, with a public record behind it. <b>Ω — beyond the institution</b>: generational key-succession ceremonies; fork-readiness drills; and a <b>managed-migration clause</b> — if a demonstrably better successor standard achieves legitimate multistakeholder adoption, the root&#x27;s final duty is an orderly migration of the namespace and record into it. The standard outlives the institution; that is planned, not feared.</p>
 

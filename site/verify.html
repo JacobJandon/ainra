@@ -1,5 +1,10 @@
 <!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Verify — AINRA</title><meta name="description" content="How AINRA verification works: four checks, three fail-closed freshness classes, a working reference CLI, and what ships at first public release.">
+<title>Verify — AINRA</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 112 112%27%3E%3Crect width=%27112%27 height=%27112%27 rx=%2722%27 fill=%27%23F5F6F3%27/%3E%3Ccircle cx=%2756%27 cy=%2756%27 r=%2736%27 stroke=%27%230B1220%27 stroke-width=%275%27 fill=%27none%27/%3E%3Cellipse cx=%2756%27 cy=%2756%27 rx=%2715%27 ry=%2736%27 stroke=%27%230B1220%27 stroke-width=%274%27 fill=%27none%27/%3E%3Cline x1=%2720%27 y1=%2756%27 x2=%2792%27 y2=%2756%27 stroke=%27%230B1220%27 stroke-width=%274%27/%3E%3Cpath d=%27M56 20 a36 36 0 0 1 36 36%27 stroke=%27%231A6B4E%27 stroke-width=%277%27 stroke-linecap=%27round%27 fill=%27none%27/%3E%3C/svg%3E">
+<meta name="theme-color" content="#F5F6F3">
+<noscript><style>.rv,.t-line,.verify-line{opacity:1!important;transform:none!important}.skip{position:absolute;left:-9999px;top:0;z-index:99;background:var(--ink);color:#fff;padding:10px 18px;border-radius:0 0 10px 0;font-weight:600}.skip:focus{left:0}
+.sec-head .hero-h{font-family:var(--display);font-size:clamp(1.9rem,4vw,2.75rem);font-weight:730;line-height:1.1;margin-top:12px;letter-spacing:-.03em}
+</style></noscript><meta name="description" content="How AINRA verification works: four checks, a proposed fail-closed freshness profile, a working reference CLI, and what ships at first public release.">
 <style>
 :root{
   --ink:#0B1220; --ink-2:#111B30; --paper:#F5F6F3; --card:#FFFFFF;
@@ -342,6 +347,7 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
 @media(min-width:901px){.nav-links{display:none!important}}
 @media(max-width:900px){.mi,.nav-hide{display:none}}
 </style></head><body id="top">
+<a class="skip" href="#main">Skip to content</a>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
     <g id="ainra-sigil">
@@ -391,11 +397,11 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
   </div></div>
   <div class="mi"><button type="button" data-dd>Developers <span class="car">▼</span></button><div class="dd">
     <a href="index.html#developers">Quickstart<span>SDK, middleware, CLI</span></a>
-    <a href="standard.html">Conformance vectors<span>CC0 · three implementations agree</span></a>
+    <a href="status.html">Conformance<span>745/745 — measured, see status</span></a>
     <a href="AINRA_I_The_Standard.md" download>Canonical file<span>AINRA_I_The_Standard.md — raw download</span></a>
   </div></div>
   <div class="mi"><button type="button" data-dd>Foundation <span class="car">▼</span></button><div class="dd">
-    <a href="foundations.html">Charter &amp; four rules<span>What the root can never do</span></a>
+    <a href="foundations.html">Charter &amp; rules<span>What the root can never do</span></a>
     <a href="status.html">Honest status<span>What exists · what doesn't yet</span></a>
     <a href="foundations.html#faq">FAQ<span>Straight answers</span></a>
   </div></div>
@@ -406,9 +412,9 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
   </div>
   <div class="nav-links" id="navLinks"><a href="index.html">The root</a><a href="standard.html">Standard</a><a href="verify.html" style="color:var(--green)">Verify</a><a href="foundations.html">Foundations</a><a href="status.html">Status</a></div>
 </div></nav>
-<main><section style="padding-top:118px"><div class="wrap">
+<main id="main"><section style="padding-top:118px"><div class="wrap">
 <div class="sec-head rv"><span class="eyebrow">For verifiers &amp; builders</span>
-<h2>Verify anything.<br>Trust the source, not us.</h2>
+<h1 class="hero-h">Verify anything.<br>Trust the source, not us.</h1>
 <p class="lede">Every check runs locally, from public artifacts, in milliseconds — offline-capable, with the root dark. Verification never reports to anyone.</p></div>
 <div class="flow rv">
 <div class="fstep"><b>1 · PRESENT</b><p>The agent's request arrives signed; the signature names its passport key.</p></div><div class="fx" aria-hidden="true">→</div>
@@ -416,6 +422,7 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
 <div class="fstep"><b>3 · CHECK STATUS</b><p>Fresh revocation proof and witness-cosigned log inclusion. In good standing, right now.</p></div><div class="fx" aria-hidden="true">→</div>
 <div class="fstep"><b>4 · DECIDE</b><p>Your policy: tier floor, accepted authority classes, required scopes, fail-open or closed.</p></div></div>
 <div class="org-grid" style="margin-top:34px">
+<div class="org-cell rv" style="grid-column:1/-1;padding:10px 26px"><p style="font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--muted)">PROPOSED VERIFICATION PROFILE — NOT YET IN THE STANDARD (v5.1 defines proof freshness only for L3–L4)</p></div>
 <div class="org-cell rv"><h3>F1 <span>PAYMENTS-GRADE</span></h3><p>Requires a signed fresh status head no older than 30 seconds. Missing or stale? The check fails closed.</p></div>
 <div class="org-cell rv"><h3>F2 <span>STANDARD</span></h3><p>Status list no older than five minutes, with signed deltas applied. Stale? Fails closed.</p></div>
 <div class="org-cell rv"><h3>F3 <span>OFFLINE</span></h3><p>Air-gapped verification against a cached list up to 24 hours old — still cryptographically complete, still fail-closed.</p></div></div>
@@ -423,7 +430,7 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
 <div class="half"><b>REAL TODAY — THE REFERENCE CLI</b><p>A zero-dependency command-line tool with real signatures and a hash-chained local log. It issues, verifies, and revokes — and it catches tampering live: a forged tier and a rewritten log line are both rejected with the exact reason. <a href="ainra-cli-v0.1.0.zip" style="color:var(--green);font-weight:600">Download v0.1.0</a> and try to break it.</p></div>
 <div class="fx" aria-hidden="true">→</div>
 <div class="half you"><b>AT FIRST PUBLIC RELEASE — AHEAD</b><p>The full reference implementation: verify in five lines with the SDK, a fail-closed middleware gate, registrar-in-a-box in one command, and the complete conformance vector set — published under CC0, so conformance never needs anyone's permission.</p></div></div>
-<p class="scan-note rv">VERIFICATION IS LOCAL · IT NEVER PHONES HOME · CONFORMANCE IS CLAIMED AGAINST PUBLIC VECTORS, NOT GRANTED BY US</p>
+<p class="scan-note rv">VERIFICATION IS LOCAL · IT NEVER PHONES HOME · CONFORMANCE IS CLAIMED AGAINST THE VECTOR SET THAT SHIPS AT FIRST PUBLIC RELEASE, NOT GRANTED BY US</p>
 </div></section></main>
 
 <section style="padding-top:0" id="authority">
@@ -453,12 +460,7 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
     <div class="sec-head rv">
       <span class="eyebrow">From the login to the decision</span>
       <h2 style="color:#fff">Agents act all day,<br>every day.</h2>
-      <p class="lede">The old boundary was the login — one human, one prompt, one yes. Agents operate continuously, at full volume, so the boundary moves to the decision — every action, verified in context:</p>
-    </div>
-    <div class="split rv">
-      <div class="half"><b>THE RECORD — SUPPLIED BY THE ROOT</b><p>Who this is, who stands behind it, along which chain, with what ceilings, and whether it's in good standing anywhere on Earth. Cached, offline-capable, freshness-classed by tier.</p></div>
-      <div class="fx" aria-hidden="true">→</div>
-      <div class="half you"><b>THE DECISION — MADE BY YOU</b><p>Should this action, here, now, be allowed? Your engines, your gateways, your policy — per action. The root standardizes every input to the decision; the decision stays yours.</p></div>
+      <p class="lede">The root standardizes every input to the decision; the decision stays yours. Watch the reference CLI run the whole lifecycle:</p>
     </div>
 <div class="term rv">
       <div class="term-bar" aria-hidden="true"><i></i><i></i><i></i><span>ainra-cli v0.1.0 · real captured output</span></div>
@@ -473,6 +475,7 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
         <div class="t-line"><span class="g">✓ VALID</span> <span class="p">· verified in 4.0 ms — run it yourself: the CLI is in the download above</span></div>
       </div>
       <div class="term-run"><button class="btn" id="runBtn" aria-label="Replay verification output">▶ replay</button></div>
+      <p style="margin:0 22px 20px;font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;color:#8B94A6">V0.1.0 ECHOES OPERATOR/AUTHORITY FIELDS AS CLAIMS — SINGLE-KEY ROOT, LOCAL WITNESSES, LABELED. INTEROP TESTING, NOT PRODUCTION.</p>
     </div>
   </div>
 </section>
@@ -489,11 +492,6 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
         <div class="a-row"><b>PLUG IN</b><span>Key-directory lookups resolve through the root.</span></div>
         <div class="a-row"><b>GAIN</b><span>Cross-network recognition and an instant, shared switch.</span></div>
       </div>
-      <div class="a-cell rv"><h3>Runtime identity &amp; control planes</h3>
-        <div class="a-row"><b>KEEP</b><span>Their gateways, policy engines, and per-action enforcement.</span></div>
-        <div class="a-row"><b>PLUG IN</b><span>Consume the record — chain, authority class, mandate, status — as the input to every decision.</span></div>
-        <div class="a-row"><b>GAIN</b><span>Trust that works across the org boundary, everywhere.</span></div>
-      </div>
       <div class="a-cell rv"><h3>Edge &amp; bot defense</h3>
         <div class="a-row"><b>KEEP</b><span>Signature checks and traffic policy at the edge.</span></div>
         <div class="a-row"><b>PLUG IN</b><span>Mirror the root directory behind existing checks.</span></div>
@@ -504,25 +502,10 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
         <div class="a-row"><b>PLUG IN</b><span>Mint a passport the moment an agent crosses the boundary.</span></div>
         <div class="a-row"><b>GAIN</b><span>Trust that survives outside the walls, with the chain of authority intact.</span></div>
       </div>
-      <div class="a-cell rv"><h3>On-chain registries</h3>
-        <div class="a-row"><b>KEEP</b><span>Permissionless registration, no central issuer.</span></div>
-        <div class="a-row"><b>PLUG IN</b><span>Entries auto-map to L0–L1 passports; transfers are logged.</span></div>
-        <div class="a-row"><b>GAIN</b><span>Acceptance by off-chain verifiers everywhere.</span></div>
-      </div>
       <div class="a-cell rv"><h3>Merchants, apps &amp; APIs</h3>
         <div class="a-row"><b>KEEP</b><span>Their whole stack, unchanged.</span></div>
-        <div class="a-row"><b>PLUG IN</b><span>One verify middleware plus a tier floor — an afternoon of work.</span></div>
+        <div class="a-row"><b>PLUG IN</b><span>One verify middleware plus a tier floor of your choosing.</span></div>
         <div class="a-row"><b>GAIN</b><span>Welcome good agents and price risk by tier and authority class.</span></div>
-      </div>
-      <div class="a-cell rv"><h3>Insurers &amp; auditors</h3>
-        <div class="a-row"><b>KEEP</b><span>Their risk models and audit practice.</span></div>
-        <div class="a-row"><b>PLUG IN</b><span>Read passports, mandate chains, and public logs.</span></div>
-        <div class="a-row"><b>GAIN</b><span>Attributable history — the raw material for pricing agents at all.</span></div>
-      </div>
-      <div class="a-cell rv"><h3>Regulators &amp; the public</h3>
-        <div class="a-row"><b>KEEP</b><span>Jurisdiction and rule-making, untouched.</span></div>
-        <div class="a-row"><b>PLUG IN</b><span>Recognize tiers and classes; read the same public logs anyone can.</span></div>
-        <div class="a-row"><b>GAIN</b><span>Oversight with full privacy for everyone underneath.</span></div>
       </div>
     </div>
   </div>

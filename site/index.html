@@ -248,6 +248,20 @@ section{padding:88px 0}
 .email-ok{display:none;font-family:var(--mono);font-size:13px;color:var(--green-br);letter-spacing:.04em;position:relative;z-index:1}
 .cta-final .alt{position:relative;z-index:1;display:inline-block;margin-top:18px;font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:rgba(255,255,255,.5)}
 .cta-final .alt:hover{color:#fff}
+.cta-intake{position:relative;z-index:1;max-width:600px;margin:0 auto}
+.seats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;text-align:left}
+@media(max-width:640px){.seats{grid-template-columns:repeat(2,1fr)}}
+.seat{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.16);border-radius:14px;padding:12px 14px;cursor:pointer;color:#fff;display:grid;gap:2px;font-family:var(--body);transition:border-color .15s,background .15s,transform .15s;text-align:left}
+.seat:hover{border-color:rgba(87,192,143,.65)}
+.seat:active{transform:scale(.98)}
+.seat b{font-size:14px;font-weight:700}
+.seat span{font-size:11px;color:rgba(255,255,255,.55);line-height:1.35}
+.seat[aria-checked="true"]{background:rgba(87,192,143,.14);border-color:var(--green-br)}
+.seat[aria-checked="true"] b::after{content:" ✓";color:var(--green-br)}
+.cta-final .seat-hint{font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:rgba(255,255,255,.45);margin:14px auto;max-width:none;text-align:center}
+.cta-final .seat-hint.warn{color:#FFB4A1}
+@keyframes seatpulse{0%,100%{box-shadow:none}50%{box-shadow:0 0 0 3px rgba(255,180,161,.35)}}
+.seats.pulse .seat{animation:seatpulse .8s}
 @media(max-width:520px){.email-row{flex-direction:column}}
 
 /* disclosure (new) */
@@ -574,18 +588,20 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
     <div class="cta-final rv">
       <h2>The founding table is forming.<br>Pick your seat.</h2>
       <p>Issuers, verifiers, attestors, witnesses, builders — the players who join now write the rules everyone else inherits. You'll get the standard, the founding brief, and a direct line. One email is all it takes.</p>
-      <form class="email-row" id="ctaForm">
-        <select id="ctaRole" aria-label="Your seat" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);border-radius:99px;color:#fff;padding:12px 16px;font-size:14px;font-family:var(--body);min-width:128px">
-          <option value="" style="color:#111">My seat…</option>
-          <option value="issuer" style="color:#111">Issuer / registrar</option>
-          <option value="verifier" style="color:#111">Verifier (edge, merchant, gateway)</option>
-          <option value="attestor" style="color:#111">Attestor (identity proofs)</option>
-          <option value="witness" style="color:#111">Witness / monitor</option>
-          <option value="builder" style="color:#111">Builder / operator</option>
-          <option value="other" style="color:#111">Other</option>
-        </select>
-        <input type="email" id="ctaEmail" placeholder="you@example.com" aria-label="Work email" required>
-        <button class="btn" type="submit">Take a seat</button>
+      <form class="cta-intake" id="ctaForm" novalidate>
+        <div class="seats" role="radiogroup" aria-label="Your seat at the founding table">
+          <button type="button" class="seat" data-seat="Issuer / registrar" role="radio" aria-checked="false"><b>Issuer</b><span>License &amp; issue passports</span></button>
+          <button type="button" class="seat" data-seat="Verifier" role="radio" aria-checked="false"><b>Verifier</b><span>Gate decisions on the record</span></button>
+          <button type="button" class="seat" data-seat="Attestor" role="radio" aria-checked="false"><b>Attestor</b><span>Prove identity claims</span></button>
+          <button type="button" class="seat" data-seat="Witness" role="radio" aria-checked="false"><b>Witness</b><span>Cosign the public log</span></button>
+          <button type="button" class="seat" data-seat="Builder / operator" role="radio" aria-checked="false"><b>Builder</b><span>Run agents that carry passports</span></button>
+          <button type="button" class="seat" data-seat="Other" role="radio" aria-checked="false"><b>Other</b><span>Something else entirely</span></button>
+        </div>
+        <p class="seat-hint" id="seatHint">Pick your seat, then leave an email.</p>
+        <div class="email-row">
+          <input type="email" id="ctaEmail" placeholder="you@example.com" aria-label="Work email" required>
+          <button class="btn" type="submit">Take a seat</button>
+        </div>
       </form>
       <p class="email-ok" id="ctaOk" role="status">✓ Noted — in this browser only. Founding intake opens with the public release; nothing was sent anywhere.</p>
       <a class="alt" href="standard.html">READ THE STANDARD FIRST →</a>
@@ -742,7 +758,18 @@ cli:'<span class="c"># the whole lifecycle, locally, no server</span>\n$ ainra i
   /* founding-table form (local only — no network) */
   const cf=$('ctaForm');
   if(cf){
-    cf.addEventListener('submit',e=>{e.preventDefault();const em=$('ctaEmail');if(!em.value||!em.value.includes('@')){em.focus();return;}e.target.style.display='none';const ok=$('ctaOk');if(ok)ok.style.display='block';});
+    let seat='';
+    const seats=[...cf.querySelectorAll('.seat')], hint=$('seatHint'), grid=cf.querySelector('.seats');
+    seats.forEach(b=>b.addEventListener('click',()=>{seat=b.dataset.seat;
+      seats.forEach(x=>x.setAttribute('aria-checked',x===b?'true':'false'));
+      hint.textContent='Seat: '+seat+' — now leave an email.';hint.classList.remove('warn');}));
+    cf.addEventListener('submit',e=>{e.preventDefault();
+      if(!seat){hint.textContent='Pick a seat first — that\'s the whole table.';hint.classList.add('warn');
+        grid.classList.add('pulse');setTimeout(()=>grid.classList.remove('pulse'),900);seats[0].focus();return;}
+      const em=$('ctaEmail');if(!em.value||!em.value.includes('@')){em.focus();return;}
+      cf.style.display='none';const ok=$('ctaOk');
+      if(ok){ok.textContent='✓ Seat noted: '+seat+' — in this browser only. Founding intake opens with the public release; nothing was sent anywhere.';ok.style.display='block';}
+    });
   }
 })();
 </script>

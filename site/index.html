@@ -320,7 +320,7 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
   <div class="mi"><button type="button" data-dd>Developers <span class="car">▼</span></button><div class="dd">
     <a href="#developers">Quickstart<span>SDK, middleware, CLI</span></a>
     <a href="standard.html">Conformance vectors<span>CC0 · three implementations agree</span></a>
-    <a href="AINRA_I_The_Standard.md">The standard, verbatim<span>Read the source document</span></a>
+    <a href="AINRA_I_The_Standard.md" download>Canonical file<span>AINRA_I_The_Standard.md — raw download</span></a>
   </div></div>
   <div class="mi"><button type="button" data-dd>Foundation <span class="car">▼</span></button><div class="dd">
     <a href="foundations.html">Charter &amp; four rules<span>What the root can never do</span></a>
@@ -585,7 +585,7 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
         <button class="btn" type="submit">Take a seat</button>
       </form>
       <p class="email-ok" id="ctaOk">✓ Seat noted — the standard and founding brief are on their way.</p>
-      <a class="alt" href="AINRA_I_The_Standard.md">READ THE STANDARD FIRST →</a>
+      <a class="alt" href="standard.html">READ THE STANDARD FIRST →</a>
     </div>
   </div>
 </section>
@@ -610,7 +610,7 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
         <h4>Protocol</h4>
         <ul>
           <li><a href="standard.html">The standard</a></li>
-          <li><a href="AINRA_I_The_Standard.md">The standard, verbatim</a></li>
+          <li><a href="AINRA_I_The_Standard.md" download>Canonical file (raw)</a></li>
           <li><a href="index.html#top">The passport</a></li>
           <li><a href="verify.html#authority">Authority model</a></li>
         </ul>
@@ -650,7 +650,7 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
   const $ = id => document.getElementById(id);
 
   /* reveal on scroll */
-  const io=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}})},{threshold:.1});
+  const io=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}})},{threshold:0});
   document.querySelectorAll('.rv').forEach(el=>io.observe(el));
 
   /* nav dropdowns */

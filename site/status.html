@@ -392,7 +392,7 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
   <div class="mi"><button type="button" data-dd>Developers <span class="car">▼</span></button><div class="dd">
     <a href="index.html#developers">Quickstart<span>SDK, middleware, CLI</span></a>
     <a href="standard.html">Conformance vectors<span>CC0 · three implementations agree</span></a>
-    <a href="AINRA_I_The_Standard.md">The standard, verbatim<span>Read the source document</span></a>
+    <a href="AINRA_I_The_Standard.md" download>Canonical file<span>AINRA_I_The_Standard.md — raw download</span></a>
   </div></div>
   <div class="mi"><button type="button" data-dd>Foundation <span class="car">▼</span></button><div class="dd">
     <a href="foundations.html">Charter &amp; four rules<span>What the root can never do</span></a>
@@ -443,7 +443,7 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
       <div>
         <h4>Protocol</h4>
         <ul>
-          <li><a href="AINRA_I_The_Standard.md">The standard</a></li>
+          <li><a href="standard.html">The standard</a></li>
           <li><a href="ainra-cli-v0.1.0.zip">Reference CLI v0.1.0</a></li>
           <li><a href="index.html#top">The passport</a></li>
           <li><a href="verify.html#authority">Authority model</a></li>
@@ -529,7 +529,7 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
   }
 
   /* reveals */
-  const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}}),{threshold:.12});
+  const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}}),{threshold:0});
   document.querySelectorAll('.rv').forEach(function(el){try{var gg=[].slice.call(el.parentElement.children).filter(function(c){return c.classList.contains('rv')});el.style.transitionDelay=(Math.min(gg.indexOf(el),6)*70)+'ms';}catch(e){}io.observe(el);});
 
   /* stat counters */

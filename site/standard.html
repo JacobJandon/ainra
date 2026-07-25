@@ -392,7 +392,7 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
   <div class="mi"><button type="button" data-dd>Developers <span class="car">▼</span></button><div class="dd">
     <a href="index.html#developers">Quickstart<span>SDK, middleware, CLI</span></a>
     <a href="standard.html">Conformance vectors<span>CC0 · three implementations agree</span></a>
-    <a href="AINRA_I_The_Standard.md">The standard, verbatim<span>Read the source document</span></a>
+    <a href="AINRA_I_The_Standard.md" download>Canonical file<span>AINRA_I_The_Standard.md — raw download</span></a>
   </div></div>
   <div class="mi"><button type="button" data-dd>Foundation <span class="car">▼</span></button><div class="dd">
     <a href="foundations.html">Charter &amp; four rules<span>What the root can never do</span></a>
@@ -409,7 +409,7 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
 <main><section style="padding-top:118px"><div class="wrap"><div class="sec-head rv">
 <span class="eyebrow">Document I · Public normative specification</span>
 <h2>The Standard, in full.</h2>
-<p class="lede">The complete public specification — v5.1, July 2026. Implementable by anyone — no license, fee, or permission. Also available as the canonical file: <a href="AINRA_I_The_Standard.md" style="color:var(--green);font-weight:600">AINRA_I_The_Standard.md</a>.</p></div>
+<p class="lede">The complete public specification — v5.1, July 2026. Implementable by anyone — no license, fee, or permission. Also available as the canonical file: <a href="AINRA_I_The_Standard.md" download style="color:var(--green);font-weight:600">AINRA_I_The_Standard.md</a> (raw markdown, downloads).</p></div>
 <article class="doc rv"><h1>AINRA — THE STANDARD</h1>
 <h2>Agent Identity &amp; Naming Registry Authority · Master Specification v5.1 · July 2026</h2>
 <p><i>Document I of III. Public. Supersedes and consolidates all prior specification versions (v1–v5.0) and the one-pager. This document names no third party anywhere; every example uses placeholder registrars by constitutional rule. Category, stated once: <b>the identity layer for autonomous AI</b>. Canonical description of AINRA&#x27;s role in it, used verbatim everywhere: &quot;The neutral root of AI agent identity.&quot; (38 characters.) v5.1 changes: root cryptography reissued for assumption diversity (Part I, key architecture); delegated online signing named honestly; no semantic changes elsewhere.</i></p>
@@ -557,7 +557,7 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
       <div>
         <h4>Protocol</h4>
         <ul>
-          <li><a href="AINRA_I_The_Standard.md">The standard</a></li>
+          <li><a href="standard.html">The standard</a></li>
           <li><a href="ainra-cli-v0.1.0.zip">Reference CLI v0.1.0</a></li>
           <li><a href="index.html#top">The passport</a></li>
           <li><a href="verify.html#authority">Authority model</a></li>
@@ -643,7 +643,7 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
   }
 
   /* reveals */
-  const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}}),{threshold:.12});
+  const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}}),{threshold:0});
   document.querySelectorAll('.rv').forEach(function(el){try{var gg=[].slice.call(el.parentElement.children).filter(function(c){return c.classList.contains('rv')});el.style.transitionDelay=(Math.min(gg.indexOf(el),6)*70)+'ms';}catch(e){}io.observe(el);});
 
   /* stat counters */

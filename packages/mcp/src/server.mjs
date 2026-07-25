@@ -36,8 +36,10 @@ async function handle(msg) {
   if (id !== undefined) return fail(id, -32601, `method not found: ${method}`);
 }
 
-// newline-delimited JSON-RPC over stdin
+// newline-delimited JSON-RPC over stdin. Track in-flight async handlers so a closed stdin (one-shot pipes, some
+// agent runners) drains pending tool calls instead of dropping their responses on the floor.
 let buf = "";
+let inflight = 0;
 process.stdin.setEncoding("utf8");
 process.stdin.on("data", (chunk) => {
   buf += chunk;
@@ -48,8 +50,14 @@ process.stdin.on("data", (chunk) => {
     if (!line) continue;
     let msg;
     try { msg = JSON.parse(line); } catch { continue; }
-    Promise.resolve(handle(msg)).catch((e) => { if (msg?.id !== undefined) fail(msg.id, -32603, String(e.message || e)); });
+    inflight++;
+    Promise.resolve(handle(msg))
+      .catch((e) => { if (msg?.id !== undefined) fail(msg.id, -32603, String(e.message || e)); })
+      .finally(() => { inflight--; });
   }
 });
-process.stdin.on("end", () => process.exit(0));
+process.stdin.on("end", () => {
+  const deadline = Date.now() + 30000; // drain up to 30s of pending tool calls, then exit regardless
+  const t = setInterval(() => { if (inflight === 0 || Date.now() > deadline) { clearInterval(t); process.exit(0); } }, 15);
+});
 process.stderr.write(`[ainra-mcp] up — ${TOOLS.length} tools, target ${TARGET_INFO.target} (${TARGET_INFO.mode}), zero telemetry\n`);

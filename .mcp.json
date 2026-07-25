@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "ainra": {
+      "command": "node",
+      "args": ["packages/mcp/src/server.mjs"],
+      "env": {
+        "AINRA_TARGET": "${AINRA_TARGET:-http://127.0.0.1:4907}",
+        "AINRA_STAGE_ISSUE_TOKEN": "${AINRA_STAGE_ISSUE_TOKEN:-}"
+      }
+    }
+  }
+}

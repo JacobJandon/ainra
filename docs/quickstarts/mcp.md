@@ -5,14 +5,22 @@
 semantics, zero telemetry. Read-only tools (`ainra_verify`, `ainra_lookup`, `ainra_status`) run freely; write tools
 (`ainra_issue`, `ainra_renew`, `ainra_revoke`) require `confirm: true` and only ever touch a registrar you control.
 
-## Three steps
+## Zero steps, if your client reads project config
+
+This repo ships **`.mcp.json`** at its root — a project-scoped MCP client opened in this repo picks the `ainra`
+server up automatically. It defaults to the staging registrar (`http://127.0.0.1:4907`, from `make stage-up`);
+export `AINRA_STAGE_ISSUE_TOKEN` (in `stage/.issue-token`) to enable the write tools.
+
+## Three steps, anywhere else
 
 1. **Build the SDK once** (the server wraps it): `make sdk-build`.
-2. **Choose the target** (one field) — a local registrar dir *or* a network you control:
+2. **Choose the target** (one field) — a local registrar dir *or* a live registrar/network you control:
    ```
    export AINRA_TARGET=genesis-out            # a local registrar dir (from `make genesis-local` or `ainra init`)
    # or:
-   export AINRA_TARGET=http://127.0.0.1:8091  # a network (issue/renew/revoke need AINRA_STAGE_ISSUE_TOKEN)
+   export AINRA_TARGET=http://127.0.0.1:4907  # a registrar daemon — full lifecycle; writes need AINRA_STAGE_ISSUE_TOKEN
+   # or:
+   export AINRA_TARGET=http://127.0.0.1:8091  # a public artifact server — read-only (lookup/status/verify)
    ```
 3. **Register the server** in your MCP client's config as a stdio server. The shape every MCP client accepts:
    ```json
@@ -21,7 +29,7 @@ semantics, zero telemetry. Read-only tools (`ainra_verify`, `ainra_lookup`, `ain
        "ainra": {
          "command": "node",
          "args": ["packages/mcp/src/server.mjs"],
-         "env": { "AINRA_TARGET": "genesis-out" }
+         "env": { "AINRA_TARGET": "http://127.0.0.1:4907" }
        }
      }
    }
@@ -29,6 +37,18 @@ semantics, zero telemetry. Read-only tools (`ainra_verify`, `ainra_lookup`, `ain
 
 That's it. The agent now sees the six tools. `ainra_verify` returns the real verdict + the named reason in plain
 words; it is byte-identical to `@ainra/sdk` (proven by `make mcp-test`).
+
+## A real session (live staging registrar)
+
+```
+status       → {"network":"staging","root":"test-root","registrar":"registrar-07","issued":4,"revoked":1,"write_auth":true}
+lookup seed  → {"name":"ainra:registrar-07:acme:invoicing@4.2.1","tier":"L3","standing":"active","verdict":"valid"}
+issue        → {"issued":"ainra:registrar-07:acme:agent-tour@1.0.0","tier":"L2"}
+renew        → {"renewed":"…agent-tour@1.0.0","new_generation":"ainra:registrar-07:acme:agent-tour@1.0.1"}
+revoke       → {"revoked":"…agent-tour@1.0.0","note":"fails closed everywhere within the freshness window"}
+lookup again → {"standing":"revoked","verdict":"invalid","reason":"revoked"}
+no-confirm   → ERROR: ainra_revoke is a WRITE operation … Re-call with `confirm: true`. Nothing was changed.
+```
 
 ## The tools
 

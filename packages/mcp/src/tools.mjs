@@ -36,6 +36,29 @@ async function getJson(path) {
   if (!r.ok) throw new Error(`target ${TARGET} returned HTTP ${r.status} for ${path} — check AINRA_TARGET points at a live AINRA network.`);
   return r.json();
 }
+// One AINRA_TARGET, either shape: an artifact server publishes /registry.json (many registrars, read-only); a
+// registrar daemon serves /export (its own records) + the write API. Agents get the SAME read surface from both.
+async function readRegistry() {
+  try { return await getJson("/registry.json"); } catch { /* fall through to the registrar-daemon shape */ }
+  const ex = await getJson("/export");
+  return {
+    generated_window: { verified_at: ex.verified_at },
+    registrars: [ex],
+    totals: { registrars: 1, issued: (ex.records || []).length, revoked: (ex.records || []).filter((e) => e.record.revoked).length },
+  };
+}
+async function postJson(path, body, what) {
+  const token = process.env.AINRA_STAGE_ISSUE_TOKEN || "";
+  const r = await fetch(TARGET.replace(/\/$/, "") + path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(10000),
+  });
+  const text = await r.text();
+  if (!r.ok) throw new Error(`registrar ${what} returned HTTP ${r.status}: ${text.slice(0, 160)} — a write to a network registrar needs AINRA_STAGE_ISSUE_TOKEN (the operator's bearer token).`);
+  try { return JSON.parse(text); } catch { return { raw: text }; }
+}
 function requireConfirm(input, tool) {
   if (input.confirm !== true)
     throw new Error(`${tool} is a WRITE operation against a registrar you control. Re-call with \`confirm: true\` to proceed. Nothing was changed.`);
@@ -70,11 +93,11 @@ export const TOOLS = [
     inputSchema: { type: "object", properties: { name: { type: "string", description: "The subject name, e.g. ainra:registrar-07:acme:invoicing@4.2.1" } }, required: ["name"] },
     async handler(input) {
       if (isUrl(TARGET)) {
-        const reg = await getJson("/registry.json");
+        const reg = await readRegistry();
         for (const R of reg.registrars) for (const e of R.records)
           if (e.record.sub === input.name)
             return { name: e.record.sub, registrar: R.registrar, tier: e.record.tier, authority: e.record.auth_class, standing: e.record.revoked ? "revoked" : "active", verdict: e.verdict.verdict, reason: e.verdict.reason ?? null };
-        throw new Error(`no record for "${input.name}" in the target's public registry`);
+        throw new Error(`no record for "${input.name}" in the target's registry — list what exists with ainra_status, or issue it with ainra_issue.`);
       }
       const out = cli(["present", TARGET, input.name]);
       const rec = JSON.parse(out);
@@ -89,8 +112,17 @@ export const TOOLS = [
     inputSchema: { type: "object", properties: {} },
     async handler() {
       if (isUrl(TARGET)) {
-        const reg = await getJson("/registry.json");
-        return { target: TARGET, network: "staging", root: "test-root", registrars: reg.totals.registrars, issued: reg.totals.issued, revoked: reg.totals.revoked, verified_at: reg.generated_window.verified_at, freshness: "F3", telemetry: "none" };
+        let health = null;
+        try { health = await getJson("/health"); } catch { /* artifact servers have no /health — registry totals still tell the story */ }
+        const reg = await readRegistry();
+        return {
+          target: TARGET,
+          network: health?.network ?? "staging", root: health?.root ?? "test-root",
+          registrar: health?.registrar, write_auth: health?.write_auth,
+          registrars: reg.totals.registrars, issued: reg.totals.issued, revoked: reg.totals.revoked,
+          lineages: reg.registrars.flatMap((R) => R.records.map((e) => e.record.sub)),
+          verified_at: reg.generated_window.verified_at, freshness: "F3", telemetry: "none",
+        };
       }
       return { target: TARGET, mode: "local registrar dir", note: "use ainra_lookup <name> to read a record; ainra_status is fullest against a network target.", telemetry: "none" };
     },
@@ -114,11 +146,9 @@ export const TOOLS = [
       requireConfirm(input, "ainra_issue");
       const caps = input.capabilities?.length ? input.capabilities : ["read:data"];
       if (isUrl(TARGET)) {
-        const token = process.env.AINRA_STAGE_ISSUE_TOKEN || "";
         const body = { operator: input.operator, lineage: input.lineage, version: input.version, tier: input.tier || "L2", auth_class: input.auth || "A2", principal_proof: "deadbeef" + input.lineage, capabilities: caps, scope_ceiling: caps, hops: [] };
-        const r = await fetch(TARGET.replace(/\/$/, "") + "/issue", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(body), signal: AbortSignal.timeout(10000) });
-        if (!r.ok) throw new Error(`registrar write returned HTTP ${r.status} (need AINRA_STAGE_ISSUE_TOKEN for a network registrar you control)`);
-        return { issued: `ainra:${await regId()}:${input.operator}:${input.lineage}@${input.version}`, via: TARGET };
+        const rec = await postJson("/issue", body, "issue");
+        return { issued: rec.sub ?? rec.record?.sub ?? `${input.operator}:${input.lineage}@${input.version}`, tier: rec.tier ?? body.tier, via: TARGET };
       }
       const args = ["issue", TARGET, "--operator", input.operator, "--lineage", input.lineage, "--version", input.version, "--tier", input.tier || "L2", "--auth", input.auth || "A2"];
       for (const c of caps) args.push("--cap", c);
@@ -134,7 +164,11 @@ export const TOOLS = [
     inputSchema: { type: "object", properties: { sub: { type: "string" }, version: { type: "string" }, confirm: { type: "boolean" } }, required: ["sub", "version", "confirm"] },
     async handler(input) {
       requireConfirm(input, "ainra_renew");
-      if (isUrl(TARGET)) throw new Error("renew over a network target is registrar-operator tooling; use the local-dir target or the registrar console. (Nothing changed.)");
+      if (isUrl(TARGET)) {
+        // ADR-017 reissue over the registrar's public door — fresh window, prev_leaf continuity, new status bit.
+        const out = await postJson("/renew", { sub: input.sub, new_version: input.version, now: Math.floor(Date.now() / 1000) }, "renew");
+        return { renewed: input.sub, new_generation: out.sub ?? out.record?.sub ?? input.sub.replace(/@.*$/, "@" + input.version), via: TARGET };
+      }
       const out = cli(["renew", TARGET, input.sub, "--version", input.version]).trim();
       return { renewed: input.sub, detail: out };
     },
@@ -148,20 +182,14 @@ export const TOOLS = [
     async handler(input) {
       requireConfirm(input, "ainra_revoke");
       if (isUrl(TARGET)) {
-        const token = process.env.AINRA_STAGE_ISSUE_TOKEN || "";
-        const r = await fetch(TARGET.replace(/\/$/, "") + "/revoke", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ sub: input.sub, now: Math.floor(Date.now() / 1000) }), signal: AbortSignal.timeout(10000) });
-        if (!r.ok) throw new Error(`registrar revoke returned HTTP ${r.status} (need AINRA_STAGE_ISSUE_TOKEN)`);
-        return { revoked: input.sub, via: TARGET };
+        await postJson("/revoke", { sub: input.sub, now: Math.floor(Date.now() / 1000) }, "revoke");
+        return { revoked: input.sub, via: TARGET, note: "fails closed everywhere within the freshness window" };
       }
       const out = cli(["revoke", TARGET, input.sub]).trim();
       return { revoked: input.sub, detail: out.split("\n")[0] };
     },
   },
 ];
-
-async function regId() {
-  try { const reg = await getJson("/registry.json"); return reg.registrars[0]?.registrar || "registrar"; } catch { return "registrar"; }
-}
 
 export const TOOL_BY_NAME = Object.fromEntries(TOOLS.map((t) => [t.name, t]));
 export const TARGET_INFO = { target: TARGET, mode: isUrl(TARGET) ? "network" : "local-dir" };

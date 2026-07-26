@@ -15,7 +15,9 @@ static host in one step.
 | `vendor/ainra-sdk.js` | the real `@ainra/sdk` verifier, bundled for the browser (the demo's engine) |
 | `data/registry.json` | a real, core-verified seeded registry the demo reads |
 | `AINRA_I_The_Standard.md`, `ainra-cli-v0.1.0.zip` | downloadable assets |
-| `robots.txt` | crawler policy |
+| `robots.txt`, `sitemap.xml` | crawler policy + sitemap (both name `https://ainra.org` — find-replace to your domain) |
+| `site.webmanifest`, `icon-192.png`, `icon-512.png`, `apple-touch-icon.png` | installable/PWA metadata + home-screen icons |
+| `og-cover.png` | 1200×630 social-share image referenced by the Open Graph / Twitter tags |
 
 `vendor/ainra-sdk.js` and `data/registry.json` are derived; regenerate with **`make site-demo`** from the repo root.
 
@@ -47,9 +49,27 @@ Keep the honest success copy accurate to whichever you choose. Until then the br
 
 ## Before pointing a real domain at it
 
-- Add `<link rel="canonical">` + Open Graph / Twitter-card meta to each `<head>` (they're intentionally absent now — no
-  real URLs exist yet). A one-line `og:image` can reuse the sigil.
-- Add a `sitemap.xml` once the domain is known and reference it from `robots.txt`.
-- The favicon is already an inline SVG data-URI on every page (self-contained).
+Every page already ships full head furniture — `<link rel="canonical">`, Open Graph + Twitter-card meta, JSON-LD
+(`Organization` + `WebSite`), `apple-touch-icon`, and a web manifest — plus a `sitemap.xml`, `robots.txt`, and a real
+1200×630 `og-cover.png` for social unfurls. The favicon is an inline SVG data-URI on every page (self-contained).
+
+**The one launch edit:** all of these reference the canonical host `https://ainra.org`. If you publish under a different
+domain, find-replace `ainra.org` across `*.html`, `sitemap.xml`, and `robots.txt` (and `start_url`/`scope` in
+`site.webmanifest` if you serve from a sub-path). That is the whole SEO/social wiring — nothing else to add.
+
+## Response headers (set these on your static host)
+
+The site needs no special headers to function, but a public deploy should set:
+
+- `Content-Security-Policy: default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; base-uri 'self'; frame-ancestors 'none'` — page styles and the small reveal/demo scripts are inline, so `'unsafe-inline'` is required; there is no `connect-src` to any third party (the demo never phones home).
+- `X-Content-Type-Options: nosniff`
+- `Referrer-Policy: strict-origin-when-cross-origin`
+- `Strict-Transport-Security: max-age=63072000` (once served over HTTPS)
+
+## Don't publish these
+
+`README.md` and `DEPLOY.md` are developer docs — exclude them from the published output (they're not linked from any
+page). Never publish `data/registrar-*` (registrar key-seed material — `make site-demo` strips it and it is not
+committed). Everything else in `site/` is meant to be public.
 
 Nothing about the demo changes when you go live — it never called home in the first place.

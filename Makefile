@@ -283,4 +283,6 @@ clean:
 site-demo: ainrascan
 	cp ainrascan/vendor/ainra-sdk.js site/vendor/ainra-sdk.js
 	cargo run --release -q -p ainra-cli-rs -- seed site/data
+	@rm -rf site/data/registrar-*
+	@echo "stripped site/data/registrar-* — the browser demo reads only registry.json; registrar key-seed material must never ship"
 	@echo "site/demo.html is ready — open site/index.html → 'Try it live'"

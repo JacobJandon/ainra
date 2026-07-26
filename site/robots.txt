@@ -1,4 +1,6 @@
 # AINRA — the neutral root of AI-agent identity
 User-agent: *
 Allow: /
-# Sitemap: add once a canonical domain exists.
+
+# Canonical host is https://ainra.org — update this line if you publish under a different domain.
+Sitemap: https://ainra.org/sitemap.xml

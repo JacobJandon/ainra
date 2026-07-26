@@ -1,8 +1,8 @@
 <!-- SPDX-License-Identifier: Apache-2.0 OR MIT -->
 # site/ — the public AINRA website
 
-The static front door for AINRA: the landing page, the Standard, a verify walkthrough, the honest status page, and the
-"get involved" recruitment pages (external verifiers, witnesses, custodians). Plain HTML/CSS with a little vanilla JS —
+The static front door for AINRA: the landing page, the Standard, a verify walkthrough, the Foundations/charter page, an
+honest status page, an in-browser demo that runs the real verifier, and a 404. Plain HTML/CSS with a little vanilla JS —
 **no framework, no build step for the pages themselves.**
 
 ## Build & serve
@@ -12,8 +12,8 @@ make site            # refresh the two derived downloads from canonical sources
 make site SERVE=1    # …and serve at http://127.0.0.1:8088  (PORT=… to change)
 ```
 
-The 8 pages are committed and self-contained. `make site` only regenerates the two **download artifacts** so they can
-never go stale:
+The 7 pages (`index`, `standard`, `verify`, `foundations`, `status`, `demo`, `404`) are committed and self-contained.
+`make site` only regenerates the two **download artifacts** so they can never go stale:
 - `ainra-cli-v0.1.0.zip` ← packaged from **`apps/cli-node/`** (the real reference CLI).
 - `AINRA_I_The_Standard.md` ← copied from **`docs/AINRA_I_The_Standard.md`** (the canonical Standard).
 

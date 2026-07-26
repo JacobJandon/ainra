@@ -7,7 +7,23 @@
 <meta name="description" content="Verify a real agent passport in your own browser with the actual AINRA verifier — then tamper with it and watch it fail closed with a named reason. Nothing is sent anywhere.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 112 112%27%3E%3Crect width=%27112%27 height=%27112%27 rx=%2722%27 fill=%27%23F5F6F3%27/%3E%3Ccircle cx=%2756%27 cy=%2756%27 r=%2736%27 stroke=%27%230B1220%27 stroke-width=%275%27 fill=%27none%27/%3E%3Cellipse cx=%2756%27 cy=%2756%27 rx=%2715%27 ry=%2736%27 stroke=%27%230B1220%27 stroke-width=%274%27 fill=%27none%27/%3E%3Cline x1=%2720%27 y1=%2756%27 x2=%2792%27 y2=%2756%27 stroke=%27%230B1220%27 stroke-width=%274%27/%3E%3Cpath d=%27M56 20 a36 36 0 0 1 36 36%27 stroke=%27%231A6B4E%27 stroke-width=%277%27 stroke-linecap=%27round%27 fill=%27none%27/%3E%3C/svg%3E">
 <meta name="theme-color" content="#F5F6F3">
-<noscript><style>.rv{opacity:1!important;transform:none!important}.needs-js{display:none!important}</style></noscript>
+<link rel="canonical" href="https://ainra.org/demo.html">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="AINRA">
+<meta property="og:url" content="https://ainra.org/demo.html">
+<meta property="og:title" content="Try it — verify an agent in your browser · AINRA">
+<meta property="og:description" content="Verify a real agent passport in your own browser with the actual AINRA verifier — then tamper with it and watch it fail closed with a named reason. Nothing is sent anywhere.">
+<meta property="og:image" content="https://ainra.org/og-cover.png">
+<meta property="og:image:alt" content="AINRA — the neutral root of AI-agent identity">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Try it — verify an agent in your browser · AINRA">
+<meta name="twitter:description" content="Run the real AINRA verifier in your browser, then watch a forged passport fail closed with a named reason.">
+<meta name="twitter:image" content="https://ainra.org/og-cover.png">
+<noscript><style>.rv{opacity:1!important;transform:none!important}.needs-js{display:none!important}#noscript-note{display:block!important}</style></noscript>
 <style>
 :root{--ink:#0B1220;--ink-2:#111B30;--paper:#F5F6F3;--card:#FFFFFF;--green:#1A6B4E;--green-br:#57C08F;--red:#A83A2C;--amber:#8a6a14;--muted:#5A6372;--line:#E2E5DF;--line2:rgba(11,18,32,.14);
 --mono:'B612 Mono',ui-monospace,'SFMono-Regular',Menlo,Consolas,monospace;--body:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;--display:'Bricolage Grotesque',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
@@ -21,6 +37,8 @@ a{color:inherit;text-decoration:none}
 h1,h2,h3{font-family:var(--display);letter-spacing:-.02em}
 button{font-family:var(--body);cursor:pointer;border:none;background:none;color:inherit}
 :focus-visible{outline:2px solid var(--green);outline-offset:3px;border-radius:4px}
+.skip{position:absolute;left:-9999px;top:0;z-index:200;background:var(--ink);color:#fff;padding:10px 16px;border-radius:0 0 8px 0;font-weight:600}
+.skip:focus{left:0}
 /* announce + nav (shared chrome) */
 .announce{background:var(--ink);color:#E2E8F0;font-size:12.5px;text-align:center;padding:9px 16px}
 .announce a{color:var(--green-br);font-weight:600}
@@ -111,6 +129,7 @@ footer a{color:var(--green)}
 </style>
 </head>
 <body id="top">
+<a href="#main" class="skip">Skip to content</a>
 
 <div class="announce">Live demo — the real verifier runs in your browser. Nothing is uploaded; the root is never contacted. <a href="status.html">Honest status →</a></div>
 
@@ -136,11 +155,11 @@ footer a{color:var(--green)}
   <circle cx="56" cy="56" r="2.4" fill="#0B1220"/>
 </g></defs></svg>
 
-<header class="hero" id="main">
+<main class="hero" id="main">
   <div class="wrap">
     <span class="eyebrow">Try it — 20 seconds, in this tab</span>
     <h1>Verify an AI agent. Then try to forge one.</h1>
-    <p class="sub">Pick a real passport below. The actual AINRA verifier — the same code that agrees with two other implementations on all 745 conformance vectors, compiled to run here — checks it in your browser. Then tamper with it and watch it fail closed.</p>
+    <p class="sub">Pick a real passport below. The actual AINRA verifier — the same code that passes all 745 conformance vectors, compiled to run here — checks it in your browser. Then tamper with it and watch it fail closed.</p>
     <div class="trust">
       <span>VERIFIER · <b>@ainra/sdk (in-browser)</b></span><span>NETWORK · <b>none</b></span><span>UPLOADS · <b>zero</b></span><span>ROOT · <b>dark</b></span>
     </div>
@@ -153,15 +172,15 @@ footer a{color:var(--green)}
         <div class="panel-h"><b>The passport</b><span class="tag" id="srcTag">STAGING · TEST-ROOT</span></div>
         <div class="panel-b">
           <label class="fld" for="pick">Choose a live lineage</label>
-          <select id="pick" aria-label="Choose a passport to verify"></select>
+          <select id="pick"></select>
           <div class="pf" id="pfields"></div>
           <div class="tamper">
             <div class="lead">▸ Forge it — flip one field, then re-verify</div>
             <div class="tbtns">
-              <button class="tbtn" data-t="claims" aria-pressed="false">Edit the tier<span>L3 → L4 · the signed body changes</span></button>
-              <button class="tbtn" data-t="sig" aria-pressed="false">Break the signature<span>corrupt one byte</span></button>
-              <button class="tbtn" data-t="status" aria-pressed="false">Forge "all clear"<span>zero the revocation bits</span></button>
-              <button class="tbtn" data-t="proof" aria-pressed="false">Unlog it<span>drop the inclusion proof</span></button>
+              <button class="tbtn" data-t="claims" aria-pressed="false">Escalate the tier<span>rewrite the signed body → sig_invalid</span></button>
+              <button class="tbtn" data-t="sig" aria-pressed="false">Break the signature<span>corrupt one byte → sig_invalid</span></button>
+              <button class="tbtn" data-t="status" aria-pressed="false">Replay an old status<span>backdate the revocation list → stale_status</span></button>
+              <button class="tbtn" data-t="proof" aria-pressed="false">Forge the log proof<span>bad inclusion proof → not_logged</span></button>
             </div>
           </div>
         </div>
@@ -170,7 +189,7 @@ footer a{color:var(--green)}
       <div class="panel">
         <div class="panel-h"><b>The verdict</b><span class="tag">RUNS ON YOUR MACHINE</span></div>
         <div class="panel-b">
-          <div class="verdict-top">
+          <div class="verdict-top" role="status" aria-live="polite" aria-atomic="true">
             <div class="big pend" id="big">—</div>
             <div class="reason" id="reason">choose a passport, then press Verify</div>
           </div>
@@ -183,9 +202,9 @@ footer a{color:var(--green)}
         </div>
       </div>
     </div>
-    <div id="noscript-note" class="err" style="display:none">This demo needs JavaScript to run the verifier in your browser. The verifier is also a downloadable CLI — see below.</div>
+    <div id="noscript-note" class="err" style="display:none" role="alert">This demo runs the verifier in your browser and needs JavaScript. The same verifier is also a downloadable CLI — see below.</div>
   </div>
-</header>
+</main>
 
 <section id="cli">
   <div class="wrap cli">
@@ -195,7 +214,7 @@ footer a{color:var(--green)}
       <p class="lede">A zero-dependency reference CLI with real Ed25519 signatures and a hash-chained log — it issues, verifies, revokes, and catches tampering live. No install, no account, no server.</p>
     </div>
     <div class="term">
-      <div class="term-bar"><i></i><i></i><i></i><span>bash — the command from ainra.dev</span>
+      <div class="term-bar"><i></i><i></i><i></i><span>bash — runs locally, no network</span>
         <button class="copy" id="copyCli">COPY</button></div>
       <div class="term-body" id="cliOut"></div>
     </div>
@@ -211,8 +230,8 @@ footer a{color:var(--green)}
     </div>
     <div class="how">
       <div class="hcell"><span class="n">01 · WHO</span><b>Two real signatures</b><p>Every passport is dual-signed — classical Ed25519 and post-quantum ML-DSA-65. Break either byte and it's <code>alg_downgrade</code> or <code>sig_invalid</code>.</p></div>
-      <div class="hcell"><span class="n">02 · STILL TRUSTED</span><b>Signed revocation</b><p>The status list is signed by the registrar. Forge an "all-clear" and the signature stops matching — <code>stale_status</code>. You can't un-revoke a credential.</p></div>
-      <div class="hcell"><span class="n">03 · LOGGED FIRST</span><b>A Merkle proof to a checkpoint</b><p>The passport carries an inclusion proof your browser recomputes to a signed checkpoint root. Drop it and it's <code>not_logged</code> — no secret passports.</p></div>
+      <div class="hcell"><span class="n">02 · STILL TRUSTED</span><b>Fresh revocation wins</b><p>Revocation lives in a status list with a freshness window. Replay an old "all-clear" snapshot from before a revocation and it fails <code>stale_status</code> — you can't roll the clock back to un-revoke.</p></div>
+      <div class="hcell"><span class="n">03 · LOGGED FIRST</span><b>A Merkle proof to a checkpoint</b><p>The passport carries an inclusion proof your browser recomputes to a signed checkpoint root. Forge it and the root no longer matches — <code>not_logged</code>. No secret passports.</p></div>
     </div>
   </div>
 </section>
@@ -233,9 +252,10 @@ footer a{color:var(--green)}
 </footer>
 
 <script type="module">
-import { runVector } from "./vendor/ainra-sdk.js";
+let runVector;   // loaded in boot() so a load failure surfaces visibly instead of leaving the demo silently inert
 
 const $=(s)=>document.querySelector(s);
+function showLoadError(msg){ const d=$("#demo"); if(d) d.style.display="none"; const n=$("#noscript-note"); if(n){ n.style.display="block"; n.textContent=msg+" The same verifier is also a downloadable CLI — see below."; } }
 const REASONS={
   sig_invalid:"a required signature failed to verify", alg_downgrade:"a mandated hybrid signature (Ed25519 or ML-DSA-65) was absent or broken",
   expired:"the validity window has ended", not_yet_valid:"presented before its validity window opens",
@@ -264,13 +284,19 @@ function toWire(rec,R){
       mandate_revocations:[], revoked_delegates:[],
     }};
 }
-// apply the visitor's forgery to a fresh wire bundle
+// apply the visitor's forgery to a fresh wire bundle. Each mutation is chosen so it ALWAYS
+// changes something the verifier authenticates — no no-ops on edge-case passports (verified
+// against every seeded lineage: each button fails closed with the reason shown on its label).
 function forge(wire){
   const p=wire.presentation;
-  if(tamper.has("claims")){ const c=JSON.parse(new TextDecoder().decode(b64u(p.claims))); c.tier="L4"; p.claims=enc(new TextEncoder().encode(JSON.stringify(c))); }
+  // rewrite the signed body — flip the tier to a different valid value so the claim bytes (and the signature over them) change
+  if(tamper.has("claims")){ const c=JSON.parse(new TextDecoder().decode(b64u(p.claims))); c.tier=(c.tier==="L4")?"L3":"L4"; p.claims=enc(new TextEncoder().encode(JSON.stringify(c))); }
+  // corrupt one byte of the classical signature
   if(tamper.has("sig")){ const s=b64u(p.issuer_sig.ed25519); s[0]^=0xff; p.issuer_sig.ed25519=enc(s); }
-  if(tamper.has("status")){ const n=Math.ceil(p.status_len/8); p.status_list=enc(new Uint8Array(n)); }   // all-clear forgery
-  if(tamper.has("proof")){ p.inclusion_proof=[]; }
+  // replay an old revocation snapshot — the verifier enforces a freshness window, so backdated status material fails closed
+  if(tamper.has("status")){ p.status_issued_at=1; }
+  // present a bogus inclusion proof — it no longer folds to the signed checkpoint root (also breaks single-leaf logs, where an empty proof would be valid)
+  if(tamper.has("proof")){ p.inclusion_proof=[enc(new Uint8Array(32))]; }
   return wire;
 }
 const STEP_LABELS=[
@@ -296,7 +322,14 @@ async function verify(){
   $("#big").textContent="…"; $("#big").className="big pend"; $("#reason").textContent="running the real verifier…";
   await new Promise(r=>setTimeout(r,180)); // let the UI paint
   let wire=forge(toWire(rec,R));
-  let v; try{ v=runVector(wire); }catch(e){ v={verdict:"invalid",reason:"schema_violation"}; }
+  let v;
+  try{ v=runVector(wire); }
+  catch(e){ // an unexpected throw is a bug in the demo, not a verdict on the passport — say so honestly, don't dress it up as INVALID
+    $("#big").textContent="ERROR"; $("#big").className="big no";
+    $("#reason").innerHTML="the verifier threw an unexpected exception — this is a demo bug, not a verdict on the passport";
+    $("#steps").innerHTML=""; $("#prov").innerHTML="verifier <b>@ainra/sdk</b> · exception: "+String(e&&e.message||e).slice(0,120);
+    return;
+  }
   const ok=v.verdict==="valid";
   $("#big").textContent=ok?"VALID":"INVALID"; $("#big").className="big "+(ok?"ok":"no");
   $("#reason").innerHTML=ok?"all nine checks passed — genuine, in-window, in-scope, logged, not revoked":
@@ -319,9 +352,11 @@ function select(sub){
 }
 
 async function boot(){
+  try{ ({ runVector } = await import("./vendor/ainra-sdk.js")); }
+  catch(e){ showLoadError("Could not load the in-browser verifier (vendor/ainra-sdk.js)."); return; }
   try{
     REG=await (await fetch("data/registry.json",{cache:"no-store"})).json();
-  }catch(e){ $("#demo").style.display="none"; $("#noscript-note").style.display="block"; $("#noscript-note").textContent="Could not load the demo data (data/registry.json). Serve this page over http (e.g. `python3 -m http.server` in site/)."; return; }
+  }catch(e){ showLoadError("Could not load the demo data (data/registry.json). Serve this page over http (e.g. `python3 -m http.server` in site/)."); return; }
   NOW=REG.generated_window?.verified_at ?? 0;
   for(const R of REG.registrars) for(const e of R.records) ROWS.push({rec:e.record, R});
   // prefer showing a valid, a delegated, and a revoked up top

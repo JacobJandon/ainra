@@ -2,6 +2,22 @@
 <title>Verify — AINRA</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 112 112%27%3E%3Crect width=%27112%27 height=%27112%27 rx=%2722%27 fill=%27%23F5F6F3%27/%3E%3Ccircle cx=%2756%27 cy=%2756%27 r=%2736%27 stroke=%27%230B1220%27 stroke-width=%275%27 fill=%27none%27/%3E%3Cellipse cx=%2756%27 cy=%2756%27 rx=%2715%27 ry=%2736%27 stroke=%27%230B1220%27 stroke-width=%274%27 fill=%27none%27/%3E%3Cline x1=%2720%27 y1=%2756%27 x2=%2792%27 y2=%2756%27 stroke=%27%230B1220%27 stroke-width=%274%27/%3E%3Cpath d=%27M56 20 a36 36 0 0 1 36 36%27 stroke=%27%231A6B4E%27 stroke-width=%277%27 stroke-linecap=%27round%27 fill=%27none%27/%3E%3C/svg%3E">
 <meta name="theme-color" content="#F5F6F3">
+<link rel="canonical" href="https://ainra.org/verify.html">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="AINRA">
+<meta property="og:url" content="https://ainra.org/verify.html">
+<meta property="og:title" content="Verify — AINRA">
+<meta property="og:description" content="How AINRA verification works: four checks, a proposed fail-closed freshness profile, a working reference CLI, and what ships at first public release.">
+<meta property="og:image" content="https://ainra.org/og-cover.png">
+<meta property="og:image:alt" content="AINRA — the neutral root of AI-agent identity">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Verify — AINRA">
+<meta name="twitter:description" content="How AINRA verification works — a handful of checks, fail-closed, offline-capable.">
+<meta name="twitter:image" content="https://ainra.org/og-cover.png">
 <noscript><style>.rv,.t-line,.verify-line{opacity:1!important;transform:none!important}.sec-head .hero-h{font-family:var(--display);font-size:clamp(1.9rem,4vw,2.75rem);font-weight:730;line-height:1.1;margin-top:12px;letter-spacing:-.03em}
 </style></noscript><meta name="description" content="How AINRA verification works: four checks, a proposed fail-closed freshness profile, a working reference CLI, and what ships at first public release.">
 <style>
@@ -22,6 +38,8 @@ a{color:inherit;text-decoration:none}
 h1,h2,h3{font-family:var(--display);letter-spacing:-.02em}
 button{font-family:var(--body);cursor:pointer;border:none;background:none;color:inherit}
 :focus-visible{outline:2px solid var(--green);outline-offset:3px;border-radius:4px}
+.skip{position:absolute;left:-9999px;top:0;z-index:200;background:var(--ink);color:#fff;padding:10px 16px;border-radius:0 0 8px 0;font-weight:600}
+.skip:focus{left:0}
 
 .brand{display:flex;align-items:center;gap:12px;min-width:0}
 .brand .sigil{width:48px;height:48px;flex:none}
@@ -180,7 +198,7 @@ section{padding:92px 0}
 .split{display:grid;grid-template-columns:1fr auto 1fr;gap:20px;align-items:stretch;max-width:900px;margin:0 auto 52px;position:relative;z-index:1}
 .split .fx{display:grid;place-items:center;font-family:var(--mono);color:var(--green-br);font-size:22px}
 .half{border:1px solid rgba(255,255,255,.14);border-radius:14px;padding:22px 24px;background:rgba(255,255,255,.03)}
-.half b{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--green-br);display:block;margin-bottom:8px}
+.half b{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--green);display:block;margin-bottom:8px}
 .half p{font-size:13.5px;color:#B9C1CF;line-height:1.6}
 .half.you{border-color:rgba(87,192,143,.45)}
 @media(max-width:760px){.split{grid-template-columns:1fr}.split .fx{transform:rotate(90deg)}}
@@ -346,6 +364,7 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
 @media(min-width:901px){.nav-links{display:none!important}}
 @media(max-width:900px){.mi,.nav-hide{display:none}}
 </style></head><body id="top">
+<a href="#main" class="skip">Skip to content</a>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
     <g id="ainra-sigil">
@@ -389,17 +408,17 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
   <a class="brand" href="index.html" aria-label="AINRA — Agent Identity and Naming Registry Authority">
     <span class="sigil" aria-hidden="true"><svg viewBox="0 0 112 112"><use href="#ainra-sigil"/></svg></span>
     <span class="wm">AINRA</span><span class="mean">Agent Identity &amp; Naming<br>Registry Authority</span></a>
-  <div class="mi"><button type="button" data-dd>Protocol <span class="car">▼</span></button><div class="dd">
+  <div class="mi"><button type="button" data-dd aria-haspopup="true" aria-expanded="false">Protocol <span class="car">▼</span></button><div class="dd">
     <a href="standard.html">The open standard<span>Names, passports, tiers, mandates</span></a>
     <a href="verify.html">Verification<span>Five lines, offline, fail-closed</span></a>
   </div></div>
-  <div class="mi"><button type="button" data-dd>Developers <span class="car">▼</span></button><div class="dd">
+  <div class="mi"><button type="button" data-dd aria-haspopup="true" aria-expanded="false">Developers <span class="car">▼</span></button><div class="dd">
     <a href="demo.html">Try it live<span>Verify a passport in your browser</span></a>
     <a href="index.html#developers">Quickstart<span>SDK, middleware, CLI</span></a>
     <a href="status.html">Conformance<span>745/745 — measured, see status</span></a>
     <a href="AINRA_I_The_Standard.md" download>Canonical file<span>AINRA_I_The_Standard.md — raw download</span></a>
   </div></div>
-  <div class="mi"><button type="button" data-dd>Foundation <span class="car">▼</span></button><div class="dd">
+  <div class="mi"><button type="button" data-dd aria-haspopup="true" aria-expanded="false">Foundation <span class="car">▼</span></button><div class="dd">
     <a href="foundations.html">Charter &amp; rules<span>What the root can never do</span></a>
     <a href="status.html">Honest status<span>What exists · what doesn't yet</span></a>
     <a href="foundations.html#faq">FAQ<span>Straight answers</span></a>
@@ -464,11 +483,11 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
 <div class="term rv">
       <div class="term-bar" aria-hidden="true"><i></i><i></i><i></i><span>ainra-cli v0.1.0 · real captured output</span></div>
       <div class="term-body" id="termOut">
-        <div class="t-line"><span class="p">$</span> <span class="w">ainra verify ainra:registrar-07:acme-corp:invoicing@4.2.1</span></div>
+        <div class="t-line"><span class="p">$</span> <span class="w">ainra verify ainra:registrar-07:acme:invoicing@4.2.1</span></div>
         <div class="t-line">→ chain&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;root <span class="g">✓</span> · registrar <span class="g">✓</span> · version <span class="g">✓</span></div>
         <div class="t-line">→ operator&nbsp;&nbsp;Acme Corp — <span class="g">KYB verified</span> (US-DE)</div>
         <div class="t-line">→ authority&nbsp;<span class="g">A1 human-delegated (zk-commitment) ✓</span> · PII: <span class="w">none</span></div>
-        <div class="t-line">→ validity&nbsp;&nbsp;2026-07-07 → 2027-07-07 <span class="g">✓</span></div>
+        <div class="t-line">→ validity&nbsp;&nbsp;2026-04-11 → 2027-04-11 <span class="g">✓</span></div>
         <div class="t-line">→ status&nbsp;&nbsp;&nbsp;&nbsp;tier <span class="g">L3</span> · revocation <span class="g">ACTIVE ✓</span></div>
         <div class="t-line">→ log&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;entry #000002 <span class="g">✓ included</span> · chain of 3 intact · witnesses 3/3 <span class="p">(local)</span></div>
         <div class="t-line"><span class="g">✓ VALID</span> <span class="p">· verified in 4.0 ms — run it yourself: the CLI is in the download above</span></div>
@@ -627,12 +646,22 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
   /* copy command */
   const cp=$('copyBtn');
   if(cp){
-    cp.addEventListener('click',()=>{if(navigator.clipboard)navigator.clipboard.writeText('npx ainra verify ainra:registrar-07:acme:invoicing@4.2.1');cp.textContent='COPIED ✓';setTimeout(()=>cp.textContent='COPY',1600);});
+    cp.addEventListener('click',()=>{if(navigator.clipboard)navigator.clipboard.writeText('ainra verify ainra:registrar-07:acme:invoicing@4.2.1');cp.textContent='COPIED ✓';setTimeout(()=>cp.textContent='COPY',1600);});
   }
 
   /* reveals */
-  const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}}),{threshold:0});
-  document.querySelectorAll('.rv').forEach(function(el){try{var gg=[].slice.call(el.parentElement.children).filter(function(c){return c.classList.contains('rv')});el.style.transitionDelay=(Math.min(gg.indexOf(el),6)*70)+'ms';}catch(e){}io.observe(el);});
+  // reveal on scroll — position-based so content can NEVER stay stuck hidden (an IntersectionObserver
+  // misses elements you scroll past instantly: End key, anchor jumps, back-nav scroll restoration, fast flicks)
+  var rvEls=[].slice.call(document.querySelectorAll('.rv'));
+  rvEls.forEach(function(el){try{var gg=[].slice.call(el.parentElement.children).filter(function(c){return c.classList.contains('rv')});el.style.transitionDelay=(Math.min(gg.indexOf(el),6)*70)+'ms';}catch(e){}});
+  if(reduce){ rvEls.forEach(function(el){el.classList.add('in');}); }
+  else{
+    var reveal=function(){ var vh=innerHeight||document.documentElement.clientHeight;
+      var atBottom=(scrollY+vh)>=(document.documentElement.scrollHeight-4);
+      for(var i=rvEls.length-1;i>=0;i--){ if(atBottom||rvEls[i].getBoundingClientRect().top<vh*0.92){ rvEls[i].classList.add('in'); rvEls.splice(i,1); } } };
+    reveal(); addEventListener('scroll',reveal,{passive:true}); addEventListener('resize',reveal,{passive:true}); addEventListener('load',reveal);
+    setTimeout(function(){while(rvEls.length){rvEls.pop().classList.add('in');}},4000); // absolute safety net — nothing can stay permanently hidden (back-nav restore, anchor jumps, etc.)
+  }
 
   /* stat counters */
   const so=new IntersectionObserver(es=>es.forEach(e=>{
@@ -695,11 +724,13 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
 <script>
 /* shared chrome: dropdown menus */
 (function(){
+  var closeDD=function(){document.querySelectorAll('.mi.open').forEach(function(m){m.classList.remove('open');var bb=m.querySelector('[data-dd]');if(bb)bb.setAttribute('aria-expanded','false');});};
   document.querySelectorAll('[data-dd]').forEach(function(b){b.addEventListener('click',function(e){e.stopPropagation();
     var mi=b.parentElement,was=mi.classList.contains('open');
-    document.querySelectorAll('.mi.open').forEach(function(m){m.classList.remove('open')});
-    if(!was)mi.classList.add('open');});});
-  document.addEventListener('click',function(){document.querySelectorAll('.mi.open').forEach(function(m){m.classList.remove('open')})});
+    closeDD();
+    if(!was){mi.classList.add('open');b.setAttribute('aria-expanded','true');}});});
+  document.addEventListener('click',closeDD);
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')closeDD();});
 })();
 </script>
 </body></html>

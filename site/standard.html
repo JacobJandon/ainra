@@ -2,6 +2,22 @@
 <title>The Standard — AINRA</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 112 112%27%3E%3Crect width=%27112%27 height=%27112%27 rx=%2722%27 fill=%27%23F5F6F3%27/%3E%3Ccircle cx=%2756%27 cy=%2756%27 r=%2736%27 stroke=%27%230B1220%27 stroke-width=%275%27 fill=%27none%27/%3E%3Cellipse cx=%2756%27 cy=%2756%27 rx=%2715%27 ry=%2736%27 stroke=%27%230B1220%27 stroke-width=%274%27 fill=%27none%27/%3E%3Cline x1=%2720%27 y1=%2756%27 x2=%2792%27 y2=%2756%27 stroke=%27%230B1220%27 stroke-width=%274%27/%3E%3Cpath d=%27M56 20 a36 36 0 0 1 36 36%27 stroke=%27%231A6B4E%27 stroke-width=%277%27 stroke-linecap=%27round%27 fill=%27none%27/%3E%3C/svg%3E">
 <meta name="theme-color" content="#F5F6F3">
+<link rel="canonical" href="https://ainra.org/standard.html">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="AINRA">
+<meta property="og:url" content="https://ainra.org/standard.html">
+<meta property="og:title" content="The Standard — AINRA">
+<meta property="og:description" content="The complete public AINRA specification, v5.1 — namespace, passports, authority classes, revocation, logs, and governance.">
+<meta property="og:image" content="https://ainra.org/og-cover.png">
+<meta property="og:image:alt" content="AINRA — the neutral root of AI-agent identity">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="The Standard — AINRA">
+<meta name="twitter:description" content="The complete public AINRA specification, v5.1 — the open standard anyone can implement.">
+<meta name="twitter:image" content="https://ainra.org/og-cover.png">
 <noscript><style>.rv,.t-line,.verify-line{opacity:1!important;transform:none!important}@media print{nav,.announce,footer,.skip{display:none!important}.rv{opacity:1!important;transform:none!important}body{background:#fff}}
 </style></noscript><meta name="description" content="The complete public AINRA specification, v5.1 — namespace, passports, authority classes, revocation, logs, and governance.">
 <style>
@@ -22,6 +38,8 @@ a{color:inherit;text-decoration:none}
 h1,h2,h3{font-family:var(--display);letter-spacing:-.02em}
 button{font-family:var(--body);cursor:pointer;border:none;background:none;color:inherit}
 :focus-visible{outline:2px solid var(--green);outline-offset:3px;border-radius:4px}
+.skip{position:absolute;left:-9999px;top:0;z-index:200;background:var(--ink);color:#fff;padding:10px 16px;border-radius:0 0 8px 0;font-weight:600}
+.skip:focus{left:0}
 
 .brand{display:flex;align-items:center;gap:12px;min-width:0}
 .brand .sigil{width:48px;height:48px;flex:none}
@@ -130,7 +148,7 @@ nav{position:sticky;top:0;z-index:50;background:rgba(245,246,243,.86);backdrop-f
 
 section{padding:92px 0}
 .sec-head{max-width:680px;margin-bottom:44px}
-.sec-head h2{font-size:clamp(1.9rem,4vw,2.75rem);font-weight:730;line-height:1.1;margin-top:12px;letter-spacing:-.03em}
+.sec-head h2,.sec-head h1{font-size:clamp(1.9rem,4vw,2.75rem);font-weight:730;line-height:1.1;margin-top:12px;letter-spacing:-.03em}
 .sec-head .lede{margin-top:14px;color:var(--muted);font-size:16.5px}
 
 .does{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
@@ -327,7 +345,11 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
   .passport{transform:none!important}
 }
 
-.doc{max-width:840px}.doc h1{font-size:clamp(30px,4.4vw,44px);line-height:1.06;margin:0 0 14px}.doc h2{font-size:clamp(21px,2.6vw,27px);margin:44px 0 10px}.doc h3{font-size:17px;margin:30px 0 8px}.doc p{margin:0 0 14px;color:var(--ink);opacity:.92}.doc li{margin:0 0 8px}.doc ul{padding-left:20px;margin:0 0 16px}.doc code{font-family:var(--mono);font-size:.86em;background:rgba(11,18,32,.06);padding:1px 5px;border-radius:4px}.doc .tbl{font-family:var(--mono);font-size:12.5px;line-height:1.65;background:rgba(11,18,32,.04);border:1px solid rgba(11,18,32,.1);border-radius:10px;padding:14px 16px;overflow-x:auto;white-space:pre;margin:0 0 16px}.doc hr{border:none;border-top:1px solid rgba(11,18,32,.12);margin:34px 0}
+.doc{max-width:840px}.doc h1,.doc .doc-masthead{font-size:clamp(30px,4.4vw,44px);line-height:1.06;margin:0 0 14px;font-family:var(--display);letter-spacing:-.02em;font-weight:730}.doc h2{font-size:clamp(21px,2.6vw,27px);margin:44px 0 10px}.doc h3{font-size:17px;margin:30px 0 8px}.doc p{margin:0 0 14px;color:var(--ink);opacity:.92}.doc li{margin:0 0 8px}.doc ul{padding-left:20px;margin:0 0 16px}.doc code{font-family:var(--mono);font-size:.86em;background:rgba(11,18,32,.06);padding:1px 5px;border-radius:4px}.doc .tbl{font-family:var(--mono);font-size:12.5px;line-height:1.65;background:rgba(11,18,32,.04);border:1px solid rgba(11,18,32,.1);border-radius:10px;padding:14px 16px;overflow-x:auto;white-space:pre;margin:0 0 16px}
+.tier-table{width:100%;border-collapse:collapse;margin:0 0 16px;font-size:14px;display:block;overflow-x:auto}
+.tier-table th,.tier-table td{text-align:left;padding:9px 12px;border:1px solid rgba(11,18,32,.12);vertical-align:top}
+.tier-table th{background:rgba(11,18,32,.04);font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase}
+.tier-table td b{color:var(--green)}.doc hr{border:none;border-top:1px solid rgba(11,18,32,.12);margin:34px 0}
 /* ── shared chrome (merged design) ── */
 .announce{background:var(--ink);color:#E2E8F0;font-size:12.5px;text-align:center;padding:9px 16px}
 .announce a{color:var(--green-br);font-weight:600}
@@ -346,6 +368,7 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
 @media(min-width:901px){.nav-links{display:none!important}}
 @media(max-width:900px){.mi,.nav-hide{display:none}}
 </style></head><body id="top">
+<a href="#main" class="skip">Skip to content</a>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
     <g id="ainra-sigil">
@@ -389,17 +412,17 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
   <a class="brand" href="index.html" aria-label="AINRA — Agent Identity and Naming Registry Authority">
     <span class="sigil" aria-hidden="true"><svg viewBox="0 0 112 112"><use href="#ainra-sigil"/></svg></span>
     <span class="wm">AINRA</span><span class="mean">Agent Identity &amp; Naming<br>Registry Authority</span></a>
-  <div class="mi"><button type="button" data-dd>Protocol <span class="car">▼</span></button><div class="dd">
+  <div class="mi"><button type="button" data-dd aria-haspopup="true" aria-expanded="false">Protocol <span class="car">▼</span></button><div class="dd">
     <a href="standard.html">The open standard<span>Names, passports, tiers, mandates</span></a>
     <a href="verify.html">Verification<span>Five lines, offline, fail-closed</span></a>
   </div></div>
-  <div class="mi"><button type="button" data-dd>Developers <span class="car">▼</span></button><div class="dd">
+  <div class="mi"><button type="button" data-dd aria-haspopup="true" aria-expanded="false">Developers <span class="car">▼</span></button><div class="dd">
     <a href="demo.html">Try it live<span>Verify a passport in your browser</span></a>
     <a href="index.html#developers">Quickstart<span>SDK, middleware, CLI</span></a>
     <a href="status.html">Conformance<span>745/745 — measured, see status</span></a>
     <a href="AINRA_I_The_Standard.md" download>Canonical file<span>AINRA_I_The_Standard.md — raw download</span></a>
   </div></div>
-  <div class="mi"><button type="button" data-dd>Foundation <span class="car">▼</span></button><div class="dd">
+  <div class="mi"><button type="button" data-dd aria-haspopup="true" aria-expanded="false">Foundation <span class="car">▼</span></button><div class="dd">
     <a href="foundations.html">Charter &amp; rules<span>What the root can never do</span></a>
     <a href="status.html">Honest status<span>What exists · what doesn't yet</span></a>
     <a href="foundations.html#faq">FAQ<span>Straight answers</span></a>
@@ -413,9 +436,9 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
 </div></nav>
 <main id="main"><section style="padding-top:118px"><div class="wrap"><div class="sec-head rv">
 <span class="eyebrow">Document I · Public normative specification</span>
-<h2>The Standard, in full.</h2>
+<h1>The Standard, in full.</h1>
 <p class="lede">The complete public specification — v5.1, July 2026. Implementable by anyone — no license, fee, or permission. Also available as the canonical file: <a href="AINRA_I_The_Standard.md" download style="color:var(--green);font-weight:600">AINRA_I_The_Standard.md</a> (raw markdown, downloads).</p></div>
-<article class="doc rv"><h1>AINRA — THE STANDARD</h1>
+<article class="doc rv"><p class="doc-masthead">AINRA — THE STANDARD</p>
 <h3>Agent Identity &amp; Naming Registry Authority · Master Specification v5.1 · July 2026</h3>
 <p><i>Document I of III. Public. Supersedes and consolidates all prior specification versions (v1–v5.0) and the one-pager. This document names no third party anywhere; every example uses placeholder registrars by constitutional rule. Category: <b>the identity layer for autonomous AI</b>. Canonical description: &quot;The neutral root of AI agent identity.&quot; v5.1 changes: root cryptography reissued for assumption diversity (Part I, key architecture); delegated online signing named honestly; no semantic changes elsewhere.</i></p>
 
@@ -467,7 +490,7 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
 <p>An SD-JWT verifiable credential; selective disclosure by field. Canonical schema (illustrative values; placeholder registrar by S7):</p>
 <div class="tbl">{
   &quot;type&quot;: &quot;agent-passport&quot;, &quot;v&quot;: 1, &quot;serial&quot;: &quot;AP-8F2E-C41&quot;,
-  &quot;ainra_name&quot;: &quot;ainra:registrar-07:acme-corp:invoicing@4.2.1&quot;,
+  &quot;ainra_name&quot;: &quot;ainra:registrar-07:acme:invoicing@4.2.1&quot;,
   &quot;lineage&quot;: &quot;invoicing&quot;, &quot;version&quot;: &quot;4.2.1&quot;,
   &quot;operator&quot;: { &quot;name&quot;: &quot;Acme Corp&quot;, &quot;kyb&quot;: true, &quot;jurisdiction&quot;: &quot;US-DE&quot; },
   &quot;registrar&quot;: &quot;registrar-07&quot;,
@@ -493,13 +516,16 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
 <p><b>Consent mandates</b> (the authority instrument): grant → attenuate → exercise → review → revoke. A signed permission slip from the principal — scopes, time limits, spend ceilings, revocation address — which downstream delegation can only narrow. Revoking a mandate recalls its entire subtree, everywhere, within the revocation SLO. The <b>trust graph</b> — the log-derivable map of delegation edges (never behavior) — gives the ecosystem structure with privacy intact; expired-mandate orphans surface globally.</p>
 
 <h3>7. Assurance tiers</h3>
-<div class="tbl">| Tier | Requirements | Typical consequence granted by verifiers |
-|---|---|---|
-| <b>L0 Declared</b> | Valid keypair + logged registration + revocation endpoint. Permissionless by charter. | Sandbox, attributed crawl |
-| <b>L1 Anchored</b> | + verified domain control or established wallet history | Rate-limited APIs, low-value micropayments |
-| <b>L2 Operated</b> | + KYB-verified operator, declared model lineage, soulbound lineage | Standard commerce, B2B data exchange |
-| <b>L3 Backed</b> | + zero-knowledge principal + liability-insurance attestation | Consumer-scale payments, contract execution |
-| <b>L4 Regulated</b> | + sector license, independent audit, third-party work validation | High-value autonomy, critical infrastructure |</div>
+<table class="tier-table">
+<thead><tr><th>Tier</th><th>Requirements</th><th>Typical consequence granted by verifiers</th></tr></thead>
+<tbody>
+<tr><td><b>L0 Declared</b></td><td>Valid keypair + logged registration + revocation endpoint. Permissionless by charter.</td><td>Sandbox, attributed crawl</td></tr>
+<tr><td><b>L1 Anchored</b></td><td>+ verified domain control or established wallet history</td><td>Rate-limited APIs, low-value micropayments</td></tr>
+<tr><td><b>L2 Operated</b></td><td>+ KYB-verified operator, declared model lineage, soulbound lineage</td><td>Standard commerce, B2B data exchange</td></tr>
+<tr><td><b>L3 Backed</b></td><td>+ zero-knowledge principal + liability-insurance attestation</td><td>Consumer-scale payments, contract execution</td></tr>
+<tr><td><b>L4 Regulated</b></td><td>+ sector license, independent audit, third-party work validation</td><td>High-value autonomy, critical infrastructure</td></tr>
+</tbody>
+</table>
 <p>The root labels; every verifier sets its own floor. Five levels; you set the floor.</p>
 
 <h3>8. Verification protocol (normative sequence)</h3>
@@ -642,12 +668,22 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
   /* copy command */
   const cp=$('copyBtn');
   if(cp){
-    cp.addEventListener('click',()=>{if(navigator.clipboard)navigator.clipboard.writeText('npx ainra verify ainra:registrar-07:acme:invoicing@4.2.1');cp.textContent='COPIED ✓';setTimeout(()=>cp.textContent='COPY',1600);});
+    cp.addEventListener('click',()=>{if(navigator.clipboard)navigator.clipboard.writeText('ainra verify ainra:registrar-07:acme:invoicing@4.2.1');cp.textContent='COPIED ✓';setTimeout(()=>cp.textContent='COPY',1600);});
   }
 
   /* reveals */
-  const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}}),{threshold:0});
-  document.querySelectorAll('.rv').forEach(function(el){try{var gg=[].slice.call(el.parentElement.children).filter(function(c){return c.classList.contains('rv')});el.style.transitionDelay=(Math.min(gg.indexOf(el),6)*70)+'ms';}catch(e){}io.observe(el);});
+  // reveal on scroll — position-based so content can NEVER stay stuck hidden (an IntersectionObserver
+  // misses elements you scroll past instantly: End key, anchor jumps, back-nav scroll restoration, fast flicks)
+  var rvEls=[].slice.call(document.querySelectorAll('.rv'));
+  rvEls.forEach(function(el){try{var gg=[].slice.call(el.parentElement.children).filter(function(c){return c.classList.contains('rv')});el.style.transitionDelay=(Math.min(gg.indexOf(el),6)*70)+'ms';}catch(e){}});
+  if(reduce){ rvEls.forEach(function(el){el.classList.add('in');}); }
+  else{
+    var reveal=function(){ var vh=innerHeight||document.documentElement.clientHeight;
+      var atBottom=(scrollY+vh)>=(document.documentElement.scrollHeight-4);
+      for(var i=rvEls.length-1;i>=0;i--){ if(atBottom||rvEls[i].getBoundingClientRect().top<vh*0.92){ rvEls[i].classList.add('in'); rvEls.splice(i,1); } } };
+    reveal(); addEventListener('scroll',reveal,{passive:true}); addEventListener('resize',reveal,{passive:true}); addEventListener('load',reveal);
+    setTimeout(function(){while(rvEls.length){rvEls.pop().classList.add('in');}},4000); // absolute safety net — nothing can stay permanently hidden (back-nav restore, anchor jumps, etc.)
+  }
 
   /* stat counters */
   const so=new IntersectionObserver(es=>es.forEach(e=>{
@@ -710,11 +746,13 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
 <script>
 /* shared chrome: dropdown menus */
 (function(){
+  var closeDD=function(){document.querySelectorAll('.mi.open').forEach(function(m){m.classList.remove('open');var bb=m.querySelector('[data-dd]');if(bb)bb.setAttribute('aria-expanded','false');});};
   document.querySelectorAll('[data-dd]').forEach(function(b){b.addEventListener('click',function(e){e.stopPropagation();
     var mi=b.parentElement,was=mi.classList.contains('open');
-    document.querySelectorAll('.mi.open').forEach(function(m){m.classList.remove('open')});
-    if(!was)mi.classList.add('open');});});
-  document.addEventListener('click',function(){document.querySelectorAll('.mi.open').forEach(function(m){m.classList.remove('open')})});
+    closeDD();
+    if(!was){mi.classList.add('open');b.setAttribute('aria-expanded','true');}});});
+  document.addEventListener('click',closeDD);
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')closeDD();});
 })();
 </script>
 </body></html>

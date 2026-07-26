@@ -8,6 +8,25 @@
 <meta name="theme-color" content="#F5F6F3">
 <noscript><style>.rv,.t-line,.verify-line{opacity:1!important;transform:none!important}</style></noscript>
 <meta name="description" content="The identity layer for autonomous AI. AINRA is its neutral root: an open standard — passports for agents, authority classes, sub-minute global revocation, and a public record anyone can verify.">
+<link rel="canonical" href="https://ainra.org/">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="AINRA">
+<meta property="og:url" content="https://ainra.org/">
+<meta property="og:title" content="AINRA — The identity layer for autonomous AI">
+<meta property="og:description" content="The neutral, non-profit root of AI-agent identity: an open standard — passports for agents, authority classes, sub-minute global revocation, and a public record anyone can verify.">
+<meta property="og:image" content="https://ainra.org/og-cover.png">
+<meta property="og:image:alt" content="AINRA — the neutral root of AI-agent identity">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="AINRA — The identity layer for autonomous AI">
+<meta name="twitter:description" content="The neutral, non-profit root of AI-agent identity — an open standard anyone can verify.">
+<meta name="twitter:image" content="https://ainra.org/og-cover.png">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://ainra.org/#org","name":"AINRA","alternateName":"Agent Identity & Naming Registry Authority","description":"The neutral, non-profit root of AI-agent identity.","url":"https://ainra.org/","logo":"https://ainra.org/og-cover.png"},{"@type":"WebSite","@id":"https://ainra.org/#site","name":"AINRA","url":"https://ainra.org/","publisher":{"@id":"https://ainra.org/#org"}}]}
+</script>
 <style>
 /* AINRA landing — merged design: the original page's substance (passport, orbit, four jobs, lifecycle, founding
    table) with the new draft's frame (announcement bar, centered short hero, facts strip, code tabs, statement,
@@ -30,6 +49,8 @@ a{color:inherit;text-decoration:none}
 h1,h2,h3{font-family:var(--display);letter-spacing:-.02em}
 button{font-family:var(--body);cursor:pointer;border:none;background:none;color:inherit}
 :focus-visible{outline:2px solid var(--green);outline-offset:3px;border-radius:4px}
+.skip{position:absolute;left:-9999px;top:0;z-index:200;background:var(--ink);color:#fff;padding:10px 16px;border-radius:0 0 8px 0;font-weight:600}
+.skip:focus{left:0}
 .rv{opacity:0;transform:translateY(12px);transition:opacity .55s,transform .55s}
 .rv.in{opacity:1;transform:none}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
@@ -226,7 +247,7 @@ section{padding:88px 0}
 .tab{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;color:#7C8698;background:none;border:1px solid transparent;border-radius:9px 9px 0 0;padding:8px 14px}
 .tab.on{color:var(--green-br);background:#0A101E;border-color:rgba(245,246,243,.1);border-bottom-color:#0A101E}
 .codebox{background:#0A101E;border-top:1px solid rgba(245,246,243,.1);margin:0 14px 14px;border-radius:0 12px 12px 12px;padding:17px;font-family:var(--mono);font-size:11.5px;line-height:1.8;color:#c9d2e0;white-space:pre;overflow-x:auto;min-height:206px}
-.codebox .c{color:#5A6472}.codebox .g{color:var(--green-br)}.codebox .w{color:#F5F6F3}
+.codebox .c{color:#8B94A6}.codebox .g{color:var(--green-br)}.codebox .w{color:#F5F6F3}
 
 /* statement (new) */
 .statement{text-align:center;padding:8px 24px 0}
@@ -282,6 +303,7 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
 </style>
 </head>
 <body id="top">
+<a href="#main" class="skip">Skip to content</a>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
@@ -330,17 +352,17 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
     <span class="wm">AINRA</span>
     <span class="mean">Agent Identity &amp; Naming<br>Registry Authority</span>
   </a>
-  <div class="mi"><button type="button" data-dd>Protocol <span class="car">▼</span></button><div class="dd">
+  <div class="mi"><button type="button" data-dd aria-haspopup="true" aria-expanded="false">Protocol <span class="car">▼</span></button><div class="dd">
     <a href="standard.html">The open standard<span>Names, passports, tiers, mandates</span></a>
     <a href="verify.html">Verification<span>Five lines, offline, fail-closed</span></a>
   </div></div>
-  <div class="mi"><button type="button" data-dd>Developers <span class="car">▼</span></button><div class="dd">
+  <div class="mi"><button type="button" data-dd aria-haspopup="true" aria-expanded="false">Developers <span class="car">▼</span></button><div class="dd">
     <a href="demo.html">Try it live<span>Verify a passport in your browser</span></a>
     <a href="index.html#developers">Quickstart<span>SDK, middleware, CLI</span></a>
     <a href="status.html">Conformance<span>745/745 — measured, see status</span></a>
     <a href="AINRA_I_The_Standard.md" download>Canonical file<span>AINRA_I_The_Standard.md — raw download</span></a>
   </div></div>
-  <div class="mi"><button type="button" data-dd>Foundation <span class="car">▼</span></button><div class="dd">
+  <div class="mi"><button type="button" data-dd aria-haspopup="true" aria-expanded="false">Foundation <span class="car">▼</span></button><div class="dd">
     <a href="foundations.html">Charter &amp; rules<span>What the root can never do</span></a>
     <a href="status.html">Honest status<span>What exists · what doesn't yet</span></a>
     <a href="foundations.html#faq">FAQ<span>Straight answers</span></a>
@@ -355,7 +377,7 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
   </div>
 </div></nav>
 
-<header class="hero" id="main">
+<main id="main"><header class="hero">
   <div class="wrap">
     <div class="kick rv in">TURNING FUTURE INTO A WORKING PRESENT</div>
     <h1 class="rv in">The identity layer for <span class="u">autonomous&nbsp;AI</span>.</h1>
@@ -389,7 +411,7 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
             <div class="f"><label>② Version</label><div>4.2.1</div></div>
             <div class="f"><label>③ Operator</label><div>Acme Corp <span class="ok">KYB ✓</span></div></div>
             <div class="f"><label>④ Registrar</label><div>registrar-07</div></div>
-            <div class="f"><label>⑤ Authority</label><div>A1 · HUMAN <span class="ok">ZK ✓</span></div></div>
+            <div class="f"><label>⑤ Authority</label><div>A2 · ORG <span class="ok">ZK ✓</span></div></div>
             <div class="f"><label>⑥ Assurance</label><div><span class="tier-chip">L3 · BACKED</span></div></div>
           </div>
         </div>
@@ -407,7 +429,7 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
         <div class="mrz-zone">
           <div class="mrz" id="mrz" aria-label="Machine readable zone"></div>
           <div class="verify-line" id="verifyLine">
-            <i aria-hidden="true"></i> ⑧ ROOT SIGNATURE VALID <span>· WITNESSES 3/5 · LOG #8F2E…C41 · SPECIMEN</span>
+            <i aria-hidden="true"></i> ⑧ ROOT SIGNATURE VALID <span>· CHECKPOINT SIGNED · LOG #8F2E…C41 · SPECIMEN</span>
           </div>
         </div>
       </div>
@@ -430,9 +452,10 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
 
 <div class="stats wrap" id="problem">
   <div class="stat-grid">
-    <div class="stat rv"><div class="n"><em data-count="53">0</em>%</div><p>of web traffic is already automated. Humans are the minority online.</p><span class="src">INDUSTRY TRAFFIC REPORTS '26</span></div>
-    <div class="stat rv"><div class="n"><em data-count="80">0</em>:1</div><p>machine identities to every human in the enterprise — most of them ungoverned.</p><span class="src">ENTERPRISE IDENTITY ANALYSES '26</span></div>
-    <div class="stat rv"><div class="n"><em data-count="24">0</em>%</div><p>of organizations can fully see their agent-to-agent traffic. The rest are trusting the dark.</p><span class="src">AGENT SECURITY SURVEYS '26</span></div>
+    <div class="stat rv"><div class="n"><em data-count="745">0</em>/745</div><p>conformance vectors the reference verifier passes — the same verdict on every surface.</p><span class="src">REFERENCE IMPLEMENTATION · MEASURED</span></div>
+    <div class="stat rv"><div class="n"><em data-count="9">0</em></div><p>checks run before an agent is trusted — signature, authority, freshness, revocation, log inclusion. Any failure returns a named reason.</p><span class="src">THE STANDARD · v5.1</span></div>
+    <div class="stat rv"><div class="n"><em data-count="2">0</em></div><p>mandatory signatures on every passport — classical Ed25519 and post-quantum ML-DSA-65.</p><span class="src">THE STANDARD · v5.1</span></div>
+    <div class="stat rv"><div class="n"><em data-count="0">0</em></div><p>production log entries — the public record stays empty until the first ceremony, and we say so.</p><span class="src">PRE-GENESIS · HONEST</span></div>
   </div>
 </div>
 
@@ -566,13 +589,13 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
       </div>
     </div>
     <div class="codecard rv">
-      <div class="tabs">
-        <button class="tab on" data-t="ts">TypeScript</button>
-        <button class="tab" data-t="mw">Middleware</button>
-        <button class="tab" data-t="rs">Rust</button>
-        <button class="tab" data-t="cli">CLI</button>
+      <div class="tabs" role="tablist" aria-label="Integration surface">
+        <button class="tab on" data-t="ts" role="tab" aria-selected="true">TypeScript</button>
+        <button class="tab" data-t="mw" role="tab" aria-selected="false">Middleware</button>
+        <button class="tab" data-t="rs" role="tab" aria-selected="false">Rust</button>
+        <button class="tab" data-t="cli" role="tab" aria-selected="false">CLI</button>
       </div>
-      <div class="codebox" id="codebox"></div>
+      <div class="codebox" id="codebox" role="tabpanel" aria-live="polite"></div>
     </div>
   </div>
 </section>
@@ -609,9 +632,11 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
 </section>
 
 <div class="wrap"><div class="legal rv">
-  <p><b>Status disclosure.</b> AINRA is a neutral, non-profit root for AI-agent identity, currently pre-genesis. The open standard (v5.1) is public; the reference CLI (v0.1.0) is downloadable and checkable today; the full reference implementation is engineering-complete, pre-release — three implementations agree on all 745 CC0 conformance vectors, and revocation propagation is measured under 60 seconds. Verification is offline-capable and free, permanently, and phones home to no one. Canonical live status: <a href="status.html" style="color:var(--green)">status.html</a>.</p>
+  <p><b>Status disclosure.</b> AINRA is a neutral, non-profit root for AI-agent identity, currently pre-genesis. The open standard (v5.1) is public; the reference CLI (v0.1.0) is downloadable and checkable today; the full reference implementation is engineering-complete, pre-release — three implementations agree on all 745 CC0 conformance vectors, and revocation propagation is measured under 60 seconds in a local drill. Verification is offline-capable and free, permanently, and phones home to no one. Canonical live status: <a href="status.html" style="color:var(--green)">status.html</a>.</p>
   <p>The production root does not yet exist: it is born only at a recorded 5-of-9 key ceremony across independent custodians, its transcript hash published for anyone to recompute. Until then, production log entries are exactly zero — and this page says so. The passport above is a labeled specimen. The root issues no passports, computes no scores, holds no personal data, features no company, and sells nothing: charter prohibitions enforced in code.</p>
 </div></div>
+
+</main>
 
 <footer>
   <div class="wrap">
@@ -667,16 +692,26 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
   const touch = matchMedia('(pointer: coarse)').matches;
   const $ = id => document.getElementById(id);
 
-  /* reveal on scroll */
-  const io=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}})},{threshold:0});
-  document.querySelectorAll('.rv').forEach(el=>io.observe(el));
+  /* reveal on scroll — position-based so content can NEVER stay stuck hidden (an IntersectionObserver
+     misses elements you scroll past instantly: End key, anchor jumps, back-nav scroll restoration, fast flicks) */
+  const rvEls=[...document.querySelectorAll('.rv')];
+  if(reduce){ rvEls.forEach(e=>e.classList.add('in')); }
+  else{
+    const reveal=()=>{ const vh=innerHeight||document.documentElement.clientHeight;
+      const atBottom=(scrollY+vh)>=(document.documentElement.scrollHeight-4);
+      for(let i=rvEls.length-1;i>=0;i--){ if(atBottom||rvEls[i].getBoundingClientRect().top<vh*0.92){ rvEls[i].classList.add('in'); rvEls.splice(i,1); } } };
+    reveal(); addEventListener('scroll',reveal,{passive:true}); addEventListener('resize',reveal,{passive:true}); addEventListener('load',reveal);
+    setTimeout(function(){while(rvEls.length){rvEls.pop().classList.add('in');}},4000); // absolute safety net — nothing can stay permanently hidden (back-nav restore, anchor jumps, etc.)
+  }
 
-  /* nav dropdowns */
+  /* nav dropdowns — keep aria-expanded in sync and close on Escape */
+  const closeDD=()=>document.querySelectorAll('.mi.open').forEach(m=>{m.classList.remove('open');const bb=m.querySelector('[data-dd]');if(bb)bb.setAttribute('aria-expanded','false');});
   document.querySelectorAll('[data-dd]').forEach(b=>{b.addEventListener('click',e=>{e.stopPropagation();
     const mi=b.parentElement,was=mi.classList.contains('open');
-    document.querySelectorAll('.mi.open').forEach(m=>m.classList.remove('open'));
-    if(!was)mi.classList.add('open');});});
-  document.addEventListener('click',()=>document.querySelectorAll('.mi.open').forEach(m=>m.classList.remove('open')));
+    closeDD();
+    if(!was){mi.classList.add('open');b.setAttribute('aria-expanded','true');}});});
+  document.addEventListener('click',closeDD);
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')closeDD();});
 
   /* mobile menu */
   const burger=$('burger'), links=$('navLinks');
@@ -708,7 +743,7 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
   const mrzEl=$('mrz'), vline=$('verifyLine');
   if(mrzEl&&vline){
     const L1='P<AINACME<CORP<<INVOICING<AGENT<<<<<<<<<<<<<';
-    const L2='8F2EC41AP3AIN2604117L3<<<HUMANZK1VERIFIED<04';
+    const L2='8F2EC41AP3AIN2604117L3<<<ORG<<ZK1VERIFIED<04';
     const done=()=>{vline.classList.add('in');};
     if(reduce){mrzEl.textContent=L1+'\n'+L2;done();}
     else{
@@ -730,15 +765,14 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
     wrapEl.addEventListener('mouseleave',()=>{card.style.transform='';});
   }
 
-  /* count-up stats */
-  const so=new IntersectionObserver(es=>{es.forEach(e=>{
-    if(!e.isIntersecting)return;so.unobserve(e.target);
-    const el=e.target,t=+el.dataset.count;
-    if(reduce){el.textContent=t;return;}
+  /* count-up stats — position-based so a fast scroll never leaves a real number stuck at 0 */
+  const countEls=[...document.querySelectorAll('[data-count]')];
+  const animate=el=>{const t=+el.dataset.count; if(reduce){el.textContent=t;return;}
     const s=performance.now();
-    (function f(n){const p=Math.min((n-s)/900,1);el.textContent=Math.round(t*(1-Math.pow(1-p,3)));if(p<1)requestAnimationFrame(f);})(s);
-  })},{threshold:.6});
-  document.querySelectorAll('[data-count]').forEach(el=>so.observe(el));
+    (function f(n){const p=Math.min((n-s)/900,1);el.textContent=Math.round(t*(1-Math.pow(1-p,3)));if(p<1)requestAnimationFrame(f);})(s);};
+  const runCounts=()=>{const vh=innerHeight||document.documentElement.clientHeight;
+    for(let i=countEls.length-1;i>=0;i--){const r=countEls[i].getBoundingClientRect();if(r.top<vh*0.9&&r.bottom>0){animate(countEls[i]);countEls.splice(i,1);}}};
+  runCounts(); addEventListener('scroll',runCounts,{passive:true}); addEventListener('resize',runCounts,{passive:true});
 
   /* dev code tabs — real surfaces only */
   const S={
@@ -749,7 +783,7 @@ cli:'<span class="c"># the whole lifecycle, locally, no server</span>\n$ ainra i
   };
   const cb=$('codebox');
   if(cb){
-    const setTab=k=>{cb.innerHTML=S[k];document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.t===k));};
+    const setTab=k=>{cb.innerHTML=S[k];document.querySelectorAll('.tab').forEach(t=>{const on=t.dataset.t===k;t.classList.toggle('on',on);t.setAttribute('aria-selected',on?'true':'false');});};
     document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>setTab(t.dataset.t)));
     setTab('ts');
   }
@@ -759,9 +793,17 @@ cli:'<span class="c"># the whole lifecycle, locally, no server</span>\n$ ainra i
   if(cf){
     let seat='';
     const seats=[...cf.querySelectorAll('.seat')], hint=$('seatHint'), grid=cf.querySelector('.seats');
-    seats.forEach(b=>b.addEventListener('click',()=>{seat=b.dataset.seat;
-      seats.forEach(x=>x.setAttribute('aria-checked',x===b?'true':'false'));
-      hint.textContent='Seat: '+seat+' — now leave an email.';hint.classList.remove('warn');}));
+    seats.forEach((b,i)=>b.tabIndex=i===0?0:-1);   // roving tabindex for the radiogroup
+    const pick=b=>{seat=b.dataset.seat;
+      seats.forEach(x=>{const on=x===b;x.setAttribute('aria-checked',on?'true':'false');x.tabIndex=on?0:-1;});
+      hint.textContent='Seat: '+seat+' — now leave an email.';hint.classList.remove('warn');};
+    seats.forEach(b=>b.addEventListener('click',()=>pick(b)));
+    grid.addEventListener('keydown',e=>{const i=seats.indexOf(document.activeElement);if(i<0)return;
+      let j=-1;
+      if(e.key==='ArrowRight'||e.key==='ArrowDown')j=(i+1)%seats.length;
+      else if(e.key==='ArrowLeft'||e.key==='ArrowUp')j=(i-1+seats.length)%seats.length;
+      else if(e.key==='Home')j=0; else if(e.key==='End')j=seats.length-1; else return;
+      e.preventDefault(); seats[j].focus(); pick(seats[j]);});
     cf.addEventListener('submit',e=>{e.preventDefault();
       if(!seat){hint.textContent='Pick a seat first — that\'s the whole table.';hint.classList.add('warn');
         grid.classList.add('pulse');setTimeout(()=>grid.classList.remove('pulse'),900);seats[0].focus();return;}

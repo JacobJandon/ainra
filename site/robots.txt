@@ -1,0 +1,4 @@
+# AINRA — the neutral root of AI-agent identity
+User-agent: *
+Allow: /
+# Sitemap: add once a canonical domain exists.

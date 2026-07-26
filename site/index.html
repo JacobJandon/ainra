@@ -6,8 +6,7 @@
 <title>AINRA — The identity layer for autonomous AI</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 112 112%27%3E%3Crect width=%27112%27 height=%27112%27 rx=%2722%27 fill=%27%23F5F6F3%27/%3E%3Ccircle cx=%2756%27 cy=%2756%27 r=%2736%27 stroke=%27%230B1220%27 stroke-width=%275%27 fill=%27none%27/%3E%3Cellipse cx=%2756%27 cy=%2756%27 rx=%2715%27 ry=%2736%27 stroke=%27%230B1220%27 stroke-width=%274%27 fill=%27none%27/%3E%3Cline x1=%2720%27 y1=%2756%27 x2=%2792%27 y2=%2756%27 stroke=%27%230B1220%27 stroke-width=%274%27/%3E%3Cpath d=%27M56 20 a36 36 0 0 1 36 36%27 stroke=%27%231A6B4E%27 stroke-width=%277%27 stroke-linecap=%27round%27 fill=%27none%27/%3E%3C/svg%3E">
 <meta name="theme-color" content="#F5F6F3">
-<noscript><style>.rv,.t-line,.verify-line{opacity:1!important;transform:none!important}.skip{position:absolute;left:-9999px;top:0;z-index:99;background:var(--ink);color:#fff;padding:10px 18px;border-radius:0 0 10px 0;font-weight:600}.skip:focus{left:0}
-</style></noscript>
+<noscript><style>.rv,.t-line,.verify-line{opacity:1!important;transform:none!important}</style></noscript>
 <meta name="description" content="The identity layer for autonomous AI. AINRA is its neutral root: an open standard — passports for agents, authority classes, sub-minute global revocation, and a public record anyone can verify.">
 <style>
 /* AINRA landing — merged design: the original page's substance (passport, orbit, four jobs, lifecycle, founding
@@ -283,7 +282,6 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
 </style>
 </head>
 <body id="top">
-<a class="skip" href="#main">Skip to content</a>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
@@ -508,31 +506,31 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
     <div class="sec-head rv">
       <span class="eyebrow">What the root does</span>
       <h2>Four jobs. Done completely.</h2>
-      <p class="lede">A root is trustworthy in proportion to how little it does. These four functions are held in common — everything else stays with registrars, operators, and verifiers. Even the examples on this page use placeholder registrars: the root treats everyone equally.</p>
+      <p class="lede">A root is trustworthy in proportion to how little it does. Four functions are held in common — everything else stays with registrars, operators, and verifiers.</p>
     </div>
     <div class="does">
       <div class="do-cell rv">
         <span class="k">01 · Namespace</span>
         <h3>Names every agent</h3>
-        <p>One canonical, resolvable name per agent — <span style="font-family:var(--mono);font-size:12px">ainra:registrar:operator:lineage@version</span> — that any system can look up and get the signed passport back.</p>
+        <p>One canonical, resolvable name per agent — <span style="font-family:var(--mono);font-size:12px">ainra:registrar:operator:lineage@version</span> — resolving to its signed passport.</p>
         <p class="not"><b>BY DESIGN</b> · NAMES POINT — REGISTRARS SERVE THE FILES.</p>
       </div>
       <div class="do-cell rv">
         <span class="k">02 · Accreditation</span>
         <h3>Licenses the passport offices</h3>
-        <p>Independent registrars do the verifying and issuing. The root audits them against published rules and can revoke one wholesale.</p>
+        <p>Independent registrars verify and issue; the root audits them against published rules and can revoke one wholesale.</p>
         <p class="not"><b>BY DESIGN</b> · REGISTRARS ISSUE — THE ROOT KEEPS THEM HONEST.</p>
       </div>
       <div class="do-cell rv">
         <span class="k">03 · Root of trust</span>
         <h3>Anchors one key hierarchy</h3>
-        <p>Every passport chains up to one set of root keys, held in threshold by custodians across jurisdictions. A verifier anywhere checks a passport from anywhere, locally, in milliseconds.</p>
+        <p>Every passport chains to one set of threshold root keys — so any verifier checks any passport, locally, in milliseconds.</p>
         <p class="not"><b>BY DESIGN</b> · THE ROOT HOLDS KEYS AND RULES — REGISTRARS HOLD THE RECORDS.</p>
       </div>
       <div class="do-cell rv">
         <span class="k">04 · Revocation &amp; logs</span>
         <h3>Runs the switch and the record</h3>
-        <p>One revocation feed every verifier subscribes to — a compromised version stops everywhere in under a minute — and every event is sealed in append-only, witness-cosigned logs.</p>
+        <p>One revocation feed — a compromised version stops everywhere in under a minute — every event sealed in witness-cosigned logs.</p>
         <p class="not"><b>BY DESIGN</b> · THE ROOT RECORDS AND PROPAGATES — EVERY VERIFIER DECIDES.</p>
       </div>
     </div>
@@ -546,10 +544,10 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
       <h2>Register. Present. Verify. Revoke.</h2>
     </div>
     <div class="steps">
-      <div class="step rv"><h3>Register</h3><p>Through an independent registrar of your class. The lineage gets a non-transferable passport, authority class declared, event sealed in the public log.</p></div>
-      <div class="step rv"><h3>Present</h3><p>The passport rides in the signed requests the agent already sends, disclosing exactly what each counterparty needs.</p></div>
-      <div class="step rv"><h3>Verify</h3><p>Anyone checks chain, authority, mandate, and live status against cached root keys — milliseconds, works offline.</p></div>
-      <div class="step rv"><h3>Revoke</h3><p>One logged event stops a version's entire fleet — or a principal recalls a mandate and its whole subtree — everywhere, in under a minute.</p></div>
+      <div class="step rv"><h3>Register</h3><p>Through a registrar of your class: a non-transferable passport, authority declared, sealed in the public log.</p></div>
+      <div class="step rv"><h3>Present</h3><p>Rides in the signed requests the agent already sends — disclosing only what each counterparty needs.</p></div>
+      <div class="step rv"><h3>Verify</h3><p>Anyone checks chain, authority, and live status against cached root keys — milliseconds, offline.</p></div>
+      <div class="step rv"><h3>Revoke</h3><p>One logged event stops a whole fleet — or recalls a mandate's subtree — everywhere, in under a minute.</p></div>
     </div>
   </div>
 </section>
@@ -559,9 +557,9 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
     <div class="rv">
       <span class="eyebrow">Developers</span>
       <h2>Integrate agent verification in minutes.</h2>
-      <p class="d">No account with us. No calls to us. The registry publishes signed facts; your code checks them locally — with the root switched off.</p>
+      <p class="d">No account, no calls to us: the registry publishes signed facts, your code checks them locally — root switched off.</p>
       <div class="dsteps">
-        <div class="dstep"><span class="n">1</span><div><h3>Point at the directory</h3><p>Load the root-signed registrar directory from any mirror — a static, cacheable file.</p></div></div>
+        <div class="dstep"><span class="n">1</span><div><h3>Point at the directory</h3><p>Load the root-signed directory from any mirror — static, cacheable.</p></div></div>
         <div class="dstep"><span class="n">2</span><div><h3>Verify the bundle</h3><p>Signature, authority chain, freshness, revocation, log inclusion — one call, fail-closed, milliseconds.</p></div></div>
         <div class="dstep"><span class="n">3</span><div><h3>Gate on the verdict</h3><p>VALID proceeds; anything else returns a named reason. The decision stays yours.</p></div></div>
       </div>
@@ -587,7 +585,7 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
   <div class="wrap">
     <div class="cta-final rv">
       <h2>The founding table is forming.<br>Pick your seat.</h2>
-      <p>Issuers, verifiers, attestors, witnesses, builders — the players who join now write the rules everyone else inherits. You'll get the standard, the founding brief, and a direct line. One email is all it takes.</p>
+      <p>The players who join now write the rules everyone else inherits. You'll get the standard, the founding brief, and a direct line.</p>
       <form class="cta-intake" id="ctaForm" novalidate>
         <div class="seats" role="radiogroup" aria-label="Your seat at the founding table">
           <button type="button" class="seat" data-seat="Issuer / registrar" role="radio" aria-checked="false"><b>Issuer</b><span>License &amp; issue passports</span></button>
@@ -610,8 +608,8 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
 </section>
 
 <div class="wrap"><div class="legal rv">
-  <p><b>Status disclosure.</b> AINRA is a neutral, non-profit root for AI-agent identity, currently pre-genesis. The open standard (v5.1) is public and the reference CLI (v0.1.0) is downloadable and checkable today; the full reference implementation is engineering-complete and pre-release: three implementations agree on all 745 CC0 conformance vectors, every published artifact rebuilds byte-for-byte from source, and revocation propagation is measured at under 60 seconds. Verification is offline-capable and free, permanently, and phones home to no one. Canonical live status: <a href="status.html" style="color:var(--green)">status.html</a>.</p>
-  <p>The production root does not yet exist: it is created only at a recorded, in-person 5-of-9 key ceremony across independent custodians in multiple jurisdictions, after which its transcript hash is published for anyone to recompute. Until that day, the number of production log entries is exactly zero, and this page says so. The interface shown above is a specimen with placeholder registrars, labeled as such. The root issues no passports itself, computes no scores, holds no personal data, features no company, and sells nothing — these are charter prohibitions enforced in code, not policies.</p>
+  <p><b>Status disclosure.</b> AINRA is a neutral, non-profit root for AI-agent identity, currently pre-genesis. The open standard (v5.1) is public; the reference CLI (v0.1.0) is downloadable and checkable today; the full reference implementation is engineering-complete, pre-release — three implementations agree on all 745 CC0 conformance vectors, and revocation propagation is measured under 60 seconds. Verification is offline-capable and free, permanently, and phones home to no one. Canonical live status: <a href="status.html" style="color:var(--green)">status.html</a>.</p>
+  <p>The production root does not yet exist: it is born only at a recorded 5-of-9 key ceremony across independent custodians, its transcript hash published for anyone to recompute. Until then, production log entries are exactly zero — and this page says so. The passport above is a labeled specimen. The root issues no passports, computes no scores, holds no personal data, features no company, and sells nothing: charter prohibitions enforced in code.</p>
 </div></div>
 
 <footer>

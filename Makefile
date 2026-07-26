@@ -1,6 +1,6 @@
 # AINRA — the acceptance bar (MTS §28, brief §8): a stranger clones, runs `make test && make vectors && make diff`,
 # and everything is green in under 10 minutes on a laptop.
-.PHONY: all test vectors vectors-check diff fmt clippy fuzz-smoke bench sdk-build sdk-test ci clean status console samples drill explorer demo scale ceremony testbed wedge-build wedge-test repro mirror verify-mirror check-freeze freeze genesis-local verifier-kit-smoke ceremony-dry-run soak-smoke drill-networked preflight s7 license gitleaks audit verify-as-external verifier-triple-drill soak-verify genesis-status verify-transcript genesis-board-demo release doctor verifier-operator-drill site ainrascan stage-up stage-down stage-status stage-smoke config-diff declaration genesis-rehearsal verify issue-first registrar-console mcp-test skills-replay presentation-diff
+.PHONY: all test vectors vectors-check diff fmt clippy fuzz-smoke bench sdk-build sdk-test ci clean status console samples drill explorer demo scale ceremony testbed wedge-build wedge-test repro mirror verify-mirror check-freeze freeze genesis-local verifier-kit-smoke ceremony-dry-run soak-smoke drill-networked preflight s7 license gitleaks audit verify-as-external verifier-triple-drill soak-verify genesis-status verify-transcript genesis-board-demo release doctor verifier-operator-drill site ainrascan stage-up stage-down stage-status stage-smoke config-diff declaration genesis-rehearsal site-demo verify issue-first registrar-console mcp-test skills-replay presentation-diff
 
 all: fmt clippy test vectors diff
 
@@ -277,3 +277,10 @@ audit: s7 license gitleaks
 clean:
 	cargo clean
 	rm -rf packages/sdk-ts/node_modules packages/sdk-ts/dist build/mirror
+
+# M16+ — refresh the public site's in-browser demo assets (the real SDK bundle + a real seeded registry).
+# The site is fully static and self-contained; these two derived files make demo.html verify in any browser.
+site-demo: ainrascan
+	cp ainrascan/vendor/ainra-sdk.js site/vendor/ainra-sdk.js
+	cargo run --release -q -p ainra-cli-rs -- seed site/data
+	@echo "site/demo.html is ready — open site/index.html → 'Try it live'"

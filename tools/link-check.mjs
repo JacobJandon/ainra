@@ -1,0 +1,47 @@
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+// make site-check — static link/anchor checker for site/. Fails (exit 1) on any dead internal href, missing #anchor,
+// duplicate element id, or external (non-self-contained) resource request. CI-safe: no network, no browser.
+// Metadata URLs that only DECLARE the canonical host (canonical / og:url / og:image → ainra.org) or a namespace
+// (schema.org in JSON-LD) are not cross-origin fetches and are exempt.
+import { readFileSync, readdirSync, existsSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
+
+const SITE = join(dirname(fileURLToPath(import.meta.url)), "..", "site");
+const pages = readdirSync(SITE).filter((f) => f.endsWith(".html"));
+const html = Object.fromEntries(pages.map((p) => [p, readFileSync(join(SITE, p), "utf8")]));
+const ids = Object.fromEntries(pages.map((p) => [p, new Set([...html[p].matchAll(/id="([^"]+)"/g)].map((m) => m[1]))]));
+let fail = 0;
+const bad = (m) => { console.log("  ✗ " + m); fail++; };
+
+for (const p of pages) {
+  const s = html[p];
+  // 1. external resource requests — the site must stay self-contained
+  for (const m of s.matchAll(/(?:src|href)="(https?:)?\/\/[^"]+"/g))
+    if (!/(localhost|127\.|ainra\.org|schema\.org)/.test(m[0])) bad(`${p}: external request ${m[0].slice(0, 80)}`);
+  // 2. internal links resolve; anchors exist in the target file
+  for (const m of s.matchAll(/href="([^"#][^"]*?)(?:#([^"]+))?"/g)) {
+    const [, file, anchor] = m;
+    if (/^(https?:|mailto:|data:|tel:)/.test(file)) continue;
+    const rel = file.replace(/^\.\//, "");
+    if (!existsSync(join(SITE, rel))) { bad(`${p}: broken link → ${file}`); continue; }
+    if (anchor && rel.endsWith(".html") && !ids[rel]?.has(anchor)) bad(`${p}: missing anchor ${rel}#${anchor}`);
+  }
+  // 3. same-page anchors
+  for (const m of s.matchAll(/href="#([^"]+)"/g))
+    if (!ids[p].has(m[1])) bad(`${p}: missing same-page anchor #${m[1]}`);
+  // 4. duplicate ids
+  const all = [...s.matchAll(/id="([^"]+)"/g)].map((m) => m[1]);
+  const dupes = [...new Set(all.filter((v, i) => all.indexOf(v) !== i))];
+  if (dupes.length) bad(`${p}: duplicate id(s): ${dupes.join(", ")}`);
+  // 5. rough structural tag balance
+  for (const t of ["main", "header", "footer", "article", "section", "nav", "script", "style"]) {
+    const open = (s.match(new RegExp(`<${t}[\\s>]`, "g")) || []).length;
+    const close = (s.match(new RegExp(`</${t}>`, "g")) || []).length;
+    if (open !== close) bad(`${p}: <${t}> open/close mismatch ${open}/${close}`);
+  }
+}
+console.log(fail === 0
+  ? `✓ site link-check clean: ${pages.length} pages — all links + anchors resolve, no dupes, no external requests, tags balanced`
+  : `\n${fail} link/structure problem(s) — build fails`);
+process.exit(fail ? 1 : 0);

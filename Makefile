@@ -1,6 +1,6 @@
 # AINRA — the acceptance bar (MTS §28, brief §8): a stranger clones, runs `make test && make vectors && make diff`,
 # and everything is green in under 10 minutes on a laptop.
-.PHONY: all test vectors vectors-check diff fmt clippy fuzz-smoke bench sdk-build sdk-test ci clean status console samples drill explorer demo scale ceremony testbed wedge-build wedge-test repro mirror verify-mirror check-freeze freeze genesis-local verifier-kit-smoke ceremony-dry-run soak-smoke drill-networked preflight s7 license gitleaks audit verify-as-external verifier-triple-drill soak-verify genesis-status verify-transcript genesis-board-demo release doctor verifier-operator-drill site ainrascan stage-up stage-down stage-status stage-smoke config-diff declaration genesis-rehearsal site-demo verify issue-first registrar-console mcp-test skills-replay presentation-diff
+.PHONY: all test vectors vectors-check diff fmt clippy fuzz-smoke bench sdk-build sdk-test ci clean status console samples drill explorer demo scale ceremony testbed wedge-build wedge-test repro mirror verify-mirror check-freeze freeze genesis-local verifier-kit-smoke ceremony-dry-run soak-smoke drill-networked preflight s7 license gitleaks audit verify-as-external verifier-triple-drill soak-verify genesis-status verify-transcript genesis-board-demo release doctor verifier-operator-drill site site-up site-down site-check stage-all stage-all-down explorer-up explorer-down ainrascan stage-up stage-down stage-status stage-smoke config-diff declaration genesis-rehearsal site-demo verify issue-first registrar-console mcp-test skills-replay presentation-diff
 
 all: fmt clippy test vectors diff
 
@@ -53,7 +53,7 @@ sdk-test: sdk-build
 	cd packages/sdk-ts && npm test
 
 # The full local gate mirror of .github/workflows/ci.yml.
-ci: fmt clippy test vectors diff sdk-test
+ci: fmt clippy test vectors diff sdk-test site-check
 	node tools/s7-lint.mjs
 	node tools/license-check.mjs
 	./tools/fuzz-smoke.sh
@@ -231,6 +231,35 @@ doctor:
 # M11+ — build the public static site (site/): refresh its derived downloads from canonical sources. SERVE=1 to serve.
 site:
 	bash tools/site.sh
+site-up:
+	bash tools/site.sh up
+site-down:
+	bash tools/site.sh down
+site-check:
+	node tools/link-check.mjs
+
+# M17 — the full staging deploy profile: network (registrars + witness + artifacts + console) + site + explorer, one cmd.
+stage-all:
+	$(MAKE) stage-up
+	$(MAKE) site-up
+	$(MAKE) explorer-up
+	@echo ""
+	@echo "  AINRA STAGING · TEST-ROOT — FULL DEPLOY:"
+	@echo "    site        http://127.0.0.1:8088/            (make site-down)"
+	@echo "    demo        http://127.0.0.1:8088/demo.html"
+	@echo "    public API  http://127.0.0.1:8091/            (CORS · X-AINRA-Network: staging)"
+	@echo "    console     http://127.0.0.1:4907/console"
+	@echo "    AINRAscan   http://127.0.0.1:8090/?net=http://127.0.0.1:8091"
+	@echo "    → make stage-all-down stops everything"
+explorer-up:
+	bash tools/explorer.sh up
+explorer-down:
+	bash tools/explorer.sh down
+stage-all-down:
+	$(MAKE) site-down
+	$(MAKE) explorer-down
+	$(MAKE) stage-down
+	@echo "full staging deploy stopped."
 
 # The independent AINRAscan explorer, built against a real seeded network + the real SDK bundled for the browser.
 ainrascan:

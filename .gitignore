@@ -83,3 +83,7 @@ deploy/.env.production
 
 # M16 onramp: the persistent local registrar make issue-first creates
 my-registrar/
+
+# M17 site-up runtime pid
+.site-pid
+.explorer-pid

@@ -41,6 +41,10 @@ issue(){ # addr operator lineage version tier auth 'cap,cap' 'ceil,ceil' [audit]
 }
 
 publish(){ # fetch each daemon's public artifacts → static files with the contract path scheme
+  # D-035: republish is idempotent — drop stale per-registrar artifacts first, so the published contract reflects
+  # ONLY the currently-live registrars. A leftover dir from a prior onboarding (registrar-22) once inflated
+  # registry.json (3 registrars / 9 issued) past the live board (2 / 8): the contract advertised a dead registrar.
+  rm -rf "$PUB/registrars"
   for pair in "$REG1_ADDR:$REG1_ID" "$REG2_ADDR:$REG2_ID"; do
     local addr="${pair%:*}" d="$PUB/registrars/${pair##*:}"
     mkdir -p "$d/status" "$d/checkpoints"

@@ -126,6 +126,36 @@ section{padding:64px 0}
 footer{padding:40px 0;border-top:1px solid var(--line);background:var(--card);margin-top:56px;font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--muted);text-align:center}
 footer a{color:var(--green)}
 .err{background:rgba(168,58,44,.08);border:1px solid rgba(168,58,44,.3);border-radius:10px;padding:14px 16px;font-size:13px;color:var(--red);margin:18px 0}
+.err code{font-family:var(--mono);background:rgba(168,58,44,.12);padding:1px 5px;border-radius:4px}
+/* live lifecycle (M17) */
+#lifecycle{padding:56px 0 8px}
+.ll{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:24px}
+@media(max-width:860px){.ll{grid-template-columns:1fr}}
+.ll-main,.ll-console{border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.ll-main{background:var(--card);padding:18px 20px}
+.ll-head{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ll-head b{color:var(--green)}
+.ll-dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:llpulse 2s infinite;flex:none}
+@keyframes llpulse{0%{box-shadow:0 0 0 0 rgba(26,107,78,.45)}70%{box-shadow:0 0 0 7px rgba(26,107,78,0)}100%{box-shadow:0 0 0 0 rgba(26,107,78,0)}}
+.ll-steps{margin-top:14px;display:grid;gap:2px}
+.ll-step{display:grid;grid-template-columns:22px 1fr;gap:10px;align-items:baseline;padding:7px 8px;border-radius:8px;font-size:12.5px;line-height:1.45}
+.ll-step:nth-child(odd){background:var(--paper)}
+.ll-step .ll-ico{font-family:var(--mono);font-weight:700}
+.ll-step[data-state="ok"] .ll-ico{color:var(--green)}
+.ll-step[data-state="no"] .ll-ico{color:var(--red)}
+.ll-step[data-state="run"] .ll-ico{color:var(--amber)}
+.ll-step[data-state="pend"]{color:var(--muted)}
+.ll-facts{margin-top:14px;font-family:var(--mono);font-size:10px;letter-spacing:.05em;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center;border-top:1px dashed var(--line);padding-top:12px}
+.ll-facts b{color:var(--ink);word-break:break-all}
+.ll-verdict.ok{color:var(--green)}.ll-verdict.no{color:var(--red)}.ll-verdict.pend{color:var(--muted)}
+.ll-run{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.ll-run .btn{font-size:13px;padding:8px 14px}
+.ll-run .btn:disabled{opacity:.4;cursor:not-allowed}
+.ll-console{background:var(--ink);border-color:rgba(255,255,255,.09)}
+.ll-console-head{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.4);padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.08)}
+.ll-log{font-family:var(--mono);font-size:11px;line-height:1.7;color:#c9d2e0;padding:14px 16px;height:288px;overflow:auto;white-space:pre-wrap;word-break:break-word}
+.ll-line.ok{color:var(--green-br)}.ll-line.no{color:#E8836F}.ll-line.dim{color:rgba(255,255,255,.4)}
+@media(prefers-reduced-motion:reduce){.ll-dot{animation:none}}
 </style>
 </head>
 <body id="top">
@@ -205,6 +235,42 @@ footer a{color:var(--green)}
     <div id="noscript-note" class="err" style="display:none" role="alert">This demo runs the verifier in your browser and needs JavaScript. The same verifier is also a downloadable CLI — see below.</div>
   </div>
 </main>
+
+<section id="lifecycle">
+  <div class="wrap">
+    <div class="sec-head" style="max-width:700px">
+      <span class="eyebrow">The full lifecycle — live</span>
+      <h2>Issue a real agent. Log it. Verify it. Revoke it.</h2>
+      <p class="lede">Every step runs against a live registrar's public door on a TEST-ROOT, with real cryptography. The verify is computed in <b>your</b> browser from the log's own inclusion proof — not taken on trust.</p>
+    </div>
+    <div id="ll-live" class="ll">
+      <div class="ll-main">
+        <div class="ll-head"><span class="ll-dot" aria-hidden="true"></span><b id="ll-badge">STAGING · TEST-ROOT</b> · the demo registrar's public door</div>
+        <div class="ll-steps">
+          <div class="ll-step" data-i="1" data-state="pend"><span class="ll-ico" aria-hidden="true">·</span><span>Issue a specimen from the registrar's public door</span></div>
+          <div class="ll-step" data-i="2" data-state="pend"><span class="ll-ico" aria-hidden="true">·</span><span>Logged before valid — a Merkle leaf sealed to a checkpoint</span></div>
+          <div class="ll-step" data-i="3" data-state="pend"><span class="ll-ico" aria-hidden="true">·</span><span>Verify — the SDK recomputes the inclusion proof in your browser</span></div>
+          <div class="ll-step" data-i="4" data-state="pend"><span class="ll-ico" aria-hidden="true">·</span><span>Revoke — one signed status flip</span></div>
+          <div class="ll-step" data-i="5" data-state="pend"><span class="ll-ico" aria-hidden="true">·</span><span>Re-verify — it now fails closed with a named reason</span></div>
+        </div>
+        <div class="ll-facts"><span>SPECIMEN</span> <b id="ll-sub">—</b> · <span>CHECKPOINT</span> <b id="ll-height">—</b> · <span>VERDICT</span> <b class="ll-verdict pend" id="ll-verdict">—</b></div>
+        <div class="ll-run">
+          <button class="btn btn-green" id="ll-issue" disabled>Issue a specimen →</button>
+          <button class="btn btn-ghost" id="ll-verify" disabled>Verify</button>
+          <button class="btn btn-ghost" id="ll-revoke" disabled>Revoke</button>
+          <button class="btn btn-ghost" id="ll-reverify" disabled>Re-verify</button>
+          <button class="btn btn-ghost" id="ll-reset">↺ Reset</button>
+          <a class="btn btn-ghost" id="ll-scan" href="#" target="_blank" rel="noopener" hidden>Open in AINRAscan ↗</a>
+        </div>
+      </div>
+      <div class="ll-console">
+        <div class="ll-console-head">verdict-event stream · one AINRA envelope, every step</div>
+        <div id="ll-log" class="ll-log" role="log" aria-live="polite"></div>
+      </div>
+    </div>
+    <div id="ll-unavailable" class="err" hidden></div>
+  </div>
+</section>
 
 <section id="cli">
   <div class="wrap cli">
@@ -392,5 +458,6 @@ $("#copyCli").addEventListener("click",()=>{
   $("#copyCli").textContent="COPIED"; setTimeout(()=>$("#copyCli").textContent="COPY",1400);
 });
 </script>
+<script type="module" src="js/demo-live.mjs"></script>
 </body>
 </html>

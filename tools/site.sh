@@ -41,6 +41,9 @@ cp "$TMP/ainra-cli-v${VER}.zip" "$SITE/ainra-cli-v0.1.0.zip"
 echo "built $SITE/ — 7 self-contained pages + refreshed downloads (CLI v${VER}, Standard $(wc -l < "$SITE/AINRA_I_The_Standard.md") lines)."
 echo "  the download CLI == apps/cli-node (canonical); the Standard == docs/AINRA_I_The_Standard.md (canonical)."
 
+# M17: keep the 4 content pages' shared header/footer in sync from site/_includes/ (one source of truth, no drift).
+node tools/site-includes.mjs
+
 case "$CMD" in
   up)
     pkill -f "http.server ${PORT}" 2>/dev/null || true

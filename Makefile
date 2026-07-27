@@ -236,6 +236,7 @@ site-up:
 site-down:
 	bash tools/site.sh down
 site-check:
+	node tools/site-includes.mjs --check
 	node tools/link-check.mjs
 
 # M17 — the full staging deploy profile: network (registrars + witness + artifacts + console) + site + explorer, one cmd.

@@ -290,6 +290,19 @@ section{padding:92px 0}
 .org-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
 @media(max-width:820px){.org-grid{grid-template-columns:1fr}}
 .org-cell{border:1px solid var(--line);border-radius:14px;padding:26px;background:var(--paper)}
+.live-panel{margin:22px 0 0;border:1px solid var(--line);border-radius:14px;background:var(--card);padding:18px 20px}
+.live-head{font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--muted);text-transform:uppercase;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.live-head b{color:var(--green)}
+.live-dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:livepulse 2s infinite;flex:none}
+@keyframes livepulse{0%{box-shadow:0 0 0 0 rgba(26,107,78,.45)}70%{box-shadow:0 0 0 7px rgba(26,107,78,0)}100%{box-shadow:0 0 0 0 rgba(26,107,78,0)}}
+.live-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:14px}
+@media(max-width:640px){.live-grid{grid-template-columns:repeat(2,1fr)}}
+.live-cell{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:14px}
+.live-cell .lv{font-family:var(--display);font-size:28px;font-weight:750;display:block;letter-spacing:-.02em}
+.live-cell .lk{font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;color:var(--muted);text-transform:uppercase;margin-top:4px;display:block}
+.live-foot{font-size:12px;color:var(--muted);margin-top:12px}
+.live-foot b{color:var(--ink)}
+@media(prefers-reduced-motion:reduce){.live-dot{animation:none}}
 .org-cell h3{font-size:16.5px;margin-bottom:10px;display:flex;align-items:baseline;gap:10px}
 .org-cell h3 span{font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--green)}
 .org-cell p{font-size:14px;color:var(--muted)}
@@ -435,6 +448,16 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
 <h1 class="hero-h">Honest status.</h1>
 <p class="lede">This page states exactly what exists — nothing more. It changes only when reality does. If anything here ever disagrees with reality, that is a bug: tell us.</p></div>
 <div class="org-grid"><div class="org-cell rv"><h3>STANDARD <span>v5.1 — PUBLIC ✓</span></h3><p>The complete normative specification. <a href="standard.html" style="color:var(--green);font-weight:600">Read it</a> or take the <a href="AINRA_I_The_Standard.md" style="color:var(--green);font-weight:600">canonical file</a>.</p></div><div class="org-cell rv"><h3>REFERENCE CLI <span>v0.1.0 — WORKING ✓</span></h3><p>Zero-dependency, real signatures, hash-chained log; catches forged tiers and rewritten history live. <a href="ainra-cli-v0.1.0.zip" style="color:var(--green);font-weight:600">Download</a>.</p></div><div class="org-cell rv"><h3>REFERENCE IMPLEMENTATION <span>ENGINEERING-COMPLETE · PRE-RELEASE</span></h3><p>The full stack — issuance, transparency log, witness quorum, revocation, verifier SDK — runs end-to-end on one machine and is being hardened for its first public release.</p></div><div class="org-cell rv"><h3>LOGS SEALED <span>0</span></h3><p>No production log exists yet. The first entry will be sealed at the first key ceremony — held in public, recorded, transcript hash published.</p></div><div class="org-cell rv"><h3>WITNESSES <span>RECRUITING</span></h3><p>Independent institutions wanted to cosign checkpoints — so no single party can rewrite the log. Running a witness is deliberately cheap. <a href="index.html#access" style="color:var(--green);font-weight:600">Take the seat</a>.</p></div><div class="org-cell rv"><h3>EXTERNAL VERIFIERS <span>INVITED</span></h3><p>A drop-in verifier kit ships with the first public release, so third parties can verify — and attest — on their own infrastructure. Want a seat? <a href="index.html#access" style="color:var(--green);font-weight:600">Join the founding table</a>.</p></div><div class="org-cell rv"><h3>CONFORMANCE <span>745/745 ✓</span></h3><p>Three independent implementations agree on all 745 CC0 conformance vectors, byte-for-byte. Reproduced with one command (<span style="font-family:var(--mono);font-size:11px">make diff</span>) in the reference repository; the vector corpus ships with the first public release.</p></div><div class="org-cell rv"><h3>REVOCATION <span>&lt;60s [MEASURED]</span></h3><p>Revocation propagation measured under 60 seconds, fail-closed, in networked drills of the reference stack (<span style="font-family:var(--mono);font-size:11px">make soak-smoke</span>). The 14-day multi-region soak runs at genesis.</p></div></div>
+<div class="live-panel rv" data-live-panel hidden>
+  <div class="live-head"><span class="live-dot"></span><b data-live="net">STAGING</b>&nbsp;NETWORK · <b data-live="root">TEST-ROOT</b> · read live from the public artifact contract in your browser</div>
+  <div class="live-grid">
+    <div class="live-cell"><span class="lv" data-live="registrars">—</span><span class="lk">registrars</span></div>
+    <div class="live-cell"><span class="lv" data-live="issued">—</span><span class="lk">passports issued</span></div>
+    <div class="live-cell"><span class="lv" data-live="revoked">—</span><span class="lk">revoked</span></div>
+    <div class="live-cell"><span class="lv" data-live="checkpoint-height">—</span><span class="lk">checkpoint height</span></div>
+  </div>
+  <p class="live-foot">Live from the same CORS read contract AINRAscan uses — a staging <b>TEST-ROOT</b>, not production. Production logs sealed: <b data-live="logs-sealed">0</b> until genesis.</p>
+</div>
 <p class="scan-note rv">NOTHING ON THIS SITE IS SIMULATED WITHOUT SAYING SO · NUMBERS ARE MEASURED OR THEY ARE ABSENT</p>
 </div></section></main>
 
@@ -636,4 +659,5 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
   document.addEventListener('keydown',function(e){if(e.key==='Escape')closeDD();});
 })();
 </script>
+<script type="module" src="js/live.mjs"></script>
 </body></html>

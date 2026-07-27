@@ -426,3 +426,23 @@ layer, exactly as the ICANN model demands. The M14 write-path rate limits apply 
 guarded API). The CLI remains the power surface; the console exists so a first-time operator sees the whole lifecycle
 without reading anything. Baked into the binary (`include_str!`) so every registrar serves it with zero extra files;
 self-contained, zero telemetry, talks only to its own registrar.
+
+## D-035 — M17: staging republish is idempotent (the published contract equals the live board)
+
+`tools/stage.sh publish` now `rm -rf`s `stage/public/registrars/` before re-fetching each **live** registrar's
+artifacts. Previously it globbed every directory present, so a leftover dir from a prior onboarding (`registrar-22`,
+from a one-off `onboard-registrar.sh` run) was folded into the combined `registry.json` — inflating it to 3 registrars
+/ 9 issued while the live board (`make stage-status`) showed 2 / 8. **The public contract was advertising a registrar
+with no live daemon.** This was a real bug in the deploy/resurrection story, not cosmetic: any consumer reading the
+contract (AINRAscan, mirrors, the site's live-data adapter) would trust a dead registrar. Republish now reflects only
+what is actually running; the board and the contract agree by construction.
+
+## D-036 — M17: the access-request form is a structured `mailto:` (no PII on any server we run)
+
+The founding-table form composes a `mailto:` (seat + reply-to email, prefilled subject/body) and hands off to the
+visitor's own mail client. **No personal data is stored on any server we operate** — consistent with the zero-PII,
+zero-telemetry charter — and there is **no fake success state**: the copy says the request completes only when they
+actually send the email, and points at the intake address if nothing opened. The alternative (a serverless form
+endpoint) would put us in the position of storing contact PII pre-genesis for no operational reason; `mailto:` is the
+minimal honest mechanism. The intake address (`founding@ainra.org`) travels with the canonical-host find-replace at
+deploy time. No accounts, no billing, no server — the root grows no product surface.

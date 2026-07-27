@@ -625,7 +625,7 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
           <button class="btn" type="submit">Take a seat</button>
         </div>
       </form>
-      <p class="email-ok" id="ctaOk" role="status">✓ Noted — in this browser only. Founding intake opens with the public release; nothing was sent anywhere.</p>
+      <p class="email-ok" id="ctaOk" role="status">This opens a pre-filled email from your own mail client — nothing is stored on our servers.</p>
       <a class="alt" href="standard.html">READ THE STANDARD FIRST →</a>
     </div>
   </div>
@@ -808,8 +808,13 @@ cli:'<span class="c"># the whole lifecycle, locally, no server</span>\n$ ainra i
       if(!seat){hint.textContent='Pick a seat first — that\'s the whole table.';hint.classList.add('warn');
         grid.classList.add('pulse');setTimeout(()=>grid.classList.remove('pulse'),900);seats[0].focus();return;}
       const em=$('ctaEmail');if(!em.value||!em.value.includes('@')){em.focus();return;}
+      // D-036: structured mailto — hands off to the visitor's own mail client. No PII is stored on any server we run,
+      // and there is no fake "you're in" success: the request completes only when they actually send the email.
+      const to='founding@ainra.org';
+      const body='Seat: '+seat+'\nReply-to: '+em.value+'\n\nI would like to take this seat at the AINRA founding table.\n(Composed on the site — the request is complete once this email is sent.)';
+      window.location.href='mailto:'+to+'?subject='+encodeURIComponent('AINRA founding table — '+seat)+'&body='+encodeURIComponent(body);
       cf.style.display='none';const ok=$('ctaOk');
-      if(ok){ok.textContent='✓ Seat noted: '+seat+' — in this browser only. Founding intake opens with the public release; nothing was sent anywhere.';ok.style.display='block';}
+      if(ok){ok.innerHTML='Opening a pre-filled email to <b>'+to+'</b> for the <b>'+seat+'</b> seat — <b>send it</b> to complete your request. Nothing was stored here. If nothing opened, email <b>'+to+'</b> directly.';ok.style.display='block';}
     });
   }
 })();

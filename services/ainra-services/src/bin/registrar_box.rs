@@ -26,7 +26,7 @@ use ainra_services::http::{serve, Request};
 use ainra_services::registrar::{AuditEvidence, IssueSpec, RegistrarBox};
 use ainra_services::status::{WireDelta, WireFreshHead};
 use rand_chacha::ChaCha20Rng;
-use rand_core::SeedableRng;
+use rand_core::{RngCore, SeedableRng};
 use serde_json::json;
 
 // A coherent demo timeline (issuance ≈ nbf; verification within the 90-day checkpoint-delegate window).
@@ -60,6 +60,9 @@ struct State {
     /// Coarse token bucket over the WRITE endpoints: at most `WRITE_BURST` in any `WRITE_WINDOW`. A blunt DoS/abuse
     /// guard for an internet-exposed staging registrar — not a substitute for real quotas.
     writes: VecDeque<Instant>,
+    /// M17: a SEPARATE bucket over the public demo door (`/demo/issue`, `/demo/revoke`), so a visitor completing the
+    /// lifecycle in the browser cannot exhaust the operator's own write budget, and vice versa.
+    demo_writes: VecDeque<Instant>,
 }
 
 const WRITE_BURST: usize = 30;
@@ -91,6 +94,29 @@ fn rate_ok(writes: &mut VecDeque<Instant>) -> bool {
     }
     writes.push_back(now);
     true
+}
+
+/// M17 public demo door — a CONSTRAINED specimen spec. The door mints only a low-tier `specimen:demo` credential with
+/// a random version; it can never mint a high-assurance (L3/L4) or arbitrarily-named credential. This is the whole
+/// point of a *door*: a stranger completes the real lifecycle without any secret, and cannot abuse issuance.
+fn demo_spec(rng: &mut ChaCha20Rng) -> IssueSpec {
+    let n = rng.next_u32();
+    IssueSpec {
+        operator: "specimen".to_string(),
+        lineage: "demo".to_string(),
+        version: format!("1.{}.{}", (n >> 12) & 0xfff, n & 0xfff),
+        tier: "L1".to_string(), // low assurance — the public door cannot mint high tiers
+        auth_class: "A2".to_string(),
+        principal_proof: "specimen".to_string(),
+        capabilities: vec!["demo:read".to_string()],
+        scope_ceiling: vec!["demo:read".to_string()],
+        hops: vec![],
+        audit: None,
+    }
+}
+/// `true` iff `sub` is a demo specimen this registrar minted — the public revoke door touches nothing else.
+fn is_demo_sub(sub: &str, reg_id: &str) -> bool {
+    sub.starts_with(&format!("ainra:{reg_id}:specimen:demo@"))
 }
 
 fn main() {
@@ -132,6 +158,7 @@ fn main() {
         rng,
         issue_token: issue_token.clone(),
         writes: VecDeque::new(),
+        demo_writes: VecDeque::new(),
     });
     eprintln!(
         "registrar-box '{id}' data={dir}{}{}",
@@ -194,6 +221,52 @@ fn main() {
                         400,
                         json!({ "error": format!("bad spec: {e}") }).to_string(),
                     ),
+                }
+            }
+
+            // M17 Task 2 — the PUBLIC demo door. No bearer token; rate-limited (its own bucket); TEST-ROOT/staging only.
+            // A visitor completes the whole lifecycle from the browser with no secret: the door mints only a low-tier
+            // `specimen:demo` credential and only revokes one it minted. The root grows no product surface — issuance
+            // and revocation stay in the registrar layer, exactly where the model puts them; this is that door, opened.
+            ("POST", "/demo/issue") => {
+                if !staging {
+                    return (403, r#"{"error":"the demo door is staging-only"}"#.to_string());
+                }
+                if !rate_ok(&mut st.demo_writes) {
+                    return (429, r#"{"error":"demo door rate limited — try again shortly"}"#.to_string());
+                }
+                let State { rb, rng, .. } = &mut *st;
+                let spec = demo_spec(rng);
+                match rb.issue(&spec, &[], rng) {
+                    Ok(rec) => ok(&rec),
+                    Err(e) => (400, json!({ "error": e.to_string() }).to_string()),
+                }
+            }
+            ("POST", "/demo/revoke") => {
+                if !staging {
+                    return (403, r#"{"error":"the demo door is staging-only"}"#.to_string());
+                }
+                if !rate_ok(&mut st.demo_writes) {
+                    return (429, r#"{"error":"demo door rate limited — try again shortly"}"#.to_string());
+                }
+                let v: serde_json::Value =
+                    serde_json::from_str(&req.body).unwrap_or(serde_json::Value::Null);
+                let Some(sub) = v.get("sub").and_then(|x| x.as_str()).map(String::from) else {
+                    return (400, r#"{"error":"sub required"}"#.to_string());
+                };
+                if !is_demo_sub(&sub, st.rb.id()) {
+                    return (
+                        403,
+                        r#"{"error":"the public door only revokes demo specimens it minted"}"#.to_string(),
+                    );
+                }
+                let now = v
+                    .get("now")
+                    .and_then(|x| x.as_u64())
+                    .unwrap_or(NBF + 10 * 24 * 60 * 60);
+                match st.rb.revoke(&sub, now) {
+                    Ok(_) => (200, json!({ "revoked": sub, "now": now }).to_string()),
+                    Err(e) => (400, json!({ "error": e.to_string() }).to_string()),
                 }
             }
 

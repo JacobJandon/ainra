@@ -105,7 +105,13 @@ nav{position:sticky;top:0;z-index:60;background:rgba(245,246,243,.86);backdrop-f
 .kick{font-family:var(--mono);font-size:10.5px;letter-spacing:.3em;font-weight:700;
   background:linear-gradient(90deg,var(--green) 0%,var(--green-br) 45%,var(--ink) 100%);
   -webkit-background-clip:text;background-clip:text;color:transparent}
-.hero h1{font-size:clamp(2.6rem,6vw,4.2rem);font-weight:780;line-height:1.02;letter-spacing:-.035em;max-width:840px;margin:14px auto 0}
+.hero h1{font-size:clamp(2.1rem,5vw,3.4rem);font-weight:780;line-height:1.03;letter-spacing:-.035em;max-width:760px;margin:12px auto 0}
+/* agent self-onboard (M17) */
+.onboard{max-width:820px;margin:22px auto 0;background:var(--ink);border:1px solid rgba(255,255,255,.09);border-radius:14px;overflow:hidden;box-shadow:0 24px 56px -34px rgba(11,18,32,.4)}
+.onboard-bar{display:flex;align-items:center;gap:8px;padding:11px 16px;border-bottom:1px solid rgba(255,255,255,.08);font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.45)}
+.onboard-bar .copy{margin-left:auto;font-family:var(--mono);font-size:10.5px;color:rgba(255,255,255,.55);border:1px solid rgba(255,255,255,.18);border-radius:6px;padding:4px 9px;background:none;cursor:pointer}
+.onboard-bar .copy:hover{color:#fff;border-color:rgba(255,255,255,.4)}
+.onboard-body{padding:18px 20px;font-family:var(--mono);font-size:12.5px;line-height:1.75;color:#D7DCE5;white-space:pre-wrap;margin:0}
 .hero h1 .u{box-shadow:inset 0 -0.13em 0 rgba(26,107,78,.26)}
 .hero .sub{margin:16px auto 0;max-width:640px;font-size:17px;color:var(--muted)}
 .cta-row{display:flex;gap:12px;justify-content:center;margin-top:26px;flex-wrap:wrap}
@@ -601,10 +607,20 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
   </div>
 </section>
 
-<div class="statement rv">
-  <h2>One record. Every agent.</h2>
-  <p>The root does four things — accredit, anchor, revoke, log — and is constitutionally barred from everything else.</p>
-</div>
+<section id="agent" class="rv">
+  <div class="wrap">
+    <div class="sec-head" style="text-align:center;max-width:660px;margin:0 auto">
+      <span class="eyebrow">Your agent can do this itself</span>
+      <h2>Paste this to your agent.</h2>
+      <p class="lede" style="margin-top:10px">It reads the machine-readable map, verifies a passport locally, and can acquire one on the staging test-root — over MCP, the skills convention, or plain HTTP. Nothing to sign up for.</p>
+    </div>
+    <div class="onboard">
+      <div class="onboard-bar"><span>paste to your coding agent</span><button class="copy" id="agentCopy" type="button">COPY</button></div>
+      <pre class="onboard-body" id="agentPrompt">Read https://ainra.org/llms.txt and https://ainra.org/skills.md. Verify an AINRA passport locally with @ainra/sdk; then, on the staging TEST-ROOT, issue one through the registrar's public door and revoke it. Report the verdict-event at each step. Works over MCP, the skills convention, or plain HTTP — no account.</pre>
+    </div>
+    <p style="text-align:center;margin-top:14px;font-size:13px;color:var(--muted)">Or install the skill — <span style="font-family:var(--mono);font-size:12px">skills add https://ainra.org/.well-known/skills/index.json</span> · <a href="llms.txt" style="color:var(--green);font-weight:600">/llms.txt</a> · <a href="skills.md" style="color:var(--green);font-weight:600">/skills.md</a></p>
+  </div>
+</section>
 
 <section id="access" style="padding-top:56px">
   <div class="wrap">
@@ -726,6 +742,11 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
   if(cp){cp.addEventListener('click',()=>{
     const txt='unzip ainra-cli-v0.1.0.zip && node ainra-cli/bin/ainra.js demo';
     (navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(()=>{cp.textContent='COPIED';setTimeout(()=>{cp.textContent='COPY'},1400);},()=>{});
+  });}
+  /* copy the agent self-onboard prompt */
+  const ac=$('agentCopy'), ap=$('agentPrompt');
+  if(ac&&ap){ac.addEventListener('click',()=>{
+    (navigator.clipboard?navigator.clipboard.writeText(ap.textContent):Promise.reject()).then(()=>{ac.textContent='COPIED';setTimeout(()=>{ac.textContent='COPY'},1400);},()=>{});
   });}
 
   /* agent portrait — deterministic identicon from passport number */

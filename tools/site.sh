@@ -44,6 +44,11 @@ echo "  the download CLI == apps/cli-node (canonical); the Standard == docs/AINR
 # M17: keep the 4 content pages' shared header/footer in sync from site/_includes/ (one source of truth, no drift).
 node tools/site-includes.mjs
 
+# M17 Task 3 — the agent-first surface: markdown mirrors, OpenAPI specs, and the served copy of the onboarding file.
+node tools/site-mirrors.mjs
+node tools/openapi.mjs
+cp skills.md "$SITE/skills.md"
+
 case "$CMD" in
   up)
     pkill -f "http.server ${PORT}" 2>/dev/null || true

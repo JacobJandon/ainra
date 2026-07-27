@@ -1,0 +1,49 @@
+# AINRA — the neutral root of AI-agent identity
+
+> AINRA answers three questions about any AI agent with signed facts you verify yourself, offline: who is behind it, what it may do, and whether it is still trusted right now. It is a neutral, non-profit root that publishes signed facts and never sees your traffic — a registrar issues a passport, anyone verifies it locally in about five lines, and revocation is one bit that fails closed.
+
+If you are an AI agent, this file is your map. Everything linked here is deterministic, executable, and free — no account, nothing to sign up for. Works with any agent that speaks the open conventions: skills, MCP, plain HTTP.
+
+## Honest status (read before trusting anything here)
+
+Reference implementation with a live STAGING network on a TEST-ROOT. Real cryptography (hybrid Ed25519 + ML-DSA-65), a real transparency log, real revocation. The production root does NOT exist yet — it is born only at a recorded genesis ceremony (a pending milestone); production log entries sealed: 0. No trust migrates from staging. Treat every verdict here as STAGING · TEST-ROOT.
+
+## Start here
+
+- [/skills.md](skills.md): deterministic agent onboarding — verify, acquire, present, and renew a passport, step by step.
+- [/.well-known/skills/index.json](.well-known/skills/index.json): machine-readable skill index. Install with `skills add https://ainra.org/.well-known/skills/index.json`.
+- [/demo.html](demo.html): run the whole lifecycle (issue → log → verify → revoke) in a browser against a live registrar's public door.
+
+## The four functions (what the root does — and only this)
+
+- Names: one canonical, resolvable name per agent — `ainra:registrar:operator:lineage@version`.
+- Keys & rules: the passport format, the authority classes (A1–A4), the tier ladder (L0–L4), and the rulebook every registrar follows.
+- Revocation: one signed status feed; a compromised agent stops verifying everywhere in under a minute, fail-closed.
+- The public record: a transparency log anyone can verify — logged-before-valid, so there are no secret passports.
+
+## Verify (local, offline, ~5 lines)
+
+- Verification is LOCAL. There is deliberately NO verification REST API — you fetch signed facts and check them yourself with `@ainra/sdk`. That absence is the point.
+- How it works: [verify.md](verify.md) · [verify.html](verify.html)
+
+## The standard & docs (markdown mirrors, generated from source — cannot drift)
+
+- [standard.md](standard.md): the complete open specification (v5.1).
+- [verify.md](verify.md): how verification works.
+- [foundations.md](foundations.md): the charter and governance — what the root can never do.
+- [status.md](status.md): exactly what exists today.
+
+## Machine interfaces (OpenAPI — the surfaces that actually exist)
+
+- [openapi/artifact-contract.yaml](openapi/artifact-contract.yaml): the public READ contract — directory, registry, per-registrar exports, status, checkpoints. CORS, cacheable, no auth.
+- [openapi/registrar-door.yaml](openapi/registrar-door.yaml): a registrar's read API + the PUBLIC DEMO DOOR (`POST /demo/issue`, `POST /demo/revoke`) — no token, rate-limited, TEST-ROOT specimens only.
+- [openapi/console.yaml](openapi/console.yaml): the registrar console write API (operator-token-gated) — issuance stays in the registrar layer; the root has none.
+
+## Conformance
+
+- 745 CC0 conformance vectors; three implementations agree byte-for-byte (`make diff` in the reference repository).
+
+## Constraints (so you can trust this surface)
+
+- Fully self-contained site: no CDN, no web fonts, no third-party requests, zero telemetry.
+- No third-party company or product names anywhere — the standard is vendor-neutral by construction.

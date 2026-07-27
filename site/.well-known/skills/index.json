@@ -1,0 +1,21 @@
+{
+  "schema_version": "1",
+  "skills": [
+    {
+      "name": "ainra",
+      "title": "AINRA — verify and carry an AI-agent passport",
+      "description": "Verify any agent's passport locally and offline, acquire and present your own, and check revocation. Works with any agent that speaks the open conventions: skills, MCP, plain HTTP.",
+      "entry": "/skills.md",
+      "reference": "/llms.txt",
+      "openapi": ["/openapi/artifact-contract.yaml", "/openapi/registrar-door.yaml", "/openapi/console.yaml"],
+      "mcp": {
+        "command": "node",
+        "args": ["packages/mcp/src/server.mjs"],
+        "env": { "AINRA_TARGET": "http://127.0.0.1:8091" },
+        "note": "the reference MCP server ships in the AINRA repo as @ainra/mcp; npm publish at genesis"
+      },
+      "conventions": ["skills", "mcp", "http"],
+      "status": { "network": "staging", "root": "test-root", "production_logs_sealed": 0 }
+    }
+  ]
+}

@@ -41,7 +41,27 @@ for (const p of pages) {
     if (open !== close) bad(`${p}: <${t}> open/close mismatch ${open}/${close}`);
   }
 }
+// M17 — the agent surface: llms.txt markdown links resolve, and the skills index points at files that exist.
+// (These reference DERIVED files — mirrors/openapi — so run after `make site`; CI does `make site site-check`.)
+const llms = join(SITE, "llms.txt");
+if (existsSync(llms)) {
+  for (const m of readFileSync(llms, "utf8").matchAll(/\]\(([^)]+)\)/g)) {
+    const [, url] = m;
+    if (/^(https?:|mailto:)/.test(url)) continue;
+    const [file] = url.split("#");
+    if (!existsSync(join(SITE, file.replace(/^\.?\//, "")))) bad(`llms.txt: broken link → ${url}`);
+  }
+}
+const idx = join(SITE, ".well-known", "skills", "index.json");
+if (existsSync(idx)) {
+  try {
+    const j = JSON.parse(readFileSync(idx, "utf8"));
+    for (const sk of j.skills || []) for (const u of [sk.entry, sk.reference, ...(sk.openapi || [])])
+      if (u && !/^https?:/.test(u) && !existsSync(join(SITE, u.replace(/^\//, "")))) bad(`skills/index.json: broken link → ${u}`);
+  } catch (e) { bad(`skills/index.json: invalid JSON (${e.message})`); }
+}
+
 console.log(fail === 0
-  ? `✓ site link-check clean: ${pages.length} pages — all links + anchors resolve, no dupes, no external requests, tags balanced`
+  ? `✓ site link-check clean: ${pages.length} pages + agent surface (llms.txt, skills index) — all links resolve, no dupes, no external requests`
   : `\n${fail} link/structure problem(s) — build fails`);
 process.exit(fail ? 1 : 0);

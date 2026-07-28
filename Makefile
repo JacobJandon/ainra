@@ -245,7 +245,7 @@ stage-all:
 	$(MAKE) site-up
 	$(MAKE) explorer-up
 	@echo ""
-	@echo "  AINRA STAGING · TEST-ROOT — FULL DEPLOY:"
+	@echo "  AINRA STAGING · GENESIS ROOT — FULL DEPLOY:"
 	@echo "    site        http://127.0.0.1:8088/            (make site-down)"
 	@echo "    demo        http://127.0.0.1:8088/demo.html"
 	@echo "    public API  http://127.0.0.1:8091/            (CORS · X-AINRA-Network: staging)"

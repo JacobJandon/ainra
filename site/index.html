@@ -106,12 +106,21 @@ nav{position:sticky;top:0;z-index:60;background:rgba(245,246,243,.86);backdrop-f
   background:linear-gradient(90deg,var(--green) 0%,var(--green-br) 45%,var(--ink) 100%);
   -webkit-background-clip:text;background-clip:text;color:transparent}
 .hero h1{font-size:clamp(2.1rem,5vw,3.4rem);font-weight:780;line-height:1.03;letter-spacing:-.035em;max-width:760px;margin:12px auto 0}
-/* agent self-onboard (M17) */
-.onboard{max-width:820px;margin:22px auto 0;background:var(--ink);border:1px solid rgba(255,255,255,.09);border-radius:14px;overflow:hidden;box-shadow:0 24px 56px -34px rgba(11,18,32,.4)}
-.onboard-bar{display:flex;align-items:center;gap:8px;padding:11px 16px;border-bottom:1px solid rgba(255,255,255,.08);font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.45)}
-.onboard-bar .copy{margin-left:auto;font-family:var(--mono);font-size:10.5px;color:rgba(255,255,255,.55);border:1px solid rgba(255,255,255,.18);border-radius:6px;padding:4px 9px;background:none;cursor:pointer}
-.onboard-bar .copy:hover{color:#fff;border-color:rgba(255,255,255,.4)}
-.onboard-body{padding:18px 20px;font-family:var(--mono);font-size:12.5px;line-height:1.75;color:#D7DCE5;white-space:pre-wrap;margin:0}
+/* multi-method installer (M20) */
+.install{max-width:760px;margin:26px auto 0;background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:0 24px 56px -34px rgba(11,18,32,.24)}
+.itabs{display:flex;gap:2px;padding:8px;background:var(--paper);border-bottom:1px solid var(--line);overflow-x:auto}
+.itab{display:inline-flex;align-items:center;gap:8px;flex:1;justify-content:center;white-space:nowrap;font-family:var(--body);font-weight:600;font-size:13.5px;color:var(--muted);background:none;border:1px solid transparent;border-radius:10px;padding:9px 12px;cursor:pointer;transition:background .15s,color .15s,border-color .15s}
+.itab svg{width:17px;height:17px;flex:none}
+.itab:hover{color:var(--ink)}
+.itab.on{background:var(--card);color:var(--green);border-color:var(--line)}
+@media(max-width:560px){.itab{font-size:12px;padding:9px 7px;gap:6px}.itab svg{width:15px;height:15px}}
+.ipanel{padding:20px}
+.idesc{font-size:14px;color:var(--muted);margin:0 0 14px;line-height:1.5}
+.iblock{position:relative;background:var(--ink);border-radius:12px;padding:26px 18px 16px}
+.iblock pre{font-family:var(--mono);font-size:12.5px;line-height:1.75;color:#D7DCE5;white-space:pre-wrap;word-break:break-word;margin:0}
+.iblock .icap{position:absolute;top:11px;left:18px;font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.34)}
+.icopy{position:absolute;top:9px;right:12px;font-family:var(--mono);font-size:10.5px;color:rgba(255,255,255,.55);border:1px solid rgba(255,255,255,.18);border-radius:6px;padding:4px 9px;background:none;cursor:pointer;transition:color .15s,border-color .15s}
+.icopy:hover{color:#fff;border-color:rgba(255,255,255,.4)}
 .hero h1 .u{box-shadow:inset 0 -0.13em 0 rgba(26,107,78,.26)}
 .hero .sub{margin:16px auto 0;max-width:640px;font-size:17px;color:var(--muted)}
 .cta-row{display:flex;gap:12px;justify-content:center;margin-top:26px;flex-wrap:wrap}
@@ -534,21 +543,6 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
 </section>
 
 
-<section style="padding-top:0" id="how">
-  <div class="wrap">
-    <div class="sec-head rv">
-      <span class="eyebrow">The lifecycle</span>
-      <h2>Register. Present. Verify. Revoke.</h2>
-    </div>
-    <div class="steps">
-      <div class="step rv"><h3>Register</h3><p>Through a registrar of your class: a non-transferable passport, authority declared, sealed in the public log.</p></div>
-      <div class="step rv"><h3>Present</h3><p>Rides in the signed requests the agent already sends — disclosing only what each counterparty needs.</p></div>
-      <div class="step rv"><h3>Verify</h3><p>Anyone checks chain, authority, and live status against cached root keys — milliseconds, offline.</p></div>
-      <div class="step rv"><h3>Revoke</h3><p>One logged event stops a whole fleet — or recalls a mandate's subtree — everywhere, in under a minute.</p></div>
-    </div>
-  </div>
-</section>
-
 <section id="developers" style="padding-top:0;padding-bottom:24px">
   <div class="wrap dev-in">
     <div class="rv">
@@ -573,18 +567,26 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
   </div>
 </section>
 
-<section id="agent" class="rv">
+<section id="install" class="rv">
   <div class="wrap">
-    <div class="sec-head" style="text-align:center;max-width:660px;margin:0 auto">
-      <span class="eyebrow">Your agent can do this itself</span>
-      <h2>Paste this to your agent.</h2>
-      <p class="lede" style="margin-top:10px">It reads the machine-readable map, verifies a passport locally, and can acquire one on the staging test-root — over MCP, the skills convention, or plain HTTP. Nothing to sign up for.</p>
+    <div class="sec-head" style="text-align:center;max-width:680px;margin:0 auto">
+      <span class="eyebrow">Onboard your agent</span>
+      <h2>Give your agent AINRA in one line.</h2>
+      <p class="lede" style="margin-top:10px">Works with any agent that speaks the open conventions — skills, MCP, or plain HTTP. No account, nothing to sign up for.</p>
     </div>
-    <div class="onboard">
-      <div class="onboard-bar"><span>paste to your coding agent</span><button class="copy" id="agentCopy" type="button">COPY</button></div>
-      <pre class="onboard-body" id="agentPrompt">Read https://ainra.org/llms.txt and https://ainra.org/skills.md. Verify an AINRA passport locally with @ainra/sdk; then, on the staging TEST-ROOT, issue one through the registrar's public door and revoke it. Report the verdict-event at each step. Works over MCP, the skills convention, or plain HTTP — no account.</pre>
+    <div class="install">
+      <div class="itabs" role="tablist" aria-label="Onboarding method">
+        <button class="itab on" data-m="skill" role="tab" aria-selected="true"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M7 10l3 2.5-3 2.5M12.5 15h4.5" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>Skill install</button>
+        <button class="itab" data-m="mcp" role="tab" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 2.5v5M15 2.5v5M7 7.5h10v3a5 5 0 0 1-10 0v-3ZM12 15.5v6" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>MCP</button>
+        <button class="itab" data-m="prompt" role="tab" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5h16v9H9.5L4 19V5.5Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M8 9.5h8M8 12h5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>Prompt</button>
+        <button class="itab" data-m="http" role="tab" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M3.5 12h17M12 3.5c3 2.7 3 14.3 0 17M12 3.5c-3 2.7-3 14.3 0 17" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>HTTP</button>
+      </div>
+      <div class="ipanel">
+        <p class="idesc" id="i-desc"></p>
+        <div class="iblock"><span class="icap" id="i-cap"></span><button class="icopy" id="i-copy" type="button">COPY</button><pre id="i-code"></pre></div>
+      </div>
     </div>
-    <p style="text-align:center;margin-top:14px;font-size:13px;color:var(--muted)">Or install the skill — <span style="font-family:var(--mono);font-size:12px">skills add https://ainra.org/.well-known/skills/index.json</span> · <a href="llms.txt" style="color:var(--green);font-weight:600">/llms.txt</a> · <a href="skills.md" style="color:var(--green);font-weight:600">/skills.md</a></p>
+    <p style="text-align:center;margin-top:16px;font-size:13px;color:var(--muted)"><a href="get.html" style="color:var(--green);font-weight:600">Get a passport →</a> · <a href="llms.txt" style="color:var(--green);font-weight:600">/llms.txt</a> · <a href="skills.md" style="color:var(--green);font-weight:600">/skills.md</a></p>
   </div>
 </section>
 
@@ -646,7 +648,7 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
         <ul>
           <li><a href="verify.html#align">Where you plug in</a></li>
           <li><a href="verify.html#tiers">Assurance tiers</a></li>
-          <li><a href="#how">The lifecycle</a></li>
+          <li><a href="#install">Onboard an agent</a></li>
           <li><a href="#developers">Quickstart</a></li>
         </ul>
       </div>
@@ -709,11 +711,21 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
     const txt='unzip ainra-cli-v0.1.0.zip && node ainra-cli/bin/ainra.js demo';
     (navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(()=>{cp.textContent='COPIED';setTimeout(()=>{cp.textContent='COPY'},1400);},()=>{});
   });}
-  /* copy the agent self-onboard prompt */
-  const ac=$('agentCopy'), ap=$('agentPrompt');
-  if(ac&&ap){ac.addEventListener('click',()=>{
-    (navigator.clipboard?navigator.clipboard.writeText(ap.textContent):Promise.reject()).then(()=>{ac.textContent='COPIED';setTimeout(()=>{ac.textContent='COPY'},1400);},()=>{});
-  });}
+  /* multi-method installer — one panel, tabbed by open convention (skill · MCP · prompt · HTTP) */
+  const METHODS={
+    skill:{cap:'terminal',desc:"One command. Your coding assistant gains AINRA's skills — verify, issue, present, renew, revoke.",code:'npx skills add https://ainra.org/.well-known/skills/index.json'},
+    mcp:{cap:'.mcp.json',desc:'Add the AINRA MCP server; your agent gets tools for verify · lookup · status · issue · renew · revoke. The reference server ships in the AINRA repo (published to npm at genesis).',code:'{\n  "mcpServers": {\n    "ainra": {\n      "command": "node",\n      "args": ["packages/mcp/src/server.mjs"],\n      "env": { "AINRA_TARGET": "https://ainra.org" }\n    }\n  }\n}'},
+    prompt:{cap:'paste to any agent',desc:'Paste this to any agent. It reads the machine-readable map and onboards itself — verify a passport, get one on the test-root, present it.',code:"Read https://ainra.org/llms.txt and https://ainra.org/skills.md. Verify an AINRA passport locally with @ainra/sdk; then, on the staging TEST-ROOT, issue one through the registrar's public door and revoke it. Report the verdict-event at each step. Works over MCP, the skills convention, or plain HTTP — no account."},
+    http:{cap:'terminal',desc:'No skill runtime, no SDK. Read the capability map and call plain HTTP — you fetch signed facts and verify them yourself. The root does no work.',code:'curl https://ainra.org/llms.txt'}
+  };
+  const iDesc=$('i-desc'),iCap=$('i-cap'),iCode=$('i-code'),iCopy=$('i-copy');
+  if(iDesc&&iCode){
+    const setMethod=(m)=>{const d=METHODS[m];if(!d)return;iDesc.textContent=d.desc;iCap.textContent=d.cap;iCode.textContent=d.code;
+      document.querySelectorAll('.itab').forEach(t=>{const on=t.dataset.m===m;t.classList.toggle('on',on);t.setAttribute('aria-selected',on?'true':'false');});};
+    document.querySelectorAll('.itab').forEach(t=>t.addEventListener('click',()=>setMethod(t.dataset.m)));
+    if(iCopy)iCopy.addEventListener('click',()=>{(navigator.clipboard?navigator.clipboard.writeText(iCode.textContent):Promise.reject()).then(()=>{iCopy.textContent='COPIED';setTimeout(()=>{iCopy.textContent='COPY'},1400);},()=>{});});
+    setMethod('skill');
+  }
 
   /* agent portrait — deterministic identicon from passport number */
   const g=$('portrait');

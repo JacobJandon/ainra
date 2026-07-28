@@ -27,7 +27,9 @@ async function boot() {
   try { health = await (await fetch(REG + "/health", { cache: "no-store" })).json(); } catch { return unavailable(`No registrar reachable at <code>${REG}</code>. Run <code>make stage-all</code>.`); }
   if (!health?.ok) return unavailable("A registrar answered but isn't ready.");
   try { const a = await (await fetch(REG + "/accreditation")).json(); anchors = { [REGID]: { issuer_key: a.issuer_key, log_root_key: a.log_root_key } }; } catch { return unavailable("Couldn't read the registrar's accreditation."); }
-  $("#g-badge").textContent = (health.network || "staging").toUpperCase() + " · " + (health.root || "test-root").toUpperCase();
+  let netRoot = health.root || "test-root";
+  if (CONTRACT) { try { netRoot = (await (await fetch(CONTRACT + "/index.json", { cache: "no-store" })).json()).root || netRoot; } catch {} }
+  $("#g-badge").textContent = (health.network || "staging").toUpperCase() + " · " + netRoot.toUpperCase();
   $("#g-op").addEventListener("input", preview); $("#g-lin").addEventListener("input", preview); preview();
   $("#g-mint").addEventListener("click", mint);
   $("#g-verify").addEventListener("click", verify);

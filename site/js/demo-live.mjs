@@ -43,14 +43,16 @@ async function boot() {
     const acc = await (await fetch(REG + "/accreditation")).json();
     anchors = { [REGID]: { issuer_key: acc.issuer_key, log_root_key: acc.log_root_key } };
   } catch { return unavailable("Couldn't read the registrar's accreditation."); }
-  const badge = $("#ll-badge"); if (badge) badge.textContent = (health.network || "staging").toUpperCase() + " · " + (health.root || "test-root").toUpperCase();
+  let netRoot = health.root || "test-root";
+  if (CONTRACT) { try { netRoot = (await (await fetch(CONTRACT + "/index.json", { cache: "no-store" })).json()).root || netRoot; } catch {} }
+  const badge = $("#ll-badge"); if (badge) badge.textContent = (health.network || "staging").toUpperCase() + " · " + netRoot.toUpperCase();
   $("#ll-issue").addEventListener("click", doIssue);
   $("#ll-verify").addEventListener("click", () => doVerify(false));
   $("#ll-revoke").addEventListener("click", doRevoke);
   $("#ll-reverify").addEventListener("click", () => doVerify(true));
   $("#ll-reset").addEventListener("click", reset);
   enable("#ll-issue", true);
-  log(`connected to ${REG} · ${health.root || "test-root"} · press “Issue a specimen”`, "dim");
+  log(`connected to ${REG} · ${netRoot} · press “Issue a specimen”`, "dim");
 }
 
 async function doIssue() {

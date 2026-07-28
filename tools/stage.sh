@@ -9,8 +9,10 @@
 #                       against the LIVE deployment; assert the contract headers. Real output.
 #   make stage-down     stop everything.
 #
-# This is STAGING on a TEST-ROOT. The production root is born only at the recorded genesis ceremony (a pending DoD
-# row); nothing here migrates trust to it. Placeholder operators only. Zero telemetry. State lives in stage/ (gitignored).
+# The network now runs under a REAL, operator-run GENESIS dual-root (FROST 5-of-9 + SLH-DSA): stage-up accredits the
+# live registrars, publishes the dual-root-SIGNED directory + roots, and passports verify root-dark against it. The
+# root EXISTS. What remains is the DISTRIBUTED real-world version — a publicly-recorded ceremony with independent
+# custodians, >=3 external verifiers, a 14-day 3-region soak. Placeholder operators only. Zero telemetry. State in stage/.
 set -uo pipefail
 cd "$(dirname "$0")/.."
 
@@ -68,6 +70,14 @@ publish(){ # fetch each daemon's public artifacts → static files with the cont
   ' "$PUB"
   # M16: the agent-readable onboarding file on the public surface (repo canonical → served at /skills.md and /agents.md).
   cp skills.md "$PUB/skills.md"; cp skills.md "$PUB/agents.md"
+  # M19: the network runs under a REAL genesis dual-root — publish the dual-root-SIGNED directory + roots
+  # (verifiable root-dark), and relabel the contract with the root fingerprint. The root now EXISTS.
+  if [ -f "$STAGE/genesis/directory.json" ]; then
+    cp "$STAGE/genesis/directory.json" "$PUB/directory.json"
+    cp "$STAGE/genesis/roots.json" "$PUB/roots.json"
+    FP="$(node -e 'process.stdout.write(require("./"+process.argv[1]+"/genesis/roots.json").root_ed25519.slice(0,16))' "$STAGE")"
+    node -e 'const fs=require("fs"),d=process.argv[1],fp=process.argv[2];const j=JSON.parse(fs.readFileSync(d+"/index.json"));j.root="genesis:"+fp;j.label="AINRA NETWORK · GENESIS ROOT "+fp+" (operator-run ceremony)";j.roots="/roots.json";j.ceremony="operator-run; public multi-custodian ceremony + external verifiers + 14d soak are the remaining real-world milestones";fs.writeFileSync(d+"/index.json",JSON.stringify(j))' "$PUB" "$FP"
+  fi
 }
 
 case "${1:-up}" in
@@ -75,7 +85,7 @@ up)
   mkdir -p "$STAGE" "$PUB"
   [ -f "$TOKEN_FILE" ] || openssl rand -hex 16 > "$TOKEN_FILE" 2>/dev/null || head -c16 /dev/urandom | od -An -tx1 | tr -d ' \n' > "$TOKEN_FILE"
   export AINRA_STAGE_ISSUE_TOKEN="$(cat "$TOKEN_FILE")"
-  cargo build --release -q -p ainra-services --bin registrar-box --bin witnessd
+  cargo build --release -q -p ainra-services --bin registrar-box --bin witnessd -p ainra-ceremony --bin accredit
   bash tools/ainrascan.sh >/dev/null 2>&1 || true   # ensure the browser SDK bundle exists for AINRAscan-on-staging
   echo "== start the staging network (2 registrar classes + witness + artifact server) =="
   : > "$STAGE/pids"
@@ -95,6 +105,13 @@ up)
   post "$REG1_ADDR/revoke" "{\"sub\":\"ainra:$REG1_ID:acme:data-export@2.0.0\",\"now\":$NOW}" >/dev/null
   post "$REG2_ADDR/revoke" "{\"sub\":\"ainra:$REG2_ID:operator-03:crawler@0.9.0\",\"now\":$NOW}" >/dev/null
   post "$REG2_ADDR/renew"  "{\"sub\":\"ainra:$REG2_ID:operator-03:scheduler@2.2.0\",\"new_version\":\"2.3.0\",\"now\":$RENEW_AT}" >/dev/null
+  echo "== accredit the network under a REAL genesis dual-root (FROST 5-of-9 + SLH-DSA) =="
+  mkdir -p "$STAGE/genesis"
+  get "$REG1_ADDR/accreditation" > "$STAGE/genesis/acc-$REG1_ID.json"
+  get "$REG2_ADDR/accreditation" > "$STAGE/genesis/acc-$REG2_ID.json"
+  ./target/release/accredit "$STAGE/genesis" "$STAGE/genesis/acc-$REG1_ID.json" "$STAGE/genesis/acc-$REG2_ID.json"
+  ROOT_FP="$(node -e 'process.stdout.write(require("./"+process.argv[1]+"/genesis/roots.json").root_ed25519.slice(0,16))' "$STAGE")"
+  export AINRA_ROOT="genesis:$ROOT_FP"
   echo "== publish the public artifacts (the contract read surface) =="
   publish
   AINRA_STAGE=1 node tools/artifact-server.mjs "$PUB" "$ART_PORT" >"$STAGE/artifact.log" 2>&1 & echo $! >> "$STAGE/pids"

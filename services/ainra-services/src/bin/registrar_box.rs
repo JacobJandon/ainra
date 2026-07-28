@@ -99,24 +99,34 @@ fn rate_ok(writes: &mut VecDeque<Instant>) -> bool {
 /// M17 public demo door — a CONSTRAINED specimen spec. The door mints only a low-tier `specimen:demo` credential with
 /// a random version; it can never mint a high-assurance (L3/L4) or arbitrarily-named credential. This is the whole
 /// point of a *door*: a stranger completes the real lifecycle without any secret, and cannot abuse issuance.
-fn demo_spec(rng: &mut ChaCha20Rng) -> IssueSpec {
+fn sanitize_label(s: &str, default: &str) -> String {
+    // to the namespace grammar: lowercase ascii-alphanumerics + hyphen, bounded length, no leading/trailing hyphen.
+    let cleaned: String = s.chars().filter(|c| c.is_ascii_alphanumeric() || *c == '-').take(24).collect();
+    let cleaned = cleaned.to_ascii_lowercase();
+    let cleaned = cleaned.trim_matches('-').to_string();
+    if cleaned.is_empty() { default.to_string() } else { cleaned }
+}
+/// A constrained specimen for the public door. The visitor may NAME their agent (operator/lineage), but the door
+/// still mints only a low tier and stamps the reserved `demo:specimen` capability, which marks it as door-minted.
+fn demo_spec(rng: &mut ChaCha20Rng, operator: &str, lineage: &str) -> IssueSpec {
     let n = rng.next_u32();
     IssueSpec {
-        operator: "specimen".to_string(),
-        lineage: "demo".to_string(),
-        version: format!("1.{}.{}", (n >> 12) & 0xfff, n & 0xfff),
+        operator: sanitize_label(operator, "specimen"),
+        lineage: sanitize_label(lineage, "demo"),
+        version: format!("1.0.{}", n % 100_000),
         tier: "L1".to_string(), // low assurance — the public door cannot mint high tiers
         auth_class: "A2".to_string(),
         principal_proof: "specimen".to_string(),
-        capabilities: vec!["demo:read".to_string()],
-        scope_ceiling: vec!["demo:read".to_string()],
+        capabilities: vec!["demo:specimen".to_string()],
+        scope_ceiling: vec!["demo:specimen".to_string()],
         hops: vec![],
         audit: None,
     }
 }
-/// `true` iff `sub` is a demo specimen this registrar minted — the public revoke door touches nothing else.
-fn is_demo_sub(sub: &str, reg_id: &str) -> bool {
-    sub.starts_with(&format!("ainra:{reg_id}:specimen:demo@"))
+/// `true` iff `sub` is a specimen THIS registrar minted through the public door (stamped `demo:specimen`) — the
+/// public revoke door touches nothing else, whatever operator/lineage the visitor named it.
+fn is_demo_specimen(rb: &RegistrarBox, sub: &str) -> bool {
+    rb.get(sub).map(|r| r.capabilities.iter().any(|c| c == "demo:specimen")).unwrap_or(false)
 }
 
 fn main() {
@@ -235,8 +245,13 @@ fn main() {
                 if !rate_ok(&mut st.demo_writes) {
                     return (429, r#"{"error":"demo door rate limited — try again shortly"}"#.to_string());
                 }
+                // The visitor may name their agent: optional {operator, lineage} (sanitized to the grammar).
+                let body: serde_json::Value =
+                    serde_json::from_str(&req.body).unwrap_or(serde_json::Value::Null);
+                let operator = body.get("operator").and_then(|x| x.as_str()).unwrap_or("specimen");
+                let lineage = body.get("lineage").and_then(|x| x.as_str()).unwrap_or("demo");
                 let State { rb, rng, .. } = &mut *st;
-                let spec = demo_spec(rng);
+                let spec = demo_spec(rng, operator, lineage);
                 match rb.issue(&spec, &[], rng) {
                     Ok(rec) => ok(&rec),
                     Err(e) => (400, json!({ "error": e.to_string() }).to_string()),
@@ -254,7 +269,7 @@ fn main() {
                 let Some(sub) = v.get("sub").and_then(|x| x.as_str()).map(String::from) else {
                     return (400, r#"{"error":"sub required"}"#.to_string());
                 };
-                if !is_demo_sub(&sub, st.rb.id()) {
+                if !is_demo_specimen(&st.rb, &sub) {
                     return (
                         403,
                         r#"{"error":"the public door only revokes demo specimens it minted"}"#.to_string(),

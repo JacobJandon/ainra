@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Get a passport — issue your agent an AINRA identity · AINRA</title>
+<meta name="description" content="Give your AI agent an AINRA passport in three steps: name it, issue it against a live registrar's public door on a TEST-ROOT, and use it — verify locally, carry it, or revoke it. Real cryptography, nothing to sign up for.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 112 112%27%3E%3Crect width=%27112%27 height=%27112%27 rx=%2722%27 fill=%27%23F5F6F3%27/%3E%3Ccircle cx=%2756%27 cy=%2756%27 r=%2736%27 stroke=%27%230B1220%27 stroke-width=%275%27 fill=%27none%27/%3E%3Cellipse cx=%2756%27 cy=%2756%27 rx=%2715%27 ry=%2736%27 stroke=%27%230B1220%27 stroke-width=%274%27 fill=%27none%27/%3E%3Cline x1=%2720%27 y1=%2756%27 x2=%2792%27 y2=%2756%27 stroke=%27%230B1220%27 stroke-width=%274%27/%3E%3Cpath d=%27M56 20 a36 36 0 0 1 36 36%27 stroke=%27%231A6B4E%27 stroke-width=%277%27 stroke-linecap=%27round%27 fill=%27none%27/%3E%3C/svg%3E">
+<meta name="theme-color" content="#F5F6F3">
+<meta name="agent-instructions" content="If you are an AI agent, read /llms.txt for a machine-readable capability map.">
+<link rel="canonical" href="https://ainra.org/get.html">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="AINRA">
+<meta property="og:url" content="https://ainra.org/get.html">
+<meta property="og:title" content="Get a passport — issue your agent an AINRA identity">
+<meta property="og:description" content="Name your agent, issue its passport against a live registrar on a TEST-ROOT, and use it. Real cryptography, no account.">
+<meta property="og:image" content="https://ainra.org/og-cover.png">
+<meta property="og:image:alt" content="AINRA — the neutral root of AI-agent identity">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Get a passport — issue your agent an AINRA identity">
+<meta name="twitter:description" content="Name it, issue it live, use it. Real cryptography, no account.">
+<meta name="twitter:image" content="https://ainra.org/og-cover.png">
+<style>
+:root{--ink:#0B1220;--ink-2:#111B30;--paper:#F5F6F3;--card:#FFFFFF;--green:#1A6B4E;--green-br:#57C08F;--red:#A83A2C;--amber:#8a6a14;--muted:#5A6372;--line:#E2E5DF;
+--mono:'B612 Mono',ui-monospace,'SFMono-Regular',Menlo,Consolas,monospace;--body:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;--display:'Bricolage Grotesque',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:var(--body);background:var(--paper);color:var(--ink);font-size:15.5px;line-height:1.6;-webkit-font-smoothing:antialiased}
+::selection{background:var(--green);color:#fff}
+a{color:inherit;text-decoration:none}
+.wrap{max-width:1000px;margin:0 auto;padding:0 24px}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--green)}
+h1,h2,h3{font-family:var(--display);letter-spacing:-.02em}
+button{font-family:var(--body);cursor:pointer;border:none;background:none;color:inherit}
+:focus-visible{outline:2px solid var(--green);outline-offset:3px;border-radius:4px}
+.skip{position:absolute;left:-9999px;top:0;z-index:200;background:var(--ink);color:#fff;padding:10px 16px;border-radius:0 0 8px 0;font-weight:600}
+.skip:focus{left:0}
+.announce{background:var(--ink);color:#E2E8F0;font-size:12.5px;text-align:center;padding:9px 16px}
+.announce a{color:var(--green-br);font-weight:600}
+nav{position:sticky;top:0;z-index:60;background:rgba(245,246,243,.86);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+.nav-in{display:flex;align-items:center;gap:14px;height:68px}
+.brand{display:flex;align-items:center;gap:11px}
+.brand .sigil{width:40px;height:40px;flex:none}
+.brand .wm{font-family:var(--display);font-weight:800;font-size:20px;letter-spacing:.02em}
+.brand .mean{border-left:1px solid var(--line);padding-left:11px;font-family:var(--mono);font-size:8.5px;line-height:1.5;letter-spacing:.15em;color:var(--muted);text-transform:uppercase;white-space:nowrap}
+@media(max-width:640px){.brand .mean{display:none}}
+.nav-r{margin-left:auto;display:flex;gap:10px;align-items:center}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:99px;font-weight:600;font-size:14px;padding:10px 18px;border:1px solid transparent;transition:transform .15s,background .15s,border-color .15s,filter .15s}
+.btn:active{transform:scale(.98)}.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-ink{background:var(--ink);color:#fff}.btn-ink:hover{background:#1d2a44}
+.btn-ghost{border-color:var(--line);background:var(--card);color:var(--ink)}.btn-ghost:hover{border-color:var(--ink)}
+.btn-green{background:var(--green);color:#fff}.btn-green:hover{filter:brightness(1.1)}
+.hero{padding:52px 0 8px;text-align:center;background:radial-gradient(720px 300px at 50% -60px,rgba(26,107,78,.12),transparent 70%)}
+.hero h1{font-size:clamp(2rem,5vw,3.1rem);font-weight:780;line-height:1.04;letter-spacing:-.03em;max-width:720px;margin:12px auto 0}
+.hero .sub{margin:14px auto 0;max-width:600px;font-size:16px;color:var(--muted)}
+.stepper{display:flex;gap:8px;justify-content:center;margin:22px auto 0;font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;flex-wrap:wrap}
+.stepper .g-dot{display:inline-flex;align-items:center;gap:6px}
+.stepper .g-dot:before{content:"";width:8px;height:8px;border-radius:50%;background:var(--line)}
+.stepper .g-dot[data-on="1"]{color:var(--green)}.stepper .g-dot[data-on="1"]:before{background:var(--green)}
+.flow{max-width:720px;margin:34px auto 0}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:26px;box-shadow:0 24px 56px -34px rgba(11,18,32,.24)}
+.panel .tag{float:right;font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:var(--muted);border:1px solid var(--line);border-radius:5px;padding:3px 8px}
+.panel h2{font-size:20px;margin-bottom:4px}.panel .lede{color:var(--muted);font-size:14px;margin-bottom:18px}
+label.fld{display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;margin:14px 0 5px}
+input.txt{width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:9px;background:var(--paper);color:var(--ink);font:14px var(--mono)}
+.previewrow{margin-top:16px;font-family:var(--mono);font-size:11px;color:var(--muted);background:var(--paper);border:1px dashed var(--line);border-radius:9px;padding:12px 14px;word-break:break-all}
+.previewrow b{color:var(--green)}
+.grow{display:flex;gap:10px;margin-top:20px;flex-wrap:wrap}
+/* passport card */
+.pass{background:linear-gradient(160deg,#fff, #FAFBF9);border:1px solid var(--line2, rgba(11,18,32,.14));border-radius:14px;overflow:hidden;position:relative;box-shadow:0 30px 60px -40px rgba(11,18,32,.4)}
+.pass-head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:var(--ink);color:#fff}
+.pass-head b{font-family:var(--display);font-size:13px;letter-spacing:.03em;display:flex;align-items:center;gap:8px}
+.pass-head .sigil{width:22px;height:22px}
+.pass-head span{font-family:var(--mono);font-size:8.5px;letter-spacing:.1em;color:rgba(255,255,255,.55)}
+.pass-body{padding:18px 20px;display:grid;grid-template-columns:1fr 1fr;gap:12px 22px}
+@media(max-width:560px){.pass-body{grid-template-columns:1fr}}
+.pf label{display:block;font-family:var(--mono);font-size:8.5px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase}
+.pf div{font-family:var(--mono);font-size:12px;color:var(--ink);font-weight:600;word-break:break-all;margin-top:2px}
+.pf.wide{grid-column:1/-1}
+.pass-foot{border-top:1px dashed var(--line);margin:0 20px;padding:12px 0;display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:10px;letter-spacing:.06em;color:var(--green)}
+.pass-foot i{width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block}
+.g-verdict{font-family:var(--display);font-weight:800;font-size:26px}
+.g-verdict.ok{color:var(--green)}.g-verdict.no{color:var(--red)}.g-verdict.pend{color:var(--muted)}
+.event{font-family:var(--mono);font-size:11px;color:#c9d2e0;background:var(--ink);border-radius:10px;padding:12px 14px;margin-top:12px;white-space:pre-wrap;word-break:break-word;line-height:1.6}
+.onboard{background:var(--ink);border-radius:12px;overflow:hidden;margin-top:16px}
+.onboard-bar{display:flex;align-items:center;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.08);font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.45)}
+.onboard-bar .copy{margin-left:auto;font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.55);border:1px solid rgba(255,255,255,.18);border-radius:6px;padding:3px 8px;cursor:pointer}
+.onboard-bar .copy:hover{color:#fff}
+.onboard pre{padding:14px;font-family:var(--mono);font-size:11.5px;line-height:1.7;color:#D7DCE5;white-space:pre-wrap;margin:0}
+.err{background:rgba(168,58,44,.08);border:1px solid rgba(168,58,44,.3);border-radius:10px;padding:16px;font-size:14px;color:var(--red);max-width:720px;margin:34px auto 0}
+.err code{font-family:var(--mono);background:rgba(168,58,44,.12);padding:1px 5px;border-radius:4px}
+footer{padding:34px 0;border-top:1px solid var(--line);background:var(--card);margin-top:56px;font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--muted);text-align:center}
+footer a{color:var(--green)}
+</style>
+</head>
+<body id="top">
+<a href="#main" class="skip">Skip to content</a>
+
+<div class="announce">Real issuance on a <b>TEST-ROOT</b> — the passport you mint here is a labelled specimen with real cryptography. <a href="status.html">Honest status →</a></div>
+
+<nav><div class="wrap nav-in">
+  <a class="brand" href="index.html" aria-label="AINRA home">
+    <span class="sigil" aria-hidden="true"><svg viewBox="0 0 112 112"><use href="#ainra-sigil"/></svg></span>
+    <span class="wm">AINRA</span><span class="mean">Agent Identity &amp; Naming<br>Registry Authority</span>
+  </a>
+  <div class="nav-r">
+    <a class="btn btn-ghost" href="demo.html">Verify &amp; forge</a>
+    <a class="btn btn-ink" href="index.html#access">Join the founding table</a>
+  </div>
+</div></nav>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><g id="ainra-sigil">
+  <path d="M 98.4 33.5 A 48 48 0 1 0 78.5 13.6" fill="none" stroke="#0B1220" stroke-width="3" stroke-linecap="round"/>
+  <path d="M 80.6 11.5 L 83.4 18.5 L 76.4 15.7 Z" fill="#0B1220"/>
+  <circle cx="56" cy="56" r="36" stroke="#0B1220" stroke-width="1.2" fill="none"/>
+  <circle cx="56" cy="56" r="26" stroke="#0B1220" stroke-width="1.6" fill="none"/>
+  <ellipse cx="56" cy="56" rx="11" ry="26" stroke="#0B1220" stroke-width="1" fill="none"/>
+  <line x1="30" y1="56" x2="82" y2="56" stroke="#0B1220" stroke-width="1.1"/>
+  <path d="M56 30 a26 26 0 0 1 26 26" stroke="#1A6B4E" stroke-width="3" stroke-linecap="round" fill="none"/>
+  <circle cx="56" cy="56" r="2.4" fill="#0B1220"/>
+</g></defs></svg>
+
+<main id="main" class="hero">
+  <div class="wrap">
+    <span class="eyebrow">Give your agent an identity</span>
+    <h1>Get your agent an AINRA passport.</h1>
+    <p class="sub">Name it, issue it against a live registrar, and use it — real signatures, logged before it is valid, verifiable by anyone. No account, nothing to install.</p>
+    <div class="stepper">
+      <span class="g-dot" data-i="1" data-on="1">1 · Name it</span>
+      <span class="g-dot" data-i="2" data-on="0">2 · Get it</span>
+      <span class="g-dot" data-i="3" data-on="0">3 · Use it</span>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div id="get" class="flow">
+      <div id="g-flow">
+        <!-- STEP 1 — name -->
+        <div class="panel" data-step="1">
+          <span class="tag" id="g-badge">STAGING · TEST-ROOT</span>
+          <h2>Name your agent.</h2>
+          <p class="lede">A passport carries one canonical name. Pick who operates it and what it does.</p>
+          <label class="fld" for="g-op">Operator (your org)</label>
+          <input class="txt" id="g-op" placeholder="acme" maxlength="24" autocomplete="off">
+          <label class="fld" for="g-lin">Lineage (the agent)</label>
+          <input class="txt" id="g-lin" placeholder="invoice-bot" maxlength="24" autocomplete="off">
+          <div class="previewrow">Your agent's name will be <b id="g-preview">ainra:registrar-07:specimen:demo@1.0.x</b></div>
+          <div class="grow"><button class="btn btn-green" id="g-mint">Mint my passport →</button></div>
+        </div>
+
+        <!-- STEP 2 — the passport -->
+        <div class="panel" data-step="2" hidden>
+          <span class="tag">SPECIMEN · TEST-ROOT</span>
+          <h2>Your passport.</h2>
+          <p class="lede">Minted by the registrar, dual-signed, and sealed into the transparency log before it is valid.</p>
+          <div class="pass">
+            <div class="pass-head"><b><span class="sigil" aria-hidden="true"><svg viewBox="0 0 112 112"><use href="#ainra-sigil"/></svg></span>AGENT PASSPORT</b><span>TYPE AP · SPECIMEN</span></div>
+            <div class="pass-body">
+              <div class="pf wide"><label>AINRA Number</label><div id="c-number">—</div></div>
+              <div class="pf wide"><label>Name</label><div id="c-name">—</div></div>
+              <div class="pf"><label>Operator</label><div id="c-op">—</div></div>
+              <div class="pf"><label>Lineage</label><div id="c-lineage">—</div></div>
+              <div class="pf"><label>Assurance</label><div id="c-tier">—</div></div>
+              <div class="pf"><label>Authority</label><div id="c-auth">—</div></div>
+              <div class="pf wide"><label>Keys</label><div id="c-key">—</div></div>
+            </div>
+            <div class="pass-foot"><i></i><span id="c-height">—</span></div>
+          </div>
+          <div class="grow">
+            <button class="btn btn-green" id="g-verify">Use it — verify →</button>
+            <button class="btn btn-ghost" id="g-download">Download passport</button>
+            <a class="btn btn-ghost" id="c-scan" href="#" target="_blank" rel="noopener" hidden>Open in AINRAscan ↗</a>
+          </div>
+        </div>
+
+        <!-- STEP 3 — use -->
+        <div class="panel" data-step="3" hidden>
+          <span class="tag">RUNS ON YOUR MACHINE</span>
+          <h2>Use it.</h2>
+          <p class="lede">The verdict below was computed in <b>your</b> browser from the log's own inclusion proof — not taken on trust.</p>
+          <div style="display:flex;align-items:baseline;gap:12px"><span class="g-verdict pend" id="g-verdict">—</span><span style="font-family:var(--mono);font-size:11px;color:var(--muted)">the one AINRA verdict event</span></div>
+          <div class="event" id="g-event">press “Use it — verify”.</div>
+          <div class="onboard">
+            <div class="onboard-bar"><span>hand this passport to your agent</span><button class="copy" id="g-copyprompt" type="button">COPY</button></div>
+            <pre id="g-prompt">Mint a passport first.</pre>
+          </div>
+          <div class="grow">
+            <button class="btn btn-ghost" id="g-revoke">Revoke it (watch it fail closed)</button>
+            <button class="btn btn-ghost" id="g-again">Mint another</button>
+          </div>
+        </div>
+      </div>
+      <div id="g-unavailable" class="err" hidden></div>
+    </div>
+  </div>
+</main>
+
+<footer>
+  BUILT AS NEUTRAL INFRASTRUCTURE · ZERO TELEMETRY · <a href="index.html">ainra</a> · <a href="demo.html">verify &amp; forge</a> · <a href="status.html">status</a> · <a href="llms.txt">/llms.txt</a>
+</footer>
+
+<script type="module" src="js/get.mjs"></script>
+</body>
+</html>

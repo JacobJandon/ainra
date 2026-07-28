@@ -10,6 +10,29 @@ We **publicly own fixed security bugs** — hiding them would be the opposite of
 
 ## [Unreleased]
 
+### M19 — the network runs under a real genesis root; next-version roadmap
+
+- `make stage-up` now runs the genesis ceremony over the live registrars: `accredit` DKGs a FROST 5-of-9 +
+  SLH-DSA dual-root, dual-signs the directory, and publishes the signed directory + `roots.json`. The public
+  contract serves `X-AINRA-Root: genesis:<fp>` (was `test-root`); **`make genesis-verify`** proves a live passport
+  verifies ROOT-DARK against the published root, and a tampered root is rejected. This is an OPERATOR-RUN genesis
+  (single-host DKG) — the distributed public ceremony (independent custodians), ≥3 external verifiers, and the
+  14-day 3-region soak remain the real-world DoD events (not fabricated).
+- The registrar public door accepts an optional `{operator, lineage}` so a visitor can NAME their agent
+  (sanitized to the grammar, still a low-tier specimen stamped `demo:specimen`); the public revoke is gated on
+  that marker (`is_demo_specimen`).
+- CLI README: spec reference corrected v4.0 → **v5.1**; the Ed25519-only limit is stated with hybrid as v0.2.
+
+### Next (v0.2.0) — planned
+
+- **Downloadable reference CLI goes hybrid** (Ed25519 + ML-DSA-65), matching the standard's mandate — the Rust
+  core and browser SDK are already hybrid; the JS CLI (this download) is Ed25519-only. Flagship item: needs a
+  careful crypto rework across every sign/verify site, with the audited `@noble/post-quantum` ML-DSA bundled so
+  the single-file CLI still runs with just `node`.
+- Threshold root ceremony in the CLI (single-key today), independent-witness wiring, push-based status fabric.
+- The three real-world genesis DoD events: a recorded public ceremony with independent custodians, ≥3 external
+  verifiers, and a 14-day 3-region soak.
+
 ### M12.1 — canonical-encoding sweep (D-029)
 
 - The base64 fail-open class (M9 dedup, M12 prev_leaf) is closed at every base64url ingestion point: core was already

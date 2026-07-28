@@ -452,30 +452,20 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
         </div>
       </div>
     </div>
-    <div class="p-cap rv in">SPECIMEN PASSPORT — PLACEHOLDER REGISTRAR · NOT A LIVE CREDENTIAL · EVERY REAL ONE IS LOGGED BEFORE IT IS VALID</div>
+    <div class="p-cap rv in">SPECIMEN · placeholder registrar · every real passport is logged before it is valid</div>
 
-    <div class="facts rv in">
-      <div class="cap">Built as neutral infrastructure for the agent economy</div>
+    <div class="facts rv in" id="facts">
+      <div class="cap">Built as neutral infrastructure for the agent economy — everything below is measured or it is absent.</div>
       <div class="row">
         <span>STANDARD <b class="g">v5.1 ✓</b></span>
-        <span>REFERENCE <b class="g">v0.1.0 ✓</b></span>
         <span>CONFORMANCE <b>745/745</b></span>
+        <span>SIGNATURES <b>Ed25519 + ML-DSA-65</b></span>
         <span>REVOCATION <b>&lt;60s [MEASURED]</b></span>
         <span>PRODUCTION LOGS <b>0 (HONEST)</b></span>
       </div>
     </div>
   </div>
 </header>
-
-
-<div class="stats wrap" id="problem">
-  <div class="stat-grid">
-    <div class="stat rv"><div class="n"><em data-count="745">0</em>/745</div><p>conformance vectors the reference verifier passes — the same verdict on every surface.</p><span class="src">REFERENCE IMPLEMENTATION · MEASURED</span></div>
-    <div class="stat rv"><div class="n"><em data-count="9">0</em></div><p>checks run before an agent is trusted — signature, authority, freshness, revocation, log inclusion. Any failure returns a named reason.</p><span class="src">THE STANDARD · v5.1</span></div>
-    <div class="stat rv"><div class="n"><em data-count="2">0</em></div><p>mandatory signatures on every passport — classical Ed25519 and post-quantum ML-DSA-65.</p><span class="src">THE STANDARD · v5.1</span></div>
-    <div class="stat rv"><div class="n"><em data-count="0">0</em></div><p>production log entries — the public record stays empty until the first ceremony, and we say so.</p><span class="src">PRE-GENESIS · HONEST</span></div>
-  </div>
-</div>
 
 <section class="dark" id="root">
   <div class="wrap">

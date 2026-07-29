@@ -23,9 +23,21 @@ We **publicly own fixed security bugs** — hiding them would be the opposite of
   (4 downgrade vectors × 2 policies), wired into `ci` + `preflight`. The core↔SDK corpus already proved this at the
   protocol level (24 `alg-downgrade-*` + `noncanon-*` inside the 745; unchanged, still `make diff` green).
 - Measured on the reference machine: hybrid sign ≈ 7 ms, verify ≈ 3 ms; CLI implementation **v0.1.0 → v0.2.0**.
-- Still ahead in M23 (not yet done): run Suite Migration Drill 01 against staging with a transcript, the
-  distributable multi-party ceremony, witness kit v2, and the push-status ADR. The three real-world genesis DoD
-  rows (recorded public ceremony, ≥3 external verifiers, 14-day 3-region soak) remain honestly pending.
+- **Suite Migration Drill 01 (Task 2)** — a real Ed25519→hybrid migration over a running network: `ainra migrate`
+  REISSUEs with `prev_leaf` continuity (nothing wiped), the overlap is an auto-expiring fail-closed policy epoch
+  (`--accept-legacy-until`, D-037), and the staging audit confirms the live network is already hybrid (0 stragglers).
+  `make suite-migration-drill`; transcript in `docs/drills/SUITE-MIGRATION-01.md`; AINRAscan shows the live suite mix.
+- **Distributable genesis ceremony (Task 3)** — `make ceremony-rehearsal-multi` runs FROST 5-of-9 across NINE
+  isolated OS processes (file-based rounds, air-gap shape): one group key emerges, 5 shares sign / 4 cannot,
+  transcript reproducible. Changes no DoD row; runbook gains the multi-party appendix.
+- **Witness kit v2 (Task 4)** — single-binary `witnessd` from a one-file config, self-declared `/meta` (verified by
+  no one), `/root` alias, bare-address back-compat; verifier quorum-k worked examples; `make witness-check` times the
+  <10-min onboarding; AINRAscan shows witness diversity from live data.
+- **Push status = ADR-018 (Task 5)** — push is advisory transport over a sovereign pull: an unsigned SSE/webhook may
+  announce a new head/delta, but the verifier always pulls + validates. Suppression fails closed on freshness;
+  forgery is ignored. `make push-advisory-check`, `tools/push-announce.mjs`; MTS ADR-018, D-038 (the Standard stays v5.1).
+- Still ahead in M23: cut the v0.2.0 release (Task 6). The three real-world genesis DoD rows (recorded public
+  ceremony, ≥3 external verifiers, 14-day 3-region soak) remain honestly pending.
 
 ### M19 — the network runs under a real genesis root; next-version roadmap
 

@@ -63,6 +63,8 @@ jobs:
       # Suite Migration Drill 01: a real Ed25519 -> hybrid migration over a running network (REISSUE + prev_leaf,
       # auto-expiring policy epoch, legacy-fails/hybrid-passes). The staging audit skips cleanly when staging is down.
       - run: node tools/suite-migration-drill.mjs --quiet
+      # ADR-018 threat proof: push is advisory, pull is sovereign — suppression fails closed, forgery is ignored.
+      - run: node tools/push-advisory-threat.mjs
 
   wedge:
     name: verifier wedge (@ainra/middleware fail-closed)

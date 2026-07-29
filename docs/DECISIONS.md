@@ -461,3 +461,19 @@ credential (ML-DSA half present but broken or non-canonical) is `sig_invalid` an
 the flag included — the overlap forgives an *absent* PQC signature during migration, never an *invalid* one. This is
 the exact posture ADR-017 trap (ii) requires of a suite migration over a running network; proven by
 `make cli-check` and `make suite-migration-drill`.
+
+## D-038 — M23: push status is advisory transport over a sovereign pull (ADR-018)
+
+Revocation must fail closed in <60 s (ADR-017 depends on it), which tempts a *trusted* push channel — and a trusted
+push channel is a new authority to attack. We refuse that: an optional SSE/webhook MAY **announce** that a new
+head/delta exists, but the announcement is **unsigned and carries no trust**. The verifier reacts by running the
+**normal signed pull + validation** (delegate signature → freshness), identically to a scheduled poll. There is **no
+push-only code path**; the pushed bytes are never believed. Push becomes a pure latency optimization — it can make
+the sovereign pull happen sooner, never replace it. Two threat cases fix the design and both fail closed:
+**suppression** (withhold the push) changes nothing because the scheduled pull enforces freshness (`stale_status`
+past the window — F1 ≤ 30 s), and **forgery** (fake the push) changes nothing because the announced bytes are
+validated on pull (`checkpoint_invalid`). Alternatives rejected: trusting a pushed head (a forged/withheld push
+becomes a revocation bypass) and pull-only on a fixed interval (revocation latency = the whole interval).
+`tools/push-announce.mjs` is the reference advisory bridge (poll → SSE frames, unsigned, each frame naming the
+pull-to-validate reaction); `make push-advisory-check` proves both threat cases against the real conformance
+vectors. Spec: MTS ADR-018 (the only spec change in M23; the Standard stays v5.1).

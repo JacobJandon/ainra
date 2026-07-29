@@ -1,6 +1,6 @@
 {
   "name": "@ainra/sdk",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "AINRA verify-only SDK (TypeScript). Byte-matches the ainra-core canonical encoder; mirrors the nine verify steps. Independent implementation #2 for the differential harness.",
   "license": "Apache-2.0 OR MIT",
   "type": "module",

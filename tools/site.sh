@@ -54,6 +54,12 @@ echo "  the download CLI == apps/cli-node (canonical); the Standard == docs/AINR
 # M17: keep the 4 content pages' shared header/footer in sync from site/_includes/ (one source of truth, no drift).
 node tools/site-includes.mjs
 
+# No version drift (Task 6): AFTER the include sync, every three-part vX.Y.Z printed in a page IS the CLI version.
+# The Standard is vN.N (two parts, unmatched) and passport examples use @N.N.N (no `v`, unmatched), so this catches
+# ONLY a stale CLI label — in a page OR in the shared header/footer include it was just synced from.
+BADVER="$(grep -rhoE 'v[0-9]+\.[0-9]+\.[0-9]+' "$SITE"/*.html 2>/dev/null | grep -vx "v${VER}" | sort -u || true)"
+[ -z "$BADVER" ] || { echo "✗ site version drift: page(s) say $(echo "$BADVER" | tr '\n' ' ') but the CLI is v${VER} — one source of truth is apps/cli-node/package.json"; exit 1; }
+
 # M17 Task 3 — the agent-first surface: markdown mirrors, OpenAPI specs, and the served copy of the onboarding file.
 node tools/site-mirrors.mjs
 node tools/openapi.mjs

@@ -10,7 +10,26 @@ We **publicly own fixed security bugs** — hiding them would be the opposite of
 
 ## [Unreleased]
 
-### M23 — the downloadable CLI goes hybrid (Suite Migration Drill 01, in progress)
+The three real-world genesis DoD rows remain the only open work: a recorded public ceremony with independent
+custodians, ≥3 external verifiers, and a 14-day 3-region soak. The machinery for all three is built and rehearsed.
+
+## [v0.2.0] — hybrid CLI + suite-migration / ceremony / witness / push (pending tag)
+
+Cut with `make release`; the human tags it (see `RELEASING.md`). Everything below is provable from a clean clone.
+The rebuilt hybrid CLI's own demo:
+
+```
+— AINRA reference lifecycle demo (hybrid Ed25519 + ML-DSA-65) —
+  keys: hybrid Ed25519 + ML-DSA-65 (both mandatory) · single-key root, 3 local witness keys — labeled
+→ suite      Ed25519 + ML-DSA-65 ✓
+✓ VALID · verified in 16.9 ms
+✓ revoked · ainra:registrar-07:acme-corp:invoicing@4.2.1 · reason: key-compromise · log #000003
+→ suite      Ed25519 + ML-DSA-65 ✓
+✗ INVALID · revoked · verified in 16.0 ms
+done. every signature above is real hybrid Ed25519 + ML-DSA-65; strip the ML-DSA half and it fails closed.
+```
+
+### M23 — the downloadable CLI goes hybrid; the v0.2.0 milestone
 
 - The **downloadable reference CLI is now hybrid Ed25519 + ML-DSA-65**, both-signatures-or-invalid, at parity with
   the Rust core and browser SDK — keygen, every issuance signature (issuer/root/cert/checkpoint/status), and
@@ -36,8 +55,13 @@ We **publicly own fixed security bugs** — hiding them would be the opposite of
 - **Push status = ADR-018 (Task 5)** — push is advisory transport over a sovereign pull: an unsigned SSE/webhook may
   announce a new head/delta, but the verifier always pulls + validates. Suppression fails closed on freshness;
   forgery is ignored. `make push-advisory-check`, `tools/push-announce.mjs`; MTS ADR-018, D-038 (the Standard stays v5.1).
-- Still ahead in M23: cut the v0.2.0 release (Task 6). The three real-world genesis DoD rows (recorded public
-  ceremony, ≥3 external verifiers, 14-day 3-region soak) remain honestly pending.
+- **Release (Task 6)** — versions bumped to **0.2.0** everywhere from one source each (workspace `Cargo.toml` →
+  every crate; `@ainra/sdk`, `@ainra/middleware`, `@ainra/mcp`; the site labels, with a `make site` drift-guard that
+  fails the build if any page's CLI version ≠ `apps/cli-node/package.json`). Reproducibility re-proven byte-for-byte
+  (`make repro`); the M23 checks are linked from the verification map (`docs/STATUS.md`), the drill transcript from
+  there and the manual. Decisions this milestone: **D-037** (legacy-policy epoch), **D-038** (push advisory),
+  **D-039** (ceremony file-transport). The **DoD table is untouched** — the three real-world genesis rows (recorded
+  public ceremony with independent custodians, ≥3 external verifiers, 14-day 3-region soak) remain honestly pending.
 
 ### M19 — the network runs under a real genesis root; next-version roadmap
 
@@ -143,5 +167,6 @@ A recorded 5-of-9 ceremony · ≥3 independent external verifiers · a 14-day/3-
 witnesses on separate infra. The machinery for all four is built and smoke-proven; `make genesis-status` shows the
 honest count (**7/11** today). See `GENESIS-CHECKLIST.md` and `outreach/`.
 
-[Unreleased]: https://github.com/<owner>/ainra/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/<owner>/ainra/compare/v0.2.0...HEAD
+[v0.2.0]: https://github.com/<owner>/ainra/compare/v0.1.0...v0.2.0
 [v0.1.0]: https://github.com/<owner>/ainra/releases/tag/v0.1.0

@@ -1,11 +1,13 @@
 {
   "name": "ainra-soak-harness",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "description": "Measure AINRA revocation-propagation latency from >=3 vantage points into an append-only, hash-chained log; render a live status page + a signed tamper-evident soak-report from the REAL measurements. No hardcoded latencies.",
   "license": "Apache-2.0 OR MIT",
-  "bin": { "ainra-soak": "soak.mjs" },
+  "bin": {
+    "ainra-soak": "soak.mjs"
+  },
   "dependencies": {
     "@ainra/sdk": "file:../../packages/sdk-ts"
   },

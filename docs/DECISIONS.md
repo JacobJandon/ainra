@@ -477,3 +477,18 @@ becomes a revocation bypass) and pull-only on a fixed interval (revocation laten
 `tools/push-announce.mjs` is the reference advisory bridge (poll → SSE frames, unsigned, each frame naming the
 pull-to-validate reaction); `make push-advisory-check` proves both threat cases against the real conformance
 vectors. Spec: MTS ADR-018 (the only spec change in M23; the Standard stays v5.1).
+
+## D-039 — M23: the genesis ceremony transport is file-based, not networked
+
+The M4 `ceremony` binary runs all nine custodians in one process (a faithful simulation). A real genesis ceremony
+must run each custodian's key material on their OWN machine, and the safest such machine is **air-gapped**. So the
+distributable ceremony (`dkg-participant`, `make ceremony-rehearsal-multi`) exchanges every DKG + signing round
+message through a shared **file "postbox"**, never a socket: a custodian reads the round's inputs from files, writes
+its outputs to files, and can power down between rounds. This is deliberately the lowest-common-denominator transport
+— a courier carrying a USB stick satisfies it — and it keeps the signing side free of any network dependency (matching
+the root's "safe to be dark" posture, ADR-014). No custodian ever sees another's secret; the group secret is never
+assembled anywhere; the emergent group key is a standard RFC 8032 Ed25519 key. Alternatives rejected: a networked DKG
+coordinator (adds an online attack surface to the most sensitive ceremony and forbids true air-gap) and keeping the
+one-process simulation (never exercises the real multi-party choreography). Nine isolated OS processes prove the
+transport; the recorded ceremony with independent custodians remains the pending real-world DoD event (no DoD row
+moved). `make ceremony-rehearsal-multi`; runbook appendix in `kits/ceremony/RUNBOOK.md`.

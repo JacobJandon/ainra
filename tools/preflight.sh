@@ -52,6 +52,7 @@ run "CLI hybrid"         "download: Ed25519+ML-DSA both" make cli-check
 run "genesis-local"      "whole stack boots on 1 host"  make genesis-local
 run "verifier kit"       "execution-bound attestation"  bash tools/verifier-kit-smoke.sh
 run "ceremony dry-run"   "witness-reproducible"         bash tools/ceremony-dry-run.sh 5
+run "ceremony multi"     "FROST 5-of-9 across processes" bash tools/ceremony-rehearsal-multi.sh
 run "soak instrument"    "measured p95, signed report"  bash tools/soak-smoke.sh 12
 run "witness quorum"     "fork refused over HTTP"       bash tools/drill-networked.sh
 run "S7 neutrality"      "no brands / no impersonation" node tools/s7-lint.mjs

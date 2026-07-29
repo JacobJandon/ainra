@@ -28,3 +28,8 @@ path = "src/bin/ceremony.rs"
 [[bin]]
 name = "accredit"
 path = "src/bin/accredit.rs"
+
+# M23 Task 3 — one custodian in a DISTRIBUTABLE, file-based FROST DKG + threshold-sign (air-gap-friendly).
+[[bin]]
+name = "dkg-participant"
+path = "src/bin/dkg_participant.rs"

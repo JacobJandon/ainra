@@ -124,3 +124,42 @@ Three roles run the ceremony. Find yours; each list is self-contained and points
 
 The **only** thing the dry-run cannot rehearse is the physical air-gap + real entropy of § 5 — by design. Everything
 that can be checked in software is checked, and fails loudly if skipped.
+
+---
+
+## Appendix — the distributable multi-party rehearsal (`make ceremony-rehearsal-multi`, M23)
+
+The `make ceremony` path above runs all nine custodians inside **one process** — a faithful simulation, but not the
+*shape* of a real air-gapped ceremony, where each custodian's key material never leaves their own machine. This
+appendix rehearses that shape end to end with **nine isolated OS processes** and no shared memory.
+
+Each custodian runs the `dkg-participant` binary in their own private working directory; the only thing they share is
+a **postbox** directory — the stand-in for the broadcast channel / the USB stick a courier carries between air-gapped
+laptops. A custodian can power down between rounds: every round is a separate invocation that reads the postbox,
+writes its own messages, and keeps its secrets local.
+
+```
+# round 1 — every custodian, on their own machine, commits (keeps its r1 secret private)
+dkg-participant dkg1 <id> 9 5 <postbox> <my-home> <run-seed>
+# round 2 — consume everyone's r1 packages, deal per-recipient r2 packages
+dkg-participant dkg2 <id> 9 5 <postbox> <my-home>
+# round 3 — assemble → a private key share + the PUBLIC group key
+dkg-participant dkg3 <id> 9 5 <postbox> <my-home>
+# to sign: a quorum of five commits, then signs; a coordinator aggregates + verifies
+dkg-participant commit <id> <postbox> <my-home> <run-seed>
+dkg-participant sign   <id> <postbox> <my-home> <message-hex>
+dkg-participant aggregate <postbox> <message-hex>
+```
+
+`make ceremony-rehearsal-multi` orchestrates all nine processes with a barrier between rounds and proves four things:
+
+| Property | What the rehearsal proves |
+|---|---|
+| Distributed DKG succeeds | all nine processes independently derive the **same** group key (no dealer, no shared memory) |
+| The key is usable | any **five** shares (spanning several processes) threshold-sign; the RFC 8032 signature verifies against the group key |
+| The threshold holds | **four** shares are **refused** — aggregation fails closed |
+| Transcript reproducible | an outsider recomputes `SHA-256(transcript.json)` from public bytes alone |
+
+This changes **no DoD row**: the real recorded ceremony with independent custodians + live entropy remains the pending
+real-world event (§ 5). The rehearsal is TEST-ROOT — a fresh run seed each time, labelled — and proves the *machinery*
+is distributable, not that the ceremony has been held.

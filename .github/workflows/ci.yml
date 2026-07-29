@@ -147,6 +147,9 @@ jobs:
       - run: make drill
       - run: make testbed
       - run: make genesis-local
+      # M23 Task 3: the genesis ceremony runs across NINE isolated processes (file-based FROST 5-of-9) — one group
+      # key emerges, 5 shares sign / 4 cannot, transcript reproducible.
+      - run: make ceremony-rehearsal-multi
 
   reproducibility:
     name: reproducible builds + mirror byte-verify (M7)

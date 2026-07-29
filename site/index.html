@@ -405,7 +405,7 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
       <a class="btn btn-ghost" href="#access">Join the founding table</a>
     </div>
     <div class="rv in"><div class="cmd">
-      <code><span class="p">$</span> unzip ainra-cli-v0.1.0.zip &amp;&amp; node ainra-cli/bin/ainra.js demo</code>
+      <code><span class="p">$</span> unzip ainra-cli-v0.2.0.zip &amp;&amp; node ainra-cli/bin/ainra.js demo</code>
       <button id="copyBtn" aria-label="Copy command">COPY</button>
     </div></div>
     <div class="badges rv in">
@@ -691,7 +691,7 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
   /* copy the verify command */
   const cp=$('copyBtn');
   if(cp){cp.addEventListener('click',()=>{
-    const txt='unzip ainra-cli-v0.1.0.zip && node ainra-cli/bin/ainra.js demo';
+    const txt='unzip ainra-cli-v0.2.0.zip && node ainra-cli/bin/ainra.js demo';
     (navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(()=>{cp.textContent='COPIED';setTimeout(()=>{cp.textContent='COPY'},1400);},()=>{});
   });}
   /* multi-method installer — one panel, tabbed by open convention (skill · MCP · prompt · HTTP) */

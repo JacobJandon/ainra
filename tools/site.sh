@@ -28,15 +28,25 @@ command -v zip >/dev/null 2>&1 || { echo "✗ 'zip' not found — install it (se
 # 1. the Standard — canonical is docs/AINRA_I_The_Standard.md → the site's downloadable copy.
 cp docs/AINRA_I_The_Standard.md "$SITE/AINRA_I_The_Standard.md"
 
-# 2. the reference CLI — canonical is apps/cli-node/ → ainra-cli-v0.1.0.zip (packaged under ainra-cli/).
+# 2. the reference CLI — canonical is apps/cli-node/ → ainra-cli-v${VER}.zip (packaged under ainra-cli/).
+# The download is ONE self-contained file: we BUNDLE the canonical source (which now signs + verifies HYBRID
+# Ed25519 + ML-DSA-65, at parity with the Rust core + browser SDK) with the audited @noble ML-DSA inlined, so a
+# visitor runs it with just `node` — no install, no node_modules, zero runtime deps. esbuild + @noble come from the
+# SDK's install (the SDK is already hybrid); the bundle is CJS so the single file needs no ESM/require-ESM support.
 VER="$(node -e 'process.stdout.write(require("./apps/cli-node/package.json").version)')"
+SDK=packages/sdk-ts
+[ -x "$SDK/node_modules/.bin/esbuild" ] || { echo "→ installing build-time deps (esbuild + @noble PQC) via the SDK…"; ( cd "$SDK" && npm install --prefer-offline --no-audit --no-fund --silent >/dev/null 2>&1 ); }
+# let esbuild resolve @noble from the CLI entry point: link the SDK's copies into the CLI's node_modules (build-only).
+mkdir -p apps/cli-node/node_modules/@noble
+for p in post-quantum hashes; do ln -sfn "$(cd "$SDK/node_modules/@noble/$p" && pwd)" "apps/cli-node/node_modules/@noble/$p"; done
 TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
 mkdir -p "$TMP/ainra-cli/bin"
 cp apps/cli-node/package.json apps/cli-node/README.md "$TMP/ainra-cli/"
-cp apps/cli-node/bin/ainra.js "$TMP/ainra-cli/bin/"
+"$SDK/node_modules/.bin/esbuild" apps/cli-node/bin/ainra.js --bundle --platform=node --format=cjs \
+  --outfile="$TMP/ainra-cli/bin/ainra.js" >/dev/null
+chmod +x "$TMP/ainra-cli/bin/ainra.js"
 ( cd "$TMP" && zip -q -r -X "ainra-cli-v${VER}.zip" ainra-cli )
-# the pages link to ainra-cli-v0.1.0.zip; keep that stable name pointing at the current build.
-cp "$TMP/ainra-cli-v${VER}.zip" "$SITE/ainra-cli-v0.1.0.zip"
+cp "$TMP/ainra-cli-v${VER}.zip" "$SITE/ainra-cli-v${VER}.zip"
 
 echo "built $SITE/ — 7 self-contained pages + refreshed downloads (CLI v${VER}, Standard $(wc -l < "$SITE/AINRA_I_The_Standard.md") lines)."
 echo "  the download CLI == apps/cli-node (canonical); the Standard == docs/AINRA_I_The_Standard.md (canonical)."

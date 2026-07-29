@@ -287,7 +287,7 @@ footer a{color:var(--green)}
         <button class="copy" id="copyCli">COPY</button></div>
       <div class="term-body" id="cliOut"></div>
     </div>
-    <p style="text-align:center;margin-top:16px"><a class="btn btn-ghost" href="ainra-cli-v0.1.0.zip" download>Download the CLI (v0.1.0) →</a></p>
+    <p style="text-align:center;margin-top:16px"><a class="btn btn-ghost" href="ainra-cli-v0.2.0.zip" download>Download the CLI (v0.1.0) →</a></p>
   </div>
 </section>
 
@@ -446,7 +446,7 @@ async function boot(){
 boot();
 
 // CLI block
-const CLI = `<span class="p">$</span> <span class="w">unzip ainra-cli-v0.1.0.zip && node ainra-cli/bin/ainra.js demo</span>
+const CLI = `<span class="p">$</span> <span class="w">unzip ainra-cli-v0.2.0.zip && node ainra-cli/bin/ainra.js demo</span>
 
 <span class="c"># issue → present → verify → revoke → re-verify, one process, real Ed25519</span>
 ✓ registrar accredited · issuer + root + status delegate
@@ -457,7 +457,7 @@ const CLI = `<span class="p">$</span> <span class="w">unzip ainra-cli-v0.1.0.zip
 ✓ log intact · 4 entries · checkpoint signed · witnesses 3/3 <span class="c">(local)</span>`;
 $("#cliOut").innerHTML=CLI;
 $("#copyCli").addEventListener("click",()=>{
-  navigator.clipboard?.writeText("unzip ainra-cli-v0.1.0.zip && node ainra-cli/bin/ainra.js demo");
+  navigator.clipboard?.writeText("unzip ainra-cli-v0.2.0.zip && node ainra-cli/bin/ainra.js demo");
   $("#copyCli").textContent="COPIED"; setTimeout(()=>$("#copyCli").textContent="COPY",1400);
 });
 </script>

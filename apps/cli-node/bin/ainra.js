@@ -1,15 +1,17 @@
 #!/usr/bin/env node
 /* SPDX-License-Identifier: Apache-2.0 OR MIT
- * AINRA reference implementation v0.1.0
- * Real Ed25519 signatures, real chain verification, real revocation, hash-chained log.
- * Honest limits (labeled at runtime): single-key root (threshold ceremony pending),
- * local witness keys (independent witnesses pending). For interop testing, not production.
- * No dependencies. Node >= 16.
+ * AINRA reference implementation v0.2.0
+ * HYBRID Ed25519 + ML-DSA-65 signatures (both mandatory, both-or-invalid), real chain verification, real
+ * revocation, hash-chained log. Parity with the Rust core + browser SDK. Suite-migration ready (Drill 01):
+ * legacy Ed25519-only credentials are recognized, named, and fail closed as alg_downgrade under default policy.
+ * Honest limits (labeled at runtime): single-key root (threshold ceremony pending), local witness keys
+ * (independent witnesses pending). For interop testing, not production. Node >= 18.
  */
 'use strict';
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
+const { ml_dsa65 } = require('@noble/post-quantum/ml-dsa'); // audited PQC (@noble); bundled in the distributable
 
 /* ---------- helpers ---------- */
 const HOME = process.env.AINRA_HOME || path.join(process.cwd(), '.ainra');
@@ -24,22 +26,56 @@ function cjson(o) { // canonical JSON: sorted keys, no spaces — stable bytes f
 }
 const sha256 = b => crypto.createHash('sha256').update(b).digest();
 const hex = b => b.toString('hex');
-function fingerprint(pubPem) {
-  const h = hex(sha256(Buffer.from(pubPem))).toUpperCase();
+const b64 = u => Buffer.from(u).toString('base64');
+// one strict canonical decode gateway (D-029): standard base64, canonical round-trip, fail closed on
+// trailing-bits / padding / whitespace / alphabet swaps. Every externally-sourced decode routes through here.
+function strictB64(s) {
+  if (typeof s !== 'string') return null;
+  let buf; try { buf = Buffer.from(s, 'base64'); } catch { return null; }
+  if (buf.toString('base64') !== s) return null; // non-canonical
+  return new Uint8Array(buf);
+}
+function fingerprint(pub) { // over BOTH keys (canonical), so the fp binds the whole hybrid suite
+  const material = typeof pub === 'string' ? pub : cjson(pub);
+  const h = hex(sha256(Buffer.from(material))).toUpperCase();
   return [h.slice(0,4), h.slice(4,8), h.slice(8,12), h.slice(12,16)].join(':');
 }
-function genKey() {
-  const { publicKey, privateKey } = crypto.generateKeyPairSync('ed25519');
+function genKey() { // HYBRID keypair: classical Ed25519 + post-quantum ML-DSA-65
+  const ed = crypto.generateKeyPairSync('ed25519');
+  const ml = ml_dsa65.keygen(crypto.randomBytes(32));
   return {
-    pub: publicKey.export({ type: 'spki', format: 'pem' }),
-    priv: privateKey.export({ type: 'pkcs8', format: 'pem' })
+    alg: 'Ed25519+ML-DSA-65', fmt: 2,
+    pub: { ed25519: ed.publicKey.export({ type: 'spki', format: 'pem' }), mldsa65: b64(ml.publicKey) },
+    priv: { ed25519: ed.privateKey.export({ type: 'pkcs8', format: 'pem' }), mldsa65: b64(ml.secretKey) },
   };
 }
-const sign = (bytes, privPem) => crypto.sign(null, bytes, crypto.createPrivateKey(privPem)).toString('base64');
-const verify = (bytes, sigB64, pubPem) => {
-  try { return crypto.verify(null, bytes, crypto.createPublicKey(pubPem), Buffer.from(sigB64, 'base64')); }
-  catch { return false; }
-};
+function sign(bytes, priv) { // dual-sign — both signatures always produced
+  const mlSec = strictB64(priv.mldsa65);
+  if (!mlSec) die('malformed hybrid signing key (missing/!canonical ML-DSA secret) — legacy key? re-init or migrate');
+  return {
+    ed25519: crypto.sign(null, bytes, crypto.createPrivateKey(priv.ed25519)).toString('base64'),
+    mldsa65: b64(ml_dsa65.sign(mlSec, bytes)),
+  };
+}
+// both-or-invalid parity with core/SDK. Returns a named reason (null = valid). Legacy Ed25519-only (string sig
+// or missing ML-DSA) → alg_downgrade, fail closed — never silently reinterpreted.
+function verifyReason(bytes, sig, pub) {
+  // the classical half must always be valid — legacy or hybrid
+  const edPub = typeof pub === 'string' ? pub : (pub && pub.ed25519);
+  const edSig = typeof sig === 'string' ? sig : (sig && sig.ed25519);
+  let edOk = false; try { edOk = edPub && edSig && crypto.verify(null, bytes, crypto.createPublicKey(edPub), Buffer.from(edSig, 'base64')); } catch {}
+  if (!edOk) return 'sig_invalid';
+  // the post-quantum half. Absent → legacy / stripped: classical is valid but there is no PQC signature.
+  const mlPub = (pub && typeof pub === 'object') ? pub.mldsa65 : null;
+  const mlSig = (sig && typeof sig === 'object') ? sig.mldsa65 : null;
+  if (!mlPub || !mlSig) return 'alg_downgrade'; // Ed25519 alone — accepted only during the migration overlap window
+  const mp = strictB64(mlPub), ms = strictB64(mlSig);
+  let mlOk = false; try { mlOk = mp && ms && ml_dsa65.verify(mp, bytes, ms); } catch {}
+  if (!mlOk) return 'sig_invalid'; // PQC half present but broken / mismatched → tampered, rejected even under --accept-legacy
+  return null; // both valid
+}
+const verify = (bytes, sig, pub) => verifyReason(bytes, sig, pub) === null;
+
 const save = (p, o) => { fs.mkdirSync(path.dirname(p), { recursive: true }); fs.writeFileSync(p, typeof o === 'string' ? o : JSON.stringify(o, null, 2)); };
 const load = p => JSON.parse(fs.readFileSync(p, 'utf8'));
 const exists = p => fs.existsSync(p);
@@ -73,11 +109,11 @@ function checkpoint(size, head) {
   const root = load(P('root', 'root.json'));
   const body = { type: 'checkpoint', size, head, ts: now() };
   const bytes = Buffer.from(cjson(body));
-  const rootSig = sign(bytes, fs.readFileSync(P('root', 'root.key'), 'utf8'));
+  const rootSig = sign(bytes, load(P('root', 'root.key')));
   const witnessSigs = [];
   for (const wf of fs.readdirSync(P('witness')).filter(f => f.endsWith('.key'))) {
     const wname = wf.replace('.key', '');
-    witnessSigs.push({ witness: wname, sig: sign(bytes, fs.readFileSync(P('witness', wf), 'utf8')) });
+    witnessSigs.push({ witness: wname, sig: sign(bytes, load(P('witness', wf))) });
   }
   save(P('log', 'checkpoint.json'), { ...body, root_id: root.id, root_sig: rootSig, witness_sigs: witnessSigs });
 }
@@ -96,10 +132,10 @@ function logVerify(quiet = false) {
   const bytes = Buffer.from(cjson({ type: 'checkpoint', size: cp.size, head: cp.head, ts: cp.ts }));
   const root = load(P('root', 'root.json'));
   if (cp.head !== prev || cp.size !== lines[lines.length - 1].seq) die('checkpoint stale');
-  if (!verify(bytes, cp.root_sig, root.pub)) die('checkpoint root signature invalid');
+  if (!verify(bytes, cp.root_sig, root.pub)) die('checkpoint root signature invalid (or Ed25519-only — alg_downgrade)');
   let okW = 0;
   for (const w of cp.witness_sigs) {
-    const wpub = fs.readFileSync(P('witness', w.witness + '.pub'), 'utf8');
+    const wpub = load(P('witness', w.witness + '.pub'));
     if (verify(bytes, w.sig, wpub)) okW++;
   }
   if (!quiet) console.log(`✓ log intact — ${lines.length} entries · head ${prev.slice(0,12)}… · checkpoint signed by root · witnesses ${okW}/${cp.witness_sigs.length} ✓ (local)`);
@@ -112,7 +148,7 @@ function statusList() {
 }
 function saveStatusList(revoked) {
   const body = { type: 'status-list', revoked: revoked.sort(), ts: now() };
-  const sig = sign(Buffer.from(cjson(body)), fs.readFileSync(P('root', 'root.key'), 'utf8'));
+  const sig = sign(Buffer.from(cjson(body)), load(P('root', 'root.key')));
   save(P('log', 'revocations.json'), { ...body, sig });
 }
 function statusValid(sl, rootPub) {
@@ -124,7 +160,7 @@ function statusValid(sl, rootPub) {
 function cmdInit() {
   if (exists(P('root', 'root.json'))) die('root already initialized at ' + HOME);
   const k = genKey();
-  const root = { id: 'ainra-root-1', type: 'root', alg: 'Ed25519', pub: k.pub, fp: fingerprint(k.pub), created: now(),
+  const root = { id: 'ainra-root-1', type: 'root', alg: k.alg, fmt: k.fmt, pub: k.pub, fp: fingerprint(k.pub), created: now(),
     note: 'single-key root — threshold ceremony pending (v0.2)' };
   save(P('root', 'root.json'), root);
   save(P('root', 'root.key'), k.priv);
@@ -137,16 +173,16 @@ function cmdInit() {
   logAppend('ROOT-INIT', root.id, { fp: root.fp });
   console.log(`✓ root initialized · ${root.id} · FP ${root.fp}`);
   console.log(`  home: ${HOME}`);
-  console.log(`  note: single-key root, 3 local witness keys — labeled, not simulated as more than they are`);
+  console.log(`  keys: hybrid Ed25519 + ML-DSA-65 (both mandatory) · single-key root, 3 local witness keys — labeled`);
 }
 function cmdAccredit(name) {
   if (!name) die('usage: ainra accredit <registrar-name>');
   if (!/^[a-z0-9-]+$/.test(name)) die('registrar name: lowercase letters, digits, hyphens');
   const root = load(P('root', 'root.json'));
   const k = genKey();
-  const cert = { type: 'registrar-cert', registrar: name, alg: 'Ed25519', pub: k.pub, fp: fingerprint(k.pub),
+  const cert = { type: 'registrar-cert', registrar: name, alg: k.alg, fmt: k.fmt, pub: k.pub, fp: fingerprint(k.pub),
     issued: now(), expires: plusDays(365), root_id: root.id };
-  const sig = sign(Buffer.from(cjson(cert)), fs.readFileSync(P('root', 'root.key'), 'utf8'));
+  const sig = sign(Buffer.from(cjson(cert)), load(P('root', 'root.key')));
   save(P('registrar', name, 'cert.json'), { ...cert, root_sig: sig });
   save(P('registrar', name, 'registrar.key'), k.priv);
   const leaf = logAppend('ACCREDIT', name, { fp: cert.fp });
@@ -158,25 +194,27 @@ function cmdIssue(name, opts) {
   if (!exists(path.join(regDir, 'cert.json'))) die(`registrar "${n.registrar}" not accredited — run: ainra accredit ${n.registrar}`);
   const regCert = load(path.join(regDir, 'cert.json'));
   const agentKey = genKey();
-  const serial = 'AP-' + hex(crypto.randomBytes(3)).toUpperCase().replace(/^(.{4})/, '$1-');
+  const serial = opts.serial || ('AP-' + hex(crypto.randomBytes(3)).toUpperCase().replace(/^(.{4})/, '$1-'));
   const passport = {
-    type: 'agent-passport', v: 1, serial, name,
+    type: 'agent-passport', v: 1, fmt: 2, serial, name,
     lineage: n.lineage, version: n.version,
     operator: { name: opts.operator || n.operator, kyb: opts.kyb !== 'false', jurisdiction: opts.jurisdiction || 'US-DE' },
     registrar: n.registrar,
     authority: { class: opts.class || 'A1', proof: (opts.class || 'A1') === 'A1' ? 'zk:commitment:' + hex(crypto.randomBytes(8)) : 'org:attest' },
     tier: opts.tier || 'L3',
-    validity: { issued: now(), expires: plusDays(366), renewable: true }, // ADR-017: 366-day passport default
-    key: { alg: 'Ed25519', pub: agentKey.pub, fp: fingerprint(agentKey.pub) }
+    validity: { issued: opts.issued || now(), expires: opts.expires || plusDays(366), renewable: true }, // ADR-017: 366-day passport default
+    key: { alg: agentKey.alg, pub: agentKey.pub, fp: fingerprint(agentKey.pub) },
+    ...(opts.prev_leaf ? { prev_leaf: opts.prev_leaf } : {}), // ADR-017 continuity link on REISSUE
   };
-  const sig = sign(Buffer.from(cjson(passport)), fs.readFileSync(path.join(regDir, 'registrar.key'), 'utf8'));
-  const leaf = logAppend('ISSUE', name, { serial, tier: passport.tier, class: passport.authority.class });
+  const sig = sign(Buffer.from(cjson(passport)), load(path.join(regDir, 'registrar.key')));
+  const leaf = logAppend(opts.reissue ? 'REISSUE' : 'ISSUE', name, { serial, tier: passport.tier, class: passport.authority.class, ...(opts.prev_leaf ? { prev_leaf: opts.prev_leaf } : {}) });
   const doc = { ...passport, registrar_sig: sig, registrar_cert: regCert, log: { seq: leaf.seq, hash: leaf.hash } };
   save(P('passports', serial + '.json'), doc);
   save(P('passports', serial + '.agent.key'), agentKey.priv);
-  console.log(`✓ passport issued · ${name}`);
-  console.log(`  serial ${serial} · tier ${passport.tier} · class ${passport.authority.class} · key FP ${passport.key.fp}`);
+  console.log(`✓ passport ${opts.reissue ? 'reissued' : 'issued'} · ${name}`);
+  console.log(`  serial ${serial} · tier ${passport.tier} · class ${passport.authority.class} · key FP ${passport.key.fp}${opts.prev_leaf ? ' · prev_leaf #' + opts.prev_leaf : ''}`);
   console.log(`  registered in root log #${String(leaf.seq).padStart(6,'0')} · file ${P('passports', serial + '.json')}`);
+  return doc;
 }
 function findPassport(ref) {
   const dir = P('passports');
@@ -190,15 +228,20 @@ function cmdVerify(ref, opts) {
   const t0 = process.hrtime.bigint();
   const doc = findPassport(ref);
   const root = load(P('root', 'root.json'));
+  const acceptLegacy = opts['accept-legacy'] === 'true'; // Task 2 policy epoch — default OFF (fail closed)
   const checks = [];
   // 1. registrar cert chains to root
   const { root_sig, ...certBody } = doc.registrar_cert;
-  const certOk = verify(Buffer.from(cjson(certBody)), root_sig, root.pub) && new Date(certBody.expires) > new Date();
+  const certReason = verifyReason(Buffer.from(cjson(certBody)), root_sig, root.pub);
+  const certOk = (certReason === null || (acceptLegacy && certReason === 'alg_downgrade')) && new Date(certBody.expires) > new Date();
   checks.push(certOk);
   // 2. passport signed by registrar
   const { registrar_sig, registrar_cert, log, ...passBody } = doc;
-  const passOk = verify(Buffer.from(cjson(passBody)), registrar_sig, doc.registrar_cert.pub);
+  const passReason = verifyReason(Buffer.from(cjson(passBody)), registrar_sig, doc.registrar_cert.pub);
+  const passOk = passReason === null || (acceptLegacy && passReason === 'alg_downgrade');
   checks.push(passOk);
+  const suiteReason = passReason || certReason; // the named reason when the failure is suite-level
+  const legacyCred = passReason === 'alg_downgrade' || certReason === 'alg_downgrade';
   // 3. validity window
   const dateOk = new Date(doc.validity.expires) > new Date();
   checks.push(dateOk);
@@ -214,16 +257,18 @@ function cmdVerify(ref, opts) {
   checks.push(inLog);
   const ms = Number(process.hrtime.bigint() - t0) / 1e6;
   const ok = checks.every(Boolean);
-  if (opts.json) { console.log(JSON.stringify({ ok, name: doc.name, serial: doc.serial, revoked, checks: { chain: certOk && passOk, dates: dateOk, status: slSigned && !revoked, log: inLog }, ms: +ms.toFixed(1) }, null, 2)); process.exit(ok ? 0 : 1); }
+  const reason = ok ? null : (revoked ? 'revoked' : (!passOk || !certOk ? suiteReason : (!dateOk ? 'expired' : (!inLog ? 'not_logged' : 'invalid'))));
+  if (opts.json) { console.log(JSON.stringify({ ok, name: doc.name, serial: doc.serial, suite: doc.registrar_cert.alg || 'legacy-Ed25519', reason, revoked, legacy_credential: legacyCred, checks: { chain: certOk && passOk, dates: dateOk, status: slSigned && !revoked, log: inLog }, ms: +ms.toFixed(1) }, null, 2)); process.exit(ok ? 0 : 1); }
   const g = s => '\x1b[32m' + s + '\x1b[0m', r = s => '\x1b[31m' + s + '\x1b[0m', d = s => '\x1b[2m' + s + '\x1b[0m';
   console.log(d('$ ainra verify ') + doc.name);
+  console.log(`→ suite      ${doc.registrar_cert.alg === 'Ed25519+ML-DSA-65' ? g('Ed25519 + ML-DSA-65 ✓') : r('legacy Ed25519-only')} ${legacyCred && !acceptLegacy ? r('· alg_downgrade (fail closed)') : ''}`);
   console.log(`→ chain      root ${certOk ? g('✓') : r('✗')} · registrar ${passOk ? g('✓') : r('✗')} · version ${g('✓')}`);
   console.log(`→ operator   ${doc.operator.name} — ${doc.operator.kyb ? g('KYB verified') : 'self-declared'} (${doc.operator.jurisdiction})`);
   console.log(`→ authority  ${doc.authority.class}${doc.authority.class === 'A1' ? ' human-delegated (zk-commitment)' : ''} ${g('✓')} · PII: none`);
-  console.log(`→ validity   ${doc.validity.issued.slice(0,10)} → ${doc.validity.expires.slice(0,10)} ${dateOk ? g('✓') : r('EXPIRED')}`);
+  console.log(`→ validity   ${doc.validity.issued.slice(0,10)} → ${doc.validity.expires.slice(0,10)} ${dateOk ? g('✓') : r('EXPIRED')}${doc.prev_leaf ? d(' · prev_leaf #' + doc.prev_leaf) : ''}`);
   console.log(`→ status     tier ${g(doc.tier)} · revocation ${revoked ? r('REVOKED ✗') : g('ACTIVE ✓')} ${slSigned ? '' : r('(status list unsigned!)')}`);
   console.log(`→ log        entry #${String(doc.log.seq).padStart(6,'0')} ${inLog ? g('✓ included') : r('✗ absent')} · chain of ${lv.entries} intact · witnesses ${lv.witnessesOk}/${lv.witnesses} ${d('(local)')}`);
-  console.log(ok ? g(`✓ VALID`) + d(` · verified in ${ms.toFixed(1)} ms`) : r(`✗ INVALID`) + d(` · verified in ${ms.toFixed(1)} ms`));
+  console.log(ok ? g(`✓ VALID`) + d(` · verified in ${ms.toFixed(1)} ms`) : r(`✗ INVALID`) + d(` · ${reason} · verified in ${ms.toFixed(1)} ms`));
   process.exit(ok ? 0 : 1);
 }
 function cmdRevoke(ref, opts) {
@@ -235,9 +280,31 @@ function cmdRevoke(ref, opts) {
   console.log(`✓ revoked · ${doc.name} · reason: ${opts.reason || 'operator-request'} · log #${String(leaf.seq).padStart(6,'0')}`);
   console.log(`  every verifier reading this status list now rejects it — that is the whole switch.`);
 }
+/* ---------- Suite Migration Drill 01: REISSUE every credential to hybrid, prev_leaf continuity, nothing deleted ---------- */
+function cmdMigrate(dir, opts) {
+  const passDir = P('passports');
+  if (!exists(passDir)) die('no passports to migrate in ' + HOME);
+  const files = fs.readdirSync(passDir).filter(f => f.endsWith('.json'));
+  const legacy = files.map(f => load(path.join(passDir, f))).filter(d => (d.registrar_cert.alg || 'Ed25519') !== 'Ed25519+ML-DSA-65');
+  const dry = opts['dry-run'] === 'true' || opts.plan === 'true';
+  console.log(`\x1b[1m— Suite Migration Drill: Ed25519 → Ed25519+ML-DSA-65 —\x1b[0m`);
+  console.log(`  ${files.length} credential(s) present · ${legacy.length} legacy (Ed25519-only) to REISSUE · ${files.length - legacy.length} already hybrid`);
+  if (!legacy.length) { console.log('  ✓ nothing to migrate — all credentials are already hybrid.'); return; }
+  if (dry) { console.log('  (dry-run) plan:'); legacy.forEach(d => console.log(`    REISSUE ${d.name} — new hybrid key, fresh window, prev_leaf → log #${d.log.seq} (legacy leaf kept)`)); console.log('  run without --dry-run to execute. Nothing is deleted; history only grows.'); return; }
+  for (const d of legacy) {
+    const nn = d.name; // ADR-017 REISSUE: fresh validity window, prev_leaf continuity to the legacy leaf, new hybrid key
+    const overlap = new Date(Date.now() + 30 * 864e5).toISOString(); // legacy stays valid during the overlap window
+    console.log(`  → migrating ${nn} (legacy leaf #${d.log.seq}) …`);
+    cmdIssue(nn, { operator: d.operator.name, tier: d.tier, class: d.authority.class, jurisdiction: d.operator.jurisdiction,
+      reissue: true, prev_leaf: d.log.seq, serial: d.serial + '-h', issued: now(), expires: overlap });
+  }
+  console.log(`\n  ✓ migrated ${legacy.length} credential(s) to hybrid. Legacy leaves preserved; each hybrid successor links back via prev_leaf.`);
+  console.log(`  Flip the policy: verify with the default (no --accept-legacy) and the legacy credential now fails closed as alg_downgrade,`);
+  console.log(`  while its hybrid successor verifies. Overlap window (legacy still accepted with --accept-legacy) ends ${(new Date(Date.now()+30*864e5)).toISOString().slice(0,10)}.`);
+}
 function cmdDemo() {
   if (exists(HOME)) die(`${HOME} exists — run demo in a clean directory or set AINRA_HOME`);
-  console.log('\x1b[1m— AINRA reference lifecycle demo —\x1b[0m\n');
+  console.log('\x1b[1m— AINRA reference lifecycle demo (hybrid Ed25519 + ML-DSA-65) —\x1b[0m\n');
   cmdInit(); console.log('');
   cmdAccredit('registrar-07'); console.log('');
   cmdIssue('ainra:registrar-07:acme-corp:invoicing@4.2.1', { operator: 'Acme Corp', tier: 'L3', class: 'A1' }); console.log('');
@@ -247,19 +314,20 @@ function cmdDemo() {
   try { cmdVerifyNoExit('ainra:registrar-07:acme-corp:invoicing@4.2.1'); } catch {}
   console.log('');
   logVerify();
-  console.log('\n\x1b[1mdone.\x1b[0m every signature above is real Ed25519; tamper with any file in ' + HOME + ' and verification fails.');
+  console.log('\n\x1b[1mdone.\x1b[0m every signature above is real hybrid Ed25519 + ML-DSA-65; strip the ML-DSA half and it fails closed (alg_downgrade). Tamper with any file in ' + HOME + ' and verification fails.');
 }
-function cmdVerifyNoExit(ref) { // demo helper: same as verify but doesn't kill the process
-  const realExit = process.exit; process.exit = () => {}; try { cmdVerify(ref, {}); } finally { process.exit = realExit; }
+function cmdVerifyNoExit(ref, opts) { // demo helper: same as verify but doesn't kill the process
+  const realExit = process.exit; process.exit = () => {}; try { cmdVerify(ref, opts || {}); } finally { process.exit = realExit; }
 }
 function usage() {
-  console.log(`ainra — reference implementation v0.1.0 (interop testing; single-key root, local witnesses — labeled)
+  console.log(`ainra — reference implementation v0.2.0 (hybrid Ed25519 + ML-DSA-65; interop testing; single-key root, local witnesses — labeled)
 usage:
-  ainra init                                   initialize root, witnesses, log
+  ainra init                                   initialize root, witnesses, log (hybrid keys)
   ainra accredit <registrar>                   root accredits an independent registrar
   ainra issue <ainra:reg:op:lineage@ver> [--operator "Name"] [--tier L3] [--class A1]
-  ainra verify <name|serial|file> [--json]     full chain + status + log verification (exit 0/1)
+  ainra verify <name|serial|file> [--json] [--accept-legacy]   full chain + status + log (exit 0/1)
   ainra revoke <name|serial> [--reason r]      append revocation; verifiers reject immediately
+  ainra migrate [--dry-run]                    Suite Migration Drill: REISSUE legacy creds to hybrid, prev_leaf continuity
   ainra log verify                             verify the whole hash chain + checkpoint
   ainra demo                                   run the full lifecycle end to end
 home: ${HOME}  (override with AINRA_HOME)`);
@@ -274,6 +342,7 @@ switch (cmd) {
   case 'issue': cmdIssue(args[0], opts); break;
   case 'verify': cmdVerify(args[0] || die('usage: ainra verify <name|serial|file>'), opts); break;
   case 'revoke': cmdRevoke(args[0] || die('usage: ainra revoke <name|serial>'), opts); break;
+  case 'migrate': cmdMigrate(args[0], opts); break;
   case 'log': args[0] === 'verify' ? logVerify() : usage(); break;
   case 'demo': cmdDemo(); break;
   default: usage();

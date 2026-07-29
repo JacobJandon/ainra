@@ -10,6 +10,23 @@ We **publicly own fixed security bugs** — hiding them would be the opposite of
 
 ## [Unreleased]
 
+### M23 — the downloadable CLI goes hybrid (Suite Migration Drill 01, in progress)
+
+- The **downloadable reference CLI is now hybrid Ed25519 + ML-DSA-65**, both-signatures-or-invalid, at parity with
+  the Rust core and browser SDK — keygen, every issuance signature (issuer/root/cert/checkpoint/status), and
+  verification. It stays **one self-contained file**: `make site` esbuild-bundles the canonical source with the
+  audited `@noble/post-quantum` ML-DSA inlined, so the download runs with just `node` — no install, zero runtime
+  deps (64 KB bundle, 18 KB zipped). Every external decode goes through the one strict canonical gateway (D-029).
+- **Migration semantics, fail-closed:** a legacy Ed25519-only credential is recognized and named — `alg_downgrade`
+  by default, verifying **only** under an opt-in `--accept-legacy` overlap; a credential whose ML-DSA half is
+  present but broken or non-canonical is `sig_invalid`, rejected under **every** policy. Proven by `make cli-check`
+  (4 downgrade vectors × 2 policies), wired into `ci` + `preflight`. The core↔SDK corpus already proved this at the
+  protocol level (24 `alg-downgrade-*` + `noncanon-*` inside the 745; unchanged, still `make diff` green).
+- Measured on the reference machine: hybrid sign ≈ 7 ms, verify ≈ 3 ms; CLI implementation **v0.1.0 → v0.2.0**.
+- Still ahead in M23 (not yet done): run Suite Migration Drill 01 against staging with a transcript, the
+  distributable multi-party ceremony, witness kit v2, and the push-status ADR. The three real-world genesis DoD
+  rows (recorded public ceremony, ≥3 external verifiers, 14-day 3-region soak) remain honestly pending.
+
 ### M19 — the network runs under a real genesis root; next-version roadmap
 
 - `make stage-up` now runs the genesis ceremony over the live registrars: `accredit` DKGs a FROST 5-of-9 +
@@ -25,10 +42,7 @@ We **publicly own fixed security bugs** — hiding them would be the opposite of
 
 ### Next (v0.2.0) — planned
 
-- **Downloadable reference CLI goes hybrid** (Ed25519 + ML-DSA-65), matching the standard's mandate — the Rust
-  core and browser SDK are already hybrid; the JS CLI (this download) is Ed25519-only. Flagship item: needs a
-  careful crypto rework across every sign/verify site, with the audited `@noble/post-quantum` ML-DSA bundled so
-  the single-file CLI still runs with just `node`.
+- ~~Downloadable reference CLI goes hybrid~~ — **done in M23** (above).
 - Threshold root ceremony in the CLI (single-key today), independent-witness wiring, push-based status fabric.
 - The three real-world genesis DoD events: a recorded public ceremony with independent custodians, ≥3 external
   verifiers, and a 14-day 3-region soak.

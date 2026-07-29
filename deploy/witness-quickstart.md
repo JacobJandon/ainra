@@ -10,13 +10,16 @@ witness recruitment (a pending DoD row) begins for real.
 ```sh
 # from a clone (or the released image)
 cargo build --release -p ainra-services --bin witnessd
-./target/release/witnessd 0.0.0.0:4991 ./witness-data
-# or:  docker run -p 4991:4991 -v witness:/data ainra/services:staging witnessd 0.0.0.0:4991 /data
+cp kits/witness/witness.config.json witness.config.json   # edit operator/region/contact; set a long random `seed`
+./target/release/witnessd 0.0.0.0:4991 witness.config.json # the config is OPTIONAL: `witnessd 0.0.0.0:4991` also works
 ```
 
-Your witness generates its OWN key on first boot (into `./witness-data`) — you are a *distinct* witness, not a copy
-of ours. Tell the network operator your `http://<your-host>:4991` and your public key (`GET /root`); they add you to
-the witness set. A relying party sets its own quorum `k` (never a cert's) — see D-021.
+Your witness's key comes from the `seed` in your one-file config (pin a long random secret so the key is stable across
+restarts) — or, with no config, it is derived from the address. Either way you are a *distinct* witness, not a copy of
+ours. Tell the network operator your `http://<your-host>:4991` and your public key (`GET /root`, alias `GET /key`);
+they add you to the witness set. `GET /meta` serves your **self-declared** operator/region card (verified by no one —
+it just lets relying parties see witness diversity). A relying party sets its own quorum `k` (never a cert's) — see
+D-021 and the quorum-k worked examples in `kits/witness/README.md`.
 
 ## Prove it works (catch a fork)
 

@@ -70,6 +70,19 @@ async function boot() {
       ? `suite mix — <b>${hy}</b> hybrid (Ed25519 + ML-DSA-65) · <b>${lg}</b> legacy Ed25519-only, which fails closed by default during migration`
       : `cryptographic suite — every live record is <b>hybrid Ed25519 + ML-DSA-65</b> (post-quantum) · <b>0</b> legacy stragglers`;
   }
+  // Witness diversity — self-declared, from live data: how many independent operators (and regions) cosign the log.
+  // A checkpoint is certified only when a relying-party quorum of these witnesses agrees; a fork needs the quorum to
+  // collude. The metadata is the operators' own claim (verified by no one); the count and keys are the live facts.
+  const W = REG.witnesses || [];
+  const wel = $("#s-witnesses");
+  if (wel && W.length) {
+    const regions = [...new Set(W.map((w) => (w.region || "").trim()).filter(Boolean))];
+    wel.hidden = false; wel.className = "s-rootdark";
+    wel.innerHTML = `witnesses — <b>${W.length}</b> cosigning the log` +
+      (regions.length ? ` · ${regions.map((r) => `<em>${r}</em>`).join(" · ")}` : "") +
+      ` · self-declared, verified by no one — a fork must out-collude the relying party's quorum`;
+  }
+
   render(ROWS);
   $("#s-search").addEventListener("input", () => {
     const q = $("#s-search").value.toLowerCase();

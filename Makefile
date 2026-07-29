@@ -1,6 +1,6 @@
 # AINRA — the acceptance bar (MTS §28, brief §8): a stranger clones, runs `make test && make vectors && make diff`,
 # and everything is green in under 10 minutes on a laptop.
-.PHONY: all test vectors vectors-check diff cli-check suite-migration-drill ceremony-rehearsal-multi fmt clippy fuzz-smoke bench sdk-build sdk-test ci clean status console samples drill explorer demo scale ceremony testbed wedge-build wedge-test repro mirror verify-mirror check-freeze freeze genesis-local verifier-kit-smoke ceremony-dry-run soak-smoke drill-networked preflight s7 license gitleaks audit verify-as-external verifier-triple-drill soak-verify genesis-status verify-transcript genesis-board-demo release doctor verifier-operator-drill site site-up site-down site-check stage-all stage-all-down explorer-up explorer-down ainrascan stage-up stage-down stage-status stage-smoke demo-walkthrough three-clients genesis-verify config-diff declaration genesis-rehearsal site-demo verify issue-first registrar-console mcp-test skills-replay presentation-diff
+.PHONY: all test vectors vectors-check diff cli-check suite-migration-drill ceremony-rehearsal-multi witness-check fmt clippy fuzz-smoke bench sdk-build sdk-test ci clean status console samples drill explorer demo scale ceremony testbed wedge-build wedge-test repro mirror verify-mirror check-freeze freeze genesis-local verifier-kit-smoke ceremony-dry-run soak-smoke drill-networked preflight s7 license gitleaks audit verify-as-external verifier-triple-drill soak-verify genesis-status verify-transcript genesis-board-demo release doctor verifier-operator-drill site site-up site-down site-check stage-all stage-all-down explorer-up explorer-down ainrascan stage-up stage-down stage-status stage-smoke demo-walkthrough three-clients genesis-verify config-diff declaration genesis-rehearsal site-demo verify issue-first registrar-console mcp-test skills-replay presentation-diff
 
 all: fmt clippy test vectors diff
 
@@ -51,6 +51,11 @@ suite-migration-drill: sdk-build
 ceremony-rehearsal-multi:
 	bash tools/ceremony-rehearsal-multi.sh
 
+# M23 Task 4 — witness kit v2: single-binary witnessd from a ONE-FILE config, self-declared /meta (verified by no
+# one), /root alias, bare-address back-compat, and a quorum that still refuses a fork. Times the <10-min onboarding.
+witness-check:
+	bash tools/witness-kit-smoke.sh
+
 fmt:
 	cargo fmt --all -- --check
 
@@ -72,7 +77,7 @@ sdk-test: sdk-build
 	cd packages/sdk-ts && npm test
 
 # The full local gate mirror of .github/workflows/ci.yml.
-ci: fmt clippy test vectors diff cli-check suite-migration-drill ceremony-rehearsal-multi sdk-test site site-check
+ci: fmt clippy test vectors diff cli-check suite-migration-drill ceremony-rehearsal-multi witness-check sdk-test site site-check
 	node tools/s7-lint.mjs
 	node tools/license-check.mjs
 	./tools/fuzz-smoke.sh

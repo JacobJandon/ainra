@@ -1,0 +1,8 @@
+{
+  "_comment": "The staging operator's OWN witness. Self-declared metadata (served at /meta, verified by no one). Independent witness seats are OPEN — running your own is how the '≥3 independent witnesses' DoD row begins. See kits/witness/.",
+  "seed": "ainra-staging-witness-key-TEST-ROOT-not-a-production-secret",
+  "operator": "AINRA staging operator",
+  "region": "single-operator (independent seats open)",
+  "contact": "witness@ainra.org",
+  "note": "The staging network's own witness. It catches forks today; real fork-resistance needs INDEPENDENT operators — that recruitment is a pending real-world milestone, not a code gap."
+}

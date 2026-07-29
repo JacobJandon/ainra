@@ -150,6 +150,8 @@ jobs:
       # M23 Task 3: the genesis ceremony runs across NINE isolated processes (file-based FROST 5-of-9) — one group
       # key emerges, 5 shares sign / 4 cannot, transcript reproducible.
       - run: make ceremony-rehearsal-multi
+      # M23 Task 4: witness kit v2 — one-file config, self-declared /meta, /root alias, back-compat, fork still refused.
+      - run: make witness-check
 
   reproducibility:
     name: reproducible builds + mirror byte-verify (M7)

@@ -78,6 +78,19 @@ publish(){ # fetch each daemon's public artifacts → static files with the cont
     FP="$(node -e 'process.stdout.write(require("./"+process.argv[1]+"/genesis/roots.json").root_ed25519.slice(0,16))' "$STAGE")"
     node -e 'const fs=require("fs"),d=process.argv[1],fp=process.argv[2];const j=JSON.parse(fs.readFileSync(d+"/index.json"));j.root="genesis:"+fp;j.label="AINRA NETWORK · GENESIS ROOT "+fp+" (operator-run ceremony)";j.roots="/roots.json";j.ceremony="operator-run; public multi-custodian ceremony + external verifiers + 14d soak are the remaining real-world milestones";fs.writeFileSync(d+"/index.json",JSON.stringify(j))' "$PUB" "$FP"
   fi
+  # M23 Task 4 — witness diversity: publish the witness set's SELF-DECLARED /meta into the registry the explorer reads,
+  # so it can show how many independent operators (and regions) stand behind the log. Verified by no one; the key is
+  # the only cryptographic fact. Today staging runs one witness — the honest count, with independent seats open.
+  local wmeta; wmeta="$(get "$WIT_ADDR/meta" 2>/dev/null || echo '{}')"
+  WMETA="$wmeta" WADDR="$WIT_ADDR" node -e '
+    const fs=require("fs"),d=process.argv[1]; let m={}; try{m=JSON.parse(process.env.WMETA||"{}")}catch{}
+    for (const f of ["registry.json","index.json"]) {
+      const p=d+"/"+f; const j=JSON.parse(fs.readFileSync(p,"utf8"));
+      j.witnesses = m.ed25519 ? [{ addr:process.env.WADDR, self_declared:true, ed25519:m.ed25519,
+        operator:m.operator||"", region:m.region||"", note:m.note||"" }] : [];
+      fs.writeFileSync(p, JSON.stringify(j));
+    }
+  ' "$PUB"
 }
 
 case "${1:-up}" in
@@ -91,7 +104,7 @@ up)
   : > "$STAGE/pids"
   AINRA_STAGE=1 AINRA_STAGE_ISSUE_TOKEN="$AINRA_STAGE_ISSUE_TOKEN" ./target/release/registrar-box "$REG1_ADDR" "$REG1_ID" "$STAGE/$REG1_ID" >"$STAGE/$REG1_ID.log" 2>&1 & echo $! >> "$STAGE/pids"
   AINRA_STAGE=1 AINRA_STAGE_ISSUE_TOKEN="$AINRA_STAGE_ISSUE_TOKEN" ./target/release/registrar-box "$REG2_ADDR" "$REG2_ID" "$STAGE/$REG2_ID" >"$STAGE/$REG2_ID.log" 2>&1 & echo $! >> "$STAGE/pids"
-  ./target/release/witnessd "$WIT_ADDR" "$STAGE/witness" >"$STAGE/witness.log" 2>&1 & echo $! >> "$STAGE/pids"
+  ./target/release/witnessd "$WIT_ADDR" deploy/staging-witness.config.json >"$STAGE/witness.log" 2>&1 & echo $! >> "$STAGE/pids"
   sleep 1.2
   echo "== genesis-seed a real network over HTTP (issue / delegate / revoke / renew) =="
   issue "$REG1_ADDR" acme    invoicing   4.2.1 L3 A2 "read:invoices,sign:invoice" "read:invoices,sign:invoice,read:payments" audit

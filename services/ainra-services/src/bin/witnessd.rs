@@ -1,6 +1,14 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 //! `witnessd` daemon: POST /consider {origin,size,root_b64,consistency_proof_b64[]} → the outcome (and a cosignature
-//! when it cosigns). Refuses forks + regressions. GET /key → the witness public key. Local, zero telemetry.
+//! when it cosigns). Refuses forks + regressions. GET /key (alias /root) → the witness public key. GET /meta → the
+//! operator's SELF-DECLARED metadata (never verified by anyone). Local, zero telemetry.
+//!
+//! Usage:  witnessd <addr> [config.json]
+//! The optional one-file config declares who runs this witness (all fields optional):
+//!   { "seed": "<hex>", "operator": "…", "region": "…", "contact": "…", "note": "…" }
+//! `seed` (if present) pins a persistent key; otherwise the key is derived from the address. Everything under
+//! operator/region/contact/note is SELF-DECLARED — `/meta` serves it with `self_declared: true`, and the verifier
+//! and site render it as an unverified operator claim. Witnessing needs no accreditation; the metadata is courtesy.
 
 use std::sync::Mutex;
 
@@ -10,6 +18,7 @@ use ainra_services::http::{serve, Request};
 use ainra_services::witness::{Witness, WitnessOutcome};
 use rand_chacha::ChaCha20Rng;
 use rand_core::SeedableRng;
+use sha2::{Digest, Sha256};
 
 fn decode32(s: &str) -> Option<[u8; 32]> {
     b64::decode_array::<32>(s).ok()
@@ -19,23 +28,58 @@ fn main() {
     let addr = std::env::args()
         .nth(1)
         .unwrap_or_else(|| "127.0.0.1:4883".to_string());
-    // Derive the witness key from its address (FNV-1a) so a quorum of witnessd processes on different ports get
-    // cryptographically DISTINCT keys — independent witnesses, never one key under many addresses (cf. the M8
-    // registrar fix). A real deployment seeds from an operator-held key on separate infrastructure.
-    let mut seed = 0xcbf2_9ce4_8422_2325u64;
-    for byte in addr.bytes() {
-        seed ^= u64::from(byte);
-        seed = seed.wrapping_mul(0x0000_0100_0000_01b3);
-    }
-    let mut rng = ChaCha20Rng::seed_from_u64(seed);
+    // Optional one-file config (arg 2). Absent / unreadable / a non-JSON path (e.g. a legacy data-dir arg) → no
+    // declared metadata, key derived from the address. Never fails closed on a missing config — witnessing is open.
+    let cfg: serde_json::Value = std::env::args()
+        .nth(2)
+        .and_then(|p| std::fs::read_to_string(p).ok())
+        .and_then(|s| serde_json::from_str(&s).ok())
+        .unwrap_or(serde_json::Value::Null);
+    let field = |k: &str| {
+        cfg.get(k)
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string()
+    };
+
+    // Key: a config `seed` (hex) pins a persistent operator key; otherwise derive from the address (FNV-1a) so a
+    // quorum of witnessd processes on different ports get cryptographically DISTINCT keys — independent witnesses,
+    // never one key under many addresses (cf. the M8 registrar fix). A real deployment seeds from operator-held key.
+    let mut rng = match cfg.get("seed").and_then(|v| v.as_str()) {
+        Some(hex) if !hex.is_empty() => {
+            let digest: [u8; 32] = Sha256::digest(hex.as_bytes()).into();
+            ChaCha20Rng::from_seed(digest)
+        }
+        _ => {
+            let mut seed = 0xcbf2_9ce4_8422_2325u64;
+            for byte in addr.bytes() {
+                seed ^= u64::from(byte);
+                seed = seed.wrapping_mul(0x0000_0100_0000_01b3);
+            }
+            ChaCha20Rng::seed_from_u64(seed)
+        }
+    };
     let witness = Mutex::new(Witness::new(crypto::TestDelegate::generate(&mut rng)));
 
     serve(&addr, move |req: &Request| {
         let mut w = witness.lock().unwrap();
         match (req.method.as_str(), req.path.as_str()) {
-            ("GET", "/key") => (
+            ("GET", "/key") | ("GET", "/root") => (
                 200,
                 serde_json::json!({ "ed25519": b64::encode(&w.public()) }).to_string(),
+            ),
+            // SELF-DECLARED — the operator's own claim, verified by no one; the key is the only cryptographic fact.
+            ("GET", "/meta") => (
+                200,
+                serde_json::json!({
+                    "self_declared": true,
+                    "ed25519": b64::encode(&w.public()),
+                    "operator": field("operator"),
+                    "region": field("region"),
+                    "contact": field("contact"),
+                    "note": field("note"),
+                })
+                .to_string(),
             ),
             ("POST", "/consider") => {
                 let v: serde_json::Value = match serde_json::from_str(&req.body) {

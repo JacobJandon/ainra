@@ -1,0 +1,8 @@
+{
+  "_comment": "One-file witnessd config. Every field is OPTIONAL and every field below `seed` is SELF-DECLARED — served at GET /meta with self_declared:true and verified by no one. Only the key is a cryptographic fact. Copy this, edit, then: witnessd 0.0.0.0:4991 witness.config.json",
+  "seed": "change-me-to-a-long-random-secret-or-remove-to-derive-from-address",
+  "operator": "Example Independent Operator",
+  "region": "eu-west",
+  "contact": "witness@example.org",
+  "note": "Witnessing AINRA staging. Independent infra; not affiliated with the root operator."
+}

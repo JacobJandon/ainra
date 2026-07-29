@@ -19,7 +19,7 @@
 <meta name="twitter:title" content="Verify — AINRA">
 <meta name="twitter:description" content="How AINRA verification works — a handful of checks, fail-closed, offline-capable.">
 <meta name="twitter:image" content="https://ainra.org/og-cover.png">
-<noscript><style>.rv,.t-line,.verify-line{opacity:1!important;transform:none!important}.sec-head .hero-h{font-family:var(--display);font-size:clamp(1.9rem,4vw,2.75rem);font-weight:730;line-height:1.1;margin-top:12px;letter-spacing:-.03em}
+<noscript><style>.rv,.t-line,.verify-line{opacity:1!important;transform:none!important}.needs-js{display:none!important}#noscript-note{display:block!important}.sec-head .hero-h{font-family:var(--display);font-size:clamp(1.9rem,4vw,2.75rem);font-weight:730;line-height:1.1;margin-top:12px;letter-spacing:-.03em}
 </style></noscript><meta name="description" content="How AINRA verification works: four checks, a proposed fail-closed freshness profile, a working reference CLI, and what ships at first public release.">
 <style>
 :root{
@@ -364,6 +364,47 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
 .openbadge{display:inline-flex;align-items:center;gap:9px;font-size:11px;font-weight:600;color:var(--muted);border:1px solid rgba(11,18,32,.14);border-radius:99px;padding:6px 13px;font-family:var(--body);letter-spacing:0}
 @media(min-width:901px){.nav-links{display:none!important}}
 @media(max-width:900px){.mi,.nav-hide{display:none}}
+/* try-it-live — the verify/forge widget, folded from the old demo page. Fully scoped under #try. */
+#try .demo{margin:30px auto 0;max-width:1000px;display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media(max-width:860px){#try .demo{grid-template-columns:1fr}}
+#try .panel{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:0 24px 56px -34px rgba(11,18,32,.28)}
+#try .panel-h{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--line);background:var(--paper)}
+#try .panel-h b{font-size:13px}#try .panel-h .tag{margin-left:auto;font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:var(--muted);border:1px solid var(--line);border-radius:5px;padding:3px 8px}
+#try .panel-b{padding:18px}
+#try label.fld{display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;margin:12px 0 4px}
+#try label.fld:first-child{margin-top:0}
+#try select{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:9px;background:var(--paper);color:var(--ink);font:13px var(--mono)}
+#try .pf{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-family:var(--mono);font-size:11.5px;margin-top:6px}
+#try .pf span:nth-child(odd){color:var(--muted);text-transform:uppercase;font-size:9.5px;letter-spacing:.06em;padding-top:2px}
+#try .pf span:nth-child(even){color:var(--ink);word-break:break-all}
+#try .pf .chip{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:600;border-radius:99px;padding:2px 9px;font-family:var(--body)}
+#try .chip.ok{background:rgba(26,107,78,.1);color:var(--green)}#try .chip.no{background:rgba(168,58,44,.1);color:var(--red)}
+#try .chip.ok:before,#try .chip.no:before{content:"";width:5px;height:5px;border-radius:50%;background:currentColor}
+#try .tamper{margin-top:16px;border-top:1px dashed var(--line);padding-top:14px}
+#try .tamper .lead{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;color:var(--amber);text-transform:uppercase;margin-bottom:10px}
+#try .tbtns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+#try .tbtn{border:1px solid var(--line);border-radius:9px;background:var(--paper);padding:9px 10px;text-align:left;font-size:12px;font-weight:600;color:var(--ink);transition:border-color .15s,background .15s}
+#try .tbtn:hover{border-color:var(--red)}
+#try .tbtn span{display:block;font-family:var(--mono);font-size:9px;font-weight:400;color:var(--muted);margin-top:2px;letter-spacing:.04em}
+#try .tbtn[aria-pressed="true"]{border-color:var(--red);background:rgba(168,58,44,.06)}
+#try .verdict-top{display:flex;align-items:center;gap:12px}
+#try .big{font-family:var(--display);font-size:34px;font-weight:800;letter-spacing:-.02em}
+#try .big.ok{color:var(--green)}#try .big.no{color:var(--red)}#try .big.pend{color:var(--muted)}
+#try .reason{font-family:var(--mono);font-size:12px;color:var(--muted);margin-top:2px}
+#try .reason b{color:var(--red)}
+#try .dsteps{margin-top:16px;display:grid;gap:2px}
+#try .dstep{display:grid;grid-template-columns:22px 1fr;gap:10px;align-items:baseline;padding:7px 8px;border-radius:8px}
+#try .dstep:nth-child(odd){background:var(--paper)}
+#try .dstep .i{font-family:var(--mono);font-weight:700;font-size:13px}
+#try .dstep .i.ok{color:var(--green)}#try .dstep .i.no{color:var(--red)}#try .dstep .i.pend{color:var(--muted)}
+#try .dstep .t{font-size:12.5px;line-height:1.45}
+#try .dstep .t b{color:var(--ink)}#try .dstep .t code{font-family:var(--mono);font-size:11px;background:rgba(11,18,32,.05);padding:1px 4px;border-radius:3px}
+#try .run{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+#try .provenance{margin-top:14px;font-family:var(--mono);font-size:9.5px;letter-spacing:.05em;color:var(--muted);line-height:1.7}
+#try .provenance b{color:var(--green)}
+#try .err{background:rgba(168,58,44,.08);border:1px solid rgba(168,58,44,.3);border-radius:10px;padding:14px 16px;font-size:13px;color:var(--red);margin:18px 0}
+#try .err code{font-family:var(--mono);background:rgba(168,58,44,.12);padding:1px 5px;border-radius:4px}
+#try .btn-green{background:var(--green);color:#fff}#try .btn-green:hover{filter:brightness(1.1)}
 </style></head><body id="top">
 <a href="#main" class="skip">Skip to content</a>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -414,9 +455,8 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
     <a href="verify.html">Verification<span>Five lines, offline, fail-closed</span></a>
   </div></div>
   <div class="mi"><button type="button" data-dd aria-haspopup="true" aria-expanded="false">Developers <span class="car">▼</span></button><div class="dd">
-    <a href="demo.html">Try it live<span>Verify a passport in your browser</span></a>
-    <a href="get.html">Get a passport<span>Issue your agent an identity, live</span></a>
-    <a href="scan.html">Browse the record<span>AINRAscan — the public log, live</span></a>
+    <a href="verify.html#try">Try it live<span>Verify a passport in your browser</span></a>
+    <a href="get.html">Use the network<span>Get a passport + browse the record, live</span></a>
     <a href="index.html#integrate">Quickstart<span>SDK, middleware, CLI</span></a>
     <a href="status.html">Conformance<span>745/745 — measured, see status</span></a>
     <a href="AINRA_I_The_Standard.md" download>Canonical file<span>AINRA_I_The_Standard.md — raw download</span></a>
@@ -428,7 +468,7 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
   </div></div>
   <div class="nav-r">
     <a class="btn btn-ghost nav-hide" href="standard.html">Read the standard</a>
-    <a class="btn btn-ink" href="demo.html">Try it live</a>
+    <a class="btn btn-ink" href="verify.html#try">Try it live</a>
     <button class="burger" id="burger" aria-label="Menu" aria-expanded="false">≡</button>
   </div>
   <div class="nav-links" id="navLinks"><a href="index.html">The root</a><a href="standard.html">Standard</a><a href="verify.html" style="color:var(--green)">Verify</a><a href="foundations.html">Foundations</a><a href="status.html">Status</a></div>
@@ -453,6 +493,51 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
 <div class="half you"><b>AT FIRST PUBLIC RELEASE — AHEAD</b><p>The full reference implementation: verify in five lines with the SDK, a fail-closed middleware gate, registrar-in-a-box in one command, and the complete conformance vector set — published under CC0, so conformance never needs anyone's permission.</p></div></div>
 <p class="scan-note rv">VERIFICATION IS LOCAL · IT NEVER PHONES HOME · CONFORMANCE IS CLAIMED AGAINST THE VECTOR SET THAT SHIPS AT FIRST PUBLIC RELEASE, NOT GRANTED BY US</p>
 </div></section></main>
+
+<section id="try" style="padding-top:0">
+  <div class="wrap">
+    <div class="sec-head rv">
+      <span class="eyebrow">Try it — 20 seconds, in this tab</span>
+      <h2>Verify an agent.<br>Then try to forge one.</h2>
+      <p class="lede">The actual AINRA verifier — the same code that passes all 745 conformance vectors — runs in your browser. Pick a real passport, then tamper with it and watch it fail closed with a named reason. Nothing is uploaded; the root is never contacted.</p>
+    </div>
+    <div id="demo" class="demo needs-js">
+      <div class="panel">
+        <div class="panel-h"><b>The passport</b><span class="tag" id="srcTag">STAGING · TEST-ROOT</span></div>
+        <div class="panel-b">
+          <label class="fld" for="pick">Choose a live lineage</label>
+          <select id="pick"></select>
+          <div class="pf" id="pfields"></div>
+          <div class="tamper">
+            <div class="lead">▸ Forge it — flip one field, then re-verify</div>
+            <div class="tbtns">
+              <button class="tbtn" data-t="claims" aria-pressed="false">Escalate the tier<span>rewrite the signed body → sig_invalid</span></button>
+              <button class="tbtn" data-t="sig" aria-pressed="false">Break the signature<span>corrupt one byte → sig_invalid</span></button>
+              <button class="tbtn" data-t="status" aria-pressed="false">Replay an old status<span>backdate the revocation list → stale_status</span></button>
+              <button class="tbtn" data-t="proof" aria-pressed="false">Forge the log proof<span>bad inclusion proof → not_logged</span></button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-h"><b>The verdict</b><span class="tag">RUNS ON YOUR MACHINE</span></div>
+        <div class="panel-b">
+          <div class="verdict-top" role="status" aria-live="polite" aria-atomic="true">
+            <div class="big pend" id="big">—</div>
+            <div class="reason" id="reason">choose a passport, then press Verify</div>
+          </div>
+          <div class="dsteps" id="steps"></div>
+          <div class="run">
+            <button class="btn btn-green" id="verifyBtn">▶ Verify in my browser</button>
+            <button class="btn btn-ghost" id="resetBtn" hidden>↺ Reset (undo forgery)</button>
+          </div>
+          <div class="provenance" id="prov"></div>
+        </div>
+      </div>
+    </div>
+    <div id="noscript-note" class="err" style="display:none" role="alert">This runs the verifier in your browser and needs JavaScript. The same verifier is also a downloadable CLI — <a href="ainra-cli-v0.2.0.zip" style="color:var(--green)">get it above</a>.</div>
+  </div>
+</section>
 
 <section style="padding-top:0" id="authority">
   <div class="wrap">
@@ -735,5 +820,114 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
   document.addEventListener('click',closeDD);
   document.addEventListener('keydown',function(e){if(e.key==='Escape')closeDD();});
 })();
+</script>
+<script type="module">
+// try-it-live — folded from the old demo page. The real @ainra/sdk verifier, in this tab, over specimen fixtures.
+let runVector;
+const $=(s)=>document.querySelector(s);
+function showLoadError(msg){ const d=$("#demo"); if(d) d.style.display="none"; const n=$("#noscript-note"); if(n){ n.style.display="block"; n.textContent=msg+" The same verifier is also a downloadable CLI — get it above."; } }
+const REASONS={
+  sig_invalid:"a required signature failed to verify", alg_downgrade:"a mandated hybrid signature (Ed25519 or ML-DSA-65) was absent or broken",
+  expired:"the validity window has ended", not_yet_valid:"presented before its validity window opens",
+  revoked:"revoked in the registrar's signed status list", mandate_revoked:"a mandate in the subtree is revoked",
+  chain_widening:"a delegation hop granted more than its parent", chain_expired:"a hop outlived its parent",
+  not_logged:"no Merkle inclusion proof to a signed checkpoint — it cannot prove it was logged", checkpoint_invalid:"the checkpoint signature did not verify",
+  stale_status:"the revocation material is not authentic or is too old — fails closed", name_malformed:"a name violated the namespace grammar",
+  ceiling_exceeded:"a capability exceeds the scope ceiling", unknown_registrar:"the issuer is not in the accredited directory",
+  schema_violation:"the passport violated the schema (missing MUST or forbidden field)",
+};
+const enc=(u)=>btoa(String.fromCharCode(...u)).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+const b64u=(s)=>{s=s.replace(/-/g,"+").replace(/_/g,"/");while(s.length%4)s+="=";const b=atob(s);const u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u;};
+let REG=null, NOW=0, ROWS=[], sel=null, tamper=new Set();
+function toWire(rec,R){
+  return { name:rec.sub, expect:{},
+    anchors:{[R.registrar]:{issuer_key:R.accreditation.issuer_key, log_root_key:R.accreditation.log_root_key}},
+    presentation:{
+      claims:enc(new TextEncoder().encode(rec.claims)),
+      issuer_sig:{ed25519:rec.issuer_sig_ed25519, mldsa65:rec.issuer_sig_mldsa65},
+      now:NOW, chain_keys:rec.chain_keys, hop_proofs:rec.hop_proofs,
+      status_list:R.status_list.status_list_b64, status_len:R.status_list.bit_len, status_issued_at:R.status_list.issued_at,
+      freshness:"F3", checkpoint:{origin:rec.log_origin, size:rec.checkpoint_size, root:rec.checkpoint_root},
+      checkpoint_sig:rec.checkpoint_sig, leaf_index:rec.leaf_index, inclusion_proof:rec.inclusion_proof,
+      mandate_revocations:[], revoked_delegates:[],
+    }};
+}
+function forge(wire){
+  const p=wire.presentation;
+  if(tamper.has("claims")){ const c=JSON.parse(new TextDecoder().decode(b64u(p.claims))); c.tier=(c.tier==="L4")?"L3":"L4"; p.claims=enc(new TextEncoder().encode(JSON.stringify(c))); }
+  if(tamper.has("sig")){ const s=b64u(p.issuer_sig.ed25519); s[0]^=0xff; p.issuer_sig.ed25519=enc(s); }
+  if(tamper.has("status")){ p.status_issued_at=1; }
+  if(tamper.has("proof")){ p.inclusion_proof=[enc(new Uint8Array(32))]; }
+  return wire;
+}
+const STEP_LABELS=[
+  ["schema","schema + name grammar"],["issuer","issuer accredited in the directory"],["window","validity window (now within nbf…exp)"],
+  ["sig","hybrid signatures — Ed25519 + ML-DSA-65"],["chain","delegation chain narrows"],["status","revocation status is fresh &amp; authentic"],
+  ["log","logged-before-valid — Merkle proof to checkpoint"],
+];
+const REASON_STEP={name_malformed:0,schema_violation:0,unknown_registrar:1,not_yet_valid:2,expired:2,sig_invalid:3,alg_downgrade:3,ceiling_exceeded:4,chain_widening:4,chain_expired:4,revoked:5,mandate_revoked:5,stale_status:5,not_logged:6,checkpoint_invalid:6};
+function renderFields(rec){
+  const rows=[["name",rec.sub],["tier",rec.tier],["authority",rec.auth_class],["registrar",rec.registrar],
+    ["standing", rec.revoked?'<span class="chip no">REVOKED</span>':'<span class="chip ok">ACTIVE</span>'],
+    ["logged","leaf "+String(rec.checkpoint_root||"").slice(0,14)+"…"]];
+  $("#pfields").innerHTML=rows.map(([k,v])=>`<span>${k}</span><span>${v}</span>`).join("");
+}
+async function verify(){
+  if(!sel) return;
+  const {rec,R}=sel;
+  $("#big").textContent="…"; $("#big").className="big pend"; $("#reason").textContent="running the real verifier…";
+  await new Promise(r=>setTimeout(r,180));
+  let wire=forge(toWire(rec,R));
+  let v;
+  try{ v=runVector(wire); }
+  catch(e){
+    $("#big").textContent="ERROR"; $("#big").className="big no";
+    $("#reason").innerHTML="the verifier threw an unexpected exception — this is a demo bug, not a verdict on the passport";
+    $("#steps").innerHTML=""; $("#prov").innerHTML="verifier <b>@ainra/sdk</b> · exception: "+String(e&&e.message||e).slice(0,120);
+    return;
+  }
+  const ok=v.verdict==="valid";
+  $("#big").textContent=ok?"VALID":"INVALID"; $("#big").className="big "+(ok?"ok":"no");
+  $("#reason").innerHTML=ok?"all nine checks passed — genuine, in-window, in-scope, logged, not revoked":
+    `failed at <b>${v.reason}</b> — ${REASONS[v.reason]||""}`;
+  const failStep = ok?99:(REASON_STEP[v.reason]??6);
+  $("#steps").innerHTML=STEP_LABELS.map(([id,label],i)=>{
+    const state = i<failStep?"ok":(i===failStep?"no":"pend");
+    const icon = state==="ok"?"✓":state==="no"?"✗":"·";
+    return `<div class="dstep"><span class="i ${state}">${icon}</span><span class="t">${label}${i===failStep&&!ok?` <b>← ${v.reason}</b>`:""}</span></div>`;
+  }).join("");
+  const provRoot = rec.checkpoint_root||"";
+  $("#prov").innerHTML = `verifier <b>@ainra/sdk</b> · 9 checks · verdict computed in this tab · checkpoint root <b>${provRoot.slice(0,20)}…</b> · ${tamper.size?`forgery applied: ${[...tamper].join(", ")}`:"unmodified passport"}`;
+  $("#resetBtn").hidden = tamper.size===0;
+}
+function select(sub){
+  const row=ROWS.find(r=>r.rec.sub===sub); sel=row; tamper.clear();
+  document.querySelectorAll(".tbtn").forEach(b=>b.setAttribute("aria-pressed","false"));
+  renderFields(row.rec);
+  $("#big").textContent="—"; $("#big").className="big pend"; $("#reason").textContent="press Verify to run the checker"; $("#steps").innerHTML=""; $("#prov").innerHTML=""; $("#resetBtn").hidden=true;
+}
+async function boot(){
+  if(!$("#demo")) return;
+  try{ ({ runVector } = await import("./vendor/ainra-sdk.js")); }
+  catch(e){ showLoadError("Could not load the in-browser verifier (vendor/ainra-sdk.js)."); return; }
+  try{ REG=await (await fetch("data/registry.json",{cache:"no-store"})).json(); }
+  catch(e){ showLoadError("Could not load the demo data (data/registry.json). Serve this page over http (e.g. `python3 -m http.server` in site/)."); return; }
+  NOW=REG.generated_window?.verified_at ?? 0;
+  for(const R of REG.registrars) for(const e of R.records) ROWS.push({rec:e.record, R});
+  const opt=(r)=>`<option value="${r.rec.sub}">${r.rec.revoked?"⊘ ":r.rec.hops?.length?"⛓ ":"✓ "}${r.rec.sub}${r.rec.revoked?"  (revoked)":r.rec.hops?.length?"  (delegated)":""}</option>`;
+  const valids=ROWS.filter(r=>!r.rec.revoked&&!r.rec.hops?.length), deleg=ROWS.filter(r=>r.rec.hops?.length), revs=ROWS.filter(r=>r.rec.revoked);
+  const ordered=[...valids.slice(0,1),...deleg.slice(0,1),...revs.slice(0,1),...valids.slice(1),...deleg.slice(1),...revs.slice(1)].filter(Boolean);
+  $("#pick").innerHTML=ordered.map(opt).join("");
+  $("#pick").addEventListener("change",e=>select(e.target.value));
+  document.querySelectorAll(".tbtn").forEach(b=>b.addEventListener("click",()=>{
+    const t=b.dataset.t, on=b.getAttribute("aria-pressed")==="true";
+    if(on){tamper.delete(t);b.setAttribute("aria-pressed","false");} else {tamper.add(t);b.setAttribute("aria-pressed","true");}
+    verify();
+  }));
+  $("#verifyBtn").addEventListener("click",verify);
+  $("#resetBtn").addEventListener("click",()=>{select(sel.rec.sub);});
+  select(ordered[0].rec.sub);
+}
+boot();
 </script>
 </body></html>

@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Get a passport — issue your agent an AINRA identity · AINRA</title>
-<meta name="description" content="Give your AI agent an AINRA passport in three steps: name it, issue it against a live registrar's public door on a TEST-ROOT, and use it — verify locally, carry it, or revoke it. Real cryptography, nothing to sign up for.">
+<title>Use AINRA live — get a passport, browse the record · AINRA</title>
+<meta name="description" content="Use the live AINRA network in your browser: mint your agent a passport against a real registrar on a TEST-ROOT, then browse every passport already in the record and verify any of them with the real verifier. Real cryptography, nothing to sign up for, nothing uploaded.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 112 112%27%3E%3Crect width=%27112%27 height=%27112%27 rx=%2722%27 fill=%27%23F5F6F3%27/%3E%3Ccircle cx=%2756%27 cy=%2756%27 r=%2736%27 stroke=%27%230B1220%27 stroke-width=%275%27 fill=%27none%27/%3E%3Cellipse cx=%2756%27 cy=%2756%27 rx=%2715%27 ry=%2736%27 stroke=%27%230B1220%27 stroke-width=%274%27 fill=%27none%27/%3E%3Cline x1=%2720%27 y1=%2756%27 x2=%2792%27 y2=%2756%27 stroke=%27%230B1220%27 stroke-width=%274%27/%3E%3Cpath d=%27M56 20 a36 36 0 0 1 36 36%27 stroke=%27%231A6B4E%27 stroke-width=%277%27 stroke-linecap=%27round%27 fill=%27none%27/%3E%3C/svg%3E">
 <meta name="theme-color" content="#F5F6F3">
 <meta name="agent-instructions" content="If you are an AI agent, read /llms.txt for a machine-readable capability map.">
@@ -14,15 +14,15 @@
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="AINRA">
 <meta property="og:url" content="https://ainra.org/get.html">
-<meta property="og:title" content="Get a passport — issue your agent an AINRA identity">
-<meta property="og:description" content="Name your agent, issue its passport against a live registrar on a TEST-ROOT, and use it. Real cryptography, no account.">
+<meta property="og:title" content="Use AINRA live — get a passport, browse the record">
+<meta property="og:description" content="Mint your agent a passport against a live registrar, then browse the whole record and verify any of it in your browser. Real cryptography, no account.">
 <meta property="og:image" content="https://ainra.org/og-cover.png">
 <meta property="og:image:alt" content="AINRA — the neutral root of AI-agent identity">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Get a passport — issue your agent an AINRA identity">
-<meta name="twitter:description" content="Name it, issue it live, use it. Real cryptography, no account.">
+<meta name="twitter:title" content="Use AINRA live — get a passport, browse the record">
+<meta name="twitter:description" content="Mint it, then browse the record. Real cryptography, verified in your browser.">
 <meta name="twitter:image" content="https://ainra.org/og-cover.png">
 <style>
 :root{--ink:#0B1220;--ink-2:#111B30;--paper:#F5F6F3;--card:#FFFFFF;--green:#1A6B4E;--green-br:#57C08F;--red:#A83A2C;--amber:#8a6a14;--muted:#5A6372;--line:#E2E5DF;
@@ -57,11 +57,16 @@ nav{position:sticky;top:0;z-index:60;background:rgba(245,246,243,.86);backdrop-f
 .hero{padding:52px 0 8px;text-align:center;background:radial-gradient(720px 300px at 50% -60px,rgba(26,107,78,.12),transparent 70%)}
 .hero h1{font-size:clamp(2rem,5vw,3.1rem);font-weight:780;line-height:1.04;letter-spacing:-.03em;max-width:720px;margin:12px auto 0}
 .hero .sub{margin:14px auto 0;max-width:600px;font-size:16px;color:var(--muted)}
-.stepper{display:flex;gap:8px;justify-content:center;margin:22px auto 0;font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;flex-wrap:wrap}
+.hero .jump{display:flex;gap:8px;justify-content:center;margin:18px auto 0;flex-wrap:wrap}
+/* section divider */
+.sec-head{max-width:820px;margin:52px auto 0;text-align:center}
+.sec-head h2{font-size:clamp(1.5rem,3.4vw,2rem);font-weight:760;letter-spacing:-.02em}
+.sec-head p{margin:8px auto 0;max-width:560px;font-size:15px;color:var(--muted)}
+.stepper{display:flex;gap:8px;justify-content:center;margin:20px auto 0;font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;flex-wrap:wrap}
 .stepper .g-dot{display:inline-flex;align-items:center;gap:6px}
 .stepper .g-dot:before{content:"";width:8px;height:8px;border-radius:50%;background:var(--line)}
 .stepper .g-dot[data-on="1"]{color:var(--green)}.stepper .g-dot[data-on="1"]:before{background:var(--green)}
-.flow{max-width:720px;margin:34px auto 0}
+.flow{max-width:720px;margin:26px auto 0}
 .panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:26px;box-shadow:0 24px 56px -34px rgba(11,18,32,.24)}
 .panel .tag{float:right;font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:var(--muted);border:1px solid var(--line);border-radius:5px;padding:3px 8px}
 .panel h2{font-size:20px;margin-bottom:4px}.panel .lede{color:var(--muted);font-size:14px;margin-bottom:18px}
@@ -91,7 +96,39 @@ input.txt{width:100%;padding:11px 13px;border:1px solid var(--line);border-radiu
 .onboard-bar .copy{margin-left:auto;font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.55);border:1px solid rgba(255,255,255,.18);border-radius:6px;padding:3px 8px;cursor:pointer}
 .onboard-bar .copy:hover{color:#fff}
 .onboard pre{padding:14px;font-family:var(--mono);font-size:11.5px;line-height:1.7;color:#D7DCE5;white-space:pre-wrap;margin:0}
-.err{background:rgba(168,58,44,.08);border:1px solid rgba(168,58,44,.3);border-radius:10px;padding:16px;font-size:14px;color:var(--red);max-width:720px;margin:34px auto 0}
+/* browse (AINRAscan) */
+.s-stats{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:14px;overflow:hidden;margin:22px auto 0;max-width:820px}
+@media(max-width:640px){.s-stats{grid-template-columns:repeat(2,1fr)}}
+.s-stat{background:var(--card);padding:16px 14px;text-align:center}
+.s-stat b{font-family:var(--display);font-size:22px;font-weight:750;display:block;letter-spacing:-.02em;word-break:break-all}
+.s-stat span{font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;margin-top:4px;display:block}
+.s-rootdark{max-width:820px;margin:12px auto 0;font-family:var(--mono);font-size:11px;letter-spacing:.03em;color:var(--muted);text-align:center;background:rgba(26,107,78,.06);border:1px solid var(--line);border-radius:10px;padding:9px 12px}
+.s-rootdark.ok{color:var(--green)}.s-rootdark.ok b{color:var(--green)}.s-rootdark.no{color:var(--red)}
+.s-search{max-width:820px;margin:20px auto 0;position:relative}
+.s-search input{width:100%;padding:12px 14px 12px 40px;border:1px solid var(--line);border-radius:11px;background:var(--card);color:var(--ink);font:14px var(--mono)}
+.s-search svg{position:absolute;left:14px;top:13px;width:16px;height:16px;color:var(--muted)}
+.s-rows{max-width:820px;margin:14px auto 0;display:flex;flex-direction:column;gap:8px}
+.s-item{border:1px solid var(--line);border-radius:12px;background:var(--card);overflow:hidden}
+.s-row{display:flex;align-items:center;gap:12px;padding:13px 16px}
+.s-main{flex:1;min-width:0}
+.s-name{font-family:var(--mono);font-size:12.5px;color:var(--ink);word-break:break-all}
+.s-meta{font-family:var(--mono);font-size:10px;letter-spacing:.05em;color:var(--muted);text-transform:uppercase;margin-top:3px}
+.s-chip{flex:none;font-family:var(--body);font-size:10px;font-weight:700;border-radius:99px;padding:3px 10px;display:inline-flex;align-items:center;gap:5px}
+.s-chip:before{content:"";width:5px;height:5px;border-radius:50%;background:currentColor}
+.s-chip.ok{background:rgba(26,107,78,.1);color:var(--green)}.s-chip.no{background:rgba(168,58,44,.1);color:var(--red)}
+.s-verify{flex:none;font-family:var(--body);font-weight:600;font-size:12.5px;color:var(--ink);border:1px solid var(--line);background:var(--paper);border-radius:9px;padding:7px 12px}
+.s-verify:hover{border-color:var(--green);color:var(--green)}
+.s-detail{border-top:1px solid var(--line);padding:16px;background:var(--paper)}
+.s-verd{font-family:var(--display);font-weight:800;font-size:19px}
+.s-verd.ok{color:var(--green)}.s-verd.no{color:var(--red)}.s-verd.pend{color:var(--muted)}
+.s-fields{display:grid;grid-template-columns:1fr 1fr;gap:6px 18px;margin-top:12px}
+@media(max-width:560px){.s-fields{grid-template-columns:1fr}}
+.s-fields div{font-family:var(--mono);font-size:11.5px;color:var(--ink);word-break:break-all}
+.s-fields span{display:block;font-size:8.5px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;margin-bottom:2px}
+.s-event{font-family:var(--mono);font-size:11px;color:#c9d2e0;background:var(--ink);border-radius:9px;padding:11px 13px;margin-top:12px;white-space:pre-wrap;word-break:break-word;line-height:1.6}
+.s-note{font-size:11.5px;color:var(--muted);margin-top:10px}
+.s-empty{text-align:center;color:var(--muted);padding:26px;font-size:14px}
+.err{background:rgba(168,58,44,.08);border:1px solid rgba(168,58,44,.3);border-radius:10px;padding:16px;font-size:14px;color:var(--red);max-width:820px;margin:22px auto 0}
 .err code{font-family:var(--mono);background:rgba(168,58,44,.12);padding:1px 5px;border-radius:4px}
 footer{padding:34px 0;border-top:1px solid var(--line);background:var(--card);margin-top:56px;font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--muted);text-align:center}
 footer a{color:var(--green)}
@@ -100,7 +137,7 @@ footer a{color:var(--green)}
 <body id="top">
 <a href="#main" class="skip">Skip to content</a>
 
-<div class="announce">Real issuance on a <b>TEST-ROOT</b> — the passport you mint here is a labelled specimen with real cryptography. <a href="status.html">Honest status →</a></div>
+<div class="announce">Real issuance + the real record on a <b>TEST-ROOT</b> — every passport here is a labelled specimen with real cryptography, verified on your machine. <a href="status.html">Honest status →</a></div>
 
 <nav><div class="wrap nav-in">
   <a class="brand" href="index.html" aria-label="AINRA home">
@@ -108,8 +145,7 @@ footer a{color:var(--green)}
     <span class="wm">AINRA</span><span class="mean">Agent Identity &amp; Naming<br>Registry Authority</span>
   </a>
   <div class="nav-r">
-    <a class="btn btn-ghost" href="demo.html">Verify &amp; forge</a>
-    <a class="btn btn-ghost" href="scan.html">AINRAscan</a>
+    <a class="btn btn-ghost" href="verify.html#try">Verify &amp; forge</a>
     <a class="btn btn-ink" href="index.html#access">Join the founding table</a>
   </div>
 </div></nav>
@@ -127,17 +163,23 @@ footer a{color:var(--green)}
 
 <main id="main" class="hero">
   <div class="wrap">
-    <span class="eyebrow">Give your agent an identity</span>
-    <h1>Get your agent an AINRA passport.</h1>
-    <p class="sub">Name it, issue it against a live registrar, and use it — real signatures, logged before it is valid, verifiable by anyone. No account, nothing to install.</p>
+    <span class="eyebrow">Use the live network</span>
+    <h1>Get a passport. Browse the record.</h1>
+    <p class="sub">Mint your agent an identity against a live registrar, then browse every passport already in the record — both live, both verified in your own browser. No account, nothing uploaded.</p>
+    <div class="jump">
+      <a class="btn btn-green" href="#get">Get a passport →</a>
+      <a class="btn btn-ghost" href="#browse">Browse the record</a>
+    </div>
+  </div>
+
+  <!-- ── GET A PASSPORT ─────────────────────────────────────────────────── -->
+  <div class="wrap">
+    <div class="sec-head"><h2>Get a passport.</h2><p>Name your agent, mint it against a live registrar, and use it — real signatures, logged before it is valid.</p></div>
     <div class="stepper">
       <span class="g-dot" data-i="1" data-on="1">1 · Name it</span>
       <span class="g-dot" data-i="2" data-on="0">2 · Get it</span>
       <span class="g-dot" data-i="3" data-on="0">3 · Use it</span>
     </div>
-  </div>
-
-  <div class="wrap">
     <div id="get" class="flow">
       <div id="g-flow">
         <!-- STEP 1 — name -->
@@ -174,7 +216,7 @@ footer a{color:var(--green)}
           <div class="grow">
             <button class="btn btn-green" id="g-verify">Use it — verify →</button>
             <button class="btn btn-ghost" id="g-download">Download passport</button>
-            <a class="btn btn-ghost" id="c-scan" href="#" target="_blank" rel="noopener" hidden>Open in AINRAscan ↗</a>
+            <a class="btn btn-ghost" id="c-scan" href="#browse" hidden>Find it below ↓</a>
           </div>
         </div>
 
@@ -198,12 +240,38 @@ footer a{color:var(--green)}
       <div id="g-unavailable" class="err" hidden></div>
     </div>
   </div>
+
+  <!-- ── BROWSE THE RECORD (AINRAscan) ──────────────────────────────────── -->
+  <div class="wrap">
+    <div class="sec-head" id="browse"><h2>Browse the live record.</h2><p>Every passport in the network, read from the public contract and verifiable in your own browser — active or revoked, all chained to the root.</p></div>
+    <div id="scan">
+      <div id="s-flow">
+        <div class="s-stats">
+          <div class="s-stat"><b id="s-root">—</b><span>root</span></div>
+          <div class="s-stat"><b id="s-regs">—</b><span>registrars</span></div>
+          <div class="s-stat"><b id="s-issued">—</b><span>passports</span></div>
+          <div class="s-stat"><b id="s-revoked">—</b><span>revoked</span></div>
+          <div class="s-stat"><b id="s-height">—</b><span>checkpoint height</span></div>
+        </div>
+        <div class="s-rootdark" id="s-rootdark" hidden></div>
+        <div class="s-rootdark" id="s-suite" hidden></div>
+        <div class="s-rootdark" id="s-witnesses" hidden></div>
+        <div class="s-search">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M20 20l-3.5-3.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          <input id="s-search" type="search" placeholder="Search by name, operator, or tier…" aria-label="Search passports" autocomplete="off">
+        </div>
+        <div class="s-rows" id="s-rows"></div>
+      </div>
+      <div id="s-down" class="err" hidden></div>
+    </div>
+  </div>
 </main>
 
 <footer>
-  BUILT AS NEUTRAL INFRASTRUCTURE · ZERO TELEMETRY · <a href="index.html">ainra</a> · <a href="demo.html">verify &amp; forge</a> · <a href="status.html">status</a> · <a href="llms.txt">/llms.txt</a>
+  BUILT AS NEUTRAL INFRASTRUCTURE · ZERO TELEMETRY · <a href="index.html">ainra</a> · <a href="verify.html#try">verify &amp; forge</a> · <a href="status.html">status</a> · <a href="llms.txt">/llms.txt</a>
 </footer>
 
 <script type="module" src="js/get.mjs"></script>
+<script type="module" src="js/scan.mjs"></script>
 </body>
 </html>

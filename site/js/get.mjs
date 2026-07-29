@@ -61,7 +61,7 @@ function renderCard(r) {
   $("#c-auth").textContent = r.auth_class + " · ORG-DELEGATED";
   $("#c-height").textContent = "checkpoint height " + r.checkpoint_size + " · logged before valid";
   $("#c-key").textContent = "ED25519 + ML-DSA-65";
-  if (EXPLORER && CONTRACT) { const a = $("#c-scan"); a.href = `${EXPLORER}/?net=${encodeURIComponent(CONTRACT)}`; a.hidden = false; }
+  { const a = $("#c-scan"); if (a) { a.href = "#browse"; a.hidden = false; } } // browse the record: the section below on this same page
   // fill the self-onboard prompt with the real name
   const p = $("#g-prompt"); if (p) p.textContent = `Verify the AINRA passport ${r.sub} locally with @ainra/sdk against ${REG}. Fetch its presentation from ${REG}/present?sub=${encodeURIComponent(r.sub)} and confirm the verdict-event. This is a staging TEST-ROOT specimen.`;
 }

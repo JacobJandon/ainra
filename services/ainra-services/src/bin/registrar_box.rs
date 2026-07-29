@@ -101,10 +101,18 @@ fn rate_ok(writes: &mut VecDeque<Instant>) -> bool {
 /// point of a *door*: a stranger completes the real lifecycle without any secret, and cannot abuse issuance.
 fn sanitize_label(s: &str, default: &str) -> String {
     // to the namespace grammar: lowercase ascii-alphanumerics + hyphen, bounded length, no leading/trailing hyphen.
-    let cleaned: String = s.chars().filter(|c| c.is_ascii_alphanumeric() || *c == '-').take(24).collect();
+    let cleaned: String = s
+        .chars()
+        .filter(|c| c.is_ascii_alphanumeric() || *c == '-')
+        .take(24)
+        .collect();
     let cleaned = cleaned.to_ascii_lowercase();
     let cleaned = cleaned.trim_matches('-').to_string();
-    if cleaned.is_empty() { default.to_string() } else { cleaned }
+    if cleaned.is_empty() {
+        default.to_string()
+    } else {
+        cleaned
+    }
 }
 /// A constrained specimen for the public door. The visitor may NAME their agent (operator/lineage), but the door
 /// still mints only a low tier and stamps the reserved `demo:specimen` capability, which marks it as door-minted.
@@ -126,7 +134,9 @@ fn demo_spec(rng: &mut ChaCha20Rng, operator: &str, lineage: &str) -> IssueSpec 
 /// `true` iff `sub` is a specimen THIS registrar minted through the public door (stamped `demo:specimen`) — the
 /// public revoke door touches nothing else, whatever operator/lineage the visitor named it.
 fn is_demo_specimen(rb: &RegistrarBox, sub: &str) -> bool {
-    rb.get(sub).map(|r| r.capabilities.iter().any(|c| c == "demo:specimen")).unwrap_or(false)
+    rb.get(sub)
+        .map(|r| r.capabilities.iter().any(|c| c == "demo:specimen"))
+        .unwrap_or(false)
 }
 
 fn main() {
@@ -240,16 +250,28 @@ fn main() {
             // and revocation stay in the registrar layer, exactly where the model puts them; this is that door, opened.
             ("POST", "/demo/issue") => {
                 if !staging {
-                    return (403, r#"{"error":"the demo door is staging-only"}"#.to_string());
+                    return (
+                        403,
+                        r#"{"error":"the demo door is staging-only"}"#.to_string(),
+                    );
                 }
                 if !rate_ok(&mut st.demo_writes) {
-                    return (429, r#"{"error":"demo door rate limited — try again shortly"}"#.to_string());
+                    return (
+                        429,
+                        r#"{"error":"demo door rate limited — try again shortly"}"#.to_string(),
+                    );
                 }
                 // The visitor may name their agent: optional {operator, lineage} (sanitized to the grammar).
                 let body: serde_json::Value =
                     serde_json::from_str(&req.body).unwrap_or(serde_json::Value::Null);
-                let operator = body.get("operator").and_then(|x| x.as_str()).unwrap_or("specimen");
-                let lineage = body.get("lineage").and_then(|x| x.as_str()).unwrap_or("demo");
+                let operator = body
+                    .get("operator")
+                    .and_then(|x| x.as_str())
+                    .unwrap_or("specimen");
+                let lineage = body
+                    .get("lineage")
+                    .and_then(|x| x.as_str())
+                    .unwrap_or("demo");
                 let State { rb, rng, .. } = &mut *st;
                 let spec = demo_spec(rng, operator, lineage);
                 match rb.issue(&spec, &[], rng) {
@@ -259,10 +281,16 @@ fn main() {
             }
             ("POST", "/demo/revoke") => {
                 if !staging {
-                    return (403, r#"{"error":"the demo door is staging-only"}"#.to_string());
+                    return (
+                        403,
+                        r#"{"error":"the demo door is staging-only"}"#.to_string(),
+                    );
                 }
                 if !rate_ok(&mut st.demo_writes) {
-                    return (429, r#"{"error":"demo door rate limited — try again shortly"}"#.to_string());
+                    return (
+                        429,
+                        r#"{"error":"demo door rate limited — try again shortly"}"#.to_string(),
+                    );
                 }
                 let v: serde_json::Value =
                     serde_json::from_str(&req.body).unwrap_or(serde_json::Value::Null);
@@ -272,7 +300,8 @@ fn main() {
                 if !is_demo_specimen(&st.rb, &sub) {
                     return (
                         403,
-                        r#"{"error":"the public door only revokes demo specimens it minted"}"#.to_string(),
+                        r#"{"error":"the public door only revokes demo specimens it minted"}"#
+                            .to_string(),
                     );
                 }
                 let now = v

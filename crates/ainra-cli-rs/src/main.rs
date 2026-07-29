@@ -606,15 +606,27 @@ fn number_from_name(sub: &str) -> Option<String> {
     let before_at = body.split('@').next()?;
     let parts: Vec<&str> = before_at.split(':').collect();
     let ok = parts.len() == 3
-        && parts
-            .iter()
-            .all(|p| !p.is_empty() && p.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-'));
+        && parts.iter().all(|p| {
+            !p.is_empty()
+                && p.bytes()
+                    .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
+        });
     ok.then(|| format!("did:ainra:{}:{}:{}", parts[0], parts[1], parts[2]))
 }
 fn jstr(o: Option<&str>) -> String {
-    o.map_or_else(|| "null".to_string(), |v| serde_json::to_string(v).unwrap_or_else(|_| "null".into()))
+    o.map_or_else(
+        || "null".to_string(),
+        |v| serde_json::to_string(v).unwrap_or_else(|_| "null".into()),
+    )
 }
-fn event_json(status: &str, reason: Option<&str>, name: Option<&str>, number: Option<&str>, tier: Option<&str>, age: Option<i64>) -> String {
+fn event_json(
+    status: &str,
+    reason: Option<&str>,
+    name: Option<&str>,
+    number: Option<&str>,
+    tier: Option<&str>,
+    age: Option<i64>,
+) -> String {
     format!(
         r#"{{"status":{},"reason":{},"name":{},"number":{},"tier":{},"freshness_age_s":{}}}"#,
         serde_json::to_string(status).unwrap(),
@@ -656,7 +668,10 @@ fn cmd_events(a: &[String]) -> i32 {
             let reason = e["verdict"]["reason"].as_str();
             let number = sub.and_then(number_from_name);
             let age = issued_at.map(|i| now - i);
-            println!("{}", event_json(status, reason, sub, number.as_deref(), tier, age));
+            println!(
+                "{}",
+                event_json(status, reason, sub, number.as_deref(), tier, age)
+            );
         }
     }
     0

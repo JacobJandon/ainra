@@ -492,3 +492,17 @@ coordinator (adds an online attack surface to the most sensitive ceremony and fo
 one-process simulation (never exercises the real multi-party choreography). Nine isolated OS processes prove the
 transport; the recorded ceremony with independent custodians remains the pending real-world DoD event (no DoD row
 moved). `make ceremony-rehearsal-multi`; runbook appendix in `kits/ceremony/RUNBOOK.md`.
+
+## D-040 — M23.1: a release exists only when its board is proven at its commit; the toolchain is pinned to a patch
+
+Two failures in the v0.2.0 work made this rule necessary, so it is now enforced, not trusted. **(1) The board is the
+release.** A version is not tag-ready or CHANGELOG-claimable until `make preflight` runs ALL GREEN from a **clean
+clone at the exact release commit** and that board is committed to `docs/releases/<version>-board.md`.
+`make changelog-board-check` (in `make ci`) fails if the CHANGELOG names a released version whose board evidence is
+absent — the claim can never outrun the proof (RELEASING.md, "The one rule"). v0.1.0 is grandfathered (never tagged,
+predates this). **(2) The formatter is pinned to a patch.** `rust-toolchain.toml` and every CI job pin
+**`1.96.1`** exactly (was the floating `1.96`, which silently resolved to a newer rustfmt whose heuristics reflowed
+three committed files — the fmt gate had drifted red without a commit). The whole workspace was re-baselined under
+1.96.1 (`cargo fmt --all`; fmt + clippy clean), so a stranger's CI reproduces our fmt result deterministically.
+Alternatives rejected: trusting `scripts/release.sh`'s in-process preflight (leaves no committed evidence a stranger
+can audit) and a floating toolchain (drifts the fmt gate red between releases with no code change).

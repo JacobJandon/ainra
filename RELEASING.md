@@ -5,6 +5,27 @@ A release is the **public counterpart to reproducible builds**: because every pu
 from the committed source (`make repro` → `MANIFEST.sha256`), a downloader can confirm that what they fetched matches
 the source they can read — trusting the bytes, not us.
 
+## The one rule — the board runs at the release commit, or the release does not exist (M23.1)
+
+A version is not "released" — **not tag-ready, not CHANGELOG-claimable** — until the **full preflight board runs ALL
+GREEN from a clean clone at the exact release commit**, and that board is **committed as evidence** to
+`docs/releases/<version>-board.md`. This is not advisory: **`make changelog-board-check`** (wired into `make ci`)
+FAILS if `CHANGELOG.md` names a released version whose board evidence is absent — so the *claim* can never outrun the
+*proof*. The board is the primary release artifact; signing, packaging, and the tag all build on it.
+
+> M23 shipped v0.2.0's code without running this board and had to be re-proven afterward (M23.1). The rule exists so
+> that never recurs: no board at the release commit ⇒ no release.
+
+### Recording the board (do this first, at the release commit)
+
+```sh
+tmp="$(mktemp -d)"; git clone -q . "$tmp/clone"
+( cd "$tmp/clone" && git checkout -q <release-commit> && make preflight ) | tee docs/releases/<version>-board.md
+# The board names the commit it ran at. Commit docs/releases/<version>-board.md BEFORE tagging.
+```
+
+Only once the board is green + committed do you proceed to package + sign + tag below.
+
 ## Cutting a release (maintainer)
 
 ```sh

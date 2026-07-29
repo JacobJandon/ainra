@@ -23,7 +23,7 @@ make witness-check                                        # v2 smoke + a TIMED <
 ```
 - **`witnessd <addr> [config.json]`** — one witness daemon, one binary, no runtime deps.
   - `GET /key` (alias **`/root`**) → its Ed25519 public key.
-  - `GET /meta` → the operator's **self-declared** card `{ self_declared: true, ed25519, operator, region, contact, note }`.
+  - `GET /info` → the operator's **self-declared** card `{ self_declared: true, ed25519, operator, region, contact, note }`.
     **Verified by no one** — the key is the only cryptographic fact; the site and verifier render the rest as an
     unverified operator claim. Witnessing needs **no accreditation**.
   - `POST /consider` → it evaluates a submitted checkpoint (validly log-signed? append-only vs the head it last
@@ -64,7 +64,7 @@ fix — see D-021 — preserved across the network transport. The regression liv
 - Publish each witness's public key so relying parties can build a roster they trust (out of band, or via the log's
   accreditation). Relying parties pick their own **k** from that roster — a payments-grade verifier might demand a
   higher k than a low-stakes one.
-- Fill in `/meta` (operator, region, contact) so relying parties and the explorer can see **witness diversity** — how
+- Fill in `/info` (operator, region, contact) so relying parties and the explorer can see **witness diversity** — how
   many independent operators, in how many regions, stand behind a checkpoint. It is self-declared and rendered as
   such; diversity is a *social* fact the metadata surfaces, never a cryptographic claim the protocol enforces.
 - This is deliberately **boring**: fetch + verify, no gossip protocol, no consensus engine (Certificate Transparency's
@@ -74,7 +74,7 @@ fix — see D-021 — preserved across the network transport. The regression liv
 ## What this closes (and what stays out of scope)
 - **Closed:** the witness quorum runs between separate processes over a network; the §29 "injected fork caught by
   witnesses (not us)" is demonstrable with independently-operated witnesses, not just in-process keys. v2 makes the
-  daemon a **one-file-config single binary** with a self-declared `/meta` card, and `make witness-check` times the
+  daemon a **one-file-config single binary** with a self-declared `/info` card, and `make witness-check` times the
   full clone→running-witness path (well under the 10-minute onboarding bar the kit promises).
 - **Out of scope (deployment):** TLS/auth/rate-limiting on the transport, witness discovery, and hardware witnesses —
   standard operational concerns layered on top; the security-relevant logic is all in `ainra-services::witness`.

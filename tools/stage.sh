@@ -78,12 +78,12 @@ publish(){ # fetch each daemon's public artifacts → static files with the cont
     FP="$(node -e 'process.stdout.write(require("./"+process.argv[1]+"/genesis/roots.json").root_ed25519.slice(0,16))' "$STAGE")"
     node -e 'const fs=require("fs"),d=process.argv[1],fp=process.argv[2];const j=JSON.parse(fs.readFileSync(d+"/index.json"));j.root="genesis:"+fp;j.label="AINRA NETWORK · GENESIS ROOT "+fp+" (operator-run ceremony)";j.roots="/roots.json";j.ceremony="operator-run; public multi-custodian ceremony + external verifiers + 14d soak are the remaining real-world milestones";fs.writeFileSync(d+"/index.json",JSON.stringify(j))' "$PUB" "$FP"
   fi
-  # M23 Task 4 — witness diversity: publish the witness set's SELF-DECLARED /meta into the registry the explorer reads,
+  # M23 Task 4 — witness diversity: publish the witness set's SELF-DECLARED /info into the registry the explorer reads,
   # so it can show how many independent operators (and regions) stand behind the log. Verified by no one; the key is
   # the only cryptographic fact. Today staging runs one witness — the honest count, with independent seats open.
-  local wmeta; wmeta="$(get "$WIT_ADDR/meta" 2>/dev/null || echo '{}')"
-  WMETA="$wmeta" WADDR="$WIT_ADDR" node -e '
-    const fs=require("fs"),d=process.argv[1]; let m={}; try{m=JSON.parse(process.env.WMETA||"{}")}catch{}
+  local winfo; winfo="$(get "$WIT_ADDR/info" 2>/dev/null || echo '{}')"
+  WINFO="$winfo" WADDR="$WIT_ADDR" node -e '
+    const fs=require("fs"),d=process.argv[1]; let m={}; try{m=JSON.parse(process.env.WINFO||"{}")}catch{}
     for (const f of ["registry.json","index.json"]) {
       const p=d+"/"+f; const j=JSON.parse(fs.readFileSync(p,"utf8"));
       j.witnesses = m.ed25519 ? [{ addr:process.env.WADDR, self_declared:true, ed25519:m.ed25519,

@@ -35,7 +35,7 @@ A stranger clones, runs `make test && make vectors && make diff`, all green in <
 | `make cli-check` | **M23** the downloadable CLI is hybrid Ed25519 + ML-DSA-65 both-or-invalid; legacy⇒`alg_downgrade` (overlap-only), tampered⇒`sig_invalid` (always closed) | ✅ green |
 | `make suite-migration-drill` | **M23** a real Ed25519→hybrid migration over a running network: REISSUE + `prev_leaf` continuity, auto-expiring policy epoch (D-037), legacy-fails/hybrid-passes; staging audited already-hybrid. Transcript: [docs/drills/SUITE-MIGRATION-01.md](drills/SUITE-MIGRATION-01.md) | ✅ green |
 | `make ceremony-rehearsal-multi` | **M23** FROST 5-of-9 across NINE isolated OS processes (file-based rounds, D-039): one group key emerges, 5 shares sign / 4 cannot, transcript reproducible | ✅ green |
-| `make witness-check` | **M23** witness kit v2: one-file config, self-declared `/meta`, `/root` alias, back-compat, quorum still refuses a fork; times the <10-min onboarding | ✅ green |
+| `make witness-check` | **M23** witness kit v2: one-file config, self-declared `/info`, `/root` alias, back-compat, quorum still refuses a fork; times the <10-min onboarding | ✅ green |
 | `make push-advisory-check` | **M23** ADR-018 threat proof: push is advisory, pull sovereign — suppression fails closed (`stale_status`), forgery ignored (`checkpoint_invalid`) | ✅ green |
 | `node tools/s7-lint.mjs` / `license-check.mjs` | neutrality + license gates | ✅ green, 0 hits |
 

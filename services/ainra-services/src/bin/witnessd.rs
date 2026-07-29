@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 //! `witnessd` daemon: POST /consider {origin,size,root_b64,consistency_proof_b64[]} → the outcome (and a cosignature
-//! when it cosigns). Refuses forks + regressions. GET /key (alias /root) → the witness public key. GET /meta → the
+//! when it cosigns). Refuses forks + regressions. GET /key (alias /root) → the witness public key. GET /info → the
 //! operator's SELF-DECLARED metadata (never verified by anyone). Local, zero telemetry.
 //!
 //! Usage:  witnessd <addr> [config.json]
 //! The optional one-file config declares who runs this witness (all fields optional):
 //!   { "seed": "<hex>", "operator": "…", "region": "…", "contact": "…", "note": "…" }
 //! `seed` (if present) pins a persistent key; otherwise the key is derived from the address. Everything under
-//! operator/region/contact/note is SELF-DECLARED — `/meta` serves it with `self_declared: true`, and the verifier
+//! operator/region/contact/note is SELF-DECLARED — `/info` serves it with `self_declared: true`, and the verifier
 //! and site render it as an unverified operator claim. Witnessing needs no accreditation; the metadata is courtesy.
 
 use std::sync::Mutex;
@@ -69,7 +69,7 @@ fn main() {
                 serde_json::json!({ "ed25519": b64::encode(&w.public()) }).to_string(),
             ),
             // SELF-DECLARED — the operator's own claim, verified by no one; the key is the only cryptographic fact.
-            ("GET", "/meta") => (
+            ("GET", "/info") => (
                 200,
                 serde_json::json!({
                     "self_declared": true,

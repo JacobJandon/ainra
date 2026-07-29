@@ -17,7 +17,7 @@ cp kits/witness/witness.config.json witness.config.json   # edit operator/region
 Your witness's key comes from the `seed` in your one-file config (pin a long random secret so the key is stable across
 restarts) — or, with no config, it is derived from the address. Either way you are a *distinct* witness, not a copy of
 ours. Tell the network operator your `http://<your-host>:4991` and your public key (`GET /root`, alias `GET /key`);
-they add you to the witness set. `GET /meta` serves your **self-declared** operator/region card (verified by no one —
+they add you to the witness set. `GET /info` serves your **self-declared** operator/region card (verified by no one —
 it just lets relying parties see witness diversity). A relying party sets its own quorum `k` (never a cert's) — see
 D-021 and the quorum-k worked examples in `kits/witness/README.md`.
 

@@ -49,7 +49,7 @@ done. every signature above is real hybrid Ed25519 + ML-DSA-65; strip the ML-DSA
 - **Distributable genesis ceremony (Task 3)** — `make ceremony-rehearsal-multi` runs FROST 5-of-9 across NINE
   isolated OS processes (file-based rounds, air-gap shape): one group key emerges, 5 shares sign / 4 cannot,
   transcript reproducible. Changes no DoD row; runbook gains the multi-party appendix.
-- **Witness kit v2 (Task 4)** — single-binary `witnessd` from a one-file config, self-declared `/meta` (verified by
+- **Witness kit v2 (Task 4)** — single-binary `witnessd` from a one-file config, self-declared `/info` (verified by
   no one), `/root` alias, bare-address back-compat; verifier quorum-k worked examples; `make witness-check` times the
   <10-min onboarding; AINRAscan shows witness diversity from live data.
 - **Push status = ADR-018 (Task 5)** — push is advisory transport over a sovereign pull: an unsigned SSE/webhook may

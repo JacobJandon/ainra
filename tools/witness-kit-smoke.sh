@@ -3,7 +3,7 @@
 # make witness-check (M23 Task 4) — the witness kit v2 smoke + a TIMED outsider-onboarding rehearsal.
 #
 # Proves the single-binary `witnessd` runs from a ONE-FILE config, serves its operator's SELF-DECLARED metadata at
-# /meta (verified by no one; the key is the only cryptographic fact), aliases /root→/key, stays back-compatible with
+# /info (verified by no one; the key is the only cryptographic fact), aliases /root→/key, stays back-compatible with
 # the bare-address form, and — the whole point — still REFUSES A FORK in a quorum. Also times the full "clone →
 # running witness" path, which the kit README claims is under ten minutes.
 set -euo pipefail
@@ -26,21 +26,21 @@ echo "== boot witnessd from a ONE-FILE config =="
 for _ in $(seq 1 50); do curl -sf "http://$ADDR/root" >/dev/null 2>&1 && break; sleep 0.1; done
 t_boot=$(( $(date +%s) - t0 ))
 
-META=$(curl -sS "http://$ADDR/meta")
-ok "/meta is self-declared"          "[ \"$(printf '%s' "$META" | json self_declared)\" = 'true' ]"
-ok "/meta carries the operator claim" "[ -n \"$(printf '%s' "$META" | json operator)\" ]"
-ok "/meta carries a region claim"     "[ -n \"$(printf '%s' "$META" | json region)\" ]"
-KMETA=$(printf '%s' "$META" | json ed25519)
+INFO=$(curl -sS "http://$ADDR/info")
+ok "/info is self-declared"          "[ \"$(printf '%s' "$INFO" | json self_declared)\" = 'true' ]"
+ok "/info carries the operator claim" "[ -n \"$(printf '%s' "$INFO" | json operator)\" ]"
+ok "/info carries a region claim"     "[ -n \"$(printf '%s' "$INFO" | json region)\" ]"
+KINFO=$(printf '%s' "$INFO" | json ed25519)
 KROOT=$(curl -sS "http://$ADDR/root" | json ed25519)
 KKEY=$(curl -sS "http://$ADDR/key" | json ed25519)
 ok "/root aliases /key"               "[ \"$KROOT\" = \"$KKEY\" ] && [ -n \"$KROOT\" ]"
-ok "the /meta key IS the witness key" "[ \"$KMETA\" = \"$KROOT\" ]"
+ok "the /info key IS the witness key" "[ \"$KINFO\" = \"$KROOT\" ]"
 
 echo "== back-compat: the bare-address form still runs (no config) =="
 "$BIN" "$ADDR2" >/tmp/witness-v2-nocfg.log 2>&1 & pids+=($!)
 for _ in $(seq 1 50); do curl -sf "http://$ADDR2/root" >/dev/null 2>&1 && break; sleep 0.1; done
-NC=$(curl -sS "http://$ADDR2/meta")
-ok "bare-address /meta still self-declared, key present, operator empty" \
+NC=$(curl -sS "http://$ADDR2/info")
+ok "bare-address /info still self-declared, key present, operator empty" \
    "[ \"$(printf '%s' "$NC" | json self_declared)\" = 'true' ] && [ -n \"$(printf '%s' "$NC" | json ed25519)\" ] && [ -z \"$(printf '%s' "$NC" | json operator)\" ]"
 
 echo "== the point of a witness: a quorum still REFUSES A FORK =="

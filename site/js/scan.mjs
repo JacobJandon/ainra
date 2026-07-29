@@ -59,6 +59,17 @@ async function boot() {
   } catch {}
 
   for (const R of REG.registrars || []) for (const e of R.records || []) ROWS.push({ rec: e.record, R });
+
+  // Suite mix — honest, straight from the live records: a hybrid credential carries the ML-DSA-65 half, a legacy one
+  // does not. During a suite migration this shows both; a legacy credential fails closed by default (see the drill).
+  const hy = ROWS.filter((r) => r.rec.issuer_sig_mldsa65).length, lg = ROWS.length - hy;
+  const su = $("#s-suite");
+  if (su && ROWS.length) {
+    su.hidden = false; su.className = "s-rootdark " + (lg ? "" : "ok");
+    su.innerHTML = lg
+      ? `suite mix — <b>${hy}</b> hybrid (Ed25519 + ML-DSA-65) · <b>${lg}</b> legacy Ed25519-only, which fails closed by default during migration`
+      : `cryptographic suite — every live record is <b>hybrid Ed25519 + ML-DSA-65</b> (post-quantum) · <b>0</b> legacy stragglers`;
+  }
   render(ROWS);
   $("#s-search").addEventListener("input", () => {
     const q = $("#s-search").value.toLowerCase();

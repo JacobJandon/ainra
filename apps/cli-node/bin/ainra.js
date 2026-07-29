@@ -57,6 +57,12 @@ function sign(bytes, priv) { // dual-sign — both signatures always produced
     mldsa65: b64(ml_dsa65.sign(mlSec, bytes)),
   };
 }
+// DRILL ONLY (`issue --legacy`): a genuine Ed25519-only signature — no PQC half. Produces a real legacy credential
+// to rehearse Suite Migration Drill 01. It is NOT a production issuance path: such a credential fails closed as
+// alg_downgrade under the default policy, exactly as an old-suite credential must once the registrar has gone hybrid.
+function signLegacy(bytes, priv) {
+  return { ed25519: crypto.sign(null, bytes, crypto.createPrivateKey(priv.ed25519)).toString('base64') };
+}
 // both-or-invalid parity with core/SDK. Returns a named reason (null = valid). Legacy Ed25519-only (string sig
 // or missing ML-DSA) → alg_downgrade, fail closed — never silently reinterpreted.
 function verifyReason(bytes, sig, pub) {
@@ -196,7 +202,7 @@ function cmdIssue(name, opts) {
   const agentKey = genKey();
   const serial = opts.serial || ('AP-' + hex(crypto.randomBytes(3)).toUpperCase().replace(/^(.{4})/, '$1-'));
   const passport = {
-    type: 'agent-passport', v: 1, fmt: 2, serial, name,
+    type: 'agent-passport', v: 1, fmt: opts.legacy ? 1 : 2, serial, name, // fmt 1 = legacy Ed25519-only (drill), fmt 2 = hybrid
     lineage: n.lineage, version: n.version,
     operator: { name: opts.operator || n.operator, kyb: opts.kyb !== 'false', jurisdiction: opts.jurisdiction || 'US-DE' },
     registrar: n.registrar,
@@ -206,7 +212,8 @@ function cmdIssue(name, opts) {
     key: { alg: agentKey.alg, pub: agentKey.pub, fp: fingerprint(agentKey.pub) },
     ...(opts.prev_leaf ? { prev_leaf: opts.prev_leaf } : {}), // ADR-017 continuity link on REISSUE
   };
-  const sig = sign(Buffer.from(cjson(passport)), load(path.join(regDir, 'registrar.key')));
+  const regKey = load(path.join(regDir, 'registrar.key'));
+  const sig = opts.legacy ? signLegacy(Buffer.from(cjson(passport)), regKey) : sign(Buffer.from(cjson(passport)), regKey);
   const leaf = logAppend(opts.reissue ? 'REISSUE' : 'ISSUE', name, { serial, tier: passport.tier, class: passport.authority.class, ...(opts.prev_leaf ? { prev_leaf: opts.prev_leaf } : {}) });
   const doc = { ...passport, registrar_sig: sig, registrar_cert: regCert, log: { seq: leaf.seq, hash: leaf.hash } };
   save(P('passports', serial + '.json'), doc);
@@ -228,7 +235,11 @@ function cmdVerify(ref, opts) {
   const t0 = process.hrtime.bigint();
   const doc = findPassport(ref);
   const root = load(P('root', 'root.json'));
-  const acceptLegacy = opts['accept-legacy'] === 'true'; // Task 2 policy epoch — default OFF (fail closed)
+  // Task 2 policy epoch (D-037) — default OFF (fail closed). `--accept-legacy` grants the migration overlap
+  // indefinitely (testing); `--accept-legacy-until <date>` grants it ONLY until that date, then AUTO-EXPIRES to
+  // fail-closed. A past/invalid date → NaN > now → false → closed, even though the flag is present.
+  const until = opts['accept-legacy-until'];
+  const acceptLegacy = until ? (Date.parse(until) > Date.now()) : (opts['accept-legacy'] === 'true');
   const checks = [];
   // 1. registrar cert chains to root
   const { root_sig, ...certBody } = doc.registrar_cert;
@@ -285,22 +296,27 @@ function cmdMigrate(dir, opts) {
   const passDir = P('passports');
   if (!exists(passDir)) die('no passports to migrate in ' + HOME);
   const files = fs.readdirSync(passDir).filter(f => f.endsWith('.json'));
-  const legacy = files.map(f => load(path.join(passDir, f))).filter(d => (d.registrar_cert.alg || 'Ed25519') !== 'Ed25519+ML-DSA-65');
+  // A credential is legacy if ITS OWN registrar signature has no ML-DSA half — regardless of the registrar's current
+  // cert. This is the honest test: the registrar has gone hybrid, but a credential it signed under the old suite
+  // still verifies Ed25519-only (alg_downgrade). That is precisely what a suite migration must carry across.
+  const isLegacy = d => { const s = d.registrar_sig; return !s || typeof s === 'string' || !s.mldsa65; };
+  const legacy = files.map(f => load(path.join(passDir, f))).filter(isLegacy);
   const dry = opts['dry-run'] === 'true' || opts.plan === 'true';
   console.log(`\x1b[1m— Suite Migration Drill: Ed25519 → Ed25519+ML-DSA-65 —\x1b[0m`);
   console.log(`  ${files.length} credential(s) present · ${legacy.length} legacy (Ed25519-only) to REISSUE · ${files.length - legacy.length} already hybrid`);
   if (!legacy.length) { console.log('  ✓ nothing to migrate — all credentials are already hybrid.'); return; }
   if (dry) { console.log('  (dry-run) plan:'); legacy.forEach(d => console.log(`    REISSUE ${d.name} — new hybrid key, fresh window, prev_leaf → log #${d.log.seq} (legacy leaf kept)`)); console.log('  run without --dry-run to execute. Nothing is deleted; history only grows.'); return; }
+  const overlapEnd = new Date(Date.now() + 30 * 864e5).toISOString().slice(0, 10); // policy-epoch guidance, not a cred window
   for (const d of legacy) {
-    const nn = d.name; // ADR-017 REISSUE: fresh validity window, prev_leaf continuity to the legacy leaf, new hybrid key
-    const overlap = new Date(Date.now() + 30 * 864e5).toISOString(); // legacy stays valid during the overlap window
+    const nn = d.name; // ADR-017 REISSUE: fresh FULL validity window, new hybrid key, prev_leaf continuity to the legacy leaf
     console.log(`  → migrating ${nn} (legacy leaf #${d.log.seq}) …`);
     cmdIssue(nn, { operator: d.operator.name, tier: d.tier, class: d.authority.class, jurisdiction: d.operator.jurisdiction,
-      reissue: true, prev_leaf: d.log.seq, serial: d.serial + '-h', issued: now(), expires: overlap });
+      reissue: true, prev_leaf: d.log.seq, serial: d.serial + '-h', issued: now() }); // fresh 366-day window (no expires override)
   }
   console.log(`\n  ✓ migrated ${legacy.length} credential(s) to hybrid. Legacy leaves preserved; each hybrid successor links back via prev_leaf.`);
-  console.log(`  Flip the policy: verify with the default (no --accept-legacy) and the legacy credential now fails closed as alg_downgrade,`);
-  console.log(`  while its hybrid successor verifies. Overlap window (legacy still accepted with --accept-legacy) ends ${(new Date(Date.now()+30*864e5)).toISOString().slice(0,10)}.`);
+  console.log(`  Flip the policy: with the default (no --accept-legacy) the legacy credential now fails closed as alg_downgrade,`);
+  console.log(`  while its hybrid successor verifies. Grant the overlap ONLY with --accept-legacy-until ${overlapEnd} (auto-expires);`);
+  console.log(`  after that date, a legacy credential fails closed even with the flag. Nothing was deleted; history only grows.`);
 }
 function cmdDemo() {
   if (exists(HOME)) die(`${HOME} exists — run demo in a clean directory or set AINRA_HOME`);

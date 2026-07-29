@@ -60,6 +60,9 @@ jobs:
       # The downloadable CLI meets the same hybrid bar: Ed25519 + ML-DSA-65 both-or-invalid, legacy(alg_downgrade,
       # overlap-only) vs tampered(sig_invalid, always closed). Runs the shipped source; @noble via the SDK install.
       - run: node tools/cli-hybrid-check.mjs
+      # Suite Migration Drill 01: a real Ed25519 -> hybrid migration over a running network (REISSUE + prev_leaf,
+      # auto-expiring policy epoch, legacy-fails/hybrid-passes). The staging audit skips cleanly when staging is down.
+      - run: node tools/suite-migration-drill.mjs --quiet
 
   wedge:
     name: verifier wedge (@ainra/middleware fail-closed)

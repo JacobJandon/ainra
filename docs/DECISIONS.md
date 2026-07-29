@@ -446,3 +446,18 @@ actually send the email, and points at the intake address if nothing opened. The
 endpoint) would put us in the position of storing contact PII pre-genesis for no operational reason; `mailto:` is the
 minimal honest mechanism. The intake address (`founding@ainra.org`) travels with the canonical-host find-replace at
 deploy time. No accounts, no billing, no server — the root grows no product surface.
+
+## D-037 — M23: the suite-migration overlap is an AUTO-EXPIRING policy epoch, default closed
+
+When the CLI verifier meets a legacy credential (Ed25519-only, no ML-DSA half) after the registrar has gone hybrid,
+the default is **fail closed** — reason `alg_downgrade`, exit 1. A relying party may grant a migration overlap, but
+only through a **bounded** switch: `--accept-legacy-until <date>` accepts a legacy credential **only** while that
+date is in the future; a past or malformed date parses to `NaN > now → false`, so the overlap **auto-expires to
+closed even with the flag present**. (`--accept-legacy` without a date is the unbounded testing form — never a deploy
+default.) Two properties make this safe by construction: **(a) fail-closed default** — forgetting to configure a
+policy denies legacy credentials rather than admitting them; **(b) no standing exception** — a bounded epoch cannot
+silently outlive its window, so "we'll migrate later" cannot decay into a permanent downgrade surface. A **tampered**
+credential (ML-DSA half present but broken or non-canonical) is `sig_invalid` and is refused under **every** policy,
+the flag included — the overlap forgives an *absent* PQC signature during migration, never an *invalid* one. This is
+the exact posture ADR-017 trap (ii) requires of a suite migration over a running network; proven by
+`make cli-check` and `make suite-migration-drill`.

@@ -19,7 +19,7 @@ Every published release directory contains:
 | `allowed_signers` | the signer identity + public key, for `ssh-keygen -Y verify` |
 
 The release signing key is an **SSH Ed25519** key (chosen over PKI/keyservers: Ed25519 by default — AINRA's own
-primitive — tiny keys, detached signatures, verified with one pinned public key, no web-of-trust ceremony; logged in docs/DECISIONS.md). The
+primitive — tiny keys, detached signatures, verified with one pinned public key, no web-of-trust ceremony — D-042). The
 private key is **offline**, never in the repo or CI. Its public half + fingerprint are pinned in-repo at
 `release/allowed_signers` / `release/ainra-release.pub` and published on the site's status page from live data.
 

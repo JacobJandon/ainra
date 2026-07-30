@@ -27,6 +27,8 @@ command -v zip >/dev/null 2>&1 || { echo "✗ 'zip' not found — install it (se
 
 # 1. the Standard — canonical is docs/AINRA_I_The_Standard.md → the site's downloadable copy.
 cp docs/AINRA_I_The_Standard.md "$SITE/AINRA_I_The_Standard.md"
+# the release-verification guide (M24) — served so status.html's "Release integrity" link resolves.
+cp RELEASE-VERIFY.md "$SITE/RELEASE-VERIFY.md"
 
 # 2. the reference CLI — canonical is apps/cli-node/ → ainra-cli-v${VER}.zip (packaged under ainra-cli/).
 # The download is ONE self-contained file: we BUNDLE the canonical source (which now signs + verifies HYBRID

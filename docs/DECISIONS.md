@@ -542,3 +542,19 @@ The landing gained a **Python** language tab in the `#integrate` "in your own co
 TS/Middleware/Rust/CLI structure); nav stays 3/3/3, the hero / `#root` orbit / "Soon…" sections were not touched, and
 the agent-onboarding mirrors (`skills.md`/`llms.txt`) were not changed because a language SDK is not an
 agent self-onboarding method.
+
+## D-042 — M24: releases are signed with an offline SSH Ed25519 key (ssh-keygen -Y), not PKI
+
+A root's own release artifacts must be verifiable as artifacts. The signing mechanism is **SSH signatures**
+(`ssh-keygen -Y sign` / `-Y verify`) over minisign-style or GPG/PKI: **(a)** the key is Ed25519 by default — the same
+primitive AINRA's own passports use, so no new cryptographic surface; **(b)** keys are tiny, signatures are detached,
+and verification needs only ONE pinned public key (`release/allowed_signers`) — no keyserver, no web-of-trust, no
+certificate ceremony; **(c)** `ssh-keygen` is ubiquitous, whereas `minisign`/`cosign` are not present in the toolchain.
+The private key is **offline by policy** — generated to `.release-key/` (gitignored), never committed and never in CI;
+`make release` signs only when `AINRA_RELEASE_KEY` points at it, otherwise it prints the exact offline signing command.
+The public key + fingerprint (`SHA256:V1ZbCNdPDEe5plpYq07dGCsoensF4Q+MPPQQkcj5pi4`, principal `release@ainra.org`) are
+pinned in-repo and shown on the site. Signing `SHA256SUMS` transitively covers every artifact (CLI, corpus,
+`MANIFEST.sha256`, `provenance.json`, `sbom.json`). But signatures only prove *who*: the strong check stays
+**reproducibility** — a stranger rebuilds `MANIFEST.sha256` byte-for-byte from the tagged source and needs no key
+(`RELEASE-VERIFY.md`). GPG was rejected as heavyweight (keyrings, web-of-trust) for a project whose whole ethos is
+"verify against a pinned key, not a trust hierarchy".

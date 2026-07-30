@@ -26,6 +26,18 @@ tmp="$(mktemp -d)"; git clone -q . "$tmp/clone"
 
 Only once the board is green + committed do you proceed to package + sign + tag below.
 
+## Pending tags — pinned so HEAD moving forward cannot blur them
+
+Tagging is the maintainer's button and is never done by the agent. Because v0.3.0 development moves HEAD past the
+proven release commit, the exact tag target is pinned here so it stays unambiguous:
+
+| Version | Tag target (exact commit) | Board evidence | State |
+|---|---|---|---|
+| **v0.2.0** | **`5ae1b12`** | `docs/releases/v0.2.0-board.md` — full 17-row board ALL GREEN from a clean clone; ran at parent `0691f38`, `5ae1b12` adds only the evidence doc (no preflight-affecting change) | **tag-ready; awaiting the maintainer's `git tag -s v0.2.0 5ae1b12`** |
+
+To cut it: `git tag -s v0.2.0 5ae1b12 -m "AINRA v0.2.0"` (verify `git show 5ae1b12 --stat` lists the board evidence
+file first). Do this before or independently of v0.3.0; the pin above guarantees the target never drifts.
+
 ## Cutting a release (maintainer)
 
 ```sh

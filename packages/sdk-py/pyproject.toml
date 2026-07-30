@@ -1,0 +1,33 @@
+# SPDX-License-Identifier: Apache-2.0 OR MIT
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ainra"
+version = "0.2.0"
+description = "Independent Python implementation of the AINRA agent-passport verifier (verify-only, offline, fail-closed). The fourth column of the conformance differential."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "Apache-2.0 OR MIT"
+authors = [{ name = "AINRA contributors" }]
+keywords = ["ainra", "agent-identity", "verifier", "passport", "post-quantum"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3",
+  "Topic :: Security :: Cryptography",
+]
+# Ed25519 + ML-DSA-65 come from `cryptography` (pyca / OpenSSL 3.5+).
+# SLH-DSA-SHA2-128s is bound from the same OpenSSL libcrypto via ctypes
+# (stdlib), so no extra dependency is needed for it. SHA-256 / zlib are stdlib.
+dependencies = ["cryptography>=44"]
+
+[project.optional-dependencies]
+test = ["pytest>=7"]
+
+[project.urls]
+Homepage = "https://ainra.org"
+
+[tool.setuptools]
+packages = ["ainra"]

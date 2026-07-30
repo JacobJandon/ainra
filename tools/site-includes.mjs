@@ -11,6 +11,8 @@ import { dirname, join } from "node:path";
 const SITE = join(dirname(fileURLToPath(import.meta.url)), "..", "site");
 const INC = join(SITE, "_includes");
 const PAGES = ["standard", "verify", "foundations", "status"];
+// nav-only peers: pages that must carry the identical menu but keep their own compact footer (app pages)
+const NAV_ONLY = ["get"];
 const headerN = readFileSync(join(INC, "header.html"), "utf8").trimEnd(); // page-neutral (no active state)
 const footerN = readFileSync(join(INC, "footer.html"), "utf8").trimEnd(); // page-neutral (all self-anchors absolute)
 
@@ -40,8 +42,22 @@ for (const p of PAGES) {
   }
 }
 
+for (const p of NAV_ONLY) {
+  const file = join(SITE, p + ".html");
+  let s = readFileSync(file, "utf8");
+  const wantNav = headerFor(p);
+  const navOk = s.match(navRe)?.[0] === wantNav;
+  if (check) {
+    if (!navOk) { console.log(`  ✗ ${p}.html: <nav> drifted from _includes/header.html`); drift++; }
+  } else if (!navOk) {
+    s = s.replace(navRe, wantNav);
+    writeFileSync(file, s); synced++;
+    console.log(`  ↻ ${p}.html: header synced from _includes/ (nav-only page)`);
+  }
+}
+
 if (check) {
-  console.log(drift ? `\n${drift} drift(s) — run \`make site\` to resync from _includes/` : "✓ shared header/footer in sync across the 4 content pages");
+  console.log(drift ? `\n${drift} drift(s) — run \`make site\` to resync from _includes/` : "✓ shared header/footer in sync across the 4 content pages + the nav-only live page");
   process.exit(drift ? 1 : 0);
 }
 console.log(synced ? `synced ${synced} page(s) from _includes/header.html + footer.html` : "✓ header/footer already in sync with _includes/");

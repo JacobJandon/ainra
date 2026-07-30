@@ -585,6 +585,7 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
         <div class="tabs" role="tablist" aria-label="Integration surface">
           <button class="tab on" data-t="ts" role="tab" aria-selected="true">TypeScript</button>
           <button class="tab" data-t="mw" role="tab" aria-selected="false">Middleware</button>
+          <button class="tab" data-t="py" role="tab" aria-selected="false">Python</button>
           <button class="tab" data-t="rs" role="tab" aria-selected="false">Rust</button>
           <button class="tab" data-t="cli" role="tab" aria-selected="false">CLI</button>
         </div>
@@ -783,6 +784,7 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
   const S={
 ts:'<span class="c">// five lines — offline, root dark, fail-closed</span>\n<span class="c">// (the reference SDK ships in the CLI bundle — npm publish at genesis)</span>\n<span class="w">import</span> { Verifier } <span class="w">from</span> <span class="g">"@ainra/sdk"</span>;\n\n<span class="w">const</span> v = <span class="w">await</span> Verifier.fromDirectory(dir);\n<span class="w">const</span> verdict = v.verify(bundle, now);\n\n<span class="c">// → { status: "VALID" }</span>\n<span class="c">//   or a named reason: revoked | stale_status | …</span>',
 mw:'<span class="c">// gate any route on a verified passport</span>\n<span class="w">import</span> { ainraGate, Verifier } <span class="w">from</span> <span class="g">"@ainra/middleware"</span>;\n\napp.use(<span class="g">"/agent"</span>, ainraGate(verifier));\n\n<span class="c">// invalid agents receive 403</span>\n<span class="c">// + x-ainra-reason header, fail-closed</span>',
+py:'<span class="c"># an independent verifier — offline, fail-closed</span>\n<span class="c"># pip install ainra  ·  agrees with core on every vector</span>\n<span class="w">from</span> ainra <span class="w">import</span> Verifier\n\nv = Verifier.from_directory(dir, root_ed, root_slh)\nverdict = v.verify(bundle, now)\n\n<span class="c"># → verdict.valid is True</span>\n<span class="c">#   or verdict.reason: revoked | stale_status | …</span>',
 rs:'<span class="c">// the reference core — pure, no I/O, no clock</span>\n<span class="w">let</span> verdict = ainra_core::verify(\n    &bundle, &directory, now,\n);\n\n<span class="c">// 9 documented checks, first failure wins;</span>\n<span class="c">// three implementations agree 745/745</span>',
 cli:'<span class="c"># the whole lifecycle, locally, no server</span>\n$ ainra init ./reg registrar-07\n$ ainra issue ./reg --operator acme \\\n    --lineage invoicing --version 1.0.0 --tier L2\n$ ainra verify ./reg \\\n    ainra:registrar-07:acme:invoicing@1.0.0\n<span class="g">VALID</span>   <span class="c"># the real verifier’s output</span>'
   };

@@ -26,7 +26,7 @@ echo ""
 clean() { # clean <label> <impl-command...>
   local label="$1"; shift
   printf '  %-26s ' "$label"
-  if $RUN --impl "$*" --name "$label" --version 0.2.0 --out "$TMP/$label.json" >"$TMP/$label.log" 2>&1; then
+  if $RUN --impl "$*" --name "$label" --version 0.3.0 --out "$TMP/$label.json" >"$TMP/$label.log" 2>&1; then
     grep -E '→ PASS' "$TMP/$label.log" | sed 's/^/    /'
   else
     echo "FAILED (expected clean pass):"; sed 's/^/      /' "$TMP/$label.log"; FAIL=1

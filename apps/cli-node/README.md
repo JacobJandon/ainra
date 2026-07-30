@@ -1,4 +1,4 @@
-# ainra — reference implementation v0.2.0
+# ainra — reference implementation v0.3.0
 Agent passports: issue, verify, revoke, with a hash-chained, checkpoint-signed transparency log.
 **Hybrid Ed25519 + ML-DSA-65** throughout — both signatures mandatory, both-or-invalid — at parity with the Rust
 core and the browser SDK. The download is **one self-contained file**: the audited `@noble/post-quantum` ML-DSA is
@@ -8,7 +8,7 @@ bundled in, so it runs with just `node` — no install, no `node_modules`, zero 
 Ed25519 (32 B key, 64 B sig) + ML-DSA-65 (1952 B key, 3309 B sig), so a hybrid signature is ~3.3 KB. One hybrid
 sign ≈ 7 ms, one hybrid verify ≈ 3 ms (both halves). The single-file bundle is ~64 KB (~18 KB zipped).
 
-## Honest limits (v0.2.0)
+## Honest limits (v0.3.0)
 Single-key root — the threshold ceremony (FROST 5-of-9 + SLH-DSA) runs in the network's genesis; the participant
 CLI is v0.2 work · 3 witness keys generated locally and labeled `(local)` (independent witnesses pending) · status
 list is poll-based (push fabric pending). Everything else is real: tamper with any byte of a passport, cert, or log

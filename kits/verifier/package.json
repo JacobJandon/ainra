@@ -1,6 +1,6 @@
 {
   "name": "ainra-verifier-kit",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "description": "Become an independent AINRA verifier: verify a passport with the root dark, reject a revoked and a forged one, and emit a signed attestation. Uses ONLY the published @ainra/sdk.",

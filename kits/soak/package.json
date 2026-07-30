@@ -1,6 +1,6 @@
 {
   "name": "ainra-soak-harness",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "description": "Measure AINRA revocation-propagation latency from >=3 vantage points into an append-only, hash-chained log; render a live status page + a signed tamper-evident soak-report from the REAL measurements. No hardcoded latencies.",

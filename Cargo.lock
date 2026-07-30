@@ -10,7 +10,7 @@ checksum = "320119579fcad9c21884f5c4861d16174d0e06250625266f50fe6898340abefa"
 
 [[package]]
 name = "ainra-ceremony"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "ainra-core",
  "frost-ed25519",
@@ -23,7 +23,7 @@ dependencies = [
 
 [[package]]
 name = "ainra-cli-rs"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "ainra-core",
  "ainra-services",
@@ -35,7 +35,7 @@ dependencies = [
 
 [[package]]
 name = "ainra-core"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "base64ct",
  "ed25519-dalek",
@@ -55,7 +55,7 @@ dependencies = [
 
 [[package]]
 name = "ainra-services"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "ainra-core",
  "rand_chacha 0.3.1",
@@ -67,7 +67,7 @@ dependencies = [
 
 [[package]]
 name = "ainra-vector-gen"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "ainra-core",
  "rand_chacha 0.3.1",

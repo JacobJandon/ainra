@@ -15,9 +15,19 @@ then pick the surface you build on.
 
 - [SDK](sdk.md) — verify in ~5 lines in your own service.
 - [Middleware](middleware.md) — gate a request path, fail closed.
+- [Python](python.md) — the independent Python verifier: ~5-line offline verify + an ASGI gate.
 - [CLI](cli.md) — `ainra init / issue / verify / renew / revoke`.
 - [MCP](mcp.md) — give an agent AINRA as native tools.
 - [Console](console.md) — the open registrar console (issue/renew/revoke/list in a browser).
+
+## Prove your own implementation
+
+AINRA certifies no one — it publishes the conformance corpus + a language-agnostic runner so anyone proves their own
+verifier conformant and anyone else re-runs it and checks (trust the re-run, not a badge).
+
+- [Conformance](conformance.md) — point the runner at your implementation, self-attest, re-check. The doctrine + the
+  three roles are in [`docs/conformance/PROGRAMME.md`](../conformance/PROGRAMME.md); the runner's stdin/stdout contract
+  is in [`tools/conformance/CONTRACT.md`](../../tools/conformance/CONTRACT.md).
 
 ## For agents
 

@@ -48,6 +48,7 @@ echo "────────────────────────�
 
 run "build + tests"      "release test suite"          make test
 run "differential"       "3 impls agree over vectors"  make diff
+run "conformance"        "runner: 3 clean, broken caught" make conformance
 run "CLI hybrid"         "download: Ed25519+ML-DSA both" make cli-check
 run "genesis-local"      "whole stack boots on 1 host"  make genesis-local
 run "verifier kit"       "execution-bound attestation"  bash tools/verifier-kit-smoke.sh

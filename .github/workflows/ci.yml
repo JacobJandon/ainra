@@ -57,6 +57,10 @@ jobs:
       - run: cargo run --release -q -p ainra-vector-gen -- --directory-out vectors/v1-directory
       - run: git diff --exit-code -- vectors/v1 vectors/v1-delta vectors/v1-directory || (echo "committed vectors differ from regenerated (nondeterminism?)" && exit 1)
       - run: node tools/diff-harness/run.mjs
+      # M24 Task 2 — the conformance programme, offline: the language-agnostic runner passes the 3 in-repo verdict
+      # impls CLEAN over the full corpus (same corpus hash), FAILS a deliberately broken impl with named divergences,
+      # and round-trips a self-attestation. Needs python3 for the Python adapter (present on ubuntu-latest).
+      - run: make conformance
       # The downloadable CLI meets the same hybrid bar: Ed25519 + ML-DSA-65 both-or-invalid, legacy(alg_downgrade,
       # overlap-only) vs tampered(sig_invalid, always closed). Runs the shipped source; @noble via the SDK install.
       - run: node tools/cli-hybrid-check.mjs

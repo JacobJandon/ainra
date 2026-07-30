@@ -17,8 +17,15 @@ const DENY = fs
 
 // Directories of AUTHORED code + fixtures to scan. The landscape/spec docs are intentionally excluded (they cite
 // real standards bodies + prior art as technical reference, which is analysis, not placeholder impersonation).
-const SCAN_DIRS = ["crates", "packages/sdk-ts/src", "tools", "vectors"];
-const SCAN_EXT = new Set([".rs", ".ts", ".mjs", ".js", ".json", ".toml", ".sh", ".txt"]);
+const SCAN_DIRS = [
+  "crates",
+  "packages/sdk-ts/src",
+  "packages/sdk-py/ainra",
+  "packages/sdk-py/tests",
+  "tools",
+  "vectors",
+];
+const SCAN_EXT = new Set([".rs", ".ts", ".mjs", ".js", ".py", ".json", ".toml", ".sh", ".txt"]);
 const SKIP = new Set(["node_modules", "dist", "target"]);
 const SELF = new Set([
   path.join(ROOT, "tools/s7-denylist.txt"),

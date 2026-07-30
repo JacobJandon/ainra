@@ -8,8 +8,15 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 const SPDX = "SPDX-License-Identifier: Apache-2.0 OR MIT";
-const DIRS = ["crates", "packages/sdk-ts/src", "tools", "fuzz/fuzz_targets"];
-const EXT = new Set([".rs", ".ts", ".mjs", ".js"]);
+const DIRS = [
+  "crates",
+  "packages/sdk-ts/src",
+  "packages/sdk-py/ainra",
+  "packages/sdk-py/tests",
+  "tools",
+  "fuzz/fuzz_targets",
+];
+const EXT = new Set([".rs", ".ts", ".mjs", ".js", ".py"]);
 const SKIP = new Set(["node_modules", "dist", "target"]);
 
 function* walk(dir) {

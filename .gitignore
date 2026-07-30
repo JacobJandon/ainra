@@ -105,3 +105,4 @@ __pycache__/
 *.egg-info/
 .pytest_cache/
 site/RELEASE-VERIFY.md
+packages/sdk-py/build/

@@ -100,12 +100,12 @@ nav{position:sticky;top:0;z-index:60;background:rgba(245,246,243,.86);backdrop-f
 }
 
 /* hero — centered, short, colour-merged kicker (new) */
-.hero{padding:72px 0 18px;text-align:center;position:relative;overflow:hidden;
+.hero{padding:46px 0 8px;text-align:center;position:relative;overflow:hidden;
   background:radial-gradient(760px 340px at 50% -70px,rgba(26,107,78,.12),transparent 70%)}
 .kick{font-family:var(--mono);font-size:10.5px;letter-spacing:.3em;font-weight:700;
   background:linear-gradient(90deg,var(--green) 0%,var(--green-br) 45%,var(--ink) 100%);
   -webkit-background-clip:text;background-clip:text;color:transparent}
-.hero h1{font-size:clamp(2.1rem,5vw,3.4rem);font-weight:780;line-height:1.03;letter-spacing:-.035em;max-width:760px;margin:12px auto 0}
+.hero h1{font-size:clamp(2rem,4.5vw,3.05rem);font-weight:780;line-height:1.03;letter-spacing:-.035em;max-width:760px;margin:12px auto 0}
 /* multi-method installer (M20) */
 .install{max-width:760px;margin:26px auto 0;background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:0 24px 56px -34px rgba(11,18,32,.24)}
 .itabs{display:flex;gap:2px;padding:8px;background:var(--paper);border-bottom:1px solid var(--line);overflow-x:auto}
@@ -122,19 +122,25 @@ nav{position:sticky;top:0;z-index:60;background:rgba(245,246,243,.86);backdrop-f
 .icopy{position:absolute;top:9px;right:12px;font-family:var(--mono);font-size:10.5px;color:rgba(255,255,255,.55);border:1px solid rgba(255,255,255,.18);border-radius:6px;padding:4px 9px;background:none;cursor:pointer;transition:color .15s,border-color .15s}
 .icopy:hover{color:#fff;border-color:rgba(255,255,255,.4)}
 .hero h1 .u{box-shadow:inset 0 -0.13em 0 rgba(26,107,78,.26)}
-.hero .sub{margin:16px auto 0;max-width:640px;font-size:17px;color:var(--muted)}
-.cta-row{display:flex;gap:12px;justify-content:center;margin-top:26px;flex-wrap:wrap}
-.cmd{margin:20px auto 0;display:inline-flex;align-items:center;gap:14px;background:var(--ink);color:#D7DCE5;border-radius:10px;padding:12px 16px;font-family:var(--mono);font-size:12px;letter-spacing:.02em;max-width:100%}
-.cmd .p{color:var(--green-br)}
-.cmd code{white-space:nowrap;overflow-x:auto;scrollbar-width:none}
-.cmd button{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:rgba(255,255,255,.55);border:1px solid rgba(255,255,255,.18);border-radius:6px;padding:4px 9px;flex:none;transition:color .15s,border-color .15s}
-.cmd button:hover{color:#fff;border-color:rgba(255,255,255,.4)}
-.badges{margin-top:18px;display:flex;gap:8px 18px;flex-wrap:wrap;justify-content:center}
-.badges span{font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--muted)}
-.badges b{color:var(--green);font-weight:700}
+.hero .sub{margin:14px auto 0;max-width:720px;font-size:16.5px;color:var(--muted)}
+/* the questions — the centerpiece (M25). Stacked list, one roving emphasized line; the full list is
+   always in the markup, so no-JS and reduced-motion readers see everything with the first line lit. */
+.qs{margin:18px auto 0;max-width:640px}
+.qs ul{list-style:none;display:grid;grid-template-columns:1fr 1fr;gap:6px 30px;text-align:left;margin:0;padding:0}
+.qs li{font-size:15.5px;font-weight:600;letter-spacing:-.01em;line-height:1.45;color:var(--muted);padding-left:19px;position:relative;transition:color .4s ease}
+.qs li::before{content:"?";position:absolute;left:0;top:0;font-family:var(--mono);font-size:12px;font-weight:700;color:var(--green);opacity:.45;transition:opacity .4s ease}
+.qs li.lit{color:var(--ink)}
+.qs li.lit::before{opacity:1}
+@media(max-width:700px){.qs ul{grid-template-columns:1fr;gap:6px}}
+@media(prefers-reduced-motion:reduce){.qs li,.qs li::before{transition:none}}
+.ans{margin:16px auto 0;max-width:720px}
+.ans .a1{font-size:14.5px;color:var(--muted)}
+.ans .a2{margin-top:8px;font-size:16.5px;line-height:1.55;color:var(--ink);font-weight:600;letter-spacing:-.012em}
+.ans .a3{margin-top:8px;font-family:var(--mono);font-size:11px;letter-spacing:.14em;font-weight:700;color:var(--green);text-transform:uppercase}
+.cta-row{display:flex;gap:12px;justify-content:center;margin-top:16px;flex-wrap:wrap}
 
 /* the passport — the ORIGINAL design, merged lightly with the new (crest stamp · status chip · caption) */
-.pass-wrap{perspective:1600px;display:flex;justify-content:center;margin:44px auto 0}
+.pass-wrap{perspective:1600px;display:flex;justify-content:center;margin:20px auto 0}
 .passport{width:min(580px,100%);background:var(--card);border:1px solid var(--line);border-radius:12px;text-align:left;
   box-shadow:0 1px 2px rgba(11,18,32,.05),0 22px 52px -24px rgba(11,18,32,.22);
   position:relative;overflow:hidden;transition:box-shadow .25s ease;will-change:transform}
@@ -144,22 +150,22 @@ nav{position:sticky;top:0;z-index:60;background:rgba(245,246,243,.86);backdrop-f
 .pass-wm{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;
   font-family:var(--display);font-weight:800;font-size:120px;letter-spacing:.06em;
   color:transparent;-webkit-text-stroke:1px rgba(11,18,32,.045);transform:rotate(-16deg)}
-.pass-head{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:13px 18px;border-bottom:1px solid var(--line);font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--muted);position:relative}
+.pass-head{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 18px;border-bottom:1px solid var(--line);font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--muted);position:relative}
 .pass-head b{color:var(--ink);font-weight:700;display:flex;align-items:center;gap:10px}
 .pass-head .sigil{width:26px;height:26px;flex:none}
 .pass-head .sigil svg{display:block;width:100%;height:100%}
-.pass-body{display:grid;grid-template-columns:104px 1fr;gap:16px;padding:16px 18px 10px;position:relative}
-.portrait{width:104px;height:104px;border:1px solid var(--line);border-radius:8px;background:var(--paper);display:grid;grid-template-columns:repeat(7,1fr);grid-template-rows:repeat(7,1fr);gap:2px;padding:8px;position:relative}
+.pass-body{display:grid;grid-template-columns:96px 1fr;gap:14px;padding:12px 18px 8px;position:relative}
+.portrait{width:96px;height:96px;border:1px solid var(--line);border-radius:8px;background:var(--paper);display:grid;grid-template-columns:repeat(7,1fr);grid-template-rows:repeat(7,1fr);gap:2px;padding:8px;position:relative}
 .portrait i{border-radius:1.5px}
 .portrait i.on{background:var(--ink)}
 .portrait i.gn{background:var(--green)}
 .portrait::after{content:"AGENT PORTRAIT";position:absolute;left:0;right:0;bottom:-14px;text-align:center;font-family:var(--mono);font-size:7px;letter-spacing:.18em;color:var(--muted)}
-.fields{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px;align-content:start}
-.f label{display:block;font-family:var(--mono);font-size:8.5px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin-bottom:2px}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:7px 12px;align-content:start}
+.f label{display:block;font-family:var(--mono);font-size:8.5px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin-bottom:1px}
 .f div{font-size:13px;font-weight:600;letter-spacing:-.01em}
 .f .ok{color:var(--green);font-family:var(--mono);font-size:10.5px}
 .tier-chip{display:inline-block;font-family:var(--mono);font-size:10px;font-weight:700;color:var(--green);border:1.5px solid var(--green);border-radius:5px;padding:2px 7px;letter-spacing:.06em}
-.datarows{margin:8px 18px 0;border-top:1px dashed var(--line);padding-top:10px;display:grid;gap:6px}
+.datarows{margin:6px 18px 0;border-top:1px dashed var(--line);padding-top:8px;display:grid;gap:5px}
 .dr{display:grid;grid-template-columns:78px 1fr;gap:10px;font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;align-items:baseline}
 .dr b{color:var(--muted);font-weight:400;letter-spacing:.12em;font-size:8.5px}
 .dr span{color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -167,24 +173,24 @@ nav{position:sticky;top:0;z-index:60;background:rgba(245,246,243,.86);backdrop-f
 .chip{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:600;border-radius:99px;padding:2px 9px;font-family:var(--body)}
 .c-ok{background:rgba(26,107,78,.1);color:var(--green)}
 .c-ok:before{content:"";width:5px;height:5px;border-radius:50%;background:currentColor}
-.authority{padding:10px 18px 12px;position:relative}
+.authority{padding:7px 18px 9px;position:relative}
 .authority label{display:block;font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase;margin-bottom:3px}
 .authority div{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;color:var(--ink);font-weight:700}
 .p-crest{position:absolute;right:14px;bottom:88px;width:92px;height:92px;color:#8A93A0;opacity:.4;transform:rotate(-9deg);pointer-events:none}
-.mrz-zone{margin:0 12px 12px;background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:11px 13px;position:relative}
-.mrz{font-family:var(--mono);font-size:clamp(8.5px,1.9vw,11px);letter-spacing:.06em;line-height:1.75;color:var(--ink);white-space:pre;overflow:hidden}
+.mrz-zone{margin:0 12px 10px;background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:9px 13px;position:relative}
+.mrz{font-family:var(--mono);font-size:clamp(8.5px,1.9vw,11px);letter-spacing:.06em;line-height:1.6;color:var(--ink);white-space:pre;overflow:hidden}
 .mrz .caret{display:inline-block;width:.55em;height:1em;background:var(--green);vertical-align:-2px;animation:pulse 1s infinite}
-.verify-line{margin-top:9px;padding-top:9px;border-top:1px dashed var(--line);display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--green);opacity:0;transform:translateY(3px)}
+.verify-line{margin-top:7px;padding-top:7px;border-top:1px dashed var(--line);display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--green);opacity:0;transform:translateY(3px)}
 .verify-line.in{opacity:1;transform:none;transition:opacity .45s ease,transform .45s ease}
 .verify-line i{width:6px;height:6px;border-radius:50%;background:var(--green);flex:none}
 .verify-line span{color:var(--muted)}
-.p-cap{text-align:center;margin-top:13px;font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;color:var(--amber)}
+.p-cap{text-align:center;margin-top:9px;font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;color:var(--amber)}
 @media(max-width:480px){.pass-body{grid-template-columns:88px 1fr;gap:12px}.portrait{width:88px;height:88px}.pass-wm{font-size:88px}.dr{grid-template-columns:66px 1fr}.p-crest{display:none}}
 
 /* facts strip (new) */
-.facts{margin-top:36px;text-align:center;padding-bottom:6px}
+.facts{margin-top:18px;text-align:center;padding-bottom:0}
 .facts .cap{font-size:12.5px;color:var(--muted)}
-.facts .row{display:flex;gap:12px 34px;justify-content:center;flex-wrap:wrap;margin-top:14px;font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--muted)}
+.facts .row{display:flex;gap:10px 34px;justify-content:center;flex-wrap:wrap;margin-top:10px;font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--muted)}
 .facts .row b{color:var(--ink)}
 .facts .row .g{color:var(--green)}
 
@@ -229,8 +235,8 @@ section{padding:88px 0}
 .leg.core b{color:#fff}
 
 /* four jobs (original) */
-.does{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
-@media(max-width:820px){.does{grid-template-columns:1fr}}
+.does{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+@media(max-width:900px){.does{grid-template-columns:1fr}}
 .do-cell{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:28px}
 .do-cell .k{font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--green);text-transform:uppercase;display:block;margin-bottom:12px}
 .do-cell h3{font-size:18px;font-weight:700;margin-bottom:8px;letter-spacing:-.015em}
@@ -397,20 +403,26 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
   <div class="wrap">
     <div class="kick rv in">TURNING FUTURE INTO A WORKING PRESENT</div>
     <h1 class="rv in">The identity layer for <span class="u">autonomous&nbsp;AI</span>.</h1>
-    <p class="sub rv in">One neutral root, free for anyone to implement. One lookup says who an agent is and who stands behind it; one switch revokes it worldwide in under 60&nbsp;seconds — verifiable offline, in five lines.</p>
+    <p class="sub rv in">Autonomous AI is already acting: buying products, booking travel, negotiating contracts, writing software, running accounts, companies, and robots, calling APIs, working with other agents.</p>
+    <div class="qs rv in">
+      <ul aria-label="The questions nobody can answer about an agent today">
+        <li class="lit">Who created this agent?</li>
+        <li>Who controls it now?</li>
+        <li>What is it allowed to do?</li>
+        <li>Has it been verified — or revoked?</li>
+        <li>Is it pretending to be another?</li>
+        <li>Can it legally act for a company?</li>
+        <li>Can I safely delegate to it?</li>
+      </ul>
+    </div>
+    <div class="ans rv in">
+      <p class="a1">Today there is no universal way to answer any of these.</p>
+      <p class="a2">AINRA is that way: a passport every agent can prove — anyone can check it offline, in milliseconds — and one switch revokes a compromised agent everywhere in under a minute.</p>
+      <p class="a3">You set the limits. You stay in control.</p>
+    </div>
     <div class="cta-row rv in">
       <a class="btn btn-green" href="verify.html#try">Try it live →</a>
       <a class="btn btn-ghost" href="#access">Join the founding table</a>
-    </div>
-    <div class="rv in"><div class="cmd">
-      <code><span class="p">$</span> unzip ainra-cli-v0.3.0.zip &amp;&amp; node ainra-cli/bin/ainra.js demo</code>
-      <button id="copyBtn" aria-label="Copy command">COPY</button>
-    </div></div>
-    <div class="badges rv in">
-      <span><b>✓</b> OPEN STANDARD</span>
-      <span><b>✓</b> OPEN-SOURCE REFERENCE</span>
-      <span><b>✓</b> NON-PROFIT CHARTER</span>
-      <span><b>✓</b> ZERO PII, EVER</span>
     </div>
 
     <div class="pass-wrap rv in">
@@ -453,7 +465,6 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
     <div class="p-cap rv in">SPECIMEN · placeholder registrar · every real passport is logged before it is valid</div>
 
     <div class="facts rv in" id="facts">
-      <div class="cap">Built as neutral infrastructure for the agent economy — everything below is measured or it is absent.</div>
       <div class="row">
         <span>STANDARD <b class="g">v5.1 ✓</b></span>
         <span>CONFORMANCE <b>745/745</b></span>
@@ -537,22 +548,24 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
     <div class="sec-head" style="text-align:center;max-width:780px;margin:0 auto">
       <span class="eyebrow">Why this exists</span>
       <h2>Soon, your AI will act for you.</h2>
-      <p class="lede" style="margin-top:10px">The next wave of AI doesn't just answer questions — it does things. It books the trip, pays the invoice, renews the subscription, fills the cart, logs into your accounts, and keeps working while you sleep. Software that spends real money, on someone's behalf, all over the internet.</p>
     </div>
     <div class="does" style="margin-top:34px">
       <div class="do-cell">
         <span class="k">The problem</span>
-        <h3>Today, anything can claim to be your agent.</h3>
-        <p>When an agent turns up to buy, to pay, or to sign in, the other side has no way to answer the one question that matters: is this a real agent, acting for someone real, allowed to do this? There is no ID check for software — so services either block every agent or trust them all. Both are wrong.</p>
+        <h3>Anything can claim to be your agent.</h3>
+        <p>Software that spends real money, on someone's behalf, all over the internet — and when it turns up to buy, pay, or sign in, the other side can't tell a real, authorized agent from an impostor. There is no ID check for software, so services either block every agent or trust them all. Both are wrong.</p>
       </div>
       <div class="do-cell">
         <span class="k">The fix</span>
-        <h3>Give each agent an identity it can prove.</h3>
-        <p>A passport that says who the agent is, who stands behind it, and exactly what it may do — a spending limit, a scope, an expiry. Anyone can check it in a fraction of a second, even offline. And a single switch turns a compromised agent off everywhere in under a minute.</p>
-        <p class="not">You stay in control — <b>set the limits, revoke instantly</b>.</p>
+        <h3>An identity every agent proves.</h3>
+        <p>The passport carries who the agent is, who stands behind it, and exactly what it may do — a spending limit, a scope, an expiry — signed so that tampering with any byte fails the check. Verification is local: no account with us, no call to us.</p>
+      </div>
+      <div class="do-cell">
+        <span class="k">The control</span>
+        <h3>Yours, never ours.</h3>
+        <p>Limits and revocation stay in the operator's hands — the network just makes them provable. The root is a neutral non-profit that sells nothing, holds no personal data, and issues no passports itself, so the whole economy can welcome the right agents and turn the rest away.</p>
       </div>
     </div>
-    <p style="text-align:center;margin:22px auto 0;max-width:720px;font-size:14.5px;color:var(--muted)">That is all AINRA does. A neutral, non-profit root that sells nothing, holds no personal data, and issues no passports itself — it just lets every agent prove who it is, so the whole economy can welcome the right agents and turn the rest away.</p>
   </div>
 </section>
 
@@ -711,12 +724,13 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
     links.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>{links.classList.remove('open');burger.setAttribute('aria-expanded','false');}));
   }
 
-  /* copy the verify command */
-  const cp=$('copyBtn');
-  if(cp){cp.addEventListener('click',()=>{
-    const txt='unzip ainra-cli-v0.3.0.zip && node ainra-cli/bin/ainra.js demo';
-    (navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(()=>{cp.textContent='COPIED';setTimeout(()=>{cp.textContent='COPY'},1400);},()=>{});
-  });}
+  /* the questions — rove the emphasis down the list. The full list is static markup (no-JS shows
+     everything, first line lit); under prefers-reduced-motion the emphasis never moves. */
+  const qLines=[...document.querySelectorAll('.qs li')];
+  if(qLines.length&&!reduce){
+    let qi=Math.max(0,qLines.findIndex(l=>l.classList.contains('lit')));
+    setInterval(()=>{qLines[qi].classList.remove('lit');qi=(qi+1)%qLines.length;qLines[qi].classList.add('lit');},2600);
+  }
   /* multi-method installer — one panel, tabbed by open convention (skill · MCP · prompt · HTTP) */
   const METHODS={
     skill:{cap:'terminal',desc:"One command. Your coding assistant gains AINRA's skills — verify, issue, present, renew, revoke.",code:'npx skills add https://ainra.org/.well-known/skills/index.json'},

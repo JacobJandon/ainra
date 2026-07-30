@@ -39,15 +39,31 @@ cp target/release/ainra "$DIST/ainra-${VERSION}-${HOST_TARGET}"
 tar -czf "$DIST/ainra-vectors-${VERSION}.tar.gz" vectors MANIFEST.sha256
 cp MANIFEST.sha256 "$DIST/MANIFEST.sha256"
 
-# 5. The signable checksum manifest over everything in dist/.
+# 5. Provenance + SBOM from the REAL repo state (git commit, pinned toolchain, Cargo.lock, node deps, artifact hashes).
+echo "== provenance + SBOM (M24) =="
+node tools/release-attest.mjs "$DIST" "$VERSION"
+
+# 6. The signable checksum manifest over every artifact (incl. provenance + SBOM; the .sig + verify materials are added after).
 ( cd "$DIST" && sha256sum -- * > SHA256SUMS )
+
+# 7. Sign SHA256SUMS with the release key (SSH Ed25519, ssh-keygen -Y) when available — the private key is offline and
+#    gitignored (.release-key/); set AINRA_RELEASE_KEY to its path. Signing SHA256SUMS transitively signs every artifact
+#    (the manifest covers their hashes). The verifier needs only release/allowed_signers (committed, published on the site).
+RELEASE_KEY="${AINRA_RELEASE_KEY:-.release-key/ainra-release}"
+cp release/allowed_signers release/ainra-release.pub "$DIST/" 2>/dev/null || true
+if [ -f "$RELEASE_KEY" ]; then
+  ssh-keygen -Y sign -f "$RELEASE_KEY" -n file "$DIST/SHA256SUMS" >/dev/null 2>&1 \
+    && echo "== signed: dist/SHA256SUMS.sig (SSH Ed25519 · principal release@ainra.org) =="
+else
+  echo "== SHA256SUMS.sig NOT written — release key absent (offline by policy). Sign on the airgapped host: =="
+  echo "     ssh-keygen -Y sign -f <release-key> -n file dist/SHA256SUMS"
+fi
 
 echo
 echo "== dist/ =="; ls -la "$DIST" | sed 's/^/   /'
-echo "== SHA256SUMS (this is the file you SIGN) =="; sed 's/^/   /' "$DIST/SHA256SUMS"
 echo
 echo "Next (the human):"
-echo "  1. Sign the manifest:  gpg --armor --detach-sign dist/SHA256SUMS   (or cosign/minisign)"
-echo "  2. Tag the release:    git tag -s ${VERSION} -m \"AINRA ${VERSION}\"   (see CHANGELOG.md)"
-echo "  3. Publish dist/* + dist/SHA256SUMS.asc to the GitHub release for ${VERSION}."
-echo "  A downloader verifies with the steps in RELEASING.md (§ Verify a release)."
+echo "  1. If unsigned above, sign SHA256SUMS offline with the release key (fingerprint in release/allowed_signers)."
+echo "  2. Tag the release:    git tag -s ${VERSION} -m \"AINRA ${VERSION}\"   (see RELEASING.md — pinned tag targets)"
+echo "  3. Publish dist/* (incl. SHA256SUMS.sig, allowed_signers, provenance.json, sbom.json) to the GitHub release."
+echo "  A downloader verifies per RELEASE-VERIFY.md: the signature, then provenance, then rebuild byte-for-byte."

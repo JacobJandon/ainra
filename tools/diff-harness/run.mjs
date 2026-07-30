@@ -147,8 +147,63 @@ if (fs.existsSync(VEC_DIR)) {
   console.log(`(E) directory diff core↔sdk : ${epass}/${dfiles.length} agree`);
 }
 
+// ── (F) Python verdict differential — the independent fourth implementation ────
+//     packages/sdk-py (an independently-written Python verifier; ainra-core produced
+//     each vector's recorded verdict, so agreement here is a fourth-brain cross-check
+//     of every reason). The runner emits `<name>\t<result-json>` per vector; we assert
+//     each Python result equals the vector's recorded `expect` (== core), byte-for-byte
+//     on verdict AND reason, over the passport, delta, and directory corpora.
+const stable = (o) =>
+  o === null || typeof o !== "object"
+    ? JSON.stringify(o)
+    : Array.isArray(o)
+      ? `[${o.map(stable).join(",")}]`
+      : `{${Object.keys(o).sort().map((k) => `${JSON.stringify(k)}:${stable(o[k])}`).join(",")}}`;
+
+function pyResults(kind, dir) {
+  const out = execFileSync("python3", ["-m", "ainra._vector_runner", kind, dir], {
+    cwd: ROOT,
+    encoding: "utf8",
+    maxBuffer: 128 * 1024 * 1024,
+    env: { ...process.env, PYTHONPATH: path.join(ROOT, "packages/sdk-py") },
+  });
+  const map = new Map();
+  for (const line of out.split("\n")) {
+    if (!line) continue;
+    const t = line.indexOf("\t");
+    map.set(line.slice(0, t), line.slice(t + 1));
+  }
+  return map;
+}
+
+function pyPhase(label, kind, dir, want) {
+  if (!fs.existsSync(dir)) return;
+  const results = pyResults(kind, dir);
+  const vfiles = fs.readdirSync(dir).filter((f) => f.endsWith(".json") && f !== "manifest.json");
+  let pass = 0;
+  for (const f of vfiles) {
+    const v = JSON.parse(fs.readFileSync(path.join(dir, f), "utf8"));
+    const got = results.get(v.name);
+    const expected = stable(want(v));
+    if (got === expected) pass++;
+    else {
+      failures++;
+      console.error(`  PY MISMATCH ${v.name}: core=${expected} py=${got}`);
+    }
+  }
+  console.log(`(F) ${label} core↔py : ${pass}/${vfiles.length} agree`);
+}
+
+pyPhase("verdict diff ", "passport", VEC, (v) => v.expect);
+pyPhase("delta diff  ", "delta", VEC_DELTA, (v) =>
+  v.expect.accept ? { accept: true } : { accept: false, reason: v.expect.reason }
+);
+pyPhase("directory diff", "directory", VEC_DIR, (v) =>
+  v.expect.accept ? { accept: true, registrars: v.expect.registrars } : { accept: false }
+);
+
 if (failures) {
   console.error(`\nDIFF FAILED: ${failures} disagreement(s)`);
   process.exit(1);
 }
-console.log("\nDIFF OK: all implementations agree");
+console.log("\nDIFF OK: all implementations agree (core ↔ sdk ↔ P0 ↔ py)");

@@ -21,6 +21,13 @@ independent confirmation the system does what it claims, root-dark. Stated preci
 personhood. Your standing as a *distinct* verifier comes from us issuing you your own challenge, out of band. (This is
 the honest scope from `DECISIONS.md` D-024 — we won't claim more from your work than it shows.)
 
+## Building your own verifier?
+If you've written (or want to write) your own AINRA verifier, the same afternoon gets you a **conformance
+self-attestation**. The [conformance programme](../docs/conformance/PROGRAMME.md) publishes the full corpus + a
+language-agnostic runner (`make conformance`): point it at your implementation, get a signed, re-runnable report,
+publish it — and anyone re-checks it. The root **certifies no one**; the challenge attestation above and a conformance
+attestation use the same signing mechanism and the same "trust the re-run" principle.
+
 ## Why it matters
 The whole point of a neutral root is *verify, don't trust* — including not trusting us. Three unaffiliated people, on
 three machines, each independently reaching the correct verdicts is one of the last things standing between the

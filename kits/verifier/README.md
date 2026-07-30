@@ -10,6 +10,15 @@ your word** — and, critically, **that a party who never ran a verifier cannot 
 This kit imports nothing but `@ainra/sdk` (its public `Verifier`) and Node built-ins. No internal AINRA crates, no
 network calls (when run against local artifacts), **no telemetry**.
 
+## Same afternoon: the conformance programme
+
+If you're wrapping your own AINRA verifier (not just running `@ainra/sdk`), the challenge attestation here is the same
+motion as **self-attesting conformance**. The [conformance programme](../../docs/conformance/PROGRAMME.md) publishes the
+full corpus + a language-agnostic runner: point it at your implementation, get a signed, re-runnable report, and anyone
+can re-check it — *no root certifies anyone*. Running conformance and returning a challenge attestation is a single
+documented afternoon: same signing mechanism (`ssh-keygen -Y`), same "trust the re-run, not a badge" principle. Start
+with `make conformance` and `tools/conformance/CONTRACT.md`.
+
 ## Why a "challenge corpus" (and not just a nonce)
 
 The three sample checks below run against a **static, published** corpus whose correct verdicts are public. So an

@@ -1491,6 +1491,57 @@ fn reason_str(r: Reason) -> String {
     r.as_str().to_string()
 }
 
+/// Run ainra-core's status-delta / fresh-head verify for one wire vector (shared by `--check-delta` and the
+/// conformance `--emit delta` stdin mode, so both exercise the SAME core path — no second reimplementation).
+fn delta_verify(v: &WireDeltaVector) -> Result<(), Reason> {
+    let root_pub = b64::decode(&v.root_pub_slh).expect("root pk");
+    let cert = checkpoint::DelegateCert {
+        delegate_ed25519: b64::decode_array::<32>(&v.cert.delegate_ed25519).expect("delegate pk"),
+        scopes: v.cert.scopes.clone(),
+        nbf: v.cert.nbf,
+        exp: v.cert.exp,
+        sig_slh: b64::decode(&v.cert.sig_slh).expect("cert sig"),
+    };
+    if v.kind == "delta" {
+        let reg = v.registrar_pub.as_ref().expect("registrar_pub");
+        let reg_pub = crypto::HybridPublic {
+            ed25519: b64::decode_array::<32>(&reg.ed25519).expect("reg ed"),
+            mldsa65: b64::decode(&reg.mldsa65).expect("reg ml"),
+        };
+        let sig = v.sig_registrar.as_ref().expect("sig_registrar");
+        let d = status::StatusDelta {
+            uri: v.uri.clone().expect("uri"),
+            from_seq: v.from_seq.expect("from_seq"),
+            seq: v.seq.expect("seq"),
+            ts: v.ts.expect("ts"),
+            idx: v.idx.clone().expect("idx"),
+            new_status: v.new_status.expect("new_status"),
+            sig_registrar: crypto::HybridSig {
+                ed25519: b64::decode(&sig.ed25519).expect("sig ed"),
+                mldsa65: b64::decode(&sig.mldsa65).expect("sig ml"),
+            },
+            countersig_delegate: b64::decode(v.countersig_delegate.as_deref().expect("countersig"))
+                .expect("countersig b64"),
+        };
+        d.verify(&reg_pub, &root_pub, &cert, v.now)
+    } else {
+        let h = status::FreshHead {
+            uri: v.uri.clone().expect("uri"),
+            seq: v.seq.expect("seq"),
+            ts: v.ts.expect("ts"),
+            status_hash: b64::decode_array::<32>(v.status_hash.as_deref().expect("hash"))
+                .expect("hash b64"),
+            sig_delegate: b64::decode(v.sig_delegate.as_deref().expect("sig")).expect("sig b64"),
+        };
+        let f = match v.freshness.as_deref() {
+            Some("F2") => status::Freshness::F2,
+            Some("F3") => status::Freshness::F3,
+            _ => status::Freshness::F1,
+        };
+        h.verify(&root_pub, &cert, v.now, f)
+    }
+}
+
 fn generate_delta_vectors() -> Vec<WireDeltaVector> {
     let mut rng = ChaCha20Rng::seed_from_u64(0x00DE_17A0);
     let registrar = crypto::HybridKeypair::generate(&mut rng);
@@ -1810,56 +1861,7 @@ fn check_delta(dir: &str) {
     for path in entries {
         let raw = std::fs::read_to_string(&path).expect("read delta vector");
         let v: WireDeltaVector = serde_json::from_str(&raw).expect("parse delta vector");
-        let root_pub = b64::decode(&v.root_pub_slh).expect("root pk");
-        let cert = checkpoint::DelegateCert {
-            delegate_ed25519: b64::decode_array::<32>(&v.cert.delegate_ed25519)
-                .expect("delegate pk"),
-            scopes: v.cert.scopes.clone(),
-            nbf: v.cert.nbf,
-            exp: v.cert.exp,
-            sig_slh: b64::decode(&v.cert.sig_slh).expect("cert sig"),
-        };
-        let res: Result<(), Reason> = if v.kind == "delta" {
-            let reg = v.registrar_pub.as_ref().expect("registrar_pub");
-            let reg_pub = crypto::HybridPublic {
-                ed25519: b64::decode_array::<32>(&reg.ed25519).expect("reg ed"),
-                mldsa65: b64::decode(&reg.mldsa65).expect("reg ml"),
-            };
-            let sig = v.sig_registrar.as_ref().expect("sig_registrar");
-            let d = status::StatusDelta {
-                uri: v.uri.clone().expect("uri"),
-                from_seq: v.from_seq.expect("from_seq"),
-                seq: v.seq.expect("seq"),
-                ts: v.ts.expect("ts"),
-                idx: v.idx.clone().expect("idx"),
-                new_status: v.new_status.expect("new_status"),
-                sig_registrar: crypto::HybridSig {
-                    ed25519: b64::decode(&sig.ed25519).expect("sig ed"),
-                    mldsa65: b64::decode(&sig.mldsa65).expect("sig ml"),
-                },
-                countersig_delegate: b64::decode(
-                    v.countersig_delegate.as_deref().expect("countersig"),
-                )
-                .expect("countersig b64"),
-            };
-            d.verify(&reg_pub, &root_pub, &cert, v.now)
-        } else {
-            let h = status::FreshHead {
-                uri: v.uri.clone().expect("uri"),
-                seq: v.seq.expect("seq"),
-                ts: v.ts.expect("ts"),
-                status_hash: b64::decode_array::<32>(v.status_hash.as_deref().expect("hash"))
-                    .expect("hash b64"),
-                sig_delegate: b64::decode(v.sig_delegate.as_deref().expect("sig"))
-                    .expect("sig b64"),
-            };
-            let f = match v.freshness.as_deref() {
-                Some("F2") => status::Freshness::F2,
-                Some("F3") => status::Freshness::F3,
-                _ => status::Freshness::F1,
-            };
-            h.verify(&root_pub, &cert, v.now, f)
-        };
+        let res: Result<(), Reason> = delta_verify(&v);
         let got_accept = res.is_ok();
         let got_reason = res.err().map(reason_str);
         total += 1;
@@ -2127,6 +2129,68 @@ fn emit_directory(dir: &str) {
     println!("wrote {} directory vectors to {}", vectors.len(), dir);
 }
 
+/// Run ainra-core's directory `accredit` for one directory wire vector (shared by `--check-directory` and the
+/// conformance `--emit directory` stdin mode).
+fn directory_result(v: &serde_json::Value) -> serde_json::Value {
+    let d: ainra_core::directory::Directory =
+        serde_json::from_value(v["directory"].clone()).expect("dir");
+    let root_ed = b64::decode_array::<32>(v["root_ed25519"].as_str().unwrap()).expect("ed");
+    let root_slh = b64::decode(v["root_slh"].as_str().unwrap()).expect("slh");
+    match d.accredit(&root_ed, &root_slh) {
+        Ok(acc) => json!({ "accept": true, "registrars": acc.anchors.registrars.len() }),
+        Err(_) => json!({ "accept": false }),
+    }
+}
+
+/// Conformance runner adapter (M24 Task 2): read published vectors as JSON Lines on stdin — one vector per line —
+/// and for each print `<name>\t<canonical-result-json>` computed by the REAL ainra-core verify path. This is the
+/// Rust core's wrapper that fits the language-agnostic conformance CONTRACT (tools/conformance/CONTRACT.md); the
+/// runner streams a corpus part here and compares each line to the vector's recorded `expect`. No files, no network.
+fn emit_stdin(kind: &str) {
+    use std::io::{BufRead, Write};
+    let stdin = std::io::stdin();
+    let stdout = std::io::stdout();
+    let mut out = std::io::BufWriter::new(stdout.lock());
+    for line in stdin.lock().lines() {
+        let line = line.expect("read stdin line");
+        if line.trim().is_empty() {
+            continue;
+        }
+        let (name, result) = match kind {
+            "passport" => {
+                let v: Vector = serde_json::from_str(&line).expect("parse passport vector");
+                let r = serde_json::to_value(run(&v)).expect("verdict json");
+                (v.name, r)
+            }
+            "delta" => {
+                let v: WireDeltaVector = serde_json::from_str(&line).expect("parse delta vector");
+                let r = match delta_verify(&v) {
+                    Ok(()) => json!({ "accept": true }),
+                    Err(e) => json!({ "accept": false, "reason": reason_str(e) }),
+                };
+                (v.name, r)
+            }
+            "directory" => {
+                let v: serde_json::Value =
+                    serde_json::from_str(&line).expect("parse directory vector");
+                let name = v["name"].as_str().expect("name").to_string();
+                (name, directory_result(&v))
+            }
+            other => {
+                eprintln!("unknown --emit kind: {other} (expected passport|delta|directory)");
+                std::process::exit(2);
+            }
+        };
+        writeln!(
+            out,
+            "{name}\t{}",
+            serde_json::to_string(&result).expect("ser result")
+        )
+        .unwrap();
+    }
+    out.flush().unwrap();
+}
+
 fn check_directory(dir: &str) {
     let mut entries: Vec<_> = std::fs::read_dir(dir)
         .expect("read dir")
@@ -2143,14 +2207,7 @@ fn check_directory(dir: &str) {
     for path in entries {
         let v: serde_json::Value =
             serde_json::from_slice(&std::fs::read(&path).expect("read")).expect("parse");
-        let d: ainra_core::directory::Directory =
-            serde_json::from_value(v["directory"].clone()).expect("dir");
-        let root_ed = b64::decode_array::<32>(v["root_ed25519"].as_str().unwrap()).expect("ed");
-        let root_slh = b64::decode(v["root_slh"].as_str().unwrap()).expect("slh");
-        let got = match d.accredit(&root_ed, &root_slh) {
-            Ok(acc) => json!({ "accept": true, "registrars": acc.anchors.registrars.len() }),
-            Err(_) => json!({ "accept": false }),
-        };
+        let got = directory_result(&v);
         total += 1;
         if got != v["expect"] {
             eprintln!(
@@ -2176,6 +2233,7 @@ fn main() {
     let mut check_delta_dir: Option<String> = None;
     let mut check_directory_dir: Option<String> = None;
     let mut canon_file: Option<String> = None;
+    let mut emit_kind: Option<String> = None;
     let mut min: usize = 0;
     let mut it = args.iter().skip(1);
     while let Some(a) = it.next() {
@@ -2187,6 +2245,7 @@ fn main() {
             "--check-delta" => check_delta_dir = it.next().cloned(),
             "--check-directory" => check_directory_dir = it.next().cloned(),
             "--canon" => canon_file = it.next().cloned(),
+            "--emit" => emit_kind = it.next().cloned(),
             "--bench" => {} // handled after parsing
             "--min" => min = it.next().and_then(|s| s.parse().ok()).unwrap_or(0),
             other => {
@@ -2202,6 +2261,10 @@ fn main() {
     }
     if let Some(file) = canon_file {
         canon_mode(&file);
+        return;
+    }
+    if let Some(kind) = emit_kind {
+        emit_stdin(&kind);
         return;
     }
     if let Some(dir) = delta_out {

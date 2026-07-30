@@ -14,7 +14,7 @@ make site SERVE=1    # …and serve at http://127.0.0.1:8088  (PORT=… to chang
 
 The 7 pages (`index`, `standard`, `verify`, `foundations`, `status`, `demo`, `404`) are committed and self-contained.
 `make site` only regenerates the two **download artifacts** so they can never go stale:
-- `ainra-cli-v0.2.0.zip` ← packaged from **`apps/cli-node/`** (the real reference CLI).
+- `ainra-cli-v0.3.0.zip` ← packaged from **`apps/cli-node/`** (the real reference CLI).
 - `AINRA_I_The_Standard.md` ← copied from **`docs/AINRA_I_The_Standard.md`** (the canonical Standard).
 
 Both are gitignored (derived, not committed) — one source of truth each, so the site's download is always the current,

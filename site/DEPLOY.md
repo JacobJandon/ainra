@@ -14,7 +14,7 @@ static host in one step.
 | `404.html` | on-brand not-found page |
 | `vendor/ainra-sdk.js` | the real `@ainra/sdk` verifier, bundled for the browser (the demo's engine) |
 | `data/registry.json` | a real, core-verified seeded registry the demo reads |
-| `AINRA_I_The_Standard.md`, `ainra-cli-v0.2.0.zip` | downloadable assets |
+| `AINRA_I_The_Standard.md`, `ainra-cli-v0.3.0.zip` | downloadable assets |
 | `robots.txt`, `sitemap.xml` | crawler policy + sitemap (both name `https://ainra.org` — find-replace to your domain) |
 | `site.webmanifest`, `icon-192.png`, `icon-512.png`, `apple-touch-icon.png` | installable/PWA metadata + home-screen icons |
 | `og-cover.png` | 1200×630 social-share image referenced by the Open Graph / Twitter tags |

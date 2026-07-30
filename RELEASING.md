@@ -68,6 +68,72 @@ Then the maintainer:
 > `MANIFEST.sha256` and vectors tarball. The per-platform CLI binary is not bit-reproducible across toolchains, but the
 > **conformance corpus that defines correctness is** — and that's what an implementer actually needs to trust.
 
+## Publishing the packages (maintainer) — npm + PyPI
+
+**Publishing and tagging are the maintainer's buttons. An agent never runs `npm publish`, `twine upload`, or
+`git tag`.** The lists below are dry-run-verified — every artifact was packed and installed clean in a fresh
+environment with its quickstart passing (M24 Task 4) — so all that remains for a human is to press the button once
+the version is final.
+
+### npm — `@ainra/sdk`, `@ainra/middleware`, `@ainra/mcp`
+
+Publish order matters: **`@ainra/sdk` first** (the other two resolve it by name), then `@ainra/middleware`, then
+`@ainra/mcp`.
+
+- [ ] **`npm pack` contents were dry-run-verified** — each tarball ships only its runtime (`@ainra/sdk` and
+      `@ainra/middleware` ship `dist/*.js` + `dist/*.d.ts`; `@ainra/mcp` ships `src/*.mjs`) and **no** `test/`,
+      `src/*.ts`, `tsconfig.json`, `node_modules`, or `package-lock.json`. This is enforced by the `files` field in
+      each `package.json`; re-check before publishing with `cd packages/<pkg> && npm pack --dry-run`.
+- [ ] **`@ainra/middleware` — rewrite the SDK dependency before publishing.** In the repo it is
+      `"@ainra/sdk": "file:../sdk-ts"` (so the offline monorepo build resolves the sibling). **npm does NOT rewrite
+      `file:` on publish** (only the `workspace:` protocol is rewritten) — a published `file:` dependency installs a
+      **dangling** `@ainra/sdk` symlink and the import fails `ERR_MODULE_NOT_FOUND`. Set it to `"@ainra/sdk": "^0.2.0"`
+      at publish time (verified: with `^0.2.0`, a fresh `npm install @ainra/sdk @ainra/middleware` resolves clean and
+      the gate quickstart passes). Do the same rewrite for any future package that depends on a sibling via `file:`.
+- [ ] **`@ainra/mcp` — publish only if a standalone runtime is intended.** As shipped it is *operated from a checkout*
+      (`docs/quickstarts/mcp.md`: `node packages/mcp/src/server.mjs` after `make sdk-build`): `src/tools.mjs` resolves
+      its sibling SDK build, `docs/reasons.json`, and the `ainra` CLI via repo-relative paths, so a bare
+      `npm install @ainra/mcp` does not run on its own. Its own smoke (`make mcp-test`) passes in the monorepo. If you
+      want a standalone npm package, first make it self-contained (resolve `@ainra/sdk` by name, bundle `reasons.json`,
+      locate the CLI) — otherwise leave `@ainra/mcp` unpublished and point users at the checkout quickstart.
+- [ ] **Build fresh, from a clean tree:** `cd packages/sdk-ts && npm ci && npm run build` (and the same for
+      `middleware`); `@ainra/mcp` has no build step.
+- [ ] **Publish each, public scope, with provenance:**
+      ```sh
+      cd packages/sdk-ts    && npm publish --access public --provenance
+      cd packages/middleware && npm publish --access public --provenance   # after rewriting the file: dep
+      cd packages/mcp       && npm publish --access public --provenance   # only if standalone-ready (see above)
+      ```
+      `--access public` is required for a first-time scoped (`@ainra/*`) package. `--provenance` attaches a signed
+      build-provenance attestation (run it from CI with an OIDC-enabled workflow, or locally with a supported registry).
+- [ ] **2FA / OTP:** the npm account/org publishes with 2FA set to *auth-and-writes*. Pass the one-time code with
+      `--otp=<code>` (or approve the interactive prompt). Prefer a **granular automation token** scoped to `@ainra/*`
+      for CI, and an org publish policy that requires 2FA.
+- [ ] **After publish:** confirm `npm view @ainra/sdk version` (and the others) shows the intended version, and that the
+      tarball on the registry matches the local `npm pack` shasum.
+
+### PyPI — `ainra`
+
+The distribution name is **`ainra`** (`packages/sdk-py/pyproject.toml` → `[project] name = "ainra"`; checked
+unregistered on PyPI 2026-07-30). Runtime dependency is exactly `cryptography>=44` (`pytest` is a `test` extra only).
+
+- [ ] **Build both artifacts** from a clean tree: `python -m build packages/sdk-py` → `dist/ainra-<version>.tar.gz`
+      (sdist) + `dist/ainra-<version>-py3-none-any.whl` (wheel). (Dry-run-verified: the wheel ships only the `ainra/`
+      package — no `tests/`, no `__pycache__`.)
+- [ ] **The wheel was dry-run-installed in a clean venv** — `python -m venv .venv && .venv/bin/pip install
+      dist/ainra-<version>-py3-none-any.whl` pulls in **only** `cryptography` (+ its own `cffi`/`pycparser`), nothing
+      surprising, and the README quickstart runs green under the venv's python. Re-check before publishing.
+- [ ] **Check the metadata** before upload: `twine check dist/*` (long-description render, license expression,
+      `Requires-Python`, `Requires-Dist: cryptography>=44`).
+- [ ] **Upload** — prefer a **Trusted Publisher (OIDC)** from CI so no long-lived token is stored: configure the
+      `pypi` publisher for the `ainra` project and let the GitHub Action mint a short-lived token. Otherwise, from a
+      trusted machine: `twine upload dist/*` (or `--repository testpypi` for a rehearsal first). `twine` is not
+      installed in every environment — `pip install twine` if `twine check`/`upload` is missing.
+- [ ] **2FA:** the PyPI account has 2FA enabled (TOTP or a security key). Token/OIDC uploads still require the account
+      to be 2FA-protected; never publish from an account without it.
+- [ ] **After publish:** `pip install ainra==<version>` from a throwaway venv and re-run the quickstart to confirm the
+      registry copy is what you built.
+
 ## Verifying a release (downloader)
 
 You do **not** need to trust the publisher. With only the release files + the public key:

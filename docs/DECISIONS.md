@@ -506,3 +506,39 @@ three committed files — the fmt gate had drifted red without a commit). The wh
 1.96.1 (`cargo fmt --all`; fmt + clippy clean), so a stranger's CI reproduces our fmt result deterministically.
 Alternatives rejected: trusting `scripts/release.sh`'s in-process preflight (leaves no committed evidence a stranger
 can audit) and a floating toolchain (drifts the fmt gate red between releases with no code change).
+
+## D-041 — M24: an independent Python verifier is the fourth differential column; shared primitives, independent logic
+
+`packages/sdk-py` adds a fourth, independently-written implementation of the verifier to the conformance
+differential. It was written from the Standard, the MTS, `docs/reasons.json`, `docs/PRESENTATION.md`, and the CC0
+vectors (their recorded verdicts are the ground truth) — **not** transliterated from `ainra-core` or `sdk-ts`. The
+nine-step verify, the strict base64url gateway (D-029), the canonical-JSON rejection (D-010), the 15 frozen reasons
+and their precedence, the hybrid-signature / window / ceiling / narrowing / freshness / logged-before-valid checks,
+and the delta / fresh-head / directory classes are all re-derived. `make diff` is now **core ↔ sdk ↔ P0 ↔ py** and
+agrees **745/745 passport + 17/17 delta + 9/9 directory** on verdict AND reason (phase F; `tools/diff-harness/run.mjs`
+spawns `python -m ainra._vector_runner`). A fourth brain reaching the same verdict on every vector is independent
+confirmation the standard is unambiguous; a disagreement would have been a finding.
+
+**Package name.** `ainra` — checked on PyPI 2026-07-30 (`GET /pypi/ainra/json` → HTTP 404 → unregistered/available).
+NOT published (no PyPI upload, no version bump, no tag); the name is used for local `pip install -e` only. Module
+names are plain words (`verify`, `verifier`, `middleware`, `reasons`, `directory`, `delta`, `canon`, `merkle`,
+`name`) that cannot collide with a brand; `s7-lint` and `license-check` were extended to scan `packages/sdk-py/ainra`
+and `.../tests` (source only — the package root's `pyproject.toml` is excluded so the standard PyPA
+`setuptools.build_meta` backend string is not mistaken for a foil brand), both green.
+
+**Crypto — shared primitive, independent logic, stated precisely.** The differential exercises the *logic*, not the
+primitives, so the primitives are audited libraries rather than reimplementations (reimplementing a signature scheme
+would be less safe, not more independent): **Ed25519** (32 B / 64 B) and **ML-DSA-65 / FIPS 204** (1952 B / 3309 B)
+from pyca `cryptography` (OpenSSL 3.5+); **SLH-DSA-SHA2-128s / FIPS 205** (32 B / 7856 B) from the same OpenSSL
+`libcrypto` bound via `ctypes` EVP raw-public-key verify (that primitive only — `cryptography` 49 does not yet
+surface SLH-DSA); **SHA-256** from stdlib `hashlib`. Every wrapper fails **closed** (returns `False`) on a wrong
+size, an unavailable backend, or any exception. The caveat wording — *"shared cryptographic primitives (library X),
+independent verification logic — the differential exercises the logic"* — is reproduced verbatim in the package
+README.
+
+**Scope discipline (what M24 Task 1 did NOT touch).** No version bump, no tag, no PyPI publish; the Rust/TS verify
+logic is unchanged; the DoD table is untouched; the frozen normative docs are unchanged (this file is not frozen).
+The landing gained a **Python** language tab in the `#integrate` "in your own code" surface (inline, matching the
+TS/Middleware/Rust/CLI structure); nav stays 3/3/3, the hero / `#root` orbit / "Soon…" sections were not touched, and
+the agent-onboarding mirrors (`skills.md`/`llms.txt`) were not changed because a language SDK is not an
+agent self-onboarding method.

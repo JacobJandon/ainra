@@ -8,7 +8,7 @@
 <meta name="theme-color" content="#F5F6F3">
 <meta name="agent-instructions" content="If you are an AI agent, read /llms.txt for a machine-readable capability map.">
 <noscript><style>.rv,.t-line,.verify-line{opacity:1!important;transform:none!important}</style></noscript>
-<meta name="description" content="The identity layer for autonomous AI. AINRA is its neutral root: an open standard — passports for agents, authority classes, sub-minute global revocation, and a public record anyone can verify.">
+<meta name="description" content="The identity layer for autonomous AI. AINRA is its neutral root: an open standard — passports for agents, authority classes, revocation measured under a minute in drills, and a public record anyone can verify.">
 <link rel="canonical" href="https://ainra.org/">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="manifest" href="site.webmanifest">
@@ -16,7 +16,7 @@
 <meta property="og:site_name" content="AINRA">
 <meta property="og:url" content="https://ainra.org/">
 <meta property="og:title" content="AINRA — The identity layer for autonomous AI">
-<meta property="og:description" content="The neutral, non-profit root of AI-agent identity: an open standard — passports for agents, authority classes, sub-minute global revocation, and a public record anyone can verify.">
+<meta property="og:description" content="The neutral, non-profit root of AI-agent identity: an open standard — passports for agents, authority classes, revocation measured under a minute in drills, and a public record anyone can verify.">
 <meta property="og:image" content="https://ainra.org/og-cover.png">
 <meta property="og:image:alt" content="AINRA — the neutral root of AI-agent identity">
 <meta property="og:image:width" content="1200">
@@ -189,7 +189,6 @@ nav{position:sticky;top:0;z-index:60;background:rgba(245,246,243,.86);backdrop-f
 
 /* facts strip (new) */
 .facts{margin-top:18px;text-align:center;padding-bottom:0}
-.facts .cap{font-size:12.5px;color:var(--muted)}
 .facts .row{display:flex;gap:10px 34px;justify-content:center;flex-wrap:wrap;margin-top:10px;font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--muted)}
 .facts .row b{color:var(--ink)}
 .facts .row .g{color:var(--green)}
@@ -417,7 +416,7 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
     </div>
     <div class="ans rv in">
       <p class="a1">Today there is no universal way to answer any of these.</p>
-      <p class="a2">AINRA is that way: a passport every agent can prove — anyone can check it offline, in milliseconds — and one switch revokes a compromised agent everywhere in under a minute.</p>
+      <p class="a2">AINRA is that way: a passport every agent can prove — anyone can check it offline, in milliseconds — and one switch revokes a compromised agent everywhere in under a minute (measured in drills).</p>
       <p class="a3">You set the limits. You stay in control.</p>
     </div>
     <div class="cta-row rv in">
@@ -455,7 +454,8 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
           <div>AINRA — AGENT IDENTITY &amp; NAMING REGISTRY AUTHORITY</div>
         </div>
         <div class="mrz-zone">
-          <div class="mrz" id="mrz" aria-label="Machine readable zone"></div>
+          <div class="mrz" id="mrz" aria-label="Machine readable zone">P&lt;AINACME&lt;CORP&lt;&lt;INVOICING&lt;AGENT&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;
+8F2EC41AP3AIN2604117L3&lt;&lt;&lt;ORG&lt;&lt;ZK1VERIFIED&lt;04</div>
           <div class="verify-line" id="verifyLine">
             <i aria-hidden="true"></i> ⑧ ROOT SIGNATURE VALID <span>· CHECKPOINT SIGNED · LOG #8F2E…C41 · SPECIMEN</span>
           </div>
@@ -584,8 +584,8 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
         <button class="itab" data-m="http" role="tab" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M3.5 12h17M12 3.5c3 2.7 3 14.3 0 17M12 3.5c-3 2.7-3 14.3 0 17" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>HTTP</button>
       </div>
       <div class="ipanel">
-        <p class="idesc" id="i-desc"></p>
-        <div class="iblock"><span class="icap" id="i-cap"></span><button class="icopy" id="i-copy" type="button">COPY</button><pre id="i-code"></pre></div>
+        <p class="idesc" id="i-desc">One command. Your coding assistant gains AINRA's skills — verify, issue, present, renew, revoke.</p>
+        <div class="iblock"><span class="icap" id="i-cap">terminal</span><button class="icopy" id="i-copy" type="button">COPY</button><pre id="i-code">npx skills add https://ainra.org/.well-known/skills/index.json</pre></div>
       </div>
     </div>
     <div class="dev-in rv" style="margin-top:38px;align-items:start">
@@ -602,7 +602,15 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
           <button class="tab" data-t="rs" role="tab" aria-selected="false">Rust</button>
           <button class="tab" data-t="cli" role="tab" aria-selected="false">CLI</button>
         </div>
-        <div class="codebox" id="codebox" role="tabpanel" aria-live="polite"></div>
+        <div class="codebox" id="codebox" role="tabpanel" aria-live="polite"><span class="c">// five lines — offline, root dark, fail-closed</span>
+<span class="c">// (the reference SDK ships in the CLI bundle — npm publish at genesis)</span>
+<span class="w">import</span> { Verifier } <span class="w">from</span> <span class="g">"@ainra/sdk"</span>;
+
+<span class="w">const</span> v = <span class="w">await</span> Verifier.fromDirectory(dir);
+<span class="w">const</span> verdict = v.verify(bundle, now);
+
+<span class="c">// → { status: "VALID" }</span>
+<span class="c">//   or a named reason: revoked | stale_status | …</span></div>
       </div>
     </div>
     <p style="text-align:center;margin-top:20px;font-size:13px;color:var(--muted)"><a href="get.html" style="color:var(--green);font-weight:600">Get a passport →</a> · <a href="llms.txt" style="color:var(--green);font-weight:600">/llms.txt</a> · <a href="skills.md" style="color:var(--green);font-weight:600">/skills.md</a></p>
@@ -636,8 +644,8 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
 </section>
 
 <div class="wrap"><div class="legal rv">
-  <p><b>Status disclosure.</b> AINRA is a neutral, non-profit root for AI-agent identity, currently pre-genesis. The open standard (v5.1) is public; the reference CLI (v0.3.0) is downloadable and checkable today; the full reference implementation is engineering-complete, pre-release — three implementations agree on all 745 CC0 conformance vectors, and revocation propagation is measured under 60 seconds in a local drill. Verification is offline-capable and free, permanently, and phones home to no one. Canonical live status: <a href="status.html" style="color:var(--green)">status.html</a>.</p>
-  <p>The genesis root is minted: a recorded FROST 5-of-9 + SLH-DSA ceremony produced a real dual-root, the network runs under it, and passports verify root-dark — trusting only the root (run <span style="font-family:var(--mono);font-size:12px">make genesis-verify</span>). This is an operator-run genesis; the distributed public ceremony across independent custodians, three or more external verifiers, and a 14-day multi-region soak are the remaining real-world milestones before it is the production root everyone shares. The passport above is a labeled specimen. The root issues no passports, computes no scores, holds no personal data, features no company, and sells nothing: charter prohibitions enforced in code.</p>
+  <p><b>Status disclosure.</b> AINRA is a neutral, non-profit root for AI-agent identity, currently pre-ceremony: an operator-run genesis root exists, the recorded public ceremony is pending. The open standard (v5.1) is public; the reference CLI (v0.3.0) is downloadable and checkable today; the full reference implementation is engineering-complete, pre-release — four implementations agree on all 745 CC0 conformance vectors, and revocation propagation is measured under 60 seconds in a local drill. Verification is offline-capable and free, permanently, and phones home to no one. Canonical live status: <a href="status.html" style="color:var(--green)">status.html</a>.</p>
+  <p>The genesis root is minted: a FROST 5-of-9 + SLH-DSA ceremony — operator-run, with a reproducible transcript — produced a real dual-root, the network runs under it, and passports verify root-dark — trusting only the root (run <span style="font-family:var(--mono);font-size:12px">make genesis-verify</span>). The recorded public ceremony across independent custodians, three or more external verifiers, and a 14-day multi-region soak remain the real-world milestones before it is the production root everyone shares. The passport above is a labeled specimen. The root issues no passports, computes no scores, holds no personal data, features no company, and sells nothing: charter prohibitions enforced in code.</p>
 </div></div>
 
 </main>
@@ -798,8 +806,8 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
   const S={
 ts:'<span class="c">// five lines — offline, root dark, fail-closed</span>\n<span class="c">// (the reference SDK ships in the CLI bundle — npm publish at genesis)</span>\n<span class="w">import</span> { Verifier } <span class="w">from</span> <span class="g">"@ainra/sdk"</span>;\n\n<span class="w">const</span> v = <span class="w">await</span> Verifier.fromDirectory(dir);\n<span class="w">const</span> verdict = v.verify(bundle, now);\n\n<span class="c">// → { status: "VALID" }</span>\n<span class="c">//   or a named reason: revoked | stale_status | …</span>',
 mw:'<span class="c">// gate any route on a verified passport</span>\n<span class="w">import</span> { ainraGate, Verifier } <span class="w">from</span> <span class="g">"@ainra/middleware"</span>;\n\napp.use(<span class="g">"/agent"</span>, ainraGate(verifier));\n\n<span class="c">// invalid agents receive 403</span>\n<span class="c">// + x-ainra-reason header, fail-closed</span>',
-py:'<span class="c"># an independent verifier — offline, fail-closed</span>\n<span class="c"># pip install ainra  ·  agrees with core on every vector</span>\n<span class="w">from</span> ainra <span class="w">import</span> Verifier\n\nv = Verifier.from_directory(dir, root_ed, root_slh)\nverdict = v.verify(bundle, now)\n\n<span class="c"># → verdict.valid is True</span>\n<span class="c">#   or verdict.reason: revoked | stale_status | …</span>',
-rs:'<span class="c">// the reference core — pure, no I/O, no clock</span>\n<span class="w">let</span> verdict = ainra_core::verify(\n    &bundle, &directory, now,\n);\n\n<span class="c">// 9 documented checks, first failure wins;</span>\n<span class="c">// three implementations agree 745/745</span>',
+py:'<span class="c"># an independent verifier — offline, fail-closed</span>\n<span class="c"># pip install -e packages/sdk-py  (PyPI at genesis)</span>\n<span class="c"># agrees with core on every vector</span>\n<span class="w">from</span> ainra <span class="w">import</span> Verifier\n\nv = Verifier.from_directory(dir, root_ed, root_slh)\nverdict = v.verify(bundle, now)\n\n<span class="c"># → verdict.valid is True</span>\n<span class="c">#   or verdict.reason: revoked | stale_status | …</span>',
+rs:'<span class="c">// the reference core — pure, no I/O, no clock</span>\n<span class="w">let</span> verdict = ainra_core::verify(\n    &bundle, &directory, now,\n);\n\n<span class="c">// 9 documented checks, first failure wins;</span>\n<span class="c">// four implementations agree 745/745</span>',
 cli:'<span class="c"># the whole lifecycle, locally, no server</span>\n$ ainra init ./reg registrar-07\n$ ainra issue ./reg --operator acme \\\n    --lineage invoicing --version 1.0.0 --tier L2\n$ ainra verify ./reg \\\n    ainra:registrar-07:acme:invoicing@1.0.0\n<span class="g">VALID</span>   <span class="c"># the real verifier’s output</span>'
   };
   const cb=$('codebox');

@@ -12,7 +12,8 @@ Reference implementation with a live STAGING network on a TEST-ROOT. Real crypto
 
 - [/skills.md](skills.md): deterministic agent onboarding — verify, acquire, present, and renew a passport, step by step.
 - [/.well-known/skills/index.json](.well-known/skills/index.json): machine-readable skill index. Install with `skills add https://ainra.org/.well-known/skills/index.json`.
-- [/demo.html](demo.html): run the whole lifecycle (issue → log → verify → revoke) in a browser against a live registrar's public door.
+- [/get.html](get.html): run the whole lifecycle in a browser against a live registrar's public door — mint a passport, then browse the record (#browse) and watch a revocation land.
+- [/verify.html#try](verify.html#try): verify — and try to forge — a passport offline in the browser, with the real verifier over bundled specimen fixtures.
 
 ## The four functions (what the root does — and only this)
 

@@ -13,6 +13,46 @@ We **publicly own fixed security bugs** — hiding them would be the opposite of
 The three real-world genesis DoD rows remain the only open work: a recorded public ceremony with independent
 custodians, ≥3 external verifiers, and a 14-day 3-region soak. The machinery for all three is built and rehearsed.
 
+## [v0.3.0] — a fourth independent verifier · self-serve conformance · signed releases (pending tag)
+
+Cut with `make release`; the human tags it (see `RELEASING.md`). Everything below is provable from a clean clone.
+
+### M24 — independence, self-serve conformance, and supply-chain trust
+
+- **A fourth, independent implementation.** `packages/sdk-py` is a Python verifier written from the Standard, the
+  MTS, `docs/reasons.json` / `docs/PRESENTATION.md`, and the CC0 vectors — **not** transliterated from `ainra-core` or
+  the TypeScript SDK. It joins the conformance differential as a fourth column: `make diff` is now
+  **core ↔ sdk ↔ cli ↔ py**, and all four agree byte-for-byte on **745/745 passport + 17/17 delta + 9/9 directory**
+  vectors, on verdict *and* reason. A fourth brain reaching the same verdict on every vector is independent
+  confirmation the Standard is unambiguous; a disagreement would have been a finding.
+- **The independence caveat, stated precisely (D-041).** The verification *logic* is independent; the cryptographic
+  *primitives* are shared, audited libraries — reimplementing a signature scheme would be less safe, not more
+  independent. Ed25519 + ML-DSA-65 come from pyca `cryptography` (OpenSSL 3.5+), SLH-DSA-SHA2-128s from the same
+  OpenSSL `libcrypto` via `ctypes`, SHA-256 from the stdlib. The differential exercises the logic, not the primitives;
+  every crypto wrapper fails **closed**. The package is `ainra` (checked unregistered on PyPI 2026-07-30, **not** published).
+- **The self-serve conformance programme.** `tools/conformance/` + `docs/conformance/PROGRAMME.md`: a
+  **language-agnostic runner** any third party points at their **own** implementation over a documented stdin/stdout
+  contract (`tools/conformance/CONTRACT.md`) — the corpus streams in as JSON Lines, one `<name>\t<result-json>` line
+  streams back, no files and no network. `make conformance` proves it **both ways**: the three in-repo verdict impls
+  (Rust core, TS SDK, Python) each pass **clean** over the full corpus with the same corpus hash, and a deliberately
+  **sabotaged** impl is caught with named divergences (a conformance tool that cannot fail is theatre). An implementer
+  **self-attests** by signing their own result with their **own** SSH key; anyone re-runs the corpus and checks. The
+  root certifies no one — the only truthful claim is "self-attested conformant, re-runnable", never "AINRA-certified".
+- **Supply-chain trust for our own releases (D-042).** `make release` writes `dist/` — the reference CLI, the CC0
+  corpus, a reproducibility `MANIFEST.sha256`, a **SLSA-style `provenance.json`** (source commit, toolchain, artifact
+  digests) and a **CycloneDX `sbom.json`** (every locked crate + Node dep with its `purl`) — and signs `SHA256SUMS`
+  with an **offline SSH Ed25519 key** (`ssh-keygen -Y`): tiny keys, detached signatures, verified against one pinned
+  public key, no keyserver and no web-of-trust. The private key never enters the repo or CI. **`RELEASE-VERIFY.md`** is
+  the stranger's four-step verify guide — check the signature, check every artifact against the signed manifest, read
+  the provenance + SBOM, and (the strong check) rebuild the corpus **byte-for-byte** from the tagged source, which
+  needs no key at all. Signatures prove *who*; reproducibility proves *what*.
+- **Versions bumped to 0.3.0** everywhere from one source each — the workspace `Cargo.toml` (every crate inherits),
+  `@ainra/sdk` / `@ainra/middleware` / `@ainra/mcp`, the Python `ainra`, the downloadable reference CLI, and the site
+  labels — with the `make site` drift-guard that fails the build if any page's CLI version ≠ `apps/cli-node/package.json`.
+- The **DoD table is untouched.** The three real-world genesis rows — a recorded public ceremony with independent
+  custodians, ≥3 external verifiers, and a 14-day 3-region soak — remain **honestly pending**; the machinery for all
+  three is built and rehearsed. Decisions this milestone: **D-041** (the fourth Python column), **D-042** (SSH-signed releases).
+
 ## [v0.2.0] — hybrid CLI + suite-migration / ceremony / witness / push (pending tag)
 
 Cut with `make release`; the human tags it (see `RELEASING.md`). Everything below is provable from a clean clone.
@@ -167,6 +207,7 @@ A recorded 5-of-9 ceremony · ≥3 independent external verifiers · a 14-day/3-
 witnesses on separate infra. The machinery for all four is built and smoke-proven; `make genesis-status` shows the
 honest count (**7/11** today). See `GENESIS-CHECKLIST.md` and `outreach/`.
 
-[Unreleased]: https://github.com/<owner>/ainra/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/<owner>/ainra/compare/v0.3.0...HEAD
+[v0.3.0]: https://github.com/<owner>/ainra/compare/v0.2.0...v0.3.0
 [v0.2.0]: https://github.com/<owner>/ainra/compare/v0.1.0...v0.2.0
 [v0.1.0]: https://github.com/<owner>/ainra/releases/tag/v0.1.0

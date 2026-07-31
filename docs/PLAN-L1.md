@@ -24,12 +24,13 @@ into `#why`, merged with the three beats (commit `24626af`); private release-sig
 | Phase | State | Evidence |
 |---|---|---|
 | 0 — preconditions | DONE | tree clean @ 5e61697 · pins v0.2.0→5ae1b12, v0.3.0→af3c869 vs RELEASING.md ✓ · boards committed ✓ · changelog-board-check green ✓ · SSH signing configured + throwaway sign/verify/delete PASS |
-| 1 — tags | pending | |
-| 2 — public repo + Stranger Test | pending | |
-| 3 — npm / PyPI | pending | |
-| 4 — truth propagation | pending | |
-| 5 — outreach/ready/ | pending | |
-| 6 — close | pending | |
+| 1 — tags | DONE | `git verify-tag`: Good signature (ED25519 SHA256:xMs+…9Us) for BOTH v0.2.0 + v0.3.0 · tag commits == pins exactly · board files present in tagged commits |
+| 2 — public repo | DONE | pre-push checklist ALL GREEN (license ✓ · S7 3-line ✓ · full-history gitleaks "no leaks found" after allowlisting verified-public material: 6× 32-byte Ed25519 public keys in historical site data + 2× public-key fingerprints; negative control: planted secret still trips · PII sweep clean · local paths neutralized at tip, tagged blobs untouched — history never rewritten · README==STATUS==DOD lockstep) · repo created via gh: **https://github.com/JacobJandon/ainra** · branch renamed master→main pre-consumers · main + both signed tags pushed, remote derefs == pins |
+| 2 — Stranger Test | see docs/releases/ + closing block | pristine rust:1.96 container, zero credentials, anonymous https clone of the public URL; full board run — see the closing evidence block |
+| 3 — npm / PyPI | PARKED (no credentials in-session) | dry-runs GREEN: @ainra/sdk@0.3.0 + @ainra/middleware@0.3.0 `npm pack` verified (dist-only); Python ainra-0.3.0 wheel+sdist `twine check PASSED`. Owner asked once for npm login/OTP + PyPI token; resume commands in the closing block. Note: owner's MASTER GO supersedes RELEASING.md's agent-never-publishes default for this session |
+| 4 — truth propagation | DONE | commit 23d7a06 pushed: `<owner>`→JacobJandon in 6 functional files (descriptive docs stay generic) · source links in all footers + llms.txt · ONE documented external-anchor exception in link-check (the canonical repo URL; zero-external-requests guarantee is about loaded resources) · site-check + link-check + S7 green · Desktop bundle rebuilt @ 23d7a06 + LAUNCH.txt stamped with the public URL |
+| 5 — outreach/ready/ | DONE (files only, NOTHING sent) | 3 real challenges minted against a live registrar (answer keys ONLY in gitignored ops-verifier/ + ~/Desktop/ainra-secrets/verifier-answer-keys/; leak-check clean ×3) · per-party ONE-PAGER + EMAIL-DRAFT with real public URLs, conformance-afternoon featured · custodian INVITATION + witness NOTE · SOAK-REALITY-CHECK (clock NOT started) · folder deliberately untracked |
+| 6 — close | closing block pasted in-session | |
 
 Standing prohibitions: no pushed-history rewrites · no DoD row moves · no announcements · no soak clock ·
 no Meridian.

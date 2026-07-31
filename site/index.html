@@ -254,21 +254,11 @@ section{padding:88px 0}
 @media(max-width:560px){.steps{grid-template-columns:1fr}}
 
 /* developers + code tabs (new) */
-.dev-in{display:grid;grid-template-columns:.92fr 1.08fr;gap:44px;align-items:center}
-@media(max-width:900px){.dev-in{grid-template-columns:1fr;gap:28px}}
-.dev-in h2{font-size:clamp(1.8rem,3.6vw,2.5rem);font-weight:750;line-height:1.1;margin-top:10px}
-.dev-in .d{margin-top:12px;color:var(--muted);font-size:15px}
 .dsteps{margin-top:20px}
 .dstep{display:flex;gap:14px;padding:13px 0;border-top:1px solid var(--line)}
 .dstep .n{width:26px;height:26px;border-radius:50%;background:var(--card);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--ink);flex:0 0 26px}
 .dstep h3{font-size:15px;font-weight:700;color:var(--ink)}
 .dstep p{font-size:13px;color:var(--muted);margin-top:2px}
-.codecard{background:var(--ink);border-radius:18px;box-shadow:0 24px 60px rgba(11,18,32,.12);overflow:hidden}
-.tabs{display:flex;gap:2px;padding:12px 14px 0;flex-wrap:wrap}
-.tab{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;color:#7C8698;background:none;border:1px solid transparent;border-radius:9px 9px 0 0;padding:8px 14px}
-.tab.on{color:var(--green-br);background:#0A101E;border-color:rgba(245,246,243,.1);border-bottom-color:#0A101E}
-.codebox{background:#0A101E;border-top:1px solid rgba(245,246,243,.1);margin:0 14px 14px;border-radius:0 12px 12px 12px;padding:17px;font-family:var(--mono);font-size:11.5px;line-height:1.8;color:#c9d2e0;white-space:pre;overflow-x:auto;min-height:206px}
-.codebox .c{color:#8B94A6}.codebox .g{color:var(--green-br)}.codebox .w{color:#F5F6F3}
 
 /* statement (new) */
 .statement{text-align:center;padding:8px 24px 0}
@@ -460,6 +450,29 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
   </div>
 </header>
 
+<section id="integrate" class="rv" style="padding:60px 0 40px">
+  <div class="wrap">
+    <div class="sec-head" style="text-align:center;max-width:700px;margin:0 auto">
+      <span class="eyebrow">Integrate · onboard</span>
+      <h2>One line for your agent. A few for your code.</h2>
+      <p class="lede" style="margin-top:10px">No account, no calls to us: your code checks signed facts locally with the root switched off — and any agent that speaks the open conventions (skills, MCP, plain HTTP) onboards itself.</p>
+    </div>
+    <div class="install">
+      <div class="itabs" role="tablist" aria-label="Onboarding method">
+        <button class="itab on" data-m="skill" role="tab" aria-selected="true"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M7 10l3 2.5-3 2.5M12.5 15h4.5" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>Skill install</button>
+        <button class="itab" data-m="mcp" role="tab" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 2.5v5M15 2.5v5M7 7.5h10v3a5 5 0 0 1-10 0v-3ZM12 15.5v6" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>MCP</button>
+        <button class="itab" data-m="prompt" role="tab" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5h16v9H9.5L4 19V5.5Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M8 9.5h8M8 12h5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>Prompt</button>
+        <button class="itab" data-m="http" role="tab" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M3.5 12h17M12 3.5c3 2.7 3 14.3 0 17M12 3.5c-3 2.7-3 14.3 0 17" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>HTTP</button>
+      </div>
+      <div class="ipanel">
+        <p class="idesc" id="i-desc">One command. Your coding assistant gains AINRA's skills — verify, issue, present, renew, revoke.</p>
+        <div class="iblock"><span class="icap" id="i-cap">terminal</span><button class="icopy" id="i-copy" type="button">COPY</button><pre id="i-code">npx skills add https://ainra.org/.well-known/skills/index.json</pre></div>
+      </div>
+    </div>
+    <p style="text-align:center;margin-top:20px;font-size:13px;color:var(--muted)"><a href="get.html" style="color:var(--green);font-weight:600">Get a passport →</a> · <a href="llms.txt" style="color:var(--green);font-weight:600">/llms.txt</a> · <a href="skills.md" style="color:var(--green);font-weight:600">/skills.md</a></p>
+  </div>
+</section>
+
 <section class="dark" id="root">
   <div class="wrap">
     <div class="sec-head rv">
@@ -562,54 +575,6 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
         <p>Limits and revocation stay in the operator's hands — the network just makes them provable. The root is a neutral non-profit that sells nothing, holds no personal data, and issues no passports itself.</p>
       </div>
     </div>
-  </div>
-</section>
-
-<section id="integrate" class="rv" style="padding-bottom:24px">
-  <div class="wrap">
-    <div class="sec-head" style="text-align:center;max-width:700px;margin:0 auto">
-      <span class="eyebrow">Integrate · onboard</span>
-      <h2>One line for your agent. A few for your code.</h2>
-      <p class="lede" style="margin-top:10px">No account, no calls to us: your code checks signed facts locally with the root switched off — and any agent that speaks the open conventions (skills, MCP, plain HTTP) onboards itself.</p>
-    </div>
-    <div class="install">
-      <div class="itabs" role="tablist" aria-label="Onboarding method">
-        <button class="itab on" data-m="skill" role="tab" aria-selected="true"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M7 10l3 2.5-3 2.5M12.5 15h4.5" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>Skill install</button>
-        <button class="itab" data-m="mcp" role="tab" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 2.5v5M15 2.5v5M7 7.5h10v3a5 5 0 0 1-10 0v-3ZM12 15.5v6" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>MCP</button>
-        <button class="itab" data-m="prompt" role="tab" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5h16v9H9.5L4 19V5.5Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M8 9.5h8M8 12h5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>Prompt</button>
-        <button class="itab" data-m="http" role="tab" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M3.5 12h17M12 3.5c3 2.7 3 14.3 0 17M12 3.5c-3 2.7-3 14.3 0 17" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>HTTP</button>
-      </div>
-      <div class="ipanel">
-        <p class="idesc" id="i-desc">One command. Your coding assistant gains AINRA's skills — verify, issue, present, renew, revoke.</p>
-        <div class="iblock"><span class="icap" id="i-cap">terminal</span><button class="icopy" id="i-copy" type="button">COPY</button><pre id="i-code">npx skills add https://ainra.org/.well-known/skills/index.json</pre></div>
-      </div>
-    </div>
-    <div class="dev-in rv" style="margin-top:38px;align-items:start">
-      <div>
-        <span class="eyebrow">In your own code</span>
-        <h3 style="font-family:var(--display);font-size:clamp(1.3rem,2.6vw,1.7rem);letter-spacing:-.02em;margin-top:8px">Verify locally — one call, fail-closed.</h3>
-        <p class="d" style="margin-top:8px">Point at the root-signed directory · verify the bundle (signature, authority, freshness, revocation, log inclusion) · gate on the verdict. VALID proceeds; anything else returns a named reason — the decision stays yours.</p>
-      </div>
-      <div class="codecard">
-        <div class="tabs" role="tablist" aria-label="Integration surface">
-          <button class="tab on" data-t="ts" role="tab" aria-selected="true">TypeScript</button>
-          <button class="tab" data-t="mw" role="tab" aria-selected="false">Middleware</button>
-          <button class="tab" data-t="py" role="tab" aria-selected="false">Python</button>
-          <button class="tab" data-t="rs" role="tab" aria-selected="false">Rust</button>
-          <button class="tab" data-t="cli" role="tab" aria-selected="false">CLI</button>
-        </div>
-        <div class="codebox" id="codebox" role="tabpanel" aria-live="polite"><span class="c">// five lines — offline, root dark, fail-closed</span>
-<span class="c">// (the reference SDK ships in the CLI bundle — npm publish at genesis)</span>
-<span class="w">import</span> { Verifier } <span class="w">from</span> <span class="g">"@ainra/sdk"</span>;
-
-<span class="w">const</span> v = <span class="w">await</span> Verifier.fromDirectory(dir);
-<span class="w">const</span> verdict = v.verify(bundle, now);
-
-<span class="c">// → { status: "VALID" }</span>
-<span class="c">//   or a named reason: revoked | stale_status | …</span></div>
-      </div>
-    </div>
-    <p style="text-align:center;margin-top:20px;font-size:13px;color:var(--muted)"><a href="get.html" style="color:var(--green);font-weight:600">Get a passport →</a> · <a href="llms.txt" style="color:var(--green);font-weight:600">/llms.txt</a> · <a href="skills.md" style="color:var(--green);font-weight:600">/skills.md</a></p>
   </div>
 </section>
 
@@ -799,20 +764,6 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
     for(let i=countEls.length-1;i>=0;i--){const r=countEls[i].getBoundingClientRect();if(r.top<vh*0.9&&r.bottom>0){animate(countEls[i]);countEls.splice(i,1);}}};
   runCounts(); addEventListener('scroll',runCounts,{passive:true}); addEventListener('resize',runCounts,{passive:true});
 
-  /* dev code tabs — real surfaces only */
-  const S={
-ts:'<span class="c">// five lines — offline, root dark, fail-closed</span>\n<span class="c">// (the reference SDK ships in the CLI bundle — npm publish at genesis)</span>\n<span class="w">import</span> { Verifier } <span class="w">from</span> <span class="g">"@ainra/sdk"</span>;\n\n<span class="w">const</span> v = <span class="w">await</span> Verifier.fromDirectory(dir);\n<span class="w">const</span> verdict = v.verify(bundle, now);\n\n<span class="c">// → { status: "VALID" }</span>\n<span class="c">//   or a named reason: revoked | stale_status | …</span>',
-mw:'<span class="c">// gate any route on a verified passport</span>\n<span class="w">import</span> { ainraGate, Verifier } <span class="w">from</span> <span class="g">"@ainra/middleware"</span>;\n\napp.use(<span class="g">"/agent"</span>, ainraGate(verifier));\n\n<span class="c">// invalid agents receive 403</span>\n<span class="c">// + x-ainra-reason header, fail-closed</span>',
-py:'<span class="c"># an independent verifier — offline, fail-closed</span>\n<span class="c"># pip install -e packages/sdk-py  (PyPI at genesis)</span>\n<span class="c"># agrees with core on every vector</span>\n<span class="w">from</span> ainra <span class="w">import</span> Verifier\n\nv = Verifier.from_directory(dir, root_ed, root_slh)\nverdict = v.verify(bundle, now)\n\n<span class="c"># → verdict.valid is True</span>\n<span class="c">#   or verdict.reason: revoked | stale_status | …</span>',
-rs:'<span class="c">// the reference core — pure, no I/O, no clock</span>\n<span class="w">let</span> verdict = ainra_core::verify(\n    &bundle, &directory, now,\n);\n\n<span class="c">// 9 documented checks, first failure wins;</span>\n<span class="c">// four implementations agree 745/745</span>',
-cli:'<span class="c"># the whole lifecycle, locally, no server</span>\n$ ainra init ./reg registrar-07\n$ ainra issue ./reg --operator acme \\\n    --lineage invoicing --version 1.0.0 --tier L2\n$ ainra verify ./reg \\\n    ainra:registrar-07:acme:invoicing@1.0.0\n<span class="g">VALID</span>   <span class="c"># the real verifier’s output</span>'
-  };
-  const cb=$('codebox');
-  if(cb){
-    const setTab=k=>{cb.innerHTML=S[k];document.querySelectorAll('.tab').forEach(t=>{const on=t.dataset.t===k;t.classList.toggle('on',on);t.setAttribute('aria-selected',on?'true':'false');});};
-    document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>setTab(t.dataset.t)));
-    setTab('ts');
-  }
 
   /* founding-table form (local only — no network) */
   const cf=$('ctaForm');

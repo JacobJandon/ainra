@@ -25,6 +25,8 @@ paths = [
   # verified 32-byte Ed25519 verification keys, zero private markers (L1 pre-push audit, docs/PLAN-L1.md)
   '''site/data/.*\.json''',
 ]
+# test the regexes against the full line (default target is the captured secret, which drops the SHA256: prefix)
+regexTarget = "line"
 regexes = [
   # SSH public-key fingerprints (SHA256:base64) quoted in evidence docs — fingerprints of the COMMITTED
   # public key release/ainra-release.pub; a fingerprint of a public key is public by definition

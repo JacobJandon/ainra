@@ -34,9 +34,11 @@ proven release commit, the exact tag target is pinned here so it stays unambiguo
 | Version | Tag target (exact commit) | Board evidence | State |
 |---|---|---|---|
 | **v0.2.0** | **`5ae1b12`** | `docs/releases/v0.2.0-board.md` — full 17-row board ALL GREEN from a clean clone; ran at parent `0691f38`, `5ae1b12` adds only the evidence doc (no preflight-affecting change) | **tag-ready; awaiting the maintainer's `git tag -s v0.2.0 5ae1b12`** |
+| **v0.3.0** | **`af3c869`** | `docs/releases/v0.3.0-board.md` — full 18-row board (incl. `conformance`, 4-way differential) ALL GREEN from a clean clone; ran at parent `75e65ba`, `af3c869` adds only the evidence doc (no preflight-affecting change) | **tag-ready; awaiting the maintainer's `git tag -s v0.3.0 af3c869`** |
 
-To cut it: `git tag -s v0.2.0 5ae1b12 -m "AINRA v0.2.0"` (verify `git show 5ae1b12 --stat` lists the board evidence
-file first). Do this before or independently of v0.3.0; the pin above guarantees the target never drifts.
+To cut them: `git tag -s v0.2.0 5ae1b12 -m "AINRA v0.2.0"` and `git tag -s v0.3.0 af3c869 -m "AINRA v0.3.0"`
+(verify `git show <target> --stat` lists the board evidence file first). Tag v0.2.0 before or independently of
+v0.3.0; the pins above guarantee neither target drifts.
 
 ## Cutting a release (maintainer)
 

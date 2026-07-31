@@ -207,7 +207,7 @@ A recorded 5-of-9 ceremony · ≥3 independent external verifiers · a 14-day/3-
 witnesses on separate infra. The machinery for all four is built and smoke-proven; `make genesis-status` shows the
 honest count (**7/11** today). See `GENESIS-CHECKLIST.md` and `outreach/`.
 
-[Unreleased]: https://github.com/<owner>/ainra/compare/v0.3.0...HEAD
-[v0.3.0]: https://github.com/<owner>/ainra/compare/v0.2.0...v0.3.0
-[v0.2.0]: https://github.com/<owner>/ainra/compare/v0.1.0...v0.2.0
-[v0.1.0]: https://github.com/<owner>/ainra/releases/tag/v0.1.0
+[Unreleased]: https://github.com/JacobJandon/ainra/compare/v0.3.0...HEAD
+[v0.3.0]: https://github.com/JacobJandon/ainra/compare/v0.2.0...v0.3.0
+[v0.2.0]: https://github.com/JacobJandon/ainra/compare/v0.1.0...v0.2.0
+[v0.1.0]: https://github.com/JacobJandon/ainra/releases/tag/v0.1.0

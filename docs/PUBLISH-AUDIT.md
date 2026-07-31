@@ -87,14 +87,14 @@ been done for you (no remote exists, nothing is pushed) — that is deliberate.
 
 1. **Final green from a clean clone.** `git clone . /tmp/ainra-check && cd /tmp/ainra-check && make preflight` → the
    board must read **ALL GREEN**, and `make audit` → **AUDIT OK**. (M11 keeps this true; re-run if in doubt.)
-2. **Set the owner.** One repo-wide find/replace: `<owner>` → your GitHub org/user. The functional placeholders are the
+2. **Set the owner.** One repo-wide find/replace: `JacobJandon` → your GitHub org/user. The functional placeholders are the
    README CI badge and `.github/ISSUE_TEMPLATE/config.yml` (security + question links); a single find/replace covers
    both (and the prose mentions in docs read correctly too). Commit it.
 3. **Tag the first release.** `make release` (refuses a dirty tree or a red preflight; writes `dist/` + a checksum
    manifest), then `git tag -s v0.1.0 -m "AINRA v0.1.0"` (or `-a` if you're not signing yet). See `CHANGELOG.md`.
-4. **Create the empty public repo** on GitHub under `<owner>/ainra`. Do NOT initialize it with a README/license (this
+4. **Create the empty public repo** on GitHub under `JacobJandon/ainra`. Do NOT initialize it with a README/license (this
    repo already has them). Confirm **Actions are enabled** for it (Settings → Actions → Allow all actions).
-5. **Push.** `git remote add origin git@github.com:<owner>/ainra.git && git push -u origin main --tags`.
+5. **Push.** `git remote add origin git@github.com:JacobJandon/ainra.git && git push -u origin main --tags`.
 6. **Confirm CI is green on the host.** Open the Actions tab; the `CI` workflow should run all jobs (rust, differential,
    wedge, audit, hygiene, fuzz-smoke, integration, reproducibility) and pass. The nightly schedule will run daily.
 7. **Confirm the badge resolves.** The README CI badge should now show *passing* (not "unknown"). If it 404s, re-check

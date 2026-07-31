@@ -1,9 +1,9 @@
 <!-- SPDX-License-Identifier: Apache-2.0 OR MIT -->
 # AINRA — the neutral root of AI-agent identity
 
-<!-- ⚙️ BEFORE PUBLISHING: one repo-wide find/replace of `<owner>` → your GitHub org/user makes this badge resolve.
+<!-- ⚙️ BEFORE PUBLISHING: one repo-wide find/replace of `JacobJandon` → your GitHub org/user makes this badge resolve.
      It appears ONLY here (both spots on the next line). Full steps: docs/PUBLISH-AUDIT.md § "Pre-push checklist". -->
-[![CI](https://github.com/<owner>/ainra/actions/workflows/ci.yml/badge.svg)](https://github.com/<owner>/ainra/actions/workflows/ci.yml)
+[![CI](https://github.com/JacobJandon/ainra/actions/workflows/ci.yml/badge.svg)](https://github.com/JacobJandon/ainra/actions/workflows/ci.yml)
 
 **AINRA** does exactly four jobs — **accredit · anchor · revoke · log** — and nothing else. It answers the three
 questions every counterparty asks about an AI agent — *who is behind it, what may it do, is it still trusted right

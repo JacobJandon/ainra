@@ -10,6 +10,8 @@ Reference implementation with a live STAGING network on a TEST-ROOT. Real crypto
 
 ## Start here
 
+- [Source repository](https://github.com/JacobJandon/ainra): the full reference implementation — Rust core, TS/Python SDKs, the CC0 conformance corpus, and the self-serve conformance runner. Clone it and `make preflight`: every gate passes from a cold clone.
+
 - [/skills.md](skills.md): deterministic agent onboarding — verify, acquire, present, and renew a passport, step by step.
 - [/.well-known/skills/index.json](.well-known/skills/index.json): machine-readable skill index. Install with `skills add https://ainra.org/.well-known/skills/index.json`.
 - [/get.html](get.html): run the whole lifecycle in a browser against a live registrar's public door — mint a passport, then browse the record (#browse) and watch a revocation land.

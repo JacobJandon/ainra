@@ -65,7 +65,7 @@ Signatures prove *who*; reproducibility proves *what*. Clone the **tagged** sour
 trust in the builder required:
 
 ```sh
-git clone --branch <version> https://github.com/<owner>/ainra && cd ainra
+git clone --branch <version> https://github.com/JacobJandon/ainra && cd ainra
 make repro                                     # rebuilds MANIFEST.sha256 from source, byte-identical ×2
 tar -xzf /path/to/ainra-vectors-<version>.tar.gz   # the released corpus
 diff <(sort MANIFEST.sha256) <(sort ./MANIFEST.sha256)   # released manifest == rebuilt-from-source manifest

@@ -21,4 +21,12 @@ paths = [
   '''samples/.*''',
   '''packages/sdk-ts/.*/fixtures/.*''',
   '''packages/middleware/.*/fixtures/.*''',
+  # specimen-network site data (current + historical layouts): accreditation/log/issuer PUBLIC keys only —
+  # verified 32-byte Ed25519 verification keys, zero private markers (L1 pre-push audit, docs/PLAN-L1.md)
+  '''site/data/.*\.json''',
+]
+regexes = [
+  # SSH public-key fingerprints (SHA256:base64) quoted in evidence docs — fingerprints of the COMMITTED
+  # public key release/ainra-release.pub; a fingerprint of a public key is public by definition
+  '''SHA256:[A-Za-z0-9+/]{43}''',
 ]

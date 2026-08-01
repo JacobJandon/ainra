@@ -726,11 +726,6 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
     if(rt)rt.textContent=d[0]; if(rx)rx.textContent=d[1];
   }));
 
-  /* email capture (demo) */
-  const cf=$('ctaForm');
-  if(cf){
-    cf.addEventListener('submit',e=>{e.preventDefault();const em=$('ctaEmail');if(!em.value||!em.value.includes('@')){em.focus();return;}e.target.style.display='none';const ok=$('ctaOk');if(ok)ok.style.display='block';});
-  }
 })();
 </script>
 <script>

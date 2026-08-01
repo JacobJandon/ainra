@@ -36,16 +36,12 @@ cd site && python3 -m http.server 8080
 
 Set the error page to `404.html`. No environment variables, no secrets, no database.
 
-## The one thing that needs "connecting" for launch
+## Founding-table intake — already connected
 
-Everything is client-side **except capturing founding-table signups**. Today the form is deliberately browser-local
-(it says so honestly — nothing is sent). To collect real signups at launch, wire the `#ctaForm` submit in `index.html`
-to one of:
-
-1. a **`mailto:` fallback** (zero infrastructure) — prefill a message to your intake address; or
-2. a **serverless function / form endpoint** you control — `POST {seat, email}` to it on submit.
-
-Keep the honest success copy accurate to whichever you choose. Until then the browser-local behavior is correct and truthful.
+The `#access` seat picker opens a **prefilled public issue on the source repository** (the seat the visitor chose
+becomes the title). Zero infrastructure, no email address to run, requests arrive in the open where anyone can see
+how they're handled. If you later prefer a private channel, swap the `#ctaGo` link target in `index.html` for an
+endpoint you control — and keep the success copy accurate to whatever you choose.
 
 ## Before pointing a real domain at it
 

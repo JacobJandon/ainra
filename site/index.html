@@ -592,13 +592,12 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
           <button type="button" class="seat" data-seat="Builder / operator" role="radio" aria-checked="false"><b>Builder</b><span>Run agents that carry passports</span></button>
           <button type="button" class="seat" data-seat="Other" role="radio" aria-checked="false"><b>Other</b><span>Something else entirely</span></button>
         </div>
-        <p class="seat-hint" id="seatHint">Pick your seat, then leave an email.</p>
+        <p class="seat-hint" id="seatHint">Pick your seat, then open your founding request.</p>
         <div class="email-row">
-          <input type="email" id="ctaEmail" placeholder="you@example.com" aria-label="Work email" required>
-          <button class="btn" type="submit">Take a seat</button>
+          <a class="btn" id="ctaGo" href="https://github.com/JacobJandon/ainra/issues/new?title=Founding%20table&amp;body=Seat%3A%20%3Cpick%20one%3A%20issuer%20%C2%B7%20verifier%20%C2%B7%20attestor%20%C2%B7%20witness%20%C2%B7%20builder%20%C2%B7%20other%3E%0AWho%20I%20am%3A%20%0AWhat%20I%20run%3A%20%0A%0AI%20would%20like%20to%20take%20this%20seat%20at%20the%20AINRA%20founding%20table." rel="noopener">Take a seat →</a>
         </div>
       </form>
-      <p class="email-ok" id="ctaOk" role="status">This opens a pre-filled email from your own mail client — nothing is stored on our servers.</p>
+      <p class="email-ok" id="ctaOk" role="status">Opens a public founding request on the source repository — in the open, like everything else here; nothing is stored on any server we run.</p>
       <a class="alt" href="standard.html">READ THE STANDARD FIRST →</a>
     </div>
   </div>
@@ -781,18 +780,11 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
       else if(e.key==='ArrowLeft'||e.key==='ArrowUp')j=(i-1+seats.length)%seats.length;
       else if(e.key==='Home')j=0; else if(e.key==='End')j=seats.length-1; else return;
       e.preventDefault(); seats[j].focus(); pick(seats[j]);});
-    cf.addEventListener('submit',e=>{e.preventDefault();
-      if(!seat){hint.textContent='Pick a seat first — that\'s the whole table.';hint.classList.add('warn');
-        grid.classList.add('pulse');setTimeout(()=>grid.classList.remove('pulse'),900);seats[0].focus();return;}
-      const em=$('ctaEmail');if(!em.value||!em.value.includes('@')){em.focus();return;}
-      // D-036: structured mailto — hands off to the visitor's own mail client. No PII is stored on any server we run,
-      // and there is no fake "you're in" success: the request completes only when they actually send the email.
-      const to='founding@ainra.org';
-      const body='Seat: '+seat+'\nReply-to: '+em.value+'\n\nI would like to take this seat at the AINRA founding table.\n(Composed on the site — the request is complete once this email is sent.)';
-      window.location.href='mailto:'+to+'?subject='+encodeURIComponent('AINRA founding table — '+seat)+'&body='+encodeURIComponent(body);
-      cf.style.display='none';const ok=$('ctaOk');
-      if(ok){ok.innerHTML='Opening a pre-filled email to <b>'+to+'</b> for the <b>'+seat+'</b> seat — <b>send it</b> to complete your request. Nothing was stored here. If nothing opened, email <b>'+to+'</b> directly.';ok.style.display='block';}
-    });
+    const go=$('ctaGo');
+    if(go){const base='https://github.com/JacobJandon/ainra/issues/new';
+      cf.addEventListener('click',()=>{if(!seat)return;
+        const body='Seat: '+seat+'\nWho I am: \nWhat I run: \n\nI would like to take this seat at the AINRA founding table.';
+        go.href=base+'?title='+encodeURIComponent('Founding table — '+seat)+'&body='+encodeURIComponent(body);});}
   }
 })();
 </script>

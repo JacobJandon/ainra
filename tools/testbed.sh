@@ -21,12 +21,22 @@ cargo build --release -p ainra-services --bin registrar-box -p ainra-ceremony --
 cd packages/sdk-ts && npm run build >/dev/null 2>&1 && cd ../..
 
 echo "== 1. start registrar-box on 127.0.0.1:$PORT =="
-./target/release/registrar-box "127.0.0.1:$PORT" registrar-07 "$DATA" >/dev/null 2>"$WORK/rb.err" &
+./target/release/registrar-box "127.0.0.1:$PORT" registrar-07 "$DATA" >"$WORK/rb.out" 2>"$WORK/rb.err" &
 RB_PID=$!
-# slow runners: hybrid keygen can take >6s — wait up to 30s and FAIL LOUDLY if the daemon never binds or died
-for i in $(seq 1 60); do curl -sf "http://127.0.0.1:$PORT/accreditation" >/dev/null 2>&1 && break; sleep 0.5; done
+RB_PID=$!
+# slow shared runners: wait up to 120s and FAIL LOUDLY with full diagnostics if the daemon never binds or died
+for i in $(seq 1 240); do
+  curl -sf "http://127.0.0.1:$PORT/accreditation" >/dev/null 2>&1 && break
+  kill -0 "$RB_PID" 2>/dev/null || break   # daemon died — stop waiting
+  sleep 0.5
+done
 curl -sf "http://127.0.0.1:$PORT/accreditation" >/dev/null 2>&1 || {
-  echo "FAIL: registrar-box never came up on :$PORT"; [ -s "$WORK/rb.err" ] && sed 's/^/  rb: /' "$WORK/rb.err"; exit 1; }
+  echo "FAIL: registrar-box never came up on :$PORT"
+  kill -0 "$RB_PID" 2>/dev/null && echo "  daemon state: still running (pid $RB_PID) — bind/port problem" || echo "  daemon state: EXITED"
+  ls -la ./target/release/registrar-box 2>&1 | sed 's/^/  bin: /'
+  [ -s "$WORK/rb.err" ] && sed 's/^/  rb.err: /' "$WORK/rb.err" || echo "  rb.err: (empty)"
+  [ -s "$WORK/rb.out" ] && tail -5 "$WORK/rb.out" | sed 's/^/  rb.out: /' || echo "  rb.out: (empty)"
+  exit 1; }
 
 echo "== 2. accredit its keys into a dual-root-signed directory =="
 curl -sf "http://127.0.0.1:$PORT/accreditation" > "$WORK/acc.json"

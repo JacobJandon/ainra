@@ -34,3 +34,22 @@ into `#why`, merged with the three beats (commit `24626af`); private release-sig
 
 Standing prohibitions: no pushed-history rewrites · no DoD row moves · no announcements · no soak clock ·
 no Meridian.
+
+## L1.1 — the day after (2026-08-01): releases live, CI greened, phantom contacts removed
+
+- **GitHub Releases published** (signatures verified before publish, tags verified by the host):
+  [v0.3.0](https://github.com/JacobJandon/ainra/releases/tag/v0.3.0) — 9 signed artifacts incl. provenance + SBOM ·
+  [v0.2.0](https://github.com/JacobJandon/ainra/releases/tag/v0.2.0) — built at its pin; manifest signed externally
+  (its release.sh predates D-042), same offline key.
+- **The "flake" that blocked the release was deterministic** — `make release VERSION=vX.Y.Z` exports VERSION into
+  every recursive recipe env (GNU make semantics); `issue-first` minted the grammar-invalid `assistant@v0.3.0`.
+  Guarded in `645d1bd`; releases are cut with PLAIN `make release` (version derived internally, unexported).
+- **Public CI**: 7/8 jobs stable green — the 4-way differential (with the Python column) runs in a `rust:1.96`
+  container (SLH-DSA needs OpenSSL ≥ 3.5) with `safe.directory`; gitleaks green on both engine versions; repro,
+  audit, wedge, fuzz, freeze green. Open: the e2e testbed's "Finished-with-no-binary" cache interaction —
+  artifact-existence gate + self-heal shipped, cold-container reproduction in progress.
+- **Phantom contacts removed** (owner directive): the founding-table mailto → a prefilled public issue on the
+  repository; `release@ainra.org` display dropped from status.html (the functional `-I` principal remains in
+  RELEASE-VERIFY.md, where it is a verification argument, not a contact); dead email-capture handlers pruned.
+- Branch protection (no force-push, no delete) + neutral topics + Pages workflow disabled (deploying is the owner's
+  call). The Desktop bundle tracks the tip with the public URL.

@@ -48,4 +48,4 @@ echo "  $(dim "· see it in a UI:")  make registrar-console  $(dim "(the open re
 echo "  $(dim "· verify anything:") make verify"
 echo "  $(dim "cookbook →")        docs/quickstarts/"
 echo
-[ "$V" = "VALID" ] || { echo "unexpected non-VALID verdict — see docs/quickstarts/cli.md"; exit 1; }
+[ "$V" = "VALID" ] || { echo "unexpected non-VALID verdict: \"$V\" — see docs/quickstarts/cli.md"; exit 1; }

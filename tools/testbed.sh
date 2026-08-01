@@ -18,6 +18,15 @@ trap 'kill "${RB_PID:-0}" 2>/dev/null || true; rm -rf "$WORK"' EXIT
 echo "== build =="
 cargo build --release -p ainra-services --bin registrar-box -p ainra-ceremony --bin accredit || {
   echo "FAIL: cargo build for the testbed daemons failed"; exit 1; }
+# a restored CI cache can leave stale fingerprints with the workspace bins pruned: cargo says Finished,
+# the file does not exist. Gate on the artifact and self-heal with a targeted clean rebuild.
+if [ ! -x ./target/release/registrar-box ] || [ ! -x ./target/release/accredit ]; then
+  echo "note: cargo reported fresh but bins are missing (pruned cache) — clean-rebuilding the two packages"
+  cargo clean --release -p ainra-services -p ainra-ceremony
+  cargo build --release -p ainra-services --bin registrar-box -p ainra-ceremony --bin accredit || {
+    echo "FAIL: clean rebuild failed"; exit 1; }
+  [ -x ./target/release/registrar-box ] || { echo "FAIL: registrar-box still missing after clean rebuild"; exit 1; }
+fi
 cd packages/sdk-ts && npm run build >/dev/null 2>&1 && cd ../..
 
 echo "== 1. start registrar-box on 127.0.0.1:$PORT =="

@@ -20,9 +20,12 @@ cargo build --release -q -p ainra-services --bin registrar-box -p ainra-ceremony
 cd packages/sdk-ts && npm run build >/dev/null 2>&1 && cd ../..
 
 echo "== 1. start registrar-box on 127.0.0.1:$PORT =="
-./target/release/registrar-box "127.0.0.1:$PORT" registrar-07 "$DATA" >/dev/null 2>&1 &
+./target/release/registrar-box "127.0.0.1:$PORT" registrar-07 "$DATA" >/dev/null 2>"$WORK/rb.err" &
 RB_PID=$!
-for i in $(seq 1 30); do curl -sf "http://127.0.0.1:$PORT/accreditation" >/dev/null 2>&1 && break; sleep 0.2; done
+# slow runners: hybrid keygen can take >6s — wait up to 30s and FAIL LOUDLY if the daemon never binds or died
+for i in $(seq 1 60); do curl -sf "http://127.0.0.1:$PORT/accreditation" >/dev/null 2>&1 && break; sleep 0.5; done
+curl -sf "http://127.0.0.1:$PORT/accreditation" >/dev/null 2>&1 || {
+  echo "FAIL: registrar-box never came up on :$PORT"; [ -s "$WORK/rb.err" ] && sed 's/^/  rb: /' "$WORK/rb.err"; exit 1; }
 
 echo "== 2. accredit its keys into a dual-root-signed directory =="
 curl -sf "http://127.0.0.1:$PORT/accreditation" > "$WORK/acc.json"

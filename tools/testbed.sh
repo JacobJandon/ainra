@@ -27,11 +27,13 @@ if [ ! -x ./target/release/registrar-box ] || [ ! -x ./target/release/accredit ]
     echo "FAIL: clean rebuild failed"; exit 1; }
   [ -x ./target/release/registrar-box ] || { echo "FAIL: registrar-box still missing after clean rebuild"; exit 1; }
 fi
-cd packages/sdk-ts && npm run build >/dev/null 2>&1 && cd ../..
+# subshell: a failed SDK build must never shift the script's cwd (a && cd ../.. chain stranded us in
+# packages/sdk-ts, making every later ./target/... path silently wrong — the CI "vanishing binary")
+( cd packages/sdk-ts && { [ -d node_modules ] || npm install --prefer-offline --no-audit --no-fund --silent; } \
+  && npm run build ) >/dev/null 2>&1 || { echo "FAIL: @ainra/sdk build (needed for the verify step)"; exit 1; }
 
 echo "== 1. start registrar-box on 127.0.0.1:$PORT =="
 ./target/release/registrar-box "127.0.0.1:$PORT" registrar-07 "$DATA" >"$WORK/rb.out" 2>"$WORK/rb.err" &
-RB_PID=$!
 RB_PID=$!
 # slow shared runners: wait up to 120s and FAIL LOUDLY with full diagnostics if the daemon never binds or died
 for i in $(seq 1 240); do

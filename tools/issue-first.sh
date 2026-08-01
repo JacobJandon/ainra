@@ -4,13 +4,18 @@
 # it, and says in plain words what just happened — and leaves you a PERSISTENT, reusable registrar (not a throwaway).
 #
 #   make issue-first                 # → registrar in ./my-registrar, one passport, verified   [LOCAL TESTBED]
-#   DIR=./my-registrar ID=registrar-07 OPERATOR=acme LINEAGE=assistant  make issue-first
+#   DIR=./my-registrar ID=registrar-07 OPERATOR=acme LINEAGE=assistant LINEAGE_VERSION=1.0.0  make issue-first
 #
 # This is the registrar layer (where issuance lives), never the root. Real crypto, local only, zero telemetry.
 set -uo pipefail
 cd "$(dirname "$0")/.."
 DIR="${DIR:-my-registrar}"; ID="${ID:-registrar-07}"
-OPERATOR="${OPERATOR:-acme}"; LINEAGE="${LINEAGE:-assistant}"; VERSION="${VERSION:-1.0.0}"
+OPERATOR="${OPERATOR:-acme}"; LINEAGE="${LINEAGE:-assistant}"; VERSION="${LINEAGE_VERSION:-${VERSION:-1.0.0}}"
+# `make release VERSION=vX.Y.Z` exports VERSION into every recursive recipe environment (GNU make exports
+# command-line variables) — a RELEASE version is not a LINEAGE version and fails the name grammar. Guard:
+case "$VERSION" in
+  *[!0-9.]*|.*|*.) echo "   note: ignoring non-lineage VERSION=\"$VERSION\" from the environment (using 1.0.0; set LINEAGE_VERSION to override)"; VERSION=1.0.0;;
+esac
 TIER="${TIER:-L2}"; AUTH="${AUTH:-A2}"; CAP="${CAP:-read:data}"
 b(){ printf '\033[1m%s\033[0m' "$1"; }; dim(){ printf '\033[2m%s\033[0m' "$1"; }
 

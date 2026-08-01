@@ -16,7 +16,8 @@ DATA="$WORK/rb-data"
 trap 'kill "${RB_PID:-0}" 2>/dev/null || true; rm -rf "$WORK"' EXIT
 
 echo "== build =="
-cargo build --release -q -p ainra-services --bin registrar-box -p ainra-ceremony --bin accredit
+cargo build --release -p ainra-services --bin registrar-box -p ainra-ceremony --bin accredit || {
+  echo "FAIL: cargo build for the testbed daemons failed"; exit 1; }
 cd packages/sdk-ts && npm run build >/dev/null 2>&1 && cd ../..
 
 echo "== 1. start registrar-box on 127.0.0.1:$PORT =="

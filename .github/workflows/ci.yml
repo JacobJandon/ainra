@@ -53,6 +53,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+      # the checkout is owned by the runner uid; the container runs as root — git refuses mixed ownership
+      - run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
       # modern `cryptography` (>= 49: ML-DSA) in a venv that shadows the distro python
       - name: Python column runtime
         run: |

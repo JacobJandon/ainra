@@ -762,10 +762,10 @@ nav .ndocs:hover{color:var(--ink);background:rgba(11,18,32,.045)}
         p+=Math.exp(-Math.pow((ny-.62)/.17,2))*(.5+.5*Math.sin(nx*3.14159))*.26;
         p+=Math.exp(-Math.pow(segd(gx,gy)/55,2))*.30;
         if(nx>.18&&nx<.82&&ny>.06&&ny<.62)p*=.08; /* keep the centered copy clean */
-        if(rnd()<p)dots.push({x:gx+rnd()*3,y:gy+rnd()*3,s:rnd()<.85?3.2:5.2,a:.13+rnd()*.45,ph:rnd()*6.283,g:false});
+        if(rnd()<p)dots.push({x:gx+rnd()*3,y:gy+rnd()*3,s:rnd()<.85?3.2:5.2,a:.13+rnd()*.45,ph:rnd()*6.283,ph2:rnd()*6.283,r:1.5+rnd()*3.5,sp:.6+rnd()*.9,g:false});
       }}
       var sx=sp.offsetLeft,sy=sp.offsetTop;
-      for(var i=0;i<14;i++){var a2=rnd()*6.283,r=26+rnd()*90;dots.push({x:sx+Math.cos(a2)*r,y:sy+Math.sin(a2)*r*.7,s:3,a:.2+rnd()*.4,ph:rnd()*6.283,g:true});}
+      for(var i=0;i<14;i++){var a2=rnd()*6.283,r=26+rnd()*90;dots.push({x:sx+Math.cos(a2)*r,y:sy+Math.sin(a2)*r*.7,s:3,a:.2+rnd()*.4,ph:rnd()*6.283,ph2:rnd()*6.283,r:2+rnd()*4,sp:.8+rnd()*.8,g:true});}
       /* motes: green pixels drifting up the agent-hand trail */
       for(var m=0;m<7;m++)motes.push({u:rnd(),v:.0012+rnd()*.0018,off:(rnd()-.5)*26,ph:rnd()*6.283,ax:ax,ay:ay,bx:bx,by:by});
     }
@@ -773,9 +773,10 @@ nav .ndocs:hover{color:var(--ink);background:rgba(11,18,32,.045)}
       if(!X)return;
       X.clearRect(0,0,W,H);
       for(var i=0;i<dots.length;i++){var d0=dots[i];
+        var mx=Math.sin(t/1400*d0.sp+d0.ph)*d0.r, my=Math.cos(t/1750*d0.sp+d0.ph2)*d0.r;
         X.globalAlpha=d0.a*(.72+.28*Math.sin(t/650+d0.ph));
         X.fillStyle=d0.g?'#1A6B4E':'#0B1220';
-        X.fillRect(d0.x,d0.y,d0.s,d0.s);}
+        X.fillRect(d0.x+mx,d0.y+my,d0.s,d0.s);}
       X.fillStyle='#57C08F';
       for(var m=0;m<motes.length;m++){var mo=motes[m];
         mo.u+=mo.v; if(mo.u>1)mo.u=0;
@@ -788,7 +789,7 @@ nav .ndocs:hover{color:var(--ink);background:rgba(11,18,32,.045)}
     function all(){try{place();build();draw(0);
       requestAnimationFrame(function(){hero.classList.add('alive');});}catch(e){}}
     all();
-    if(!reduce){var tick=setInterval(function(){try{draw(performance.now());}catch(e){clearInterval(tick);}},100);}
+    if(!reduce){var tick=setInterval(function(){try{draw(performance.now());}catch(e){clearInterval(tick);}},60);}
     var t;addEventListener('resize',function(){clearTimeout(t);t=setTimeout(all,150)},{passive:true});
     /* easter egg: click the spark — a burst of green pixels and, on the seventh press, the quiet truth */
     var clicks=0, stamp=document.createElement('div'); stamp.className='spark-stamp'; hero.appendChild(stamp);

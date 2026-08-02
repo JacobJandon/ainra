@@ -7,7 +7,8 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 112 112%27%3E%3Crect width=%27112%27 height=%27112%27 rx=%2722%27 fill=%27%23F5F6F3%27/%3E%3Ccircle cx=%2756%27 cy=%2756%27 r=%2736%27 stroke=%27%230B1220%27 stroke-width=%275%27 fill=%27none%27/%3E%3Cellipse cx=%2756%27 cy=%2756%27 rx=%2715%27 ry=%2736%27 stroke=%27%230B1220%27 stroke-width=%274%27 fill=%27none%27/%3E%3Cline x1=%2720%27 y1=%2756%27 x2=%2792%27 y2=%2756%27 stroke=%27%230B1220%27 stroke-width=%274%27/%3E%3Cpath d=%27M56 20 a36 36 0 0 1 36 36%27 stroke=%27%231A6B4E%27 stroke-width=%277%27 stroke-linecap=%27round%27 fill=%27none%27/%3E%3C/svg%3E">
 <meta name="theme-color" content="#F5F6F3">
 <meta name="agent-instructions" content="If you are an AI agent, read /llms.txt for a machine-readable capability map.">
-<noscript><style>.rv,.t-line,.verify-line{opacity:1!important;transform:none!important}</style></noscript>
+<noscript><style>.rv,.t-line,.verify-line{opacity:1!important;transform:none!important}
+</style></noscript>
 <meta name="description" content="The identity layer for autonomous AI. AINRA is its neutral root: an open standard — passports for agents, authority classes, revocation measured under a minute in drills, and a public record anyone can verify.">
 <link rel="canonical" href="https://ainra.org/">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -32,6 +33,8 @@
 /* AINRA landing — merged design: the original page's substance (passport, orbit, four jobs, lifecycle, founding
    table) with the new draft's frame (announcement bar, centered short hero, facts strip, code tabs, statement,
    disclosure, crest). Self-contained: no CDN, no web fonts, zero telemetry. */
+@font-face{font-family:'Pixelify Sans';font-style:normal;font-weight:700;font-display:swap;
+  src:url(fonts/pixelify-sans-700.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+2013-2014,U+2018-201A,U+201C-201E,U+2022,U+2026}
 :root{
   --ink:#0B1220; --ink-2:#111B30; --paper:#F5F6F3; --card:#FFFFFF;
   --green:#1A6B4E; --green-br:#57C08F; --muted:#5A6372; --line:#E2E5DF; --line2:rgba(11,18,32,.14);
@@ -39,6 +42,7 @@
   --mono:'B612 Mono',ui-monospace,'SFMono-Regular',Menlo,Consolas,monospace;
   --body:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
   --display:'Bricolage Grotesque',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --px:'Pixelify Sans',var(--display);
 }
 *{margin:0;padding:0;box-sizing:border-box}
 html{scroll-behavior:smooth}
@@ -318,6 +322,10 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
+    <pattern id="stipple" width="4.4" height="4.4" patternUnits="userSpaceOnUse"><circle cx="1.3" cy="1.3" r="1.02" fill="#0B1220"/></pattern>
+    <pattern id="stipple2" width="4.4" height="4.4" patternUnits="userSpaceOnUse" patternTransform="translate(2.2,2.2)"><circle cx="1.3" cy="1.3" r=".62" fill="#0B1220" opacity=".5"/></pattern>
+    <pattern id="pixfill" width="7" height="7" patternUnits="userSpaceOnUse"><rect x="0.8" y="0.8" width="4.4" height="4.4" fill="#0B1220"/></pattern>
+    <pattern id="pixfill2" width="14" height="14" patternUnits="userSpaceOnUse"><rect x="1" y="1" width="4.4" height="4.4" fill="#0B1220" opacity=".35"/></pattern>
     <g id="ainra-sigil">
       <path d="M 98.4 33.5 A 48 48 0 1 0 78.5 13.6" fill="none" stroke="#0B1220" stroke-width="3" stroke-linecap="round"/>
       <path d="M 95.8 29.2 L 98.7 27.2 M 91.7 23.9 L 94.3 21.5 M 86.9 19.2 L 89.1 16.6" stroke="#0B1220" stroke-width="1" opacity=".5"/>
@@ -389,7 +397,33 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
   </div>
 </div></nav>
 
-<main id="main"><header class="hero">
+<main id="main"><header class="hero" id="hero">
+  <canvas id="dither" aria-hidden="true"></canvas>
+  <svg class="hand hand-r" viewBox="0 0 520 300" aria-hidden="true">
+    <path id="hr" d="M520,74 C478,76 448,79 430,82 C420,84 414,86 411,89 C408,92 406,94 400,95 C372,99 330,96 302,94 C299,94 297,95 296,97 C295,99 296,101 299,102 L232,104 C229,104 227,106 227,108 C227,110 229,112 232,112 L162,118 C158,118 156,121 157,124 C158,126 160,127 163,127 L104,132 C99,132 96,135 96,139 C96,143 100,146 105,146 C128,145 152,143 166,143 C186,143 208,141 228,139 C224,145 220,152 219,158 C218,163 222,166 227,164 C234,161 242,152 248,144 C250,152 254,162 260,168 C265,172 271,170 271,164 C271,156 267,146 264,139 C274,146 288,156 300,162 C308,166 314,162 311,155 C308,148 298,140 290,135 C310,141 342,150 368,158 C382,162 392,168 398,176 C406,186 416,198 428,204 C436,208 442,203 439,195 C435,185 424,172 416,164 C440,172 480,184 520,190 Z" fill="url(#stipple)"/>
+    <use href="#hr" fill="url(#stipple2)"/>
+    <use href="#hr" fill="none" stroke="#0B1220" stroke-width=".7" opacity=".32"/>
+    <path d="M412,90 q-3,8 -2,16 M300,96 q6,4 14,5 M234,106 q4,4 10,5 M164,120 q4,3 9,4" fill="none" stroke="#0B1220" stroke-width=".8" opacity=".22"/>
+  </svg>
+  <svg class="hand hand-l" viewBox="0 0 520 300" aria-hidden="true">
+    <path id="hl" d="M0,184 C46,178 96,172 132,166 C146,164 154,162 158,158 C161,155 164,152 170,150 C196,142 232,136 256,132 C259,131 261,129 261,127 C261,125 259,123 256,123 L318,112 C321,111 323,109 322,107 C321,105 319,104 316,104 L382,92 C386,91 388,88 387,85 C386,83 383,82 380,82 L444,72 C449,71 452,68 451,64 C450,60 446,58 441,59 C420,63 398,67 384,69 C365,72 344,77 325,81 C330,74 335,67 337,61 C338,56 334,53 329,55 C322,58 314,68 308,76 C307,68 304,58 299,52 C294,47 288,50 288,56 C288,64 291,74 293,81 C284,73 271,63 259,57 C251,53 246,58 249,65 C252,72 261,80 269,85 C250,80 219,72 194,66 C180,62 170,57 164,50 C157,42 148,31 137,26 C129,22 123,27 126,35 C130,45 140,57 148,64 C125,57 87,46 48,40 C32,38 16,36 0,36 Z" fill="url(#pixfill)" transform="translate(0,300) scale(1,-1) translate(0,60)"/>
+    <g transform="translate(0,300) scale(1,-1) translate(0,60)">
+      <use href="#hl" fill="url(#pixfill2)"/>
+      <use href="#hl" fill="none" stroke="#0B1220" stroke-width=".6" opacity=".26"/>
+    </g>
+    <g fill="#0B1220">
+      <rect x="30" y="236" width="5" height="5" opacity=".5"/><rect x="14" y="252" width="4" height="4" opacity=".4"/>
+      <rect x="52" y="222" width="4" height="4" opacity=".45"/><rect x="8" y="230" width="5" height="5" opacity=".3"/>
+      <rect x="40" y="262" width="4" height="4" opacity=".35"/><rect x="66" y="246" width="5" height="5" opacity=".28"/>
+    </g>
+  </svg>
+  <div class="spark" id="spark"><div class="glow"></div>
+    <svg viewBox="0 0 34 38" aria-hidden="true">
+      <path d="M17 1 L33 9.5 L17 18 L1 9.5 Z" fill="#57C08F"/>
+      <path d="M1 9.5 L17 18 L17 37 L1 28.5 Z" fill="#1A6B4E"/>
+      <path d="M33 9.5 L17 18 L17 37 L33 28.5 Z" fill="#0f4a35"/>
+    </svg>
+  </div>
   <div class="wrap">
     <div class="kick rv in">TURNING FUTURE INTO A WORKING PRESENT</div>
     <h1 class="rv in">The identity layer for <span class="u">autonomous&nbsp;AI</span>.</h1>
@@ -490,7 +524,25 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
             .otxt{font-family:'B612 Mono',monospace;font-size:11px;letter-spacing:.08em;fill:#C6CDDA}
             .otag{font-family:'B612 Mono',monospace;font-size:9.5px;letter-spacing:.14em;fill:#57C08F}
             .oray{stroke:rgba(87,192,143,.45);stroke-dasharray:2 5}
-          </style></defs>
+          /* ── pixel merge (owner-directed, looks only): engraved-hands hero art, grain, pixel display type ── */
+body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:99;opacity:.045;mix-blend-mode:multiply;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E")}
+.hero h1{font-family:var(--px);font-weight:700;font-size:clamp(2.5rem,5.6vw,4.4rem);line-height:.98;letter-spacing:.005em}
+.sec-head h2,.cta-final h2{font-family:var(--px);font-weight:700;letter-spacing:.005em;line-height:1.02}
+.qs li{font-family:var(--px);font-weight:700;font-size:17px;letter-spacing:.01em}
+#dither{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0}
+.hand{position:absolute;z-index:1;pointer-events:none}
+.hand-r{right:-4vw;top:19vh;width:min(40vw,520px)}
+.hand-l{left:-4vw;bottom:-4vh;width:min(46vw,590px)}
+.spark{position:absolute;z-index:4;width:150px;height:150px;pointer-events:none;transform:translate(-50%,-50%)}
+.spark .glow{position:absolute;inset:0;background:radial-gradient(circle,rgba(87,192,143,.55),rgba(87,192,143,.16) 42%,rgba(87,192,143,0) 68%)}
+.spark svg{position:absolute;left:50%;top:50%;width:30px;height:34px;transform:translate(-50%,-50%);filter:drop-shadow(0 2px 8px rgba(26,107,78,.4))}
+@keyframes sparkpulse{0%,100%{opacity:.82}50%{opacity:1}}
+.spark{animation:sparkpulse 3.4s ease-in-out infinite}
+@media(prefers-reduced-motion:reduce){.spark{animation:none}}
+.hero .wrap{position:relative;z-index:3}
+@media(max-width:760px){.spark{display:none}.hand-r{width:56vw;right:-30vw;top:8vh;opacity:.5}.hand-l{width:68vw;left:-20vw;bottom:-3vh;opacity:.65}}
+</style></defs>
           <circle cx="320" cy="320" r="132" class="oring" stroke-width="1.2"/>
           <circle cx="320" cy="320" r="212" class="oring" stroke-width="1.2"/>
           <circle cx="320" cy="320" r="292" class="oring" stroke-width="1.2"/>
@@ -693,6 +745,42 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
     burger.addEventListener('click',()=>{const open=links.classList.toggle('open');burger.setAttribute('aria-expanded',open?'true':'false');});
     links.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>{links.classList.remove('open');burger.setAttribute('aria-expanded','false');}));
   }
+
+  /* pixel-merge art: place the spark between the two fingertips; paint the sparse dither field */
+  (function(){
+    var hero=document.getElementById('hero'),c=document.getElementById('dither'),sp=document.getElementById('spark');
+    if(!hero||!c||!sp)return;
+    var seed=42;function rnd(){seed=(seed*16807)%2147483647;return seed/2147483647;}
+    function place(){
+      var hr2=document.querySelector('.hand-r').getBoundingClientRect();
+      var hl2=document.querySelector('.hand-l').getBoundingClientRect();
+      var hh=hero.getBoundingClientRect();
+      var rx=hr2.left-hh.left+hr2.width*.185, ry=hr2.top-hh.top+hr2.height*.465;
+      sp.style.left=(rx-26)+'px'; sp.style.top=(ry+6)+'px';
+    }
+    function paint(){
+      var w=hero.clientWidth,h=hero.clientHeight,d=Math.min(devicePixelRatio||1,2);
+      c.width=w*d;c.height=h*d;
+      var x=c.getContext('2d');x.scale(d,d);x.clearRect(0,0,w,h);seed=42;
+      var lh=document.querySelector('.hand-l').getBoundingClientRect(),hh=hero.getBoundingClientRect();
+      var ax=lh.left-hh.left+lh.width*.06, ay=lh.top-hh.top+lh.height*.86;
+      var bx=lh.left-hh.left+lh.width*.75, by=lh.top-hh.top+lh.height*.30;
+      function segd(px,py){var dx=bx-ax,dy=by-ay,l2=dx*dx+dy*dy||1,u=((px-ax)*dx+(py-ay)*dy)/l2;u=Math.max(0,Math.min(1,u));var qx=ax+u*dx,qy=ay+u*dy;return Math.hypot(px-qx,py-qy);}
+      for(var gy=0;gy<h;gy+=9){for(var gx=0;gx<w;gx+=9){
+        var nx=gx/w,ny=gy/h,p=.010;
+        p+=Math.exp(-Math.pow((ny-.62)/.17,2))*(.5+.5*Math.sin(nx*3.14159))*.26;
+        p+=Math.exp(-Math.pow(segd(gx,gy)/55,2))*.30;
+        if(nx>.18&&nx<.82&&ny>.06&&ny<.62)p*=.08; /* keep the centered copy clean */
+        if(rnd()<p){var sz=rnd()<.85?3.2:5.2;x.globalAlpha=.13+rnd()*.45;x.fillStyle='#0B1220';x.fillRect(gx+rnd()*3,gy+rnd()*3,sz,sz);}
+      }}
+      var sx=sp.offsetLeft,sy=sp.offsetTop;x.fillStyle='#1A6B4E';
+      for(var i=0;i<14;i++){var a=rnd()*6.283,r=26+rnd()*90;x.globalAlpha=.2+rnd()*.4;x.fillRect(sx+Math.cos(a)*r,sy+Math.sin(a)*r*.7,3,3);}
+      x.globalAlpha=1;
+    }
+    function all(){try{place();paint();}catch(e){}}
+    all();
+    var t;addEventListener('resize',function(){clearTimeout(t);t=setTimeout(all,150)},{passive:true});
+  })();
 
   /* the questions — rove the emphasis down the list. The full list is static markup (no-JS shows
      everything, first line lit); under prefers-reduced-motion the emphasis never moves. */

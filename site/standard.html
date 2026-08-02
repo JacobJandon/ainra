@@ -22,6 +22,9 @@
 <noscript><style>.rv,.t-line,.verify-line{opacity:1!important;transform:none!important}@media print{nav,.announce,footer,.skip{display:none!important}.rv{opacity:1!important;transform:none!important}body{background:#fff}}
 </style></noscript><meta name="description" content="The complete public AINRA specification, v5.1 — namespace, passports, authority classes, revocation, logs, and governance.">
 <style>
+@font-face{font-family:'Pixelify Sans';font-style:normal;font-weight:700;font-display:swap;
+  src:url(fonts/pixelify-sans-700.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+2013-2014,U+2018-201A,U+201C-201E,U+2022,U+2026}
+
 :root{
   --ink:#0B1220; --ink-2:#111B30; --paper:#F5F6F3; --card:#FFFFFF;
   --green:#1A6B4E; --green-br:#57C08F; --muted:#5A6372; --line:#E2E5DF;
@@ -360,6 +363,10 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
 .openbadge{display:inline-flex;align-items:center;gap:9px;font-size:11px;font-weight:600;color:var(--muted);border:1px solid rgba(11,18,32,.14);border-radius:99px;padding:6px 13px;font-family:var(--body);letter-spacing:0}
 @media(min-width:901px){.nav-links{display:none!important}}
 @media(max-width:900px){.mi,.nav-hide{display:none}}
+/* pixel display type (site-wide rollout, looks only) */
+h1,.sec-head h2,.hero-h{font-family:'Pixelify Sans',var(--display);font-weight:700;letter-spacing:.005em;line-height:1.04}
+nav .btn{white-space:nowrap;flex:none}
+@media(max-width:1360px){.brand .mean{display:none}}
 </style></head><body id="top">
 <a href="#main" class="skip">Skip to content</a>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">

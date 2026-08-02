@@ -417,7 +417,7 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
       <rect x="40" y="262" width="4" height="4" opacity=".35"/><rect x="66" y="246" width="5" height="5" opacity=".28"/>
     </g>
   </svg>
-  <div class="spark" id="spark"><div class="glow"></div>
+  <div class="spark" id="spark" role="button" tabindex="0" aria-label="The spark — a small surprise"><div class="glow"></div>
     <svg viewBox="0 0 34 38" aria-hidden="true">
       <path d="M17 1 L33 9.5 L17 18 L1 9.5 Z" fill="#57C08F"/>
       <path d="M1 9.5 L17 18 L17 37 L1 28.5 Z" fill="#1A6B4E"/>
@@ -426,7 +426,8 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
   </div>
   <div class="wrap">
     <div class="kick rv in">TURNING FUTURE INTO A WORKING PRESENT</div>
-    <h1 class="rv in">The identity layer for <span class="u">autonomous&nbsp;AI</span>.</h1>
+    <h1 class="rv in">Every agent needs<br>an <span class="u">identity</span>.</h1>
+    <div class="subkick rv in" aria-label="The identity layer for autonomous AI">THE IDENTITY LAYER FOR AUTONOMOUS AI</div>
     <p class="sub rv in">Autonomous AI is already acting: buying products, booking travel, negotiating contracts, writing software, running accounts, companies, and robots, calling APIs, working with other agents.</p>
     <div class="cta-row rv in">
       <a class="btn btn-green" href="verify.html#try">Try it live →</a>
@@ -528,13 +529,17 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
 body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:99;opacity:.045;mix-blend-mode:multiply;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E")}
 .hero h1{font-family:var(--px);font-weight:700;font-size:clamp(2.5rem,5.6vw,4.4rem);line-height:.98;letter-spacing:.005em}
+.subkick{margin-top:14px;font-family:var(--mono);font-size:11px;letter-spacing:.3em;font-weight:700;color:var(--green)}
 .sec-head h2,.cta-final h2{font-family:var(--px);font-weight:700;letter-spacing:.005em;line-height:1.02}
 .qs li{font-family:var(--px);font-weight:700;font-size:17px;letter-spacing:.01em}
 #dither{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0}
 .hand{position:absolute;z-index:1;pointer-events:none}
 .hand-r{right:-4vw;top:19vh;width:min(40vw,520px)}
 .hand-l{left:-4vw;bottom:-4vh;width:min(46vw,590px)}
-.spark{position:absolute;z-index:4;width:150px;height:150px;pointer-events:none;transform:translate(-50%,-50%)}
+.spark-burst{position:absolute;width:6px;height:6px;background:var(--green);pointer-events:none;z-index:5}
+.spark-stamp{position:absolute;transform:translate(-50%,-140%);font-family:var(--mono);font-size:9px;letter-spacing:.22em;color:var(--green);background:var(--card);border:1px solid var(--green);padding:5px 10px;white-space:nowrap;opacity:0;transition:opacity .25s;pointer-events:none;z-index:6}
+.spark-stamp.on{opacity:1}
+.spark{cursor:pointer;position:absolute;z-index:4;width:150px;height:150px;transform:translate(-50%,-50%)}
 .spark .glow{position:absolute;inset:0;background:radial-gradient(circle,rgba(87,192,143,.55),rgba(87,192,143,.16) 42%,rgba(87,192,143,0) 68%)}
 .spark svg{position:absolute;left:50%;top:50%;width:30px;height:34px;transform:translate(-50%,-50%);filter:drop-shadow(0 2px 8px rgba(26,107,78,.4))}
 @keyframes sparkpulse{0%,100%{opacity:.82}50%{opacity:1}}
@@ -542,6 +547,8 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:99;opa
 @media(prefers-reduced-motion:reduce){.spark{animation:none}}
 .hero .wrap{position:relative;z-index:3}
 @media(max-width:760px){.spark{display:none}.hand-r{width:56vw;right:-30vw;top:8vh;opacity:.5}.hand-l{width:68vw;left:-20vw;bottom:-3vh;opacity:.65}}
+nav .btn{white-space:nowrap;flex:none}
+@media(max-width:1360px){.brand .mean{display:none}}
 </style></defs>
           <circle cx="320" cy="320" r="132" class="oring" stroke-width="1.2"/>
           <circle cx="320" cy="320" r="212" class="oring" stroke-width="1.2"/>
@@ -780,6 +787,30 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:99;opa
     function all(){try{place();paint();}catch(e){}}
     all();
     var t;addEventListener('resize',function(){clearTimeout(t);t=setTimeout(all,150)},{passive:true});
+    /* easter egg: click the spark — a burst of green pixels and, on the seventh press, the quiet truth */
+    var clicks=0, stamp=document.createElement('div'); stamp.className='spark-stamp'; hero.appendChild(stamp);
+    var LINES=['IDENTITY CONFERRED \u00b7 SPECIMEN','LOGGED BEFORE VALID','REVOKED EVERYWHERE IN <60S','THE ROOT SEES NOTHING','HELD BY NO ONE','FAIL-CLOSED, ALWAYS','\u2665 EVERY AGENT BEGINS WITH A PASSPORT'];
+    function burst(){
+      var reduce2=matchMedia('(prefers-reduced-motion: reduce)').matches;
+      var sx=sp.offsetLeft, sy=sp.offsetTop;
+      stamp.style.left=sx+'px'; stamp.style.top=sy+'px';
+      stamp.textContent=LINES[Math.min(clicks,LINES.length-1)];
+      stamp.classList.add('on'); setTimeout(function(){stamp.classList.remove('on');},1600);
+      if(!reduce2){
+        for(var i=0;i<14;i++){
+          var px=document.createElement('i'); px.className='spark-burst';
+          px.style.left=sx+'px'; px.style.top=sy+'px';
+          hero.appendChild(px);
+          (function(el){
+            var a=Math.random()*6.283,v=40+Math.random()*90,dx=Math.cos(a)*v,dy=Math.sin(a)*v-30;
+            el.animate([{transform:'translate(0,0)',opacity:1},{transform:'translate('+dx+'px,'+(dy+60)+'px)',opacity:0}],{duration:700+Math.random()*500,easing:'cubic-bezier(.2,.6,.3,1)'}).onfinish=function(){el.remove();};
+          })(px);
+        }
+      }
+      clicks++;
+    }
+    sp.addEventListener('click',burst);
+    sp.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();burst();}});
   })();
 
   /* the questions — rove the emphasis down the list. The full list is static markup (no-JS shows

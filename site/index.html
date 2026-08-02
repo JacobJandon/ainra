@@ -386,14 +386,15 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
     <a href="status.html">Honest status<span>What exists · what doesn't yet</span></a>
     <a href="foundations.html#faq">FAQ<span>Straight answers</span></a>
   </div></div>
+  <a href="docs.html" class="ndocs">Docs</a>
   <div class="nav-r">
     <a class="btn btn-ghost nav-hide" href="https://github.com/JacobJandon/ainra" rel="noopener" aria-label="Source repository on GitHub">GitHub ↗</a>
-    <a class="btn btn-ghost nav-hide" href="standard.html">Read the standard</a>
+    <a class="btn btn-ghost nav-hide nav-hide-mid" href="standard.html">Read the standard</a>
     <a class="btn btn-ink" href="verify.html#try">Try it live</a>
     <button class="burger" id="burger" aria-label="Menu" aria-expanded="false">≡</button>
   </div>
   <div class="nav-links" id="navLinks">
-    <a href="#top" style="color:var(--green)">The root</a><a href="https://github.com/JacobJandon/ainra" rel="noopener">GitHub ↗</a><a href="standard.html">Standard</a><a href="verify.html">Verify</a><a href="foundations.html">Foundations</a><a href="status.html">Status</a>
+    <a href="#top" style="color:var(--green)">The root</a><a href="https://github.com/JacobJandon/ainra" rel="noopener">GitHub ↗</a><a href="docs.html">Docs</a><a href="standard.html">Standard</a><a href="verify.html">Verify</a><a href="foundations.html">Foundations</a><a href="status.html">Status</a>
   </div>
 </div></nav>
 
@@ -418,7 +419,56 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
       <a class="btn btn-ghost" href="#access">Join the founding table</a>
     </div>
 
-    <div class="pass-wrap rv in">
+
+
+    <div class="facts rv in" id="facts">
+      <div class="row">
+        <span>STANDARD <b class="g">v5.1 ✓</b></span>
+        <span>CONFORMANCE <b>745/745</b></span>
+        <span>SIGNATURES <b>Ed25519 + ML-DSA-65</b></span>
+        <span>REVOCATION <b>&lt;60s [MEASURED]</b></span>
+        <span>PRODUCTION LOGS <b>0 (HONEST)</b></span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="tick" aria-hidden="true"><div class="tick-in" id="tick">
+  <span>ACCREDIT <b>·</b></span><span>ANCHOR <b>·</b></span><span>REVOKE <b>·</b></span><span>LOG <b>·</b></span><span>AND NOTHING ELSE <b>∞</b></span>
+</div></div>
+
+<section id="integrate" class="rv" style="padding:48px 0 40px">
+  <div class="wrap">
+    <div class="sec-top rv"><span class="num">01</span><span class="lab">NO ACCOUNT · NO CALLS TO US</span></div>
+    <div class="sec-head" style="text-align:center;max-width:700px;margin:0 auto">
+      <span class="eyebrow">Integrate · onboard</span>
+      <h2>One line for your agent. A few for your code.</h2>
+      <p class="lede" style="margin-top:10px">No account, no calls to us — your code checks signed facts with the root switched off; any agent that speaks skills, MCP, or plain HTTP onboards itself.</p>
+    </div>
+    <div class="install">
+      <div class="itabs" role="tablist" aria-label="Onboarding method">
+        <button class="itab on" data-m="skill" role="tab" aria-selected="true"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M7 10l3 2.5-3 2.5M12.5 15h4.5" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>Skill install</button>
+        <button class="itab" data-m="mcp" role="tab" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 2.5v5M15 2.5v5M7 7.5h10v3a5 5 0 0 1-10 0v-3ZM12 15.5v6" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>MCP</button>
+        <button class="itab" data-m="prompt" role="tab" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5h16v9H9.5L4 19V5.5Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M8 9.5h8M8 12h5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>Prompt</button>
+        <button class="itab" data-m="http" role="tab" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M3.5 12h17M12 3.5c3 2.7 3 14.3 0 17M12 3.5c-3 2.7-3 14.3 0 17" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>HTTP</button>
+      </div>
+      <div class="ipanel">
+        <p class="idesc" id="i-desc">One command. Your coding assistant gains AINRA's skills — verify, issue, present, renew, revoke.</p>
+        <div class="iblock"><span class="icap" id="i-cap">terminal</span><button class="icopy" id="i-copy" type="button">COPY</button><pre id="i-code">npx skills add https://ainra.org/.well-known/skills/index.json</pre></div>
+      </div>
+    </div>
+    <p style="text-align:center;margin-top:20px;font-size:13px;color:var(--muted)"><a href="get.html" style="color:var(--green);font-weight:600">Get a passport →</a> · <a href="llms.txt" style="color:var(--green);font-weight:600">/llms.txt</a> · <a href="skills.md" style="color:var(--green);font-weight:600">/skills.md</a></p>
+  </div>
+</section>
+
+<section id="passport" class="rv" style="padding:56px 0 10px">
+  <div class="wrap">
+    <div class="sec-top rv"><span class="num">02</span><span class="lab">ONE SIGNED RECORD</span></div>
+    <div class="sec-head" style="text-align:center;max-width:760px;margin:0 auto 8px">
+      <h2>This is the passport.</h2>
+      <p class="lede" style="margin-top:10px">Every agent begins with a passport — issued by an accredited registrar, sealed into a witness-cosigned public log before it is valid anywhere.</p>
+    </div>
+    <div class="pass-wrap rv">
       <div class="passport" id="passportCard" aria-label="Sample agent passport — specimen data, registrar is a placeholder">
         <div class="pass-wm" aria-hidden="true">AINRA</div>
         <div class="pass-head">
@@ -456,45 +506,13 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
         </div>
       </div>
     </div>
-    <div class="p-cap rv in">SPECIMEN · placeholder registrar · every real passport is logged before it is valid</div>
-
-    <div class="facts rv in" id="facts">
-      <div class="row">
-        <span>STANDARD <b class="g">v5.1 ✓</b></span>
-        <span>CONFORMANCE <b>745/745</b></span>
-        <span>SIGNATURES <b>Ed25519 + ML-DSA-65</b></span>
-        <span>REVOCATION <b>&lt;60s [MEASURED]</b></span>
-        <span>PRODUCTION LOGS <b>0 (HONEST)</b></span>
-      </div>
-    </div>
-  </div>
-</header>
-
-<section id="integrate" class="rv" style="padding:60px 0 40px">
-  <div class="wrap">
-    <div class="sec-head" style="text-align:center;max-width:700px;margin:0 auto">
-      <span class="eyebrow">Integrate · onboard</span>
-      <h2>One line for your agent. A few for your code.</h2>
-      <p class="lede" style="margin-top:10px">No account, no calls to us — your code checks signed facts with the root switched off; any agent that speaks skills, MCP, or plain HTTP onboards itself.</p>
-    </div>
-    <div class="install">
-      <div class="itabs" role="tablist" aria-label="Onboarding method">
-        <button class="itab on" data-m="skill" role="tab" aria-selected="true"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M7 10l3 2.5-3 2.5M12.5 15h4.5" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>Skill install</button>
-        <button class="itab" data-m="mcp" role="tab" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 2.5v5M15 2.5v5M7 7.5h10v3a5 5 0 0 1-10 0v-3ZM12 15.5v6" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>MCP</button>
-        <button class="itab" data-m="prompt" role="tab" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5h16v9H9.5L4 19V5.5Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M8 9.5h8M8 12h5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>Prompt</button>
-        <button class="itab" data-m="http" role="tab" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M3.5 12h17M12 3.5c3 2.7 3 14.3 0 17M12 3.5c-3 2.7-3 14.3 0 17" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>HTTP</button>
-      </div>
-      <div class="ipanel">
-        <p class="idesc" id="i-desc">One command. Your coding assistant gains AINRA's skills — verify, issue, present, renew, revoke.</p>
-        <div class="iblock"><span class="icap" id="i-cap">terminal</span><button class="icopy" id="i-copy" type="button">COPY</button><pre id="i-code">npx skills add https://ainra.org/.well-known/skills/index.json</pre></div>
-      </div>
-    </div>
-    <p style="text-align:center;margin-top:20px;font-size:13px;color:var(--muted)"><a href="get.html" style="color:var(--green);font-weight:600">Get a passport →</a> · <a href="llms.txt" style="color:var(--green);font-weight:600">/llms.txt</a> · <a href="skills.md" style="color:var(--green);font-weight:600">/skills.md</a></p>
+    <div class="p-cap rv">SPECIMEN · placeholder registrar · every real passport is logged before it is valid</div>
   </div>
 </section>
 
 <section class="dark" id="root">
   <div class="wrap">
+    <div class="sec-top rv"><span class="num">03</span><span class="lab">EVERY CHECK RESOLVES INWARD</span></div>
     <div class="sec-head rv">
       <span class="eyebrow">The core, drawn</span>
       <h2 style="color:#fff">Everything orbits the root.</h2>
@@ -533,6 +551,40 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:99;opa
 @media(max-width:760px){.spark{display:none}.hand-r{width:44vw;right:-20vw;top:9vh;opacity:.45}.hand-l{width:48vw;left:-16vw;bottom:1vh;opacity:.6}}
 nav .btn{white-space:nowrap;flex:none}
 @media(max-width:1360px){.brand .mean{display:none}}
+nav .ndocs{font-size:14px;font-weight:500;color:var(--muted);padding:9px 12px;border-radius:10px}
+nav .ndocs:hover{color:var(--ink);background:rgba(11,18,32,.045)}
+@media(max-width:1150px){.nav-hide-mid{display:none}}
+@media(max-width:900px){nav .ndocs{display:none}}
+[id]{scroll-margin-top:92px}
+/* numbered section chrome + ticker + ledger + refusals (org-grade landing) */
+.sec-top{display:flex;align-items:baseline;gap:18px;border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:26px}
+.sec-top .num{font-family:var(--px);font-size:15px;color:var(--green)}
+.sec-top .lab{font-family:var(--mono);font-size:10px;letter-spacing:.3em;color:var(--muted)}
+.dark .sec-top{border-bottom-color:rgba(255,255,255,.14)}
+.dark .sec-top .num{color:var(--green-br)}
+.dark .sec-top .lab{color:#98A1B3}
+.tick{border-top:1px solid var(--line);border-bottom:1px solid var(--line);overflow:hidden;background:var(--card)}
+.tick-in{display:flex;white-space:nowrap;animation:tickmv 32s linear infinite;padding:11px 0;font-family:var(--mono);font-size:11px;letter-spacing:.28em;color:var(--muted)}
+.tick-in span{padding:0 30px}
+.tick-in b{color:var(--green)}
+@keyframes tickmv{to{transform:translateX(-50%)}}
+@media(prefers-reduced-motion:reduce){.tick-in{animation:none}}
+.qlist{border-top:1px solid var(--line);text-align:left;max-width:780px;margin:26px auto 0}
+.qline{display:flex;align-items:baseline;gap:18px;padding:14px 0;border-bottom:1px solid var(--line);transition:background .15s}
+.qline:hover{background:rgba(26,107,78,.045)}
+.qline .qn{font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--muted);flex:0 0 46px}
+.qline .qt{font-family:var(--px);font-size:clamp(16px,1.8vw,22px);color:var(--ink);flex:1;font-weight:700;transition:color .3s}
+.qline.lit .qt{color:var(--green)}
+.qline .qr{font-family:var(--mono);font-size:9px;letter-spacing:.14em;color:var(--muted);text-align:right;transition:color .15s}
+.qline:hover .qr,.qline.lit .qr{color:var(--green)}
+@media(max-width:640px){.qline .qr{display:none}}
+@media(prefers-reduced-motion:reduce){.qline .qt{transition:none}}
+.refuse{margin-top:80px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:28px 0;background:var(--card)}
+.refuse .cap{text-align:center;font-family:var(--mono);font-size:10px;letter-spacing:.3em;color:var(--muted);padding:0 16px}
+.ref-row{display:flex;justify-content:center;gap:12px 32px;flex-wrap:wrap;margin-top:15px;font-family:var(--mono);font-size:12.5px;color:var(--muted);padding:0 20px}
+.ref-row s{text-decoration-color:rgba(168,58,44,.65);text-decoration-thickness:1.5px}
+.ref-row .fx{color:rgba(11,18,32,.3)}
+.refuse .note{text-align:center;margin-top:16px;font-size:14.5px;color:var(--ink);font-weight:500;padding:0 20px}
 </style></defs>
           <circle cx="320" cy="320" r="132" class="oring" stroke-width="1.2"/>
           <circle cx="320" cy="320" r="212" class="oring" stroke-width="1.2"/>
@@ -586,20 +638,19 @@ nav .btn{white-space:nowrap;flex:none}
 
 <section id="why" class="rv">
   <div class="wrap">
+    <div class="sec-top rv"><span class="num">04</span><span class="lab">WHAT VERIFICATION ANSWERS</span></div>
     <div class="sec-head" style="text-align:center;max-width:780px;margin:0 auto">
       <span class="eyebrow">Why this exists</span>
       <h2>Soon, your AI will act for you.</h2>
     </div>
-    <div class="qs" style="margin-top:26px">
-      <ul aria-label="The questions nobody can answer about an agent today">
-        <li class="lit">Who created this agent?</li>
-        <li>Who controls it now?</li>
-        <li>What is it allowed to do?</li>
-        <li>Has it been verified — or revoked?</li>
-        <li>Is it pretending to be another?</li>
-        <li>Can it legally act for a company?</li>
-        <li>Can I safely delegate to it?</li>
-      </ul>
+    <div class="qlist rv" aria-label="The questions nobody can answer about an agent today — and what answers them">
+      <div class="qline lit"><span class="qn">Q·01</span><span class="qt">Who created this agent?</span><span class="qr">ISSUER RECORD</span></div>
+      <div class="qline"><span class="qn">Q·02</span><span class="qt">Who controls it now?</span><span class="qr">AUTHORITY CHAIN</span></div>
+      <div class="qline"><span class="qn">Q·03</span><span class="qt">What is it allowed to do?</span><span class="qr">CAPABILITIES ∩ CEILING</span></div>
+      <div class="qline"><span class="qn">Q·04</span><span class="qt">Has it been verified — or revoked?</span><span class="qr">STATUS · &lt;60S</span></div>
+      <div class="qline"><span class="qn">Q·05</span><span class="qt">Is it pretending to be another?</span><span class="qr">LOG INCLUSION</span></div>
+      <div class="qline"><span class="qn">Q·06</span><span class="qt">Can it legally act for a company?</span><span class="qr">TIER + AUTHORITY</span></div>
+      <div class="qline"><span class="qn">Q·07</span><span class="qt">Can I safely delegate to it?</span><span class="qr">ALL OF THE ABOVE</span></div>
     </div>
     <p class="ans a1" style="text-align:center;margin-top:18px">Today there is no universal way to answer any of these. AINRA is that way:</p>
     <div class="does" style="margin-top:26px">
@@ -647,9 +698,22 @@ nav .btn{white-space:nowrap;flex:none}
   </div>
 </section>
 
+<div class="refuse rv">
+  <div class="cap">THE PRODUCT IS THE NARROWNESS — WHAT THE ROOT REFUSES</div>
+  <div class="ref-row">
+    <s>reputation scores</s><span class="fx">◦</span>
+    <s>rankings</s><span class="fx">◦</span>
+    <s>fees for verification</s><span class="fx">◦</span>
+    <s>personal data</s><span class="fx">◦</span>
+    <s>watching who verifies whom</s><span class="fx">◦</span>
+    <s>issuing passports itself</s><span class="fx">◦</span>
+    <s>a token, ever</s>
+  </div>
+  <div class="note">A root that does more becomes a chokepoint you must trust. This one, you can check.</div>
+</div>
+
 <div class="wrap"><div class="legal rv">
-  <p><b>Status disclosure.</b> AINRA is a neutral, non-profit root for AI-agent identity, currently pre-ceremony: an operator-run genesis root exists, the recorded public ceremony is pending. The open standard (v5.1) is public; the reference CLI (v0.3.0) is downloadable and checkable today; the full reference implementation is engineering-complete, pre-release — four implementations agree on all 745 CC0 conformance vectors, and revocation propagation is measured under 60 seconds in a local drill. Verification is offline-capable and free, permanently, and phones home to no one. Canonical live status: <a href="status.html" style="color:var(--green)">status.html</a>.</p>
-  <p>The genesis root is minted: a FROST 5-of-9 + SLH-DSA ceremony — operator-run, with a reproducible transcript — produced a real dual-root, the network runs under it, and passports verify root-dark — trusting only the root (run <span style="font-family:var(--mono);font-size:12px">make genesis-verify</span>). The recorded public ceremony across independent custodians, three or more external verifiers, and a 14-day multi-region soak remain the real-world milestones before it is the production root everyone shares. The passport above is a labeled specimen. The root issues no passports, computes no scores, holds no personal data, features no company, and sells nothing: charter prohibitions enforced in code.</p>
+  <p><b>Status disclosure.</b> AINRA is a neutral, non-profit root for AI-agent identity — currently pre-ceremony: an operator-run genesis root exists; the recorded public ceremony across independent custodians is the pending milestone. Four implementations agree on all 745 CC0 conformance vectors; revocation propagation is measured under 60 seconds in a local drill; verification is offline-capable, free, and phones home to no one. The passport above is a labeled specimen. The root issues no passports, computes no scores, holds no personal data, and sells nothing — charter prohibitions enforced in code. Canonical live status: <a href="status.html" style="color:var(--green)">status.html</a>.</p>
 </div></div>
 
 </main>
@@ -737,6 +801,8 @@ nav .btn{white-space:nowrap;flex:none}
     links.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>{links.classList.remove('open');burger.setAttribute('aria-expanded','false');}));
   }
 
+  var tk=document.getElementById('tick'); if(tk){tk.innerHTML=tk.innerHTML+tk.innerHTML+tk.innerHTML;}
+
   /* pixel-merge art: place the spark between the two fingertips; paint the sparse dither field */
   (function(){
     var hero=document.getElementById('hero'),c=document.getElementById('dither'),sp=document.getElementById('spark');
@@ -799,7 +865,7 @@ nav .btn{white-space:nowrap;flex:none}
 
   /* the questions — rove the emphasis down the list. The full list is static markup (no-JS shows
      everything, first line lit); under prefers-reduced-motion the emphasis never moves. */
-  const qLines=[...document.querySelectorAll('.qs li')];
+  const qLines=[...document.querySelectorAll('.qlist .qline')];
   if(qLines.length&&!reduce){
     let qi=Math.max(0,qLines.findIndex(l=>l.classList.contains('lit')));
     setInterval(()=>{qLines[qi].classList.remove('lit');qi=(qi+1)%qLines.length;qLines[qi].classList.add('lit');},2600);

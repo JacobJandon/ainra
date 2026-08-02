@@ -10,6 +10,8 @@ Reference implementation with a live STAGING network on a TEST-ROOT. Real crypto
 
 ## Start here
 
+- [/docs.html](docs.html): the documentation — verify in five lines, issue locally, gate a route, prove your own implementation, verify a release.
+
 - [Source repository](https://github.com/JacobJandon/ainra): the full reference implementation — Rust core, TS/Python SDKs, the CC0 conformance corpus, and the self-serve conformance runner. Clone it and `make preflight`: every gate passes from a cold clone.
 
 - [/skills.md](skills.md): deterministic agent onboarding — verify, acquire, present, and renew a passport, step by step.

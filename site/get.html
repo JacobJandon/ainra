@@ -161,6 +161,11 @@ h1,.sec-head h2,.hero-h{font-family:'Pixelify Sans',var(--display);font-weight:7
 nav .btn{white-space:nowrap;flex:none}
 nav .wrap{max-width:1200px}
 @media(max-width:1360px){.brand .mean{display:none}}
+nav .ndocs{font-size:14px;font-weight:500;color:var(--muted);padding:9px 12px;border-radius:10px}
+nav .ndocs:hover{color:var(--ink);background:rgba(11,18,32,.045)}
+@media(max-width:1150px){.nav-hide-mid{display:none}}
+@media(max-width:900px){nav .ndocs{display:none}}
+[id]{scroll-margin-top:92px}
 </style>
 </head>
 <body id="top">
@@ -187,13 +192,14 @@ nav .wrap{max-width:1200px}
     <a href="status.html">Honest status<span>What exists · what doesn't yet</span></a>
     <a href="foundations.html#faq">FAQ<span>Straight answers</span></a>
   </div></div>
+  <a href="docs.html" class="ndocs">Docs</a>
   <div class="nav-r">
     <a class="btn btn-ghost nav-hide" href="https://github.com/JacobJandon/ainra" rel="noopener" aria-label="Source repository on GitHub">GitHub ↗</a>
-    <a class="btn btn-ghost nav-hide" href="standard.html">Read the standard</a>
+    <a class="btn btn-ghost nav-hide nav-hide-mid" href="standard.html">Read the standard</a>
     <a class="btn btn-ink" href="verify.html#try">Try it live</a>
     <button class="burger" id="burger" aria-label="Menu" aria-expanded="false">≡</button>
   </div>
-  <div class="nav-links" id="navLinks"><a href="index.html">The root</a><a href="https://github.com/JacobJandon/ainra" rel="noopener">GitHub ↗</a><a href="standard.html">Standard</a><a href="verify.html">Verify</a><a href="foundations.html">Foundations</a><a href="status.html">Status</a></div>
+  <div class="nav-links" id="navLinks"><a href="index.html">The root</a><a href="https://github.com/JacobJandon/ainra" rel="noopener">GitHub ↗</a><a href="docs.html">Docs</a><a href="standard.html">Standard</a><a href="verify.html">Verify</a><a href="foundations.html">Foundations</a><a href="status.html">Status</a></div>
 </div></nav>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><g id="ainra-sigil">

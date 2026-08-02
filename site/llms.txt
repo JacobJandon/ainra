@@ -10,6 +10,7 @@ Reference implementation with a live STAGING network on a TEST-ROOT. Real crypto
 
 ## Start here
 
+- [/plan.html](plan.html): the organization's plan — genesis ceremony, governance, economics, and the road, with honest pending labels.
 - [/docs.html](docs.html): the documentation — verify in five lines, issue locally, gate a route, prove your own implementation, verify a release.
 
 - [Source repository](https://github.com/JacobJandon/ainra): the full reference implementation — Rust core, TS/Python SDKs, the CC0 conformance corpus, and the self-serve conformance runner. Clone it and `make preflight`: every gate passes from a cold clone.

@@ -10,9 +10,9 @@ import { dirname, join } from "node:path";
 
 const SITE = join(dirname(fileURLToPath(import.meta.url)), "..", "site");
 const INC = join(SITE, "_includes");
-const PAGES = ["standard", "verify", "foundations", "status", "docs"];
+const PAGES = ["standard", "verify", "foundations", "status", "docs", "get", "plan"];
 // nav-only peers: pages that must carry the identical menu but keep their own compact footer (app pages)
-const NAV_ONLY = ["get"];
+const NAV_ONLY = [];
 const headerN = readFileSync(join(INC, "header.html"), "utf8").trimEnd(); // page-neutral (no active state)
 const footerN = readFileSync(join(INC, "footer.html"), "utf8").trimEnd(); // page-neutral (all self-anchors absolute)
 

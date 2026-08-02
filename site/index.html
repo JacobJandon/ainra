@@ -371,31 +371,16 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
     <span class="wm">AINRA</span>
     <span class="mean">Agent Identity &amp; Naming<br>Registry Authority</span>
   </a>
-  <div class="mi"><button type="button" data-dd aria-haspopup="true" aria-expanded="false">Protocol <span class="car">▼</span></button><div class="dd">
-    <a href="standard.html">The open standard<span>Names, passports, tiers, mandates</span></a>
-    <a href="verify.html">Verification<span>Five lines, offline, fail-closed</span></a>
-    <a href="AINRA_I_The_Standard.md" download>Canonical file<span>AINRA_I_The_Standard.md — raw download</span></a>
-  </div></div>
-  <div class="mi"><button type="button" data-dd aria-haspopup="true" aria-expanded="false">Developers <span class="car">▼</span></button><div class="dd">
-    <a href="verify.html#try">Try it live<span>Verify a passport in your browser</span></a>
-    <a href="get.html">Use the network<span>Get a passport + browse the record, live</span></a>
-    <a href="index.html#integrate">Quickstart<span>SDK, middleware, CLI</span></a>
-  </div></div>
-  <div class="mi"><button type="button" data-dd aria-haspopup="true" aria-expanded="false">Foundation <span class="car">▼</span></button><div class="dd">
-    <a href="foundations.html">Charter &amp; rules<span>What the root can never do</span></a>
-    <a href="plan.html">The plan<span>Ceremony, governance, the road</span></a>
-    <a href="status.html">Honest status<span>What exists · what doesn't yet</span></a>
-    <a href="foundations.html#faq">FAQ<span>Straight answers</span></a>
-  </div></div>
   <a href="docs.html" class="ndocs">Docs</a>
+  <a href="standard.html" class="ndocs">Standard</a>
+  <a href="verify.html" class="ndocs">Verify</a>
+  <a href="get.html" class="ndocs">Network</a>
+  <a href="status.html" class="ndocs">Status</a>
   <div class="nav-r">
     <a class="btn btn-ghost nav-hide" href="https://github.com/JacobJandon/ainra" rel="noopener" aria-label="Source repository on GitHub">GitHub ↗</a>
-    <a class="btn btn-ghost nav-hide nav-hide-mid" href="standard.html">Read the standard</a>
     <button class="burger" id="burger" aria-label="Menu" aria-expanded="false">≡</button>
   </div>
-  <div class="nav-links" id="navLinks">
-    <a href="#top" style="color:var(--green)">The root</a><a href="https://github.com/JacobJandon/ainra" rel="noopener">GitHub ↗</a><a href="docs.html">Docs</a><a href="standard.html">Standard</a><a href="verify.html">Verify</a><a href="foundations.html">Foundations</a><a href="status.html">Status</a>
-  </div>
+  <div class="nav-links" id="navLinks"><a href="#top" style="color:var(--green)">The root</a><a href="docs.html">Docs</a><a href="standard.html">Standard</a><a href="verify.html">Verify</a><a href="get.html">Network</a><a href="status.html">Status</a><a href="https://github.com/JacobJandon/ainra" rel="noopener">GitHub ↗</a></div>
 </div></nav>
 
 <main id="main"><header class="hero" id="hero">
@@ -586,9 +571,9 @@ nav .ndocs:hover{color:var(--ink);background:rgba(11,18,32,.045)}
         </svg>
       </div>
       <div class="legend rv">
-        <div class="leg core"><b>THE ROOT — AINRA</b><p>Holds the keys, the rules, the revocation feed, and the logs. Everything below chains up to it, so every check stays local and fast.</p></div>
-        <div class="leg"><b>RING 1 · INDEPENDENT REGISTRARS</b><p>Separate organizations, accredited under identical published rules — licensed issuers, enterprise directories bridging internal identity to the public root, permissionless chains for the open ecosystem.</p></div>
-        <div class="leg"><b>RING 2 · AGENTS</b><p>Every agent carries a passport chained to the root. Running copies use short-lived local credentials under it, so scale stays at the edge.</p></div>
+        <div class="leg core"><b>THE ROOT — AINRA</b><p>Keys, rules, revocation, logs. Everything chains up to it; every check stays local and fast.</p></div>
+        <div class="leg"><b>RING 1 · INDEPENDENT REGISTRARS</b><p>Separate organizations under identical published rules — licensed issuers, enterprise directories, permissionless chains.</p></div>
+        <div class="leg"><b>RING 2 · AGENTS</b><p>Every agent carries a passport chained to the root; running copies use short-lived local credentials, so scale stays at the edge.</p></div>
         <div class="leg"><b>RING 3 · VERIFIERS</b><p>Anyone deciding whether to trust an agent — verifying inward against cached root keys (the dashed rays), each setting its own floor.</p></div>
       </div>
     </div>
@@ -700,9 +685,9 @@ nav .ndocs:hover{color:var(--ink);background:rgba(11,18,32,.045)}
         <h4>Root</h4>
         <ul>
           <li><a href="#root">What the root does</a></li>
-          <li><a href="foundations.html">Foundations</a></li>
+          <li><a href="docs.html#charter">Charter</a></li>
           <li><a href="status.html">Honest status</a></li>
-          <li><a href="foundations.html#faq">FAQ</a></li>
+          <li><a href="docs.html#faq">FAQ</a></li>
           <li><a href="#access">Get involved</a></li>
         </ul>
       </div>

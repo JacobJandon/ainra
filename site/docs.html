@@ -129,29 +129,16 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
   <a class="brand" href="index.html" aria-label="AINRA — Agent Identity and Naming Registry Authority">
     <span class="sigil" aria-hidden="true"><svg viewBox="0 0 112 112"><use href="#ainra-sigil"/></svg></span>
     <span class="wm">AINRA</span><span class="mean">Agent Identity &amp; Naming<br>Registry Authority</span></a>
-  <div class="mi"><button type="button" data-dd aria-haspopup="true" aria-expanded="false">Protocol <span class="car">▼</span></button><div class="dd">
-    <a href="standard.html">The open standard<span>Names, passports, tiers, mandates</span></a>
-    <a href="verify.html">Verification<span>Five lines, offline, fail-closed</span></a>
-    <a href="AINRA_I_The_Standard.md" download>Canonical file<span>AINRA_I_The_Standard.md — raw download</span></a>
-  </div></div>
-  <div class="mi"><button type="button" data-dd aria-haspopup="true" aria-expanded="false">Developers <span class="car">▼</span></button><div class="dd">
-    <a href="verify.html#try">Try it live<span>Verify a passport in your browser</span></a>
-    <a href="get.html">Use the network<span>Get a passport + browse the record, live</span></a>
-    <a href="index.html#integrate">Quickstart<span>SDK, middleware, CLI</span></a>
-  </div></div>
-  <div class="mi"><button type="button" data-dd aria-haspopup="true" aria-expanded="false">Foundation <span class="car">▼</span></button><div class="dd">
-    <a href="foundations.html">Charter &amp; rules<span>What the root can never do</span></a>
-    <a href="plan.html">The plan<span>Ceremony, governance, the road</span></a>
-    <a href="status.html">Honest status<span>What exists · what doesn't yet</span></a>
-    <a href="foundations.html#faq">FAQ<span>Straight answers</span></a>
-  </div></div>
   <a href="docs.html" class="ndocs">Docs</a>
+  <a href="standard.html" class="ndocs">Standard</a>
+  <a href="verify.html" class="ndocs">Verify</a>
+  <a href="get.html" class="ndocs">Network</a>
+  <a href="status.html" class="ndocs">Status</a>
   <div class="nav-r">
     <a class="btn btn-ghost nav-hide" href="https://github.com/JacobJandon/ainra" rel="noopener" aria-label="Source repository on GitHub">GitHub ↗</a>
-    <a class="btn btn-ghost nav-hide nav-hide-mid" href="standard.html">Read the standard</a>
     <button class="burger" id="burger" aria-label="Menu" aria-expanded="false">≡</button>
   </div>
-  <div class="nav-links" id="navLinks"><a href="index.html">The root</a><a href="https://github.com/JacobJandon/ainra" rel="noopener">GitHub ↗</a><a href="docs.html" style="color:var(--green)">Docs</a><a href="standard.html">Standard</a><a href="verify.html">Verify</a><a href="foundations.html">Foundations</a><a href="status.html">Status</a></div>
+  <div class="nav-links" id="navLinks"><a href="index.html">The root</a><a href="docs.html" style="color:var(--green)">Docs</a><a href="standard.html">Standard</a><a href="verify.html">Verify</a><a href="get.html">Network</a><a href="status.html">Status</a><a href="https://github.com/JacobJandon/ainra" rel="noopener">GitHub ↗</a></div>
 </div></nav>
 <main id="main"><div class="wrap docs">
   <aside class="side" aria-label="Docs navigation">
@@ -166,12 +153,14 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
     <h5>Prove it</h5>
     <a href="#conformance">Your own implementation</a>
     <a href="#release">Verify a release</a>
+    <h5>Organization</h5>
+    <a href="#charter">Charter &amp; the four rules</a>
+    <a href="#plan">The plan</a>
+    <a href="#faq">FAQ</a>
     <h5>Reference</h5>
     <a href="standard.html">The Standard</a>
     <a href="verify.html">Verification</a>
     <a href="get.html">Use the network</a>
-    <a href="foundations.html">Charter &amp; foundations</a>
-    <a href="foundations.html#faq">FAQ</a>
     <a href="status.html">Honest status</a>
     <a href="https://github.com/JacobJandon/ainra" rel="noopener">Source ↗</a>
   </aside>
@@ -244,6 +233,37 @@ $ sha256sum -c SHA256SUMS
 $ make repro                          <span class="c"># byte-exact rebuild — trust the bytes, not us</span></pre></div>
     <p>The four-step guide with real pasted output lives in <code>RELEASE-VERIFY.md</code>.</p>
 
+
+    <h2 id="charter">Charter &amp; the four rules</h2>
+    <p>The whole standard is four sentences made mechanical:</p>
+    <ul>
+      <li><b>Birth</b> — no identity without a verified, accountable entity behind it. Ever.</li>
+      <li><b>Life</b> — anyone can verify any passport, offline; verification never reports to anyone.</li>
+      <li><b>Death</b> — only the issuer, the principal, or due process can revoke; every revocation is public, appealable, and honored everywhere in under a minute.</li>
+      <li><b>Neutrality</b> — the root records facts. Never money, personal data, reputation, or judgment.</li>
+    </ul>
+    <p>They distill six charter prohibitions, amendable only by supermajority in every member constituency after twelve months of public comment: <b>issues no passports · computes no scores · processes no payments · holds no personal data · never gates L0 existence · features no registrar, ever</b>.</p>
+    <p>Root keys are threshold-held (5-of-9) across five-plus jurisdictions and rotated in public ceremonies; independent witnesses cosign every log checkpoint; the whole root is forkable from public data — the right to leave is what keeps it worth staying with.</p>
+
+    <h2 id="plan">The plan</h2>
+    <p>A member-governed, non-profit federation: issuers, attestors, verifiers, resolution &amp; data providers, witnesses, and public-interest members each form a constituency in the assembly, which elects the board under charter constraints. Custodians and witnesses stand structurally apart from both.</p>
+    <p><b>Genesis, in order:</b></p>
+    <ul>
+      <li><b>Ceremony rehearsed</b> — DONE · FROST 5-of-9 across nine isolated processes, reproducible transcript (<code>make ceremony-rehearsal-multi</code>).</li>
+      <li><b>Recorded public ceremony</b> — PENDING · sealed hardware on camera, air-gapped share generation, scripted T−30d → T+14d with a public abort playbook.</li>
+      <li><b>Independent verifiers</b> — RECRUITING · three or more strangers verify fresh, un-precomputable challenges on their own machines and sign what they saw.</li>
+      <li><b>The soak</b> — PENDING · fourteen days, three regions, signed reports; the founding declaration refuses to render without the evidence.</li>
+    </ul>
+    <p><b>Economics:</b> capped per-lineage-year fees at cents scale, flat accreditation, grants. Verification free, forever; at scale the cap falls toward archival cost.</p>
+    <p><b>The road:</b> Prove (now — four implementations agree, a stranger's clone passes every gate) → Anchor (charter ratified, first public ceremony, live registrars) → Endure (pre-decided responses to pressure) → Disappear (verification as boring as the clock — plus a managed-migration clause: if a legitimately adopted successor emerges, the root's final duty is an orderly migration into it).</p>
+    <div class="note amber">Production logs sealed today: <b>0</b>. The three real-world genesis rows are events, not code — nothing here counts them done before they happen.</div>
+
+    <h2 id="faq">FAQ</h2>
+    <p><b>Is AINRA a company?</b> No — an international, member-governed, non-profit federation. It never competes with members, holds no equity, and is charter-bound out of issuing, scoring, payments, and personal data.</p>
+    <p><b>Why should anyone trust you?</b> You shouldn't have to. The spec is public, the code runs in sixty seconds, keys will be split across jurisdictions, every action lands in witness-cosigned logs — and the standard is forkable, so if we go wrong, the ecosystem leaves with everything. <i>Verify, don't trust</i> applies to us first.</p>
+    <p><b>Nobody's on it yet — why join first?</b> The alternative is pairwise trust-wiring at N² cost, forever. Verification is useful on day one with zero counterparties, and the founding table writes the rules everyone else inherits. The honest counter — LOGS SEALED: 0 — is the point: the first seats are authorship, not sponsorship.</p>
+    <p><b>What does it cost?</b> Verifying: nothing, ever. Issuing: capped cents-scale per lineage-year through independent registrars.</p>
+
     <div class="pn">
       <a href="verify.html"><span class="lab">Related</span><div class="t">← How verification works</div></a>
       <a href="get.html" class="next"><span class="lab">Next</span><div class="t">Use the live network →</div></a>
@@ -260,6 +280,9 @@ $ make repro                          <span class="c"># byte-exact rebuild — t
     <a href="#agents">For agents</a>
     <a href="#conformance">Your own implementation</a>
     <a href="#release">Verify a release</a>
+    <a href="#charter">Charter</a>
+    <a href="#plan">The plan</a>
+    <a href="#faq">FAQ</a>
   </aside>
 </div></main>
 
@@ -297,9 +320,9 @@ $ make repro                          <span class="c"># byte-exact rebuild — t
         <h4>Root</h4>
         <ul>
           <li><a href="index.html#root">What the root does</a></li>
-          <li><a href="foundations.html">Foundations</a></li>
-          <li><a href="plan.html">The plan</a></li>
-          <li><a href="foundations.html#faq">FAQ</a></li>
+          <li><a href="#charter">Charter</a></li>
+          <li><a href="#plan">The plan</a></li>
+          <li><a href="#faq">FAQ</a></li>
           <li><a href="index.html#access">Get involved</a></li>
         </ul>
       </div>
@@ -323,7 +346,7 @@ $ make repro                          <span class="c"># byte-exact rebuild — t
   var burger=document.getElementById('burger'),links=document.getElementById('navLinks');
   if(burger&&links){burger.addEventListener('click',function(){var o=links.classList.toggle('open');burger.setAttribute('aria-expanded',o?'true':'false');});}
   /* sidebar active state follows scroll */
-  var ids=['introduction','install','verify','gate','cli','agents','conformance','release'];
+  var ids=['introduction','install','verify','gate','cli','agents','conformance','release','charter','plan','faq'];
   var side=[].slice.call(document.querySelectorAll('.side a[href^="#"]'));
   function mark(){var y=scrollY+120,cur=ids[0];ids.forEach(function(id){var el=document.getElementById(id);if(el&&el.offsetTop<=y)cur=id;});
     side.forEach(function(a){a.classList.toggle('on',a.getAttribute('href')==='#'+cur);});}

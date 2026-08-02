@@ -40,7 +40,7 @@ const banner = (title, page) =>
 const PAGES = [
   { html: "verify.html", md: "verify.md", title: "AINRA — Verify" },
   { html: "foundations.html", md: "foundations.md", title: "AINRA — Foundations" },
-  { html: "status.html", md: "status.md", title: "AINRA — Status" },
+  { html: "foundation.html", md: "status.md", title: "AINRA — Foundation & status" },
 ];
 
 // standard.md = the canonical Standard, verbatim (its real source), not an HTML re-extraction.

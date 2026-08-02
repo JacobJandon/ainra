@@ -363,7 +363,7 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
   </defs>
 </svg>
 
-<div class="announce">The neutral identity stack for AI agents — engineering-complete, 745/745 conformance. <a href="status.html">Learn more →</a></div>
+<div class="announce">The neutral identity stack for AI agents — engineering-complete, 745/745 conformance. <a href="foundation.html">Learn more →</a></div>
 
 <nav><div class="wrap nav-in">
   <a class="brand" href="#top" aria-label="AINRA — Agent Identity and Naming Registry Authority">
@@ -371,16 +371,16 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
     <span class="wm">AINRA</span>
     <span class="mean">Agent Identity &amp; Naming<br>Registry Authority</span>
   </a>
-  <a href="docs.html" class="ndocs">Docs</a>
-  <a href="standard.html" class="ndocs">Standard</a>
   <a href="verify.html" class="ndocs">Verify</a>
   <a href="get.html" class="ndocs">Network</a>
-  <a href="status.html" class="ndocs">Status</a>
+  <a href="foundation.html" class="ndocs">Foundation</a>
+  <a href="docs.html" class="ndocs">Docs</a>
   <div class="nav-r">
     <a class="btn btn-ghost nav-hide" href="https://github.com/JacobJandon/ainra" rel="noopener" aria-label="Source repository on GitHub">GitHub ↗</a>
+    <a class="btn btn-ink nav-hide" href="foundation.html#access">Join the founding table</a>
     <button class="burger" id="burger" aria-label="Menu" aria-expanded="false">≡</button>
   </div>
-  <div class="nav-links" id="navLinks"><a href="#top" style="color:var(--green)">The root</a><a href="docs.html">Docs</a><a href="standard.html">Standard</a><a href="verify.html">Verify</a><a href="get.html">Network</a><a href="status.html">Status</a><a href="https://github.com/JacobJandon/ainra" rel="noopener">GitHub ↗</a></div>
+  <div class="nav-links" id="navLinks"><a href="#top" style="color:var(--green)">The root</a><a href="verify.html">Verify</a><a href="get.html">Network</a><a href="foundation.html">Foundation</a><a href="docs.html">Docs</a><a href="foundation.html#access">Join the founding table</a><a href="https://github.com/JacobJandon/ainra" rel="noopener">GitHub ↗</a></div>
 </div></nav>
 
 <main id="main"><header class="hero" id="hero">
@@ -401,7 +401,7 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
     <p class="sub rv in">Autonomous AI is already acting: buying products, booking travel, negotiating contracts, writing software, running accounts, companies, and robots, calling APIs, working with other agents.</p>
     <div class="cta-row rv in">
       <a class="btn btn-green" href="verify.html#try">Try it live →</a>
-      <a class="btn btn-ghost" href="#access">Join the founding table</a>
+      <a class="btn btn-ghost" href="docs.html#standard">Read the standard</a>
     </div>
 
     <div class="pass-wrap rv in">
@@ -530,6 +530,31 @@ nav .ndocs:hover{color:var(--ink);background:rgba(11,18,32,.045)}
 .tick-in b{color:var(--green)}
 @keyframes tickmv{to{transform:translateX(-50%)}}
 @media(prefers-reduced-motion:reduce){.tick-in{animation:none}}
+/* alive (owner-directed): entrance + idle animation, all reduced-motion-gated */
+@keyframes h1rise{from{opacity:0;transform:translateY(26px)}to{opacity:1;transform:none}}
+.hero h1{animation:h1rise .55s steps(7) both .1s;position:relative;overflow:visible}
+@keyframes scanline{from{transform:translateX(-108%)}to{transform:translateX(108%)}}
+.hero h1::after{content:"";position:absolute;inset:-6px -12px;pointer-events:none;
+  background:linear-gradient(100deg,transparent 42%,rgba(87,192,143,.28) 50%,transparent 58%);
+  transform:translateX(-108%);animation:scanline 1s cubic-bezier(.3,.4,.2,1) .45s 1 both}
+@keyframes h1glitch{0%,93.5%,100%{transform:none;clip-path:none}94.2%{transform:translate(-2px,1px)}95.4%{transform:translate(2px,-1px);clip-path:inset(0 0 12% 0)}96.6%{transform:translate(-1px,0);clip-path:none}}
+.alive .hero h1{animation:h1rise .55s steps(7) both .1s,h1glitch 8.5s linear 3s infinite}
+@keyframes ubreathe{0%,100%{box-shadow:inset 0 -0.13em 0 rgba(26,107,78,.26)}50%{box-shadow:inset 0 -0.34em 0 rgba(26,107,78,.38)}}
+.alive .hero h1 .u{animation:ubreathe 3.6s ease-in-out infinite}
+.kick{background-size:220% 100%}
+@keyframes kickdrift{from{background-position:0% 0}to{background-position:100% 0}}
+.alive .kick{animation:kickdrift 9s ease-in-out infinite alternate}
+@keyframes subkickin{from{opacity:0;letter-spacing:.6em}to{opacity:1;letter-spacing:.3em}}
+.subkick{animation:subkickin .8s cubic-bezier(.2,.6,.2,1) .55s both}
+@keyframes bobR{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+@keyframes bobL{0%,100%{transform:translateY(0)}50%{transform:translateY(6px)}}
+.alive .hand-r{animation:bobR 6.5s ease-in-out infinite}
+.alive .hand-l{animation:bobL 7.5s ease-in-out infinite}
+@media(prefers-reduced-motion:reduce){
+  .hero h1,.alive .hero h1,.hero h1::after,.alive .kick,.subkick,.alive .hand-r,.alive .hand-l,.alive .hero h1 .u{animation:none!important}
+  .hero h1{opacity:1;transform:none}
+  .subkick{opacity:1}
+}
 </style></defs>
           <circle cx="320" cy="320" r="132" class="oring" stroke-width="1.2"/>
           <circle cx="320" cy="320" r="212" class="oring" stroke-width="1.2"/>
@@ -620,33 +645,8 @@ nav .ndocs:hover{color:var(--ink);background:rgba(11,18,32,.045)}
   </div>
 </section>
 
-<section id="access" style="padding-top:36px">
-  <div class="wrap">
-    <div class="cta-final rv">
-      <h2>Take a founding seat.</h2>
-      <p>Join now and you help write the rules everyone inherits — you get the standard, the founding brief, and a direct line.</p>
-      <form class="cta-intake" id="ctaForm" novalidate>
-        <div class="seats" role="radiogroup" aria-label="Your seat at the founding table">
-          <button type="button" class="seat" data-seat="Issuer / registrar" role="radio" aria-checked="false"><b>Issuer</b><span>License &amp; issue passports</span></button>
-          <button type="button" class="seat" data-seat="Verifier" role="radio" aria-checked="false"><b>Verifier</b><span>Gate decisions on the record</span></button>
-          <button type="button" class="seat" data-seat="Attestor" role="radio" aria-checked="false"><b>Attestor</b><span>Prove identity claims</span></button>
-          <button type="button" class="seat" data-seat="Witness" role="radio" aria-checked="false"><b>Witness</b><span>Cosign the public log</span></button>
-          <button type="button" class="seat" data-seat="Builder / operator" role="radio" aria-checked="false"><b>Builder</b><span>Run agents that carry passports</span></button>
-          <button type="button" class="seat" data-seat="Other" role="radio" aria-checked="false"><b>Other</b><span>Something else entirely</span></button>
-        </div>
-        <p class="seat-hint" id="seatHint">Pick your seat, then open your founding request.</p>
-        <div class="email-row">
-          <a class="btn" id="ctaGo" href="https://github.com/JacobJandon/ainra/issues/new?title=Founding%20table&amp;body=Seat%3A%20%3Cpick%20one%3A%20issuer%20%C2%B7%20verifier%20%C2%B7%20attestor%20%C2%B7%20witness%20%C2%B7%20builder%20%C2%B7%20other%3E%0AWho%20I%20am%3A%20%0AWhat%20I%20run%3A%20%0A%0AI%20would%20like%20to%20take%20this%20seat%20at%20the%20AINRA%20founding%20table." rel="noopener">Take a seat →</a>
-        </div>
-      </form>
-      <p class="email-ok" id="ctaOk" role="status">Opens a public founding request on the source repository — in the open, like everything else here; nothing is stored on any server we run.</p>
-      <a class="alt" href="standard.html">READ THE STANDARD FIRST →</a>
-    </div>
-  </div>
-</section>
-
 <div class="wrap"><div class="legal rv">
-  <p><b>Status disclosure.</b> AINRA is a neutral, non-profit root for AI-agent identity — currently pre-ceremony: an operator-run genesis root exists; the recorded public ceremony across independent custodians is the pending milestone. Four implementations agree on all 745 CC0 conformance vectors; revocation propagation is measured under 60 seconds in a local drill; verification is offline-capable, free, and phones home to no one. The passport above is a labeled specimen. The root issues no passports, computes no scores, holds no personal data, and sells nothing — charter prohibitions enforced in code. Canonical live status: <a href="status.html" style="color:var(--green)">status.html</a>.</p>
+  <p><b>Status disclosure.</b> AINRA is a neutral, non-profit root for AI-agent identity — currently pre-ceremony: an operator-run genesis root exists; the recorded public ceremony across independent custodians is the pending milestone. Four implementations agree on all 745 CC0 conformance vectors; revocation propagation is measured under 60 seconds in a local drill; verification is offline-capable, free, and phones home to no one. The passport above is a labeled specimen. The root issues no passports, computes no scores, holds no personal data, and sells nothing — charter prohibitions enforced in code. Canonical live status: <a href="foundation.html" style="color:var(--green)">status.html</a>.</p>
 </div></div>
 
 </main>
@@ -665,7 +665,7 @@ nav .ndocs:hover{color:var(--ink);background:rgba(11,18,32,.045)}
       <div>
         <h4>Protocol</h4>
         <ul>
-          <li><a href="standard.html">The standard</a></li>
+          <li><a href="docs.html#standard">The standard</a></li>
           <li><a href="AINRA_I_The_Standard.md" download>Canonical file (raw)</a></li>
           <li><a href="https://github.com/JacobJandon/ainra" rel="noopener">Source — the full reference impl</a></li>
           <li><a href="index.html#top">The passport</a></li>
@@ -686,9 +686,9 @@ nav .ndocs:hover{color:var(--ink);background:rgba(11,18,32,.045)}
         <ul>
           <li><a href="#root">What the root does</a></li>
           <li><a href="docs.html#charter">Charter</a></li>
-          <li><a href="status.html">Honest status</a></li>
+          <li><a href="foundation.html">Honest status</a></li>
           <li><a href="docs.html#faq">FAQ</a></li>
-          <li><a href="#access">Get involved</a></li>
+          <li><a href="foundation.html#access">Get involved</a></li>
         </ul>
       </div>
     </div>
@@ -746,27 +746,49 @@ nav .ndocs:hover{color:var(--ink);background:rgba(11,18,32,.045)}
       var rx=hr2.left-hh.left+hr2.width*.02, ry=hr2.top-hh.top+hr2.height*.30;
       sp.style.left=(rx-30)+'px'; sp.style.top=(ry)+'px';
     }
-    function paint(){
-      var w=hero.clientWidth,h=hero.clientHeight,d=Math.min(devicePixelRatio||1,2);
-      c.width=w*d;c.height=h*d;
-      var x=c.getContext('2d');x.scale(d,d);x.clearRect(0,0,w,h);seed=42;
+    var dots=[],motes=[],X=null,W=0,H=0;
+    function build(){
+      W=hero.clientWidth;H=hero.clientHeight;
+      var d=Math.min(devicePixelRatio||1,2);
+      c.width=W*d;c.height=H*d;
+      X=c.getContext('2d');X.setTransform(d,0,0,d,0,0);
+      seed=42;dots.length=0;motes.length=0;
       var lh=document.querySelector('.hand-l').getBoundingClientRect(),hh=hero.getBoundingClientRect();
       var ax=lh.left-hh.left+lh.width*.05, ay=lh.top-hh.top+lh.height*.55;
       var bx=lh.left-hh.left+lh.width*.95, by=lh.top-hh.top+lh.height*.30;
       function segd(px,py){var dx=bx-ax,dy=by-ay,l2=dx*dx+dy*dy||1,u=((px-ax)*dx+(py-ay)*dy)/l2;u=Math.max(0,Math.min(1,u));var qx=ax+u*dx,qy=ay+u*dy;return Math.hypot(px-qx,py-qy);}
-      for(var gy=0;gy<h;gy+=9){for(var gx=0;gx<w;gx+=9){
-        var nx=gx/w,ny=gy/h,p=.010;
+      for(var gy=0;gy<H;gy+=9){for(var gx=0;gx<W;gx+=9){
+        var nx=gx/W,ny=gy/H,p=.010;
         p+=Math.exp(-Math.pow((ny-.62)/.17,2))*(.5+.5*Math.sin(nx*3.14159))*.26;
         p+=Math.exp(-Math.pow(segd(gx,gy)/55,2))*.30;
         if(nx>.18&&nx<.82&&ny>.06&&ny<.62)p*=.08; /* keep the centered copy clean */
-        if(rnd()<p){var sz=rnd()<.85?3.2:5.2;x.globalAlpha=.13+rnd()*.45;x.fillStyle='#0B1220';x.fillRect(gx+rnd()*3,gy+rnd()*3,sz,sz);}
+        if(rnd()<p)dots.push({x:gx+rnd()*3,y:gy+rnd()*3,s:rnd()<.85?3.2:5.2,a:.13+rnd()*.45,ph:rnd()*6.283,g:false});
       }}
-      var sx=sp.offsetLeft,sy=sp.offsetTop;x.fillStyle='#1A6B4E';
-      for(var i=0;i<14;i++){var a=rnd()*6.283,r=26+rnd()*90;x.globalAlpha=.2+rnd()*.4;x.fillRect(sx+Math.cos(a)*r,sy+Math.sin(a)*r*.7,3,3);}
-      x.globalAlpha=1;
+      var sx=sp.offsetLeft,sy=sp.offsetTop;
+      for(var i=0;i<14;i++){var a2=rnd()*6.283,r=26+rnd()*90;dots.push({x:sx+Math.cos(a2)*r,y:sy+Math.sin(a2)*r*.7,s:3,a:.2+rnd()*.4,ph:rnd()*6.283,g:true});}
+      /* motes: green pixels drifting up the agent-hand trail */
+      for(var m=0;m<7;m++)motes.push({u:rnd(),v:.0012+rnd()*.0018,off:(rnd()-.5)*26,ph:rnd()*6.283,ax:ax,ay:ay,bx:bx,by:by});
     }
-    function all(){try{place();paint();}catch(e){}}
+    function draw(t){
+      if(!X)return;
+      X.clearRect(0,0,W,H);
+      for(var i=0;i<dots.length;i++){var d0=dots[i];
+        X.globalAlpha=d0.a*(.72+.28*Math.sin(t/650+d0.ph));
+        X.fillStyle=d0.g?'#1A6B4E':'#0B1220';
+        X.fillRect(d0.x,d0.y,d0.s,d0.s);}
+      X.fillStyle='#57C08F';
+      for(var m=0;m<motes.length;m++){var mo=motes[m];
+        mo.u+=mo.v; if(mo.u>1)mo.u=0;
+        var px=mo.ax+(mo.bx-mo.ax)*mo.u+Math.sin(t/900+mo.ph)*6+mo.off*(1-mo.u);
+        var py=mo.ay+(mo.by-mo.ay)*mo.u-Math.sin(t/700+mo.ph)*4;
+        X.globalAlpha=.35*Math.sin(3.14159*mo.u);
+        X.fillRect(px,py,3,3);}
+      X.globalAlpha=1;
+    }
+    function all(){try{place();build();draw(0);
+      requestAnimationFrame(function(){hero.classList.add('alive');});}catch(e){}}
     all();
+    if(!reduce){var tick=setInterval(function(){try{draw(performance.now());}catch(e){clearInterval(tick);}},100);}
     var t;addEventListener('resize',function(){clearTimeout(t);t=setTimeout(all,150)},{passive:true});
     /* easter egg: click the spark — a burst of green pixels and, on the seventh press, the quiet truth */
     var clicks=0, stamp=document.createElement('div'); stamp.className='spark-stamp'; hero.appendChild(stamp);
@@ -865,28 +887,6 @@ nav .ndocs:hover{color:var(--ink);background:rgba(11,18,32,.045)}
   runCounts(); addEventListener('scroll',runCounts,{passive:true}); addEventListener('resize',runCounts,{passive:true});
 
 
-  /* founding-table form (local only — no network) */
-  const cf=$('ctaForm');
-  if(cf){
-    let seat='';
-    const seats=[...cf.querySelectorAll('.seat')], hint=$('seatHint'), grid=cf.querySelector('.seats');
-    seats.forEach((b,i)=>b.tabIndex=i===0?0:-1);   // roving tabindex for the radiogroup
-    const pick=b=>{seat=b.dataset.seat;
-      seats.forEach(x=>{const on=x===b;x.setAttribute('aria-checked',on?'true':'false');x.tabIndex=on?0:-1;});
-      hint.textContent='Seat: '+seat+' — now leave an email.';hint.classList.remove('warn');};
-    seats.forEach(b=>b.addEventListener('click',()=>pick(b)));
-    grid.addEventListener('keydown',e=>{const i=seats.indexOf(document.activeElement);if(i<0)return;
-      let j=-1;
-      if(e.key==='ArrowRight'||e.key==='ArrowDown')j=(i+1)%seats.length;
-      else if(e.key==='ArrowLeft'||e.key==='ArrowUp')j=(i-1+seats.length)%seats.length;
-      else if(e.key==='Home')j=0; else if(e.key==='End')j=seats.length-1; else return;
-      e.preventDefault(); seats[j].focus(); pick(seats[j]);});
-    const go=$('ctaGo');
-    if(go){const base='https://github.com/JacobJandon/ainra/issues/new';
-      cf.addEventListener('click',()=>{if(!seat)return;
-        const body='Seat: '+seat+'\nWho I am: \nWhat I run: \n\nI would like to take this seat at the AINRA founding table.';
-        go.href=base+'?title='+encodeURIComponent('Founding table — '+seat)+'&body='+encodeURIComponent(body);});}
-  }
 })();
 </script>
 </body>

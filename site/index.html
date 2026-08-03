@@ -531,14 +531,16 @@ nav .ndocs:hover{color:var(--ink);background:rgba(11,18,32,.045)}
 @keyframes tickmv{to{transform:translateX(-50%)}}
 @media(prefers-reduced-motion:reduce){.tick-in{animation:none}}
 /* alive (owner-directed): entrance + idle animation, all reduced-motion-gated */
-@keyframes h1rise{from{opacity:0;transform:translateY(26px)}to{opacity:1;transform:none}}
-.hero h1{animation:h1rise .55s steps(7) both .1s;position:relative;overflow:visible}
+@keyframes hwrise{0%{opacity:0;transform:translateY(30px) scale(.92)}60%{opacity:1}100%{opacity:1;transform:none}}
+.hero h1{position:relative;overflow:visible}
+.hero h1 .hw{display:inline-block;will-change:transform,opacity}
+.alive .hero h1 .hw{animation:hwrise .5s steps(6,end) both;animation-delay:calc(.06s * var(--i))}
 @keyframes scanline{from{transform:translateX(-108%)}to{transform:translateX(108%)}}
 .hero h1::after{content:"";position:absolute;inset:-6px -12px;pointer-events:none;
   background:linear-gradient(100deg,transparent 42%,rgba(87,192,143,.28) 50%,transparent 58%);
-  transform:translateX(-108%);animation:scanline 1s cubic-bezier(.3,.4,.2,1) .45s 1 both}
+  transform:translateX(-108%);animation:scanline 1.1s cubic-bezier(.3,.4,.2,1) .7s 1 both}
 @keyframes h1glitch{0%,93.5%,100%{transform:none;clip-path:none}94.2%{transform:translate(-2px,1px)}95.4%{transform:translate(2px,-1px);clip-path:inset(0 0 12% 0)}96.6%{transform:translate(-1px,0);clip-path:none}}
-.alive .hero h1{animation:h1rise .55s steps(7) both .1s,h1glitch 8.5s linear 3s infinite}
+.alive .hero h1{animation:h1glitch 8.5s linear 4s infinite}
 @keyframes ubreathe{0%,100%{box-shadow:inset 0 -0.13em 0 rgba(26,107,78,.26)}50%{box-shadow:inset 0 -0.34em 0 rgba(26,107,78,.38)}}
 .alive .hero h1 .u{animation:ubreathe 3.6s ease-in-out infinite}
 .kick{background-size:220% 100%}
@@ -551,7 +553,8 @@ nav .ndocs:hover{color:var(--ink);background:rgba(11,18,32,.045)}
 .alive .hand-r{animation:bobR 6.5s ease-in-out infinite}
 .alive .hand-l{animation:bobL 7.5s ease-in-out infinite}
 @media(prefers-reduced-motion:reduce){
-  .hero h1,.alive .hero h1,.hero h1::after,.alive .kick,.subkick,.alive .hand-r,.alive .hand-l,.alive .hero h1 .u{animation:none!important}
+  .hero h1,.alive .hero h1,.hero h1::after,.alive .kick,.subkick,.alive .hand-r,.alive .hand-l,.alive .hero h1 .u,.hero h1 .hw,.alive .hero h1 .hw{animation:none!important}
+  .hero h1 .hw{opacity:1;transform:none}
   .hero h1{opacity:1;transform:none}
   .subkick{opacity:1}
 }
@@ -703,6 +706,23 @@ nav .ndocs:hover{color:var(--ink);background:rgba(11,18,32,.045)}
 <script>
 (function(){
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* headline pixel cascade — wrap each word in a .hw span with a staggered delay (skipped when reduced) */
+  (function(){
+    if(reduce)return;
+    var h1=document.querySelector('.hero h1'); if(!h1)return;
+    var i=0, out=[];
+    [].forEach.call(h1.childNodes, function(node){
+      if(node.nodeType===3){
+        node.textContent.split(/(\s+)/).forEach(function(tok){
+          if(/^\s*$/.test(tok)){ if(tok) out.push(document.createTextNode(tok)); return; }
+          var sp=document.createElement('span'); sp.className='hw'; sp.style.setProperty('--i', i++); sp.textContent=tok; out.push(sp);
+        });
+      } else if(node.nodeName==='BR'){ out.push(node.cloneNode()); }
+      else { var w=document.createElement('span'); w.className='hw'; w.style.setProperty('--i', i++); w.appendChild(node.cloneNode(true)); out.push(w); }
+    });
+    h1.innerHTML=''; out.forEach(function(n){h1.appendChild(n);});
+  })();
   const touch = matchMedia('(pointer: coarse)').matches;
   const $ = id => document.getElementById(id);
 
@@ -762,10 +782,10 @@ nav .ndocs:hover{color:var(--ink);background:rgba(11,18,32,.045)}
         p+=Math.exp(-Math.pow((ny-.62)/.17,2))*(.5+.5*Math.sin(nx*3.14159))*.26;
         p+=Math.exp(-Math.pow(segd(gx,gy)/55,2))*.30;
         if(nx>.18&&nx<.82&&ny>.06&&ny<.62)p*=.08; /* keep the centered copy clean */
-        if(rnd()<p)dots.push({x:gx+rnd()*3,y:gy+rnd()*3,s:rnd()<.85?3.2:5.2,a:.13+rnd()*.45,ph:rnd()*6.283,ph2:rnd()*6.283,r:1.5+rnd()*3.5,sp:.6+rnd()*.9,g:false});
+        if(rnd()<p)dots.push({x:gx+rnd()*3,y:gy+rnd()*3,s:rnd()<.85?3.2:5.2,a:.13+rnd()*.45,ph:rnd()*6.283,ph2:rnd()*6.283,r:3+rnd()*6,sp:.9+rnd()*1.1,g:false});
       }}
       var sx=sp.offsetLeft,sy=sp.offsetTop;
-      for(var i=0;i<14;i++){var a2=rnd()*6.283,r=26+rnd()*90;dots.push({x:sx+Math.cos(a2)*r,y:sy+Math.sin(a2)*r*.7,s:3,a:.2+rnd()*.4,ph:rnd()*6.283,ph2:rnd()*6.283,r:2+rnd()*4,sp:.8+rnd()*.8,g:true});}
+      for(var i=0;i<14;i++){var a2=rnd()*6.283,r=26+rnd()*90;dots.push({x:sx+Math.cos(a2)*r,y:sy+Math.sin(a2)*r*.7,s:3,a:.2+rnd()*.4,ph:rnd()*6.283,ph2:rnd()*6.283,r:4+rnd()*7,sp:1.1+rnd()*1,g:true});}
       /* motes: green pixels drifting up the agent-hand trail */
       for(var m=0;m<7;m++)motes.push({u:rnd(),v:.0012+rnd()*.0018,off:(rnd()-.5)*26,ph:rnd()*6.283,ax:ax,ay:ay,bx:bx,by:by});
     }
@@ -773,7 +793,7 @@ nav .ndocs:hover{color:var(--ink);background:rgba(11,18,32,.045)}
       if(!X)return;
       X.clearRect(0,0,W,H);
       for(var i=0;i<dots.length;i++){var d0=dots[i];
-        var mx=Math.sin(t/1400*d0.sp+d0.ph)*d0.r, my=Math.cos(t/1750*d0.sp+d0.ph2)*d0.r;
+        var mx=Math.sin(t/900*d0.sp+d0.ph)*d0.r, my=Math.cos(t/1150*d0.sp+d0.ph2)*d0.r;
         X.globalAlpha=d0.a*(.72+.28*Math.sin(t/650+d0.ph));
         X.fillStyle=d0.g?'#1A6B4E':'#0B1220';
         X.fillRect(d0.x+mx,d0.y+my,d0.s,d0.s);}
@@ -789,7 +809,7 @@ nav .ndocs:hover{color:var(--ink);background:rgba(11,18,32,.045)}
     function all(){try{place();build();draw(0);
       requestAnimationFrame(function(){hero.classList.add('alive');});}catch(e){}}
     all();
-    if(!reduce){var tick=setInterval(function(){try{draw(performance.now());}catch(e){clearInterval(tick);}},60);}
+    if(!reduce){var tick=setInterval(function(){try{draw(performance.now());}catch(e){clearInterval(tick);}},40);}
     var t;addEventListener('resize',function(){clearTimeout(t);t=setTimeout(all,150)},{passive:true});
     /* easter egg: click the spark — a burst of green pixels and, on the seventh press, the quiet truth */
     var clicks=0, stamp=document.createElement('div'); stamp.className='spark-stamp'; hero.appendChild(stamp);

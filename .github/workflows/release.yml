@@ -1,0 +1,71 @@
+# SPDX-License-Identifier: Apache-2.0 OR MIT
+# Tag-triggered release (L2). On a vX.Y.Z tag: enforce the one release rule, rebuild the artifacts reproducibly,
+# generate provenance + SBOM + the signable manifest, and attach everything to a DRAFT release with the board link.
+#
+# WHY A DRAFT, AND WHY NO SIGNATURE HERE: D-042 — the release signing key is OFFLINE and never enters the repo or
+# CI. So CI produces everything a downloader needs EXCEPT the detached signature; the maintainer attaches the
+# offline-produced SHA256SUMS.sig and publishes. Signatures prove *who* (maintainer, offline); this workflow
+# proves *what* (reproducible bytes from the tagged source). The one release rule is sovereign: no board evidence
+# for this version ⇒ the job fails before building anything.
+name: Release
+on:
+  push:
+    tags: ["v*"]
+permissions:
+  contents: write   # create the draft release + upload assets (platform plumbing, not a third-party name)
+jobs:
+  release:
+    name: build + attach (draft; maintainer signs offline)
+    runs-on: ubuntu-latest
+    container: rust:1.96   # Debian trixie: pinned toolchain + OpenSSL >= 3.5 for the reproducible board
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+      - uses: actions/setup-node@v4
+        with: { node-version: "22" }
+      - name: derive version from the tag
+        id: v
+        run: echo "version=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+
+      - name: THE ONE RELEASE RULE — board evidence must exist for this version
+        run: |
+          set -euo pipefail
+          V="${{ steps.v.outputs.version }}"
+          BOARD="docs/releases/${V}-board.md"
+          if [ ! -f "$BOARD" ]; then
+            echo "::error::Release REFUSED — no board evidence at $BOARD. The one release rule (D-040): no full board"
+            echo "::error::from a clean clone at the release commit ⇒ no release. Run the board, commit the evidence, re-tag."
+            exit 1
+          fi
+          echo "board evidence present: $BOARD"
+
+      - name: reproducible build — artifacts + provenance + SBOM + manifest
+        run: |
+          set -euo pipefail
+          apt-get update -qq && apt-get install -y -qq --no-install-recommends python3 python3-venv nodejs npm zip >/dev/null
+          # release.sh runs preflight (incl. make repro) then writes dist/. The offline key is absent by policy,
+          # so it writes the UNSIGNED manifest and prints the offline-sign command — exactly what we want in CI.
+          make release
+          echo "== dist/ =="; ls -la dist/
+
+      - name: draft the release with the board link (maintainer signs + publishes)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          V="${{ steps.v.outputs.version }}"
+          NOTES="$(mktemp)"
+          {
+            echo "Reproducible artifacts built by CI from the tagged source. **This is a draft.**"
+            echo
+            echo "The detached signature (\`SHA256SUMS.sig\`) is **added by the maintainer offline** — the release key never"
+            echo "enters CI (D-042). Verify per \`RELEASE-VERIFY.md\`: check the signature, check every artifact against the"
+            echo "signed manifest, then rebuild the corpus byte-for-byte from this tag (needs no key at all)."
+            echo
+            echo "Board evidence (the one release rule): [\`docs/releases/${V}-board.md\`](https://github.com/${GITHUB_REPOSITORY}/blob/${V}/docs/releases/${V}-board.md)"
+          } > "$NOTES"
+          gh release create "$V" dist/* --draft --title "AINRA ${V}" --notes-file "$NOTES" --verify-tag \
+            || gh release upload "$V" dist/* --clobber
+          echo "Draft release created for $V. Maintainer: attach dist/SHA256SUMS.sig (offline-signed) and publish."

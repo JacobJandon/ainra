@@ -74,6 +74,23 @@ No output from the final `diff` = the released conformance corpus is exactly wha
 (v0.2.0's `make repro` is recorded green in its preflight board evidence: `docs/releases/v0.2.0-board.md`,
 "reproducibility → artifacts rebuild byte-exact".)
 
+## Verifying a platform release (from the releases page)
+
+Releases are drafted automatically by CI on each `vX.Y.Z` tag (`.github/workflows/release.yml`): CI rebuilds the
+artifacts reproducibly from the tagged source and attaches the CLI, the CC0 corpus, `MANIFEST.sha256`,
+`provenance.json`, `sbom.json`, and the unsigned `SHA256SUMS`. The **detached signature is attached by the
+maintainer, offline** — the release key never enters CI (D-042). So a published (non-draft) release carries
+`SHA256SUMS.sig`; verify it exactly as above:
+
+```sh
+# 1. fetch a release's assets
+gh release download <version> -R JacobJandon/ainra
+# 2. run steps 1-4 above against them: signature, manifest, provenance/SBOM, then the strong rebuild.
+```
+
+If `SHA256SUMS.sig` is missing, the release is still a **draft** awaiting the maintainer's offline signature — the
+bytes are reproducible, but do not treat it as signed until the maintainer publishes it.
+
 ## Producing a signed release (maintainer)
 
 `make release VERSION=vX.Y.Z` runs the gates, writes `dist/` with the CLI + corpus + `MANIFEST.sha256` + `provenance.json`

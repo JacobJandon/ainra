@@ -562,7 +562,7 @@ pinned in-repo and shown on the site. Signing `SHA256SUMS` transitively covers e
 ## D-043 — L3: the campaign publishes counts, never people; and every published count is registry-checked
 
 The three real-world DoD rows move only when strangers act, so the asking got the same treatment the engineering
-did — a schedule, a tool, and public gates (`campaign/`). Two constraints shape it. **(a) People never enter this
+did — an ordered sequence, a tool, and public gates (`campaign/`). Two constraints shape it. **(a) People never enter this
 repository.** Names, contacts, employers, and interview notes live in `campaign/tracker.local.json` and
 `campaign/notes/`, both gitignored; `tools/campaign.mjs` has no command that writes a person into a tracked file,
 and `drop <id>` clears one on request. This is D-036 applied to ourselves: the root holds no personal data, and that
@@ -573,7 +573,9 @@ numbers disagree with the genesis board and `witnesses/candidates.json`, or if t
 `campaign/{PLAN,GATES}.md` drift from `campaign/gates.json`. The claim "counts here are read, not asserted" is now
 enforced rather than promised; a negative control (publishing a false `2 / 3`) turns the board red.
 
-Gates are re-dated **in the open**: `redate` refuses without a written reason, appends to `gates.json`'s history,
-and regenerates the public table — so a slip is a recorded decision, never a quietly moved date. `campaign-status`
+Gates carry **bars, not deadlines** — a published date is a promise about a calendar, the one claim this repository
+cannot verify — and a gate is read **in the open**: `record` refuses without a written reason, stamps the count as
+it stood into `gates.json`'s history, and regenerates the public table — so a reading is a recorded decision, never
+a quiet one. `campaign-status`
 reads the genesis board, `evidence/verifier/`, and `witnesses/candidates.json`; it writes to none of them, so no
 command in the campaign can move a Definition-of-Done row. An unreadable source prints `—`, never `0`.

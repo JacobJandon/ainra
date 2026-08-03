@@ -8,8 +8,8 @@ Six messages, each short enough to send from a phone. The prepared, per-party ve
 
 1. **Two sentences of personalization, or don't send it.** One line on why *them* specifically, one line
    acknowledging what they do. Everything else is boilerplate and everyone can tell.
-2. **The 3-day rule.** One nudge, three days after, one sentence — then stop. `make campaign-status` tells you who
-   is due. A second nudge costs you the third ask you haven't thought of yet.
+2. **The one-nudge rule.** One follow-up per person, one sentence — then stop. `make campaign-status` keeps the
+   queue of who has been asked and not answered. A second nudge costs you the third ask you haven't thought of yet.
 3. **Ask small.** Every template below asks for one bounded thing: ten minutes, twenty-five minutes, one afternoon,
    one day. Nobody is being asked to believe in anything.
 4. **No names in this repository.** Track people in `campaign/tracker.local.json` (gitignored). What is publishable
@@ -93,7 +93,7 @@ Send this to anyone technically warm who declined verifying. It asks for infrast
 
 ## 5 · The regulator letter
 
-One page, sent after the jurisdiction decision (D4), to the office that runs the **human** digital-identity trust
+One page, sent after the jurisdiction decision, to the office that runs the **human** digital-identity trust
 framework in the jurisdiction you chose. This is strategy, not compliance: they have already solved, in law, the
 governance problem this project has in code.
 
@@ -119,7 +119,7 @@ Keep it to one page. Attach nothing; link the site and the roadmap.
 
 > Following up once on the below — if it's not for you, no reply needed and I won't chase it.
 
-That is the entire message. Send it three days after, once, and then delete the thread from your mind.
+That is the entire message. Send it once, after a decent interval, and then delete the thread from your mind.
 
 ---
 

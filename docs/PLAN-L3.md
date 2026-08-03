@@ -1,21 +1,22 @@
 <!-- SPDX-License-Identifier: Apache-2.0 OR MIT -->
-# L3 — the human half gets a schedule, and published counts get a gate
+# L3 — the human half gets a sequence, and published counts get a gate
 
 Follows L2 (docs/PLAN-L2.md). L2 finished the machine: public, live, self-verifying, with intake pipelines that
 auto-check what strangers submit. What it could not do is make a stranger show up. Three DoD rows — independent
-verifiers, a recorded ceremony, a 14-day soak — move only when people act, and they had no schedule, no tracker,
-and no published dates. L3 builds that, with the same rules as everything else: nothing fake, fail closed,
-full-output checks, zero telemetry, the DoD table untouched.
+verifiers, a recorded ceremony, a 14-day soak — move only when people act, and the asking had no order, no
+tracker, and no public bars. L3 builds that, with the same rules as everything else: nothing fake, fail closed,
+full-output checks, zero telemetry, the DoD table untouched. Deliberately date-free: gates are bars, not
+deadlines, because a deadline is a promise about a calendar that nothing in the repository can verify.
 
 ## What was built
 
 | Piece | What it does | Where |
 |---|---|---|
-| The fourteen days | One primary action per day (D1 Mon 03 Aug → D14 Sun 16 Aug), the K1 arithmetic, the slippage rule | `campaign/PLAN.md` |
-| The gate register | K1 (8 interviews, 16 Aug) and K4 (3 attestations, 05 Sep) — bars, sources, and every re-dating on the record | `campaign/GATES.md` + `campaign/gates.json` |
+| The fourteen steps | One primary action per step, in an order the arithmetic dictates; advance only when the previous step is done | `campaign/PLAN.md` |
+| The gate register | K1 (8 interviews) and K4 (3 attestations) — bars, not deadlines; sources and every reading on the record | `campaign/GATES.md` + `campaign/gates.json` |
 | The six asks | Verifier · interview · custodian · witness-as-second-yes · regulator letter · the one-sentence nudge, plus the target categories and the 25-minute interview script | `campaign/TEMPLATES.md` |
 | The jurisdiction decision | Criteria, both options, a recommendation, and five premises to verify before filing — with a decision block `campaign-status` reports as BLOCKING while empty | `campaign/JURISDICTION.md` |
-| The driver | `status` · `init` · `add` · `send` · `nudge` · `reply` · `interview` · `drop` · `gates` · `redate` · `render` · `check` | `tools/campaign.mjs` |
+| The driver | `status` · `init` · `step` · `add` · `send` · `nudge` · `reply` · `interview` · `drop` · `gates` · `record` · `render` · `check` | `tools/campaign.mjs` |
 | The publish unblock | Everything checkable before a token is pasted; publishes nothing, holds no credentials | `tools/publish-preflight.sh` |
 
 ## The two rules it exists to enforce (D-043)
@@ -34,7 +35,7 @@ request. Counts are publishable, people are not — D-036 applied to ourselves.
 | Counts are read, not asserted | `campaign check` → `ROADMAP verifier count matches the genesis board (0/3 confirmed; 0 submitted)` · `ROADMAP witness-candidacy count matches the registry (0)` |
 | **Negative control** — a false published count fails the build | published `**2 / 3**` in ROADMAP.md → `✗ ROADMAP.md publishes 2/3 confirmed verifiers, the board counts 0` → `STATUS-CONSISTENCY FAILED`, exit 1. Reverted; green again |
 | **Negative control** — a drifted generated table fails the build | edited `gates.json` by hand → `✗ campaign/GATES.md is stale`, exit 1 |
-| A gate cannot move quietly | `redate K1 2026-08-30` with no reason → refused, exit 1. With a reason → `gates.json` history appended **and** the public table regenerated |
+| A gate cannot be read quietly | `record` with no reason → refused, exit 1. With a reason → the count at that moment stamped into `gates.json` history **and** the public table regenerated |
 | No campaign command can move a DoD row | `campaign.mjs` opens `evidence/verifier/`, `witnesses/candidates.json`, and the board read-only; the board still reads 7/11, verifiers 0/3 |
 | An unreadable source prints `—`, never `0` | K1 with no tracker → `UNTRACKED`, not `0/8` |
 | S7 now covers `campaign/` | planted a foil-brand token from `tools/s7-brand-denylist.txt` in `campaign/README.md` → `S7-BRAND HIT campaign/README.md:54`, exit 1. Reverted; green. (The first draft of *this table* quoted the token and the gate failed the board for it — which is the rule working: S7 governs prose, including prose about S7.) |
@@ -60,8 +61,8 @@ negative control above. That is the gate working on its author, and it is record
 - **No DoD row moved**, and no soak started. The soak clock begins on genesis day, per the runbook — starting it
   early to make a row green is precisely the self-issued evidence this project exists to refuse.
 - **No site change.** The gates are published in `ROADMAP.md`, which the site links; the landing was not touched.
-- **The jurisdiction decision is not made.** It is the owner's, it has a date (D4), and the memo names the five
-  premises that must be verified against primary sources first — none of them is verified in this repository.
+- **The jurisdiction decision is not made.** It is the owner's, it sits at step 4 of the sequence, and the memo
+  names the five premises that must be verified against primary sources first — none is verified in this repository.
 
 ## Resume list
 
@@ -69,6 +70,6 @@ negative control above. That is the gate working on its author, and it is record
 |---|---|---|
 | npm publish | `make publish-preflight`, then the printed `npm login` + publish block | credentials |
 | PyPI publish | same preflight, then the printed venv + `twine upload` block | credentials |
-| Start the campaign | `make campaign-init`, then D1 in `campaign/PLAN.md` | nothing |
-| Jurisdiction | fill the decision block in `campaign/JURISDICTION.md`, register the same day | the owner, by D4 |
+| Start the campaign | `make campaign-init`, then step 1 in `campaign/PLAN.md` | nothing |
+| Jurisdiction | fill the decision block in `campaign/JURISDICTION.md`, register in the same sitting | the owner, at step 4 |
 | The three rows | they move when strangers act — that is the whole point of `campaign/` | strangers |

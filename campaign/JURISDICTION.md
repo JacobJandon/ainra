@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: Apache-2.0 OR MIT -->
 # Which country the root incorporates in
 
-**Decide on D4 (Thu 06 Aug 2026) and file the same day.** The real cost here is not choosing the wrong one — it is
+**Decide at step 4 of the sequence and file in the same sitting.** The real cost here is not choosing the wrong one — it is
 choosing late. Every funding application, the regulator letter, and the custodian paperwork all block on an entity
 existing; each day undecided is a day all three are blocked at once.
 
@@ -53,7 +53,7 @@ entity that exists this month.
 ## Before you file — verify these yourself
 
 Every factual premise above came from a strategy briefing, **not** from a primary source, and none of it is
-verified in this repository. Confirm each on the issuing body's own pages on D4 before it drives a filing:
+verified in this repository. Confirm each on the issuing body's own pages before it drives a filing:
 
 - [ ] the residency/eligibility rule for the innovation grants you intend to apply for
 - [ ] whether the digital-identity certification framework has any standing route for a non-human-identity body,

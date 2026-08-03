@@ -5,15 +5,16 @@ Everything else in this repository is machinery that runs. This directory is the
 
 Three rows in [`docs/DOD.md`](../docs/DOD.md) — independent verifiers, a recorded ceremony, a 14-day soak — cannot
 be moved by writing more code, and the project has been honest about that from the beginning. They move when
-strangers decide to spend an afternoon on us. So the asking gets the same treatment the code got: a schedule, a
-tool, published dates, and counts that come from registries instead of from hope.
+strangers decide to spend an afternoon on us. So the asking gets the same treatment the code got: an ordered
+sequence, a tool, public bars, and counts that come from registries instead of from hope. No dates anywhere — a
+deadline is a promise about a calendar, which is the one claim this repository cannot verify.
 
 | File | What it is |
 |---|---|
-| [`PLAN.md`](PLAN.md) | The fourteen days. One primary action per day, and the arithmetic that says why. |
-| [`GATES.md`](GATES.md) | The public gate register — K1 and K4, their bars, and every re-dating on the record. |
+| [`PLAN.md`](PLAN.md) | The fourteen steps, in order, and the arithmetic that says why the order matters. |
+| [`GATES.md`](GATES.md) | The public gate register — K1 and K4, their bars, and every reading on the record. |
 | [`TEMPLATES.md`](TEMPLATES.md) | The six asks, the categories of people to send them to, and the interview script. |
-| [`JURISDICTION.md`](JURISDICTION.md) | Which country the root incorporates in. Undecided; due D4. |
+| [`JURISDICTION.md`](JURISDICTION.md) | Which country the root incorporates in. Undecided; step 4 of the sequence. |
 | `gates.json` | The machine-readable gate register. `GATES.md`'s table is generated from it. |
 
 ## The one command
@@ -22,16 +23,17 @@ tool, published dates, and counts that come from registries instead of from hope
 make campaign-status
 ```
 
-It prints the day, today's primary action, every count with the registry it came from, who is due a nudge under the
-three-day rule, and what is currently blocking. Run it before noon.
+It prints the step you are on, what it is, every count with the registry it came from, the follow-up queue (one
+nudge per person, then stop), and what is currently blocking.
 
 ```sh
 make campaign-init                                  # once — creates the LOCAL tracker
 node tools/campaign.mjs add interview a-name --name "…" --org "…" --contact "…" --why "…"
-node tools/campaign.mjs send a-name                 # arms the 3-day nudge
+node tools/campaign.mjs send a-name                 # puts them in the follow-up queue
 node tools/campaign.mjs reply a-name yes
 node tools/campaign.mjs interview a-name            # records a COMPLETED interview + opens the notes file
-node tools/campaign.mjs redate K1 2026-08-30 --reason "…"       # the only way a date moves
+node tools/campaign.mjs step 2                      # advance when a step is actually done
+node tools/campaign.mjs record K1 continuing --reason "…"      # a gate reading, always in the open
 ```
 
 ## Two rules this directory exists to enforce

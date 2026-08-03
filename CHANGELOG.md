@@ -13,14 +13,16 @@ We **publicly own fixed security bugs** — hiding them would be the opposite of
 The three real-world genesis DoD rows remain the only open work: a recorded public ceremony with independent
 custodians, ≥3 external verifiers, and a 14-day 3-region soak. The machinery for all three is built and rehearsed.
 
-### L3 — the human half gets a schedule, and published counts get a gate
+### L3 — the human half gets a sequence, and published counts get a gate
 
-- **`campaign/`** — the fourteen days that move those three rows: one primary action per day, the six asks and the
-  interview script, the jurisdiction decision with a date on it, and two public kill-gates (**K1** demand evidence,
-  **K4** three independent attestations by 05 Sep). `make campaign-status` prints the day, the action, and every
-  count with the registry it came from.
-- **Gates are re-dated in the open or not at all.** `node tools/campaign.mjs redate` refuses without a written
-  reason, appends to `campaign/gates.json`'s history, and regenerates the public table (D-043).
+- **`campaign/`** — the fourteen ordered steps that move those three rows: one primary action per step, the six
+  asks and the interview script, the jurisdiction decision, and two public kill-gates (**K1** demand evidence,
+  **K4** three independent attestations). Gates are bars, not deadlines — no dates anywhere, since a deadline is a
+  promise about a calendar that nothing in the repository can verify. `make campaign-status` prints the step, the
+  action, and every count with the registry it came from.
+- **Gates are read in the open or not at all.** `node tools/campaign.mjs record` refuses without a written
+  reason, stamps the count as it stood, appends to `campaign/gates.json`'s history, and regenerates the public
+  table (D-043).
 - **Published counts are now enforced, not promised.** `node tools/campaign.mjs check` runs inside the board's
   status-honesty row and in CI: if `ROADMAP.md`'s verifier or witness numbers drift from the genesis board and
   `witnesses/candidates.json`, or a generated campaign table drifts from `gates.json`, the build goes red. Proven

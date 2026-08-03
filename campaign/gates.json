@@ -1,6 +1,5 @@
 {
-  "_comment": "Kill-gates: dates this project committed to in public, each with a bar and a registry that answers it. A gate is never met by assertion — `node tools/campaign.mjs gates` reads the count from the declared source. A gate that will be missed is RE-DATED IN THE OPEN with a written reason (`redate`), which appends to `history` and regenerates campaign/GATES.md. Deleting a gate or editing `history` by hand defeats the entire mechanism.",
-  "anchor": "2026-08-03",
+  "_comment": "Kill-gates: bars this project committed to in public, each with a registry that answers it. There are no dates here on purpose — a gate is a BAR, not a deadline, and a published date is a promise about a calendar that nothing in this repository can verify. A gate is never met by assertion: `node tools/campaign.mjs gates` reads the count from the declared source. When a gate is read, the reading is recorded with `record` — which appends to `history` with the count at that moment and regenerates campaign/GATES.md. Editing `history` by hand defeats the entire mechanism.",
   "gates": [
     {
       "id": "K1",
@@ -8,8 +7,6 @@
       "target": "completed 25-minute interviews with people who run agents that act",
       "metric": "interviews_done",
       "threshold": 8,
-      "date": "2026-08-16",
-      "original_date": "2026-08-16",
       "status": "open",
       "result": null,
       "source": "the local tracker (campaign/tracker.local.json) — the count is publishable, the people are not (D-036)",
@@ -21,8 +18,6 @@
       "target": "distinct external parties who each verified a fresh challenge and signed an execution-bound attestation",
       "metric": "verifiers_confirmed",
       "threshold": 3,
-      "date": "2026-09-05",
-      "original_date": "2026-09-05",
       "status": "open",
       "result": null,
       "source": "tools/genesis-board/board.mjs — it re-verifies each attestation's signature and only counts ones the maintainer confirmed against the private answer key",

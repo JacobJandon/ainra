@@ -22,7 +22,15 @@ const step = (n) => { document.querySelectorAll("[data-step]").forEach((s) => (s
 
 async function boot() {
   if (!$("#get")) return;
-  if (!REG) return unavailable("This mints a real passport against a live registrar. Start one locally — <code>make stage-all</code> — then reload, or pass <code>?reg=&lt;url&gt;</code>.");
+  // No registrar configured — the ordinary case on a static host. This is architecture, not a missing feature:
+  // issuance happens at a registrar, never at the root, so a published site has nothing to issue with. Say that
+  // plainly, point at the two things that DO work everywhere, and give the one command that makes minting local.
+  if (!REG) return unavailable(
+    "<b>Issuance happens at a registrar, never at the root</b> — so this page has nothing to mint with until you " +
+    "point it at one. Everything that does not need a signing key works right here: <a href=\"#browse\">browse the " +
+    "record below</a>, and <a href=\"verify.html#try\">run the verifier</a> on real bundles. " +
+    "To mint: <code>make stage-all</code> in the repository, then reload — or pass <code>?reg=&lt;url&gt;</code> " +
+    "for a registrar you already run.");
   let health;
   try { health = await (await fetch(REG + "/health", { cache: "no-store" })).json(); } catch { return unavailable(`No registrar reachable at <code>${REG}</code>. Run <code>make stage-all</code>.`); }
   if (!health?.ok) return unavailable("A registrar answered but isn't ready.");

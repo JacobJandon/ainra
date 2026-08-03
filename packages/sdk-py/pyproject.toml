@@ -28,6 +28,8 @@ test = ["pytest>=7"]
 
 [project.urls]
 Homepage = "https://ainra.org"
+Live = "https://jacobjandon.github.io/ainra/"
+Source = "https://github.com/JacobJandon/ainra"
 
 [tool.setuptools]
 packages = ["ainra"]

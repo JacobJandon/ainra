@@ -1,7 +1,7 @@
 {
   "name": "@ainra/mcp",
   "version": "0.3.0",
-  "description": "AINRA as native agent tools — a zero-dependency MCP server wrapping the published verifier, the public record, and the registrar you control.",
+  "description": "AINRA as native agent tools \u2014 a zero-dependency MCP server wrapping the published verifier, the public record, and the registrar you control.",
   "license": "Apache-2.0 OR MIT",
   "type": "module",
   "bin": {
@@ -19,5 +19,10 @@
   "dependencies": {},
   "peerDependencies": {
     "@ainra/sdk": "*"
+  },
+  "homepage": "https://jacobjandon.github.io/ainra/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JacobJandon/ainra.git"
   }
 }

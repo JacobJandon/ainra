@@ -40,8 +40,11 @@ build if this file's numbers ever drift from what the registries hold.
 ## After genesis
 
 The root becomes what its charter describes: a member-governed federation with custodians holding threshold keys and
-independent witnesses cosigning the log — see `GOVERNANCE.md`. From there the plan is Anchor → Endure → **Disappear**:
-verification as boring as the clock, everywhere, invisible, with a public record behind it. The standard is built to
-outlive the institution; a managed-migration clause is written for the day a legitimate successor emerges.
+independent witnesses cosigning the log — see `GOVERNANCE.md`. From there the plan is Anchor → Endure → **Disappear**,
+and *disappear* means **become unnecessary**, not vanish. The goal is not an ecosystem that depends on us; it is one
+that no longer needs us — that is how you know the job was done. This is a relay race, not a solo marathon: you take
+the baton, run your section, hand it off, and somebody else carries it on. What that looks like from outside is
+verification as boring as the clock — everywhere, invisible, with a public record behind it. The standard is built to
+outlive whoever is carrying it; a managed-migration clause is written for the day a legitimate successor emerges.
 
 _This file is updated when a count changes or a version ships — not before._

@@ -110,3 +110,7 @@ site/RELEASE-VERIFY.md
 packages/sdk-py/build/
 outreach/ready/
 .vercel/
+
+# --- the campaign's human half: PEOPLE never enter this repository (D-036). Counts are publishable; names are not. ---
+campaign/tracker.local.json
+campaign/notes/

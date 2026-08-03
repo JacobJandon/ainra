@@ -102,8 +102,9 @@ Each kit is completable by an unattended stranger and self-verifying. Start with
 | [`kits/soak/`](kits/soak/) | measure revocation p95 from ≥3 regions into a signed report; SLO computed, never asserted | [DEPLOY](kits/soak/DEPLOY.md) | `make soak-smoke` · `make soak-verify` |
 | [`kits/witness/`](kits/witness/) | run independently-operated witnesses over HTTP; a fork can't reach quorum | [WITNESS-CALL](outreach/WITNESS-CALL.md) | `make drill-networked` |
 
-Collected evidence rolls up into one honest picture — `make genesis-status`. Recruiting the people for the three
-remaining events: **[outreach/](outreach/)**.
+Collected evidence rolls up into one honest picture — `make genesis-status`. The materials for recruiting the people
+those three events need are in **[outreach/](outreach/)**; the schedule for actually asking them — with two public
+kill-gates and every re-dating on the record — is **[campaign/](campaign/)** (`make campaign-status`).
 
 ## Website
 

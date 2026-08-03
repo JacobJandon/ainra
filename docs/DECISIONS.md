@@ -558,3 +558,22 @@ pinned in-repo and shown on the site. Signing `SHA256SUMS` transitively covers e
 **reproducibility** — a stranger rebuilds `MANIFEST.sha256` byte-for-byte from the tagged source and needs no key
 (`RELEASE-VERIFY.md`). GPG was rejected as heavyweight (keyrings, web-of-trust) for a project whose whole ethos is
 "verify against a pinned key, not a trust hierarchy".
+
+## D-043 — L3: the campaign publishes counts, never people; and every published count is registry-checked
+
+The three real-world DoD rows move only when strangers act, so the asking got the same treatment the engineering
+did — a schedule, a tool, and public gates (`campaign/`). Two constraints shape it. **(a) People never enter this
+repository.** Names, contacts, employers, and interview notes live in `campaign/tracker.local.json` and
+`campaign/notes/`, both gitignored; `tools/campaign.mjs` has no command that writes a person into a tracked file,
+and `drop <id>` clears one on request. This is D-036 applied to ourselves: the root holds no personal data, and that
+includes the personal data of people who were kind enough to reply. What is publishable is a **count**. **(b) A
+published count must be a read count.** `node tools/campaign.mjs check` — wired into `tools/status-consistency.mjs`,
+so it runs in the board's status-honesty row and in CI — fails the build if `ROADMAP.md`'s verifier or witness
+numbers disagree with the genesis board and `witnesses/candidates.json`, or if the generated tables in
+`campaign/{PLAN,GATES}.md` drift from `campaign/gates.json`. The claim "counts here are read, not asserted" is now
+enforced rather than promised; a negative control (publishing a false `2 / 3`) turns the board red.
+
+Gates are re-dated **in the open**: `redate` refuses without a written reason, appends to `gates.json`'s history,
+and regenerates the public table — so a slip is a recorded decision, never a quietly moved date. `campaign-status`
+reads the genesis board, `evidence/verifier/`, and `witnesses/candidates.json`; it writes to none of them, so no
+command in the campaign can move a Definition-of-Done row. An unreadable source prints `—`, never `0`.

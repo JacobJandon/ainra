@@ -77,6 +77,12 @@ Then the maintainer:
 environment with its quickstart passing (M24 Task 4) — so all that remains for a human is to press the button once
 the version is final.
 
+**Run `make publish-preflight` first.** It re-proves every one of those dry runs on the machine you are about to
+publish from — versions agree across all four packages, the version is tagged, each package packs with a README and
+a license and no local `file:` dependency, and the packed npm tarball *and* the built wheel each install into a
+throwaway environment and reproduce all **745** recorded conformance verdicts. It publishes nothing and holds no
+credentials; when it is green it prints the exact commands below, filled in with the current version.
+
 ### npm — `@ainra/sdk`, `@ainra/middleware`, `@ainra/mcp`
 
 Publish order matters: **`@ainra/sdk` first** (the other two resolve it by name), then `@ainra/middleware`, then

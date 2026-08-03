@@ -4,6 +4,8 @@
 //   (M11) docs/DOD.md's `<!-- DOD-BOARD laptop=N external=M -->` must match the genesis board's actual structural
 //         row counts (`node tools/genesis-board/board.mjs --counts`) — so a board row can't be added/removed without
 //         the DoD doc being updated in the same change.
+//   (L3)  the counts ROADMAP.md publishes to the world must equal the counts the registries hold, and campaign/'s
+//         generated tables must match campaign/gates.json (`node tools/campaign.mjs check`).
 import { readFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
@@ -36,5 +38,15 @@ else {
   } else pass(`DOD.md board counts match the genesis board (laptop=${bM[1]} external=${bM[2]})`);
 }
 
+// (3) Published counts == registry reality. Delegated to the campaign driver so there is ONE implementation of
+//     "what the registries say" — this file only mirrors its verdict into the board's status-honesty row.
+try {
+  const out = execFileSync("node", [ROOT + "tools/campaign.mjs", "check"], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+  for (const l of out.trim().split("\n")) console.log("  " + l.trim().replace(/^[✓↻]\s*/, "✓ "));
+} catch (e) {
+  fail("campaign check failed — a published count or generated table drifted from its source:");
+  for (const l of `${e.stdout || ""}${e.stderr || ""}`.trim().split("\n")) if (l.trim()) console.error("      " + l.trim());
+}
+
 if (!ok) { console.error("\nSTATUS-CONSISTENCY FAILED — the docs disagree with reality."); process.exit(1); }
-console.log("STATUS OK: README, STATUS.md, and DOD.md are in lockstep.");
+console.log("STATUS OK: README, STATUS.md, DOD.md, and the published counts are in lockstep.");

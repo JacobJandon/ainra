@@ -1,6 +1,6 @@
 # AINRA — the acceptance bar (MTS §28, brief §8): a stranger clones, runs `make test && make vectors && make diff`,
 # and everything is green in under 10 minutes on a laptop.
-.PHONY: all test vectors vectors-check diff cli-check suite-migration-drill ceremony-rehearsal-multi witness-check push-advisory-check changelog-board-check fmt clippy fuzz-smoke bench sdk-build sdk-test ci clean status console samples drill explorer demo scale ceremony testbed wedge-build wedge-test repro mirror verify-mirror check-freeze freeze genesis-local verifier-kit-smoke ceremony-dry-run soak-smoke drill-networked preflight s7 license gitleaks audit verify-as-external verifier-triple-drill soak-verify genesis-status verify-transcript genesis-board-demo release doctor verifier-operator-drill site site-up site-down site-check stage-all stage-all-down explorer-up explorer-down ainrascan stage-up stage-down stage-status stage-smoke demo-walkthrough three-clients genesis-verify config-diff declaration genesis-rehearsal site-demo verify issue-first registrar-console mcp-test skills-replay presentation-diff conformance
+.PHONY: all test vectors vectors-check diff cli-check suite-migration-drill ceremony-rehearsal-multi witness-check push-advisory-check changelog-board-check fmt clippy fuzz-smoke bench sdk-build sdk-test ci clean status console samples drill explorer demo scale ceremony testbed wedge-build wedge-test repro mirror verify-mirror check-freeze freeze genesis-local verifier-kit-smoke ceremony-dry-run soak-smoke drill-networked preflight s7 license gitleaks audit verify-as-external verifier-triple-drill soak-verify genesis-status verify-transcript genesis-board-demo release doctor verifier-operator-drill site site-up site-down site-check stage-all stage-all-down explorer-up explorer-down ainrascan stage-up stage-down stage-status stage-smoke demo-walkthrough three-clients genesis-verify config-diff declaration genesis-rehearsal site-demo verify issue-first registrar-console mcp-test skills-replay presentation-diff conformance campaign-status campaign-init campaign-gates campaign-check publish-preflight
 
 all: fmt clippy test vectors diff
 
@@ -267,6 +267,24 @@ genesis-status:
 # M10 — prove the board: real evidence (3 attestations + ceremony + soak) drives rows to ✅, soak stays honest, fakes refused.
 genesis-board-demo:
 	bash tools/genesis-board/demo.sh
+
+# L3 — the human half. The three real-world DoD rows move only when strangers act; this is the schedule for asking
+# them, the tracker (LOCAL — people never enter this repo, D-036), and an honest scoreboard read from the registries.
+# It can read every row and move none of them. campaign/README.md.
+campaign-status:
+	@node tools/campaign.mjs status
+campaign-init:
+	@node tools/campaign.mjs init
+campaign-gates:
+	@node tools/campaign.mjs gates
+campaign-check:
+	@node tools/campaign.mjs check
+
+# L3 — everything that can be checked before the maintainer pastes an npm/PyPI token. Publishes NOTHING, holds no
+# credentials: versions agree, each package packs, the packed artifact installs into a throwaway env and verifies a
+# real vector, no local file: deps. Prints the exact publish commands when it is green.
+publish-preflight:
+	@bash tools/publish-preflight.sh
 
 # M11 — check a newcomer's environment against TOOLCHAIN.md before they waste an hour on a cryptic error.
 doctor:

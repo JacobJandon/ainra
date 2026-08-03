@@ -30,6 +30,13 @@ event happens, and nothing on this repository claims otherwise. Production log e
 Witness candidacies (a prerequisite for the ceremony's witness quorum): **0** in `witnesses/candidates.json`.
 Candidacies are candidate-not-production and confer no standing until the charter process constitutes them.
 
+Every one of those numbers moves only when a stranger decides to spend an afternoon on this, so the asking is
+scheduled like the engineering was: [`campaign/`](campaign/) holds the calendar, the templates, and two public
+kill-gates — **K1** (demand evidence) and **K4** (three independent attestations, 05 Sep) — in
+[`campaign/GATES.md`](campaign/GATES.md), along with every re-dating on the record. `make campaign-status` reads
+the counts above from their registries rather than restating them, and `node tools/campaign.mjs check` fails the
+build if this file's numbers ever drift from what the registries hold.
+
 ## After genesis
 
 The root becomes what its charter describes: a member-governed federation with custodians holding threshold keys and

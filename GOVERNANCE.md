@@ -10,6 +10,11 @@ AINRA is currently **one operator with a public repository**. There is no board,
 no legal foundation. Every merge decision, release, and roadmap call is made by the maintainers listed in
 [MAINTAINERS.md](MAINTAINERS.md).
 
+There is also **no legal entity yet** — no company, association, or foundation holds this work. Which jurisdiction
+it incorporates in is an open decision with a date on it, written down in
+[`campaign/JURISDICTION.md`](campaign/JURISDICTION.md); when it is made, the answer lands here, because "whose law
+can compel this root" is a question every custodian and every relying party is entitled to ask before trusting it.
+
 That is a weakness, and the design assumes it. The mitigations are structural, not promises:
 
 - **The specification is public and frozen.** Normative documents are hash-pinned (`make check-freeze`); changing one

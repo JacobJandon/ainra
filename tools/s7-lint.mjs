@@ -89,7 +89,7 @@ const brandPat = BRAND.map((n) => {
   const esc = n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   return { name: n, re: new RegExp(`(?<![.\\w])${esc}(?![\\w])`, "i") };
 });
-const PROSE_DIRS = ["docs", "kits", "outreach", ".github", "site"];
+const PROSE_DIRS = ["docs", "kits", "outreach", "campaign", ".github", "site"];
 const PROSE_EXT = new Set([".md", ".txt", ".yml", ".yaml", ".html"]);
 const PROSE_FILES = ["README.md", "CONTRIBUTING.md", "SECURITY.md", "CODE_OF_CONDUCT.md", "GENESIS-CHECKLIST.md"];
 let brandHits = 0;
@@ -119,7 +119,7 @@ try {
 } catch { /* not a git checkout (e.g. tarball) — skip commit-message scan */ }
 
 if (brandHits) console.error(`\nS7 (brand) FAILED: ${brandHits} commercial-brand occurrence(s) in prose/commit messages`);
-else console.log(`S7 OK (brand): ${BRAND.length} foil brands, none present in docs/kits/outreach/.github/front-door/commit-messages`);
+else console.log(`S7 OK (brand): ${BRAND.length} foil brands, none present in ${PROSE_DIRS.join("/")}/front-door/commit-messages`);
 
 if (hits || brandHits) process.exit(1);
 console.log("S7 OK: neutral — no impersonation in fixtures, no commercial brands in public prose or history");

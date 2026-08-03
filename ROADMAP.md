@@ -10,7 +10,7 @@ Counts here are read from the intake registries (`evidence/`, `witnesses/`), not
 |---|---|---|
 | **v0.2.0** | The downloadable reference CLI goes hybrid Ed25519 + ML-DSA-65; suite-migration drill; distributable ceremony; witness kit v2 | [release](https://github.com/JacobJandon/ainra/releases/tag/v0.2.0) · signed · board-proven |
 | **v0.3.0** | A fourth independent verifier (Python); the self-serve conformance programme; SSH-signed releases with provenance + SBOM | [release](https://github.com/JacobJandon/ainra/releases/tag/v0.3.0) · signed · board-proven |
-| Public | Repository, CI (nightly board), branch protection, the live site | github.com/JacobJandon/ainra · https://jacobjandon.github.io/ainra/ |
+| Public | Repository, CI (nightly board), branch protection, the live site | github.com/JacobJandon/ainra · https://ainra.vercel.app/ |
 | Trust scaffolding | Security policy, contribution + conformance-first rules, governance, and self-verifying intake pipelines | `SECURITY.md` · `CONTRIBUTING.md` · `GOVERNANCE.md` · `evidence/README.md` |
 
 Four independent implementations agree on all **745** conformance vectors; every artifact rebuilds byte-for-byte

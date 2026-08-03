@@ -20,7 +20,7 @@
     "@types/node": "^26.1.1",
     "typescript": "^5.6.0"
   },
-  "homepage": "https://jacobjandon.github.io/ainra/",
+  "homepage": "https://ainra.vercel.app/",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/JacobJandon/ainra.git"

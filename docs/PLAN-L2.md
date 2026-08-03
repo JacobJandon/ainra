@@ -27,7 +27,7 @@ Platform config files naming the host are plumbing and allowed; S7 continues to 
 | 1 — scaffolding | DONE (`e66ed48`) | SECURITY.md → real private-advisory channel (no placeholder email, D-036 no-PII), honest pre-institution response table, pinning-vector + public-post-mortem promise · CONTRIBUTING.md → conformance-first rule · verifier-divergence + spec-question issue templates (absorbed the stale 3-impl vector template) · GOVERNANCE.md + MAINTAINERS.md (operator-run today, custodians at ceremony, constituencies after) |
 | 2 — intake pipelines | DONE (`df38c3e`,`8df28bd`) | `tools/intake-check.mjs` public-half checker — proven pass + malformed-fail + tamper-fail · `tools/witness-probe.mjs` — proven reachable-pass + unreachable-fail-closed · `evidence/README.md` + verifier/witness templates · `witnesses/candidates.json` (candidate≠production) · `.github/workflows/intake.yml` on submission PRs · wired into skills.md + llms.txt (also fixed the stale "three implementations"→four) · **never flips a DoD row** (private answer-key check stays with the maintainer) |
 | 3 — release automation | DONE (`951a3bf`) | `.github/workflows/release.yml` on `vX.Y.Z`: one-release-rule gate → reproducible rebuild + provenance + SBOM + manifest → draft release with board link; signature stays a maintainer step (D-042, key never in CI). **PROVEN**: pushed labeled `v0.0.0-ci-test` (no board) → CI **REFUSED** at the gate (`Release REFUSED — no board evidence … no full board from a clean clone ⇒ no release`); throwaway tag + would-be release deleted from local + remote |
-| 4 — site live | DONE (`9d686e6`) | Pages enabled via API (Actions source, HTTPS enforced); deploy workflow re-enabled + first deploy green. **Live: https://jacobjandon.github.io/ainra/** — all pages + agent surfaces (llms.txt, skills index, OpenAPI ×6, .md mirrors, the Standard) 200 over HTTPS; browser QA 5 pages 0 console errors, honest live-data fallback renders. Live URL propagated → README + package metadata (homepage/repository) + outreach one-pagers. `ainra.org` stays the declared canonical (owner's domain call) |
+| 4 — site live | DONE (`9d686e6`) | Pages enabled via API (Actions source, HTTPS enforced); deploy workflow re-enabled + first deploy green. **Live: https://ainra.vercel.app/** — all pages + agent surfaces (llms.txt, skills index, OpenAPI ×6, .md mirrors, the Standard) 200 over HTTPS; browser QA 5 pages 0 console errors, honest live-data fallback renders. Live URL propagated → README + package metadata (homepage/repository) + outreach one-pagers. `ainra.org` stays the declared canonical (owner's domain call) |
 | 5 — roadmap + closure | DONE | ROADMAP.md (shipped + the three rows with flip conditions: verifiers **0/3**, ceremony not held, soak not started, witness candidacies **0**) linked from README; closing board run from a clean clone at HEAD (evidence below); resume list below |
 
 ## Resume list (each one paste away — none blocks the rest)
@@ -40,3 +40,14 @@ Platform config files naming the host are plumbing and allowed; S7 continues to 
 
 ## The one release rule, now doubly enforced
 Board evidence gates the CHANGELOG (`make changelog-board-check`) **and** the tag-triggered release workflow (`.github/workflows/release.yml`). A version cannot be *claimed* or *released* without a committed board at its commit.
+
+## Closing board (2026-08-03)
+Full preflight board from a clean clone at HEAD `f9bfe02` — **ALL GREEN 18/18, exit 0**
+(`docs/releases/l2-closing-board-2026-08-03.md`). The first run went RED on `skills replay`, correctly catching a
+bug this session introduced (an illustrative `make verify-as-external CHALLENGE=/path/to/challenge` in a
+```bash block that skills-replay executes literally); fixed by making the block ```sh, re-run green.
+
+## Hosting (2026-08-03)
+Migrated off GitHub Pages to Vercel (owner's call). The Pages site is **deleted** (`gh api …/pages` → Not Found)
+and its deploy workflow disabled. Live site: **https://ainra.vercel.app/**. All repo/package/outreach references
+repointed from the Pages URL to Vercel. `ainra.org` remains the declared canonical (in-site canonical/og tags).

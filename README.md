@@ -5,7 +5,7 @@
      It appears ONLY here (both spots on the next line). Full steps: docs/PUBLISH-AUDIT.md § "Pre-push checklist". -->
 [![CI](https://github.com/JacobJandon/ainra/actions/workflows/ci.yml/badge.svg)](https://github.com/JacobJandon/ainra/actions/workflows/ci.yml)
 
-**Live site:** https://jacobjandon.github.io/ainra/ · **Source & releases:** https://github.com/JacobJandon/ainra · **[Roadmap](ROADMAP.md)** · **[Governance](GOVERNANCE.md)**
+**Live site:** https://ainra.vercel.app/ · **Source & releases:** https://github.com/JacobJandon/ainra · **[Roadmap](ROADMAP.md)** · **[Governance](GOVERNANCE.md)**
 
 **AINRA** does exactly four jobs — **accredit · anchor · revoke · log** — and nothing else. It answers the three
 questions every counterparty asks about an AI agent — *who is behind it, what may it do, is it still trusted right

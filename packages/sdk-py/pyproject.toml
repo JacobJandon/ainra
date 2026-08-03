@@ -28,7 +28,7 @@ test = ["pytest>=7"]
 
 [project.urls]
 Homepage = "https://ainra.org"
-Live = "https://jacobjandon.github.io/ainra/"
+Live = "https://ainra.vercel.app/"
 Source = "https://github.com/JacobJandon/ainra"
 
 [tool.setuptools]

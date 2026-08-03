@@ -456,6 +456,8 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
   </div>
 </header>
 
+<div class="wrap"><div class="life-note rv">SIMPLE RULES → COMPLEX SYSTEMS</div></div>
+
 <section id="integrate" class="rv" style="padding:48px 0 40px">
   <div class="wrap">
     <div class="sec-head" style="text-align:center;max-width:700px;margin:0 auto">
@@ -519,6 +521,8 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:99;opa
 @media(max-width:760px){.spark{display:none}.hand-r{width:44vw;right:-20vw;top:9vh;opacity:.45}.hand-l{width:48vw;left:-16vw;bottom:1vh;opacity:.6}}
 nav .btn{white-space:nowrap;flex:none}
 @media(max-width:1360px){.brand .mean{display:none}}
+/* the doctrine, captioning the Game of Life field that runs behind the page (js/life.mjs) */
+.life-note{font-family:var(--mono);font-size:9.5px;letter-spacing:.3em;font-weight:700;color:var(--green);opacity:.55;text-align:center;margin:30px 0 -14px}
 nav .ndocs{font-size:14px;font-weight:500;color:var(--muted);padding:9px 12px;border-radius:10px}
 nav .ndocs:hover{color:var(--ink);background:rgba(11,18,32,.045)}
 @media(max-width:1150px){.nav-hide-mid{display:none}}
@@ -626,22 +630,22 @@ nav .ndocs:hover{color:var(--ink);background:rgba(11,18,32,.045)}
         <li>Can I safely delegate to it?</li>
       </ul>
     </div>
-    <p class="ans a1" style="text-align:center;margin-top:18px">Today there is no universal way to answer any of these. AINRA is that way:</p>
+    <p class="ans a1" style="text-align:center;margin-top:18px">There is no universal way to answer these. AINRA is that way:</p>
     <div class="does" style="margin-top:26px">
       <div class="do-cell">
         <span class="k">The problem</span>
         <h3>Anything can claim to be your agent.</h3>
-        <p>The other side can't tell a real one from an impostor — so services block them all, or trust them all.</p>
+        <p>Nobody can tell a real one from an impostor.</p>
       </div>
       <div class="do-cell">
         <span class="k">The fix</span>
         <h3>A passport it can prove.</h3>
-        <p>Who it is, who backs it, what it may do — signed, so any tampered byte fails. Checked offline in milliseconds; revoked everywhere in under a minute.</p>
+        <p>Who it is, who backs it, what it may do — signed. Checked offline in milliseconds; revoked in under a minute.</p>
       </div>
       <div class="do-cell">
         <span class="k">The control</span>
         <h3>Yours, not ours.</h3>
-        <p>You set the limits and pull the switch. The network only makes them provable.</p>
+        <p>You set the limits and pull the switch; the network just makes them provable.</p>
       </div>
     </div>
     <p class="ans a1" style="text-align:center;max-width:680px;margin:30px auto 0">AINRA is a <b>proposal</b> for that neutral root — one open standard anyone can run, own, or fork. You are not asked to trust its founders; everything is public.</p>
@@ -910,5 +914,6 @@ nav .ndocs:hover{color:var(--ink);background:rgba(11,18,32,.045)}
 
 })();
 </script>
+<script type="module" src="js/life.mjs"></script>
 </body>
 </html>

@@ -109,3 +109,4 @@ __pycache__/
 site/RELEASE-VERIFY.md
 packages/sdk-py/build/
 outreach/ready/
+.vercel/

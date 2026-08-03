@@ -95,8 +95,10 @@ site/status.md
 site/openapi/
 site/skills.md
 
-# M17 regenerated proof evidence
-evidence/
+# M17 regenerated proof evidence — only the generated demo artifacts, NOT the intake scaffolding/submissions.
+# evidence/verifier/ and evidence/witness/ are intake dirs: their README/templates and PR-submitted files are tracked.
+evidence/three-clients.json
+evidence/verifiers/
 .release-key/
 
 # M24 Python verifier (packages/sdk-py) build/cache artifacts

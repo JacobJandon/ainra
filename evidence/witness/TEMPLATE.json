@@ -1,0 +1,9 @@
+{
+  "candidate_id": "example-witness",
+  "endpoint": "https://witness.example.org",
+  "operator": "Example Institution",
+  "jurisdiction": "EU",
+  "contact": "public issue thread — no email needed",
+  "production": false,
+  "notes": "Copy this file to evidence/witness/<your-candidate-id>.json, fill it in, open a PR. CI probes the endpoint."
+}

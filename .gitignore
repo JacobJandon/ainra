@@ -12,6 +12,8 @@ BENCHMARKS.md.tmp
 # --- generated run outputs (produced by make targets; not source) ---
 genesis-out/
 *-out/
+# stray run logs (e.g. `make genesis-local > genesis-out.log`) must never sit in the tree — no tracked .log exists
+*.log
 /build/
 apps/cli-node/.ainra
 

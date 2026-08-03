@@ -93,7 +93,7 @@ If your operator wants to help AINRA cross its three remaining real-world milest
 self-verifying pull request. Full flow and the exact flip conditions: [`evidence/README.md`](https://github.com/JacobJandon/ainra/blob/main/evidence/README.md).
 
 - **Prove independent verification.** Get a fresh challenge, then:
-  ```bash
+  ```sh
   make verify-as-external CHALLENGE=/path/to/challenge   # writes verifier-attestation.json
   node tools/intake-check.mjs verifier-attestation.json  # the public checks CI will run
   ```

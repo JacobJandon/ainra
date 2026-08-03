@@ -159,6 +159,7 @@ nav{position:sticky;top:0;z-index:60;background:rgba(245,246,243,.86);backdrop-f
 .pass-head .sigil{width:26px;height:26px;flex:none}
 .pass-head .sigil svg{display:block;width:100%;height:100%}
 .pass-body{display:grid;grid-template-columns:96px 1fr;gap:14px;padding:12px 18px 8px;position:relative}
+.chip{justify-self:center;margin-top:2px;image-rendering:pixelated}
 .portrait{width:96px;height:96px;border:1px solid var(--line);border-radius:8px;background:var(--paper);display:grid;grid-template-columns:repeat(7,1fr);grid-template-rows:repeat(7,1fr);gap:2px;padding:8px;position:relative}
 .portrait i{border-radius:1.5px}
 .portrait i.on{background:var(--ink)}
@@ -425,27 +426,28 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
             <div class="f"><label>① Lineage</label><div>invoicing</div></div>
             <div class="f"><label>② Version</label><div>4.2.1</div></div>
             <div class="f"><label>③ Operator</label><div>Acme Corp <span class="ok">KYB ✓</span></div></div>
-            <div class="f"><label>④ Registrar</label><div>registrar-07</div></div>
+            <div class="f"><label>④ Revocation</label><div>&lt;60 S · <span class="ok">FAILS CLOSED</span></div></div>
             <div class="f"><label>⑤ Authority</label><div>A2 · ORG <span class="ok">ZK ✓</span></div></div>
             <div class="f"><label>⑥ Assurance</label><div><span class="tier-chip">L3 · BACKED</span></div></div>
           </div>
+          <svg class="chip" viewBox="0 0 45 35" width="44" height="34" aria-hidden="true"><rect x="0" y="0" width="4" height="4" fill="#8a6a14"/><rect x="5" y="0" width="4" height="4" fill="#8a6a14"/><rect x="10" y="0" width="4" height="4" fill="#8a6a14"/><rect x="15" y="0" width="4" height="4" fill="#0B1220"/><rect x="20" y="0" width="4" height="4" fill="#8a6a14"/><rect x="25" y="0" width="4" height="4" fill="#8a6a14"/><rect x="30" y="0" width="4" height="4" fill="#0B1220"/><rect x="35" y="0" width="4" height="4" fill="#8a6a14"/><rect x="40" y="0" width="4" height="4" fill="#8a6a14"/><rect x="0" y="5" width="4" height="4" fill="#8a6a14"/><rect x="5" y="5" width="4" height="4" fill="#8a6a14"/><rect x="10" y="5" width="4" height="4" fill="#8a6a14"/><rect x="15" y="5" width="4" height="4" fill="#0B1220"/><rect x="20" y="5" width="4" height="4" fill="#8a6a14"/><rect x="25" y="5" width="4" height="4" fill="#8a6a14"/><rect x="30" y="5" width="4" height="4" fill="#0B1220"/><rect x="35" y="5" width="4" height="4" fill="#8a6a14"/><rect x="40" y="5" width="4" height="4" fill="#8a6a14"/><rect x="0" y="10" width="4" height="4" fill="#8a6a14"/><rect x="5" y="10" width="4" height="4" fill="#8a6a14"/><rect x="10" y="10" width="4" height="4" fill="#8a6a14"/><rect x="15" y="10" width="4" height="4" fill="#0B1220"/><rect x="20" y="10" width="4" height="4" fill="#8a6a14"/><rect x="25" y="10" width="4" height="4" fill="#8a6a14"/><rect x="30" y="10" width="4" height="4" fill="#0B1220"/><rect x="35" y="10" width="4" height="4" fill="#8a6a14"/><rect x="40" y="10" width="4" height="4" fill="#8a6a14"/><rect x="0" y="15" width="4" height="4" fill="#0B1220"/><rect x="5" y="15" width="4" height="4" fill="#0B1220"/><rect x="10" y="15" width="4" height="4" fill="#0B1220"/><rect x="15" y="15" width="4" height="4" fill="#0B1220"/><rect x="20" y="15" width="4" height="4" fill="#0B1220"/><rect x="25" y="15" width="4" height="4" fill="#0B1220"/><rect x="30" y="15" width="4" height="4" fill="#0B1220"/><rect x="35" y="15" width="4" height="4" fill="#0B1220"/><rect x="40" y="15" width="4" height="4" fill="#0B1220"/><rect x="0" y="20" width="4" height="4" fill="#8a6a14"/><rect x="5" y="20" width="4" height="4" fill="#8a6a14"/><rect x="10" y="20" width="4" height="4" fill="#8a6a14"/><rect x="15" y="20" width="4" height="4" fill="#0B1220"/><rect x="20" y="20" width="4" height="4" fill="#8a6a14"/><rect x="25" y="20" width="4" height="4" fill="#8a6a14"/><rect x="30" y="20" width="4" height="4" fill="#0B1220"/><rect x="35" y="20" width="4" height="4" fill="#8a6a14"/><rect x="40" y="20" width="4" height="4" fill="#8a6a14"/><rect x="0" y="25" width="4" height="4" fill="#8a6a14"/><rect x="5" y="25" width="4" height="4" fill="#8a6a14"/><rect x="10" y="25" width="4" height="4" fill="#8a6a14"/><rect x="15" y="25" width="4" height="4" fill="#0B1220"/><rect x="20" y="25" width="4" height="4" fill="#8a6a14"/><rect x="25" y="25" width="4" height="4" fill="#8a6a14"/><rect x="30" y="25" width="4" height="4" fill="#0B1220"/><rect x="35" y="25" width="4" height="4" fill="#8a6a14"/><rect x="40" y="25" width="4" height="4" fill="#8a6a14"/><rect x="0" y="30" width="4" height="4" fill="#8a6a14"/><rect x="5" y="30" width="4" height="4" fill="#8a6a14"/><rect x="10" y="30" width="4" height="4" fill="#8a6a14"/><rect x="15" y="30" width="4" height="4" fill="#0B1220"/><rect x="20" y="30" width="4" height="4" fill="#8a6a14"/><rect x="25" y="30" width="4" height="4" fill="#8a6a14"/><rect x="30" y="30" width="4" height="4" fill="#0B1220"/><rect x="35" y="30" width="4" height="4" fill="#8a6a14"/><rect x="40" y="30" width="4" height="4" fill="#8a6a14"/></svg>
         </div>
         <div class="datarows">
           <div class="dr"><b>NAME</b><span>ainra:registrar-07:acme:invoicing@4.2.1</span></div>
           <div class="dr"><b>VALIDITY</b><span>ISSUED 11 APR 2026 · EXPIRES 11 APR 2027 · <i>RENEWABLE</i></span></div>
           <div class="dr"><b>KEY</b><span>ED25519 + ML-DSA-65 · FP 9C41:8F2E:AA07:D356</span></div>
-          <div class="dr"><b>STATUS</b><span><span class="chip c-ok">IN GOOD STANDING · SPECIMEN</span></span></div>
+          <div class="dr"><b>STATUS</b><span><span class="chip c-ok">IN GOOD STANDING</span></span></div>
         </div>
         <svg class="p-crest" viewBox="0 0 160 160" aria-hidden="true"><use href="#ainra-crest"/></svg>
         <div class="authority">
-          <label>⑦ Issuing authority</label>
-          <div>AINRA — AGENT IDENTITY &amp; NAMING REGISTRY AUTHORITY</div>
+          <label>⑦ Issuing registrar</label>
+          <div>REGISTRAR-07 · UNDER THE AINRA RULEBOOK — THE ROOT ITSELF ISSUES NOTHING</div>
         </div>
         <div class="mrz-zone">
           <div class="mrz" id="mrz" aria-label="Machine readable zone">P&lt;AINACME&lt;CORP&lt;&lt;INVOICING&lt;AGENT&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;
 8F2EC41AP3AIN2604117L3&lt;&lt;&lt;ORG&lt;&lt;ZK1VERIFIED&lt;04</div>
           <div class="verify-line" id="verifyLine">
-            <i aria-hidden="true"></i> ⑧ ROOT SIGNATURE VALID <span>· CHECKPOINT SIGNED · LOG #8F2E…C41 · SPECIMEN</span>
+            <i aria-hidden="true"></i> ⑧ ROOT SIGNATURE VALID <span>· CHECKPOINT SIGNED · LOG #8F2E…C41</span>
           </div>
         </div>
       </div>

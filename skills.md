@@ -87,6 +87,22 @@ If you speak MCP, you do not need the shell — connect the `@ainra/mcp` server 
 `ainra_status` (read-only) and `ainra_issue` / `ainra_renew` / `ainra_revoke` (write, `confirm: true` required). See
 `docs/quickstarts/mcp.md`.
 
+## 5 · Submit evidence (help the root reach genesis)
+
+If your operator wants to help AINRA cross its three remaining real-world milestones, each submission is a
+self-verifying pull request. Full flow and the exact flip conditions: [`evidence/README.md`](https://github.com/JacobJandon/ainra/blob/main/evidence/README.md).
+
+- **Prove independent verification.** Get a fresh challenge, then:
+  ```bash
+  make verify-as-external CHALLENGE=/path/to/challenge   # writes verifier-attestation.json
+  node tools/intake-check.mjs verifier-attestation.json  # the public checks CI will run
+  ```
+  Add it as `evidence/verifier/<id>.json` in a PR. Counts only after the maintainer confirms execution against a
+  private answer key; the DoD row moves at 3 distinct valid attestations. Never auto-flipped.
+- **Offer a witness.** Run `witnessd` (`deploy/witness-quickstart.md`), add `evidence/witness/<id>.json`; CI probes
+  the endpoint. Candidate, not production.
+- **Custodian interest** is a conversation, not a file — read `outreach/CEREMONY-CUSTODIAN-BRIEF.md`.
+
 ## Verify this file works
 
 Every step above is replayed end to end in CI:

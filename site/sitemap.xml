@@ -1,18 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Canonical host is https://ainra.org — find-replace it if you publish under a different domain. 404.html + the
-     demo.html/scan.html redirect stubs (noindex; merged into verify.html#try / get.html#browse) are intentionally omitted. -->
+<!-- Canonical host is https://ainra.vercel.app — find-replace it when the permanent domain is acquired. 404.html and
+     the redirect stubs (standard/status/plan/foundations/demo/scan — noindex, kept so old links never break) are
+     intentionally omitted: a sitemap lists canonical pages, not redirects. -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://ainra.org/</loc><priority>1.0</priority></url>
-  <url><loc>https://ainra.org/docs.html</loc></url>
-  <url><loc>https://ainra.org/foundation.html</loc></url>
-  <url><loc>https://ainra.org/standard.html</loc><priority>0.9</priority></url>
-  <url><loc>https://ainra.org/get.html</loc><priority>0.9</priority></url>
-  <url><loc>https://ainra.org/verify.html</loc><priority>0.9</priority></url>
-  <url><loc>https://ainra.org/status.html</loc><priority>0.7</priority></url>
-  <url><loc>https://ainra.org/llms.txt</loc><priority>0.5</priority></url>
-  <url><loc>https://ainra.org/skills.md</loc><priority>0.5</priority></url>
-  <url><loc>https://ainra.org/standard.md</loc><priority>0.5</priority></url>
-  <url><loc>https://ainra.org/verify.md</loc><priority>0.5</priority></url>
-  <url><loc>https://ainra.org/foundations.md</loc><priority>0.5</priority></url>
-  <url><loc>https://ainra.org/status.md</loc><priority>0.5</priority></url>
+  <url><loc>https://ainra.vercel.app/</loc><priority>1.0</priority></url>
+  <url><loc>https://ainra.vercel.app/docs.html</loc><priority>0.9</priority></url>
+  <url><loc>https://ainra.vercel.app/verify.html</loc><priority>0.9</priority></url>
+  <url><loc>https://ainra.vercel.app/get.html</loc><priority>0.9</priority></url>
+  <url><loc>https://ainra.vercel.app/foundation.html</loc><priority>0.8</priority></url>
+  <url><loc>https://ainra.vercel.app/llms.txt</loc><priority>0.5</priority></url>
+  <url><loc>https://ainra.vercel.app/skills.md</loc><priority>0.5</priority></url>
+  <url><loc>https://ainra.vercel.app/standard.md</loc><priority>0.5</priority></url>
+  <url><loc>https://ainra.vercel.app/verify.md</loc><priority>0.5</priority></url>
+  <url><loc>https://ainra.vercel.app/foundations.md</loc><priority>0.5</priority></url>
+  <url><loc>https://ainra.vercel.app/status.md</loc><priority>0.5</priority></url>
 </urlset>

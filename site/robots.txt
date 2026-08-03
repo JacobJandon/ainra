@@ -2,5 +2,5 @@
 User-agent: *
 Allow: /
 
-# Canonical host is https://ainra.org — update this line if you publish under a different domain.
-Sitemap: https://ainra.org/sitemap.xml
+# Canonical host is https://ainra.vercel.app — update when the permanent domain is acquired.
+Sitemap: https://ainra.vercel.app/sitemap.xml

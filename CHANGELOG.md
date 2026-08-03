@@ -36,9 +36,10 @@ custodians, ≥3 external verifiers, and a 14-day 3-region soak. The machinery f
   each install into a throwaway environment and reproduce all **745** recorded conformance verdicts. It found four
   real blockers on first run (three missing package READMEs — now written — and the middleware path dependency).
 
-## [v0.3.0] — a fourth independent verifier · self-serve conformance · signed releases (pending tag)
+## [v0.3.0] — a fourth independent verifier · self-serve conformance · signed releases
 
-Cut with `make release`; the human tags it (see `RELEASING.md`). Everything below is provable from a clean clone.
+**Released:** signed tag `v0.3.0` at the pinned commit, signed artifacts + provenance + SBOM on the
+[releases page](https://github.com/JacobJandon/ainra/releases/tag/v0.3.0). Everything below is provable from a clean clone.
 
 ### M24 — independence, self-serve conformance, and supply-chain trust
 
@@ -76,9 +77,10 @@ Cut with `make release`; the human tags it (see `RELEASING.md`). Everything belo
   custodians, ≥3 external verifiers, and a 14-day 3-region soak — remain **honestly pending**; the machinery for all
   three is built and rehearsed. Decisions this milestone: **D-041** (the fourth Python column), **D-042** (SSH-signed releases).
 
-## [v0.2.0] — hybrid CLI + suite-migration / ceremony / witness / push (pending tag)
+## [v0.2.0] — hybrid CLI + suite-migration / ceremony / witness / push
 
-Cut with `make release`; the human tags it (see `RELEASING.md`). Everything below is provable from a clean clone.
+**Released:** signed tag `v0.2.0` at the pinned commit, signed artifacts on the
+[releases page](https://github.com/JacobJandon/ainra/releases/tag/v0.2.0). Everything below is provable from a clean clone.
 The rebuilt hybrid CLI's own demo:
 
 ```

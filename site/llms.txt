@@ -6,7 +6,7 @@ If you are an AI agent, this file is your map. Everything linked here is determi
 
 ## Honest status (read before trusting anything here)
 
-Reference implementation with a live STAGING network on a TEST-ROOT. Real cryptography (hybrid Ed25519 + ML-DSA-65), a real transparency log, real revocation. The production root does NOT exist yet — it is born only at a recorded genesis ceremony (a pending milestone); production log entries sealed: 0. No trust migrates from staging. Treat every verdict here as STAGING · TEST-ROOT.
+Public reference implementation (two signed, board-proven releases; current: v0.3.0) with a STAGING network on a TEST-ROOT; this site ships that network's published artifact record at [/net/](net/registry.json). Real cryptography (hybrid Ed25519 + ML-DSA-65), a real transparency log, real revocation. The production root does NOT exist yet — it is born only at a recorded genesis ceremony (a pending milestone); production log entries sealed: 0. No trust migrates from staging. Treat every verdict here as STAGING · TEST-ROOT.
 
 ## Start here
 
@@ -17,7 +17,7 @@ Reference implementation with a live STAGING network on a TEST-ROOT. Real crypto
 
 - [/skills.md](skills.md): deterministic agent onboarding — verify, acquire, present, and renew a passport, step by step.
 - [/.well-known/skills/index.json](.well-known/skills/index.json): machine-readable skill index. Install with `skills add https://ainra.vercel.app/.well-known/skills/index.json`.
-- [/get.html](get.html): run the whole lifecycle in a browser against a live registrar's public door — mint a passport, then browse the record (#browse) and watch a revocation land.
+- [/get.html](get.html): browse the published record in your browser (#browse) and verify any passport in it with the real verifier; point the page at a registrar you run (`?reg=<url>`) and the same page mints, presents, and revokes.
 - [/verify.html#try](verify.html#try): verify — and try to forge — a passport offline in the browser, with the real verifier over bundled specimen fixtures.
 
 ## The four functions (what the root does — and only this)
@@ -42,6 +42,7 @@ Reference implementation with a live STAGING network on a TEST-ROOT. Real crypto
 ## Machine interfaces (OpenAPI — the surfaces that actually exist)
 
 - [openapi/artifact-contract.yaml](openapi/artifact-contract.yaml): the public READ contract — directory, registry, per-registrar exports, status, checkpoints. CORS, cacheable, no auth.
+- [/net/](net/registry.json): a served snapshot of that contract — `registry.json`, `directory.json`, `roots.json`, per-registrar artifacts — the staging network's published record, readable right here with no network of your own.
 - [openapi/registrar-door.yaml](openapi/registrar-door.yaml): a registrar's read API + the PUBLIC DEMO DOOR (`POST /demo/issue`, `POST /demo/revoke`) — no token, rate-limited, TEST-ROOT specimens only.
 - [openapi/console.yaml](openapi/console.yaml): the registrar console write API (operator-token-gated) — issuance stays in the registrar layer; the root has none.
 

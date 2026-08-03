@@ -26,19 +26,18 @@ tmp="$(mktemp -d)"; git clone -q . "$tmp/clone"
 
 Only once the board is green + committed do you proceed to package + sign + tag below.
 
-## Pending tags — pinned so HEAD moving forward cannot blur them
+## Tag pins — the exact commit each release was cut at
 
-Tagging is the maintainer's button and is never done by the agent. Because v0.3.0 development moves HEAD past the
-proven release commit, the exact tag target is pinned here so it stays unambiguous:
+Tagging is the maintainer's button and is never done by the agent. The pins below are the permanent record of which
+commit each version's board was proven at; both tags are now **signed, pushed, and released**:
 
 | Version | Tag target (exact commit) | Board evidence | State |
 |---|---|---|---|
-| **v0.2.0** | **`5ae1b12`** | `docs/releases/v0.2.0-board.md` — full 17-row board ALL GREEN from a clean clone; ran at parent `0691f38`, `5ae1b12` adds only the evidence doc (no preflight-affecting change) | **tag-ready; awaiting the maintainer's `git tag -s v0.2.0 5ae1b12`** |
-| **v0.3.0** | **`af3c869`** | `docs/releases/v0.3.0-board.md` — full 18-row board (incl. `conformance`, 4-way differential) ALL GREEN from a clean clone; ran at parent `75e65ba`, `af3c869` adds only the evidence doc (no preflight-affecting change) | **tag-ready; awaiting the maintainer's `git tag -s v0.3.0 af3c869`** |
+| **v0.2.0** | **`5ae1b12`** | `docs/releases/v0.2.0-board.md` — full 17-row board ALL GREEN from a clean clone | **RELEASED** — signed tag verified (`git verify-tag v0.2.0`), artifacts on the releases page |
+| **v0.3.0** | **`af3c869`** | `docs/releases/v0.3.0-board.md` — full 18-row board (incl. `conformance`, 4-way differential) ALL GREEN from a clean clone | **RELEASED** — signed tag verified, signed artifacts + provenance + SBOM on the releases page; the repo's Latest |
 
-To cut them: `git tag -s v0.2.0 5ae1b12 -m "AINRA v0.2.0"` and `git tag -s v0.3.0 af3c869 -m "AINRA v0.3.0"`
-(verify `git show <target> --stat` lists the board evidence file first). Tag v0.2.0 before or independently of
-v0.3.0; the pins above guarantee neither target drifts.
+Never rewrite tagged history: if something must change after a tag, neutralize at the tip (a new commit), never by
+moving or deleting a released tag.
 
 ## Cutting a release (maintainer)
 

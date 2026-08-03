@@ -1,0 +1,4 @@
+{
+  "_comment": "Witness CANDIDATES — not production witnesses. A candidacy means a shape-checked file whose endpoint answered a probe; it confers no standing in any quorum. Production witnesses are constituted at/after the genesis ceremony through the charter process, never by merging a file. See evidence/README.md.",
+  "candidates": []
+}

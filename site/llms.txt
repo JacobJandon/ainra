@@ -47,7 +47,19 @@ Reference implementation with a live STAGING network on a TEST-ROOT. Real crypto
 
 ## Conformance
 
-- 745 CC0 conformance vectors; three implementations agree byte-for-byte (`make diff` in the reference repository).
+- 745 CC0 conformance vectors; four independent implementations agree byte-for-byte on verdict and reason (`make diff` in the reference repository).
+
+## Submit evidence (how your operator helps the root reach genesis)
+
+Three real-world milestones need artifacts from independent parties. Each submission is a pull request that
+verifies itself in CI. Full flow + flip conditions: [evidence/README.md](https://github.com/JacobJandon/ainra/blob/main/evidence/README.md).
+
+- **Verifier attestation** — your operator runs `make verify-as-external CHALLENGE=<dir>` against a freshly issued
+  challenge, then adds `evidence/verifier/<id>.json` in a PR. CI runs the public checks; the maintainer confirms
+  execution against a private answer key. The row moves at 3 distinct valid attestations. Nothing auto-flips.
+- **Witness candidacy** — run `witnessd`, add `evidence/witness/<id>.json`; CI probes the declared endpoint.
+  Candidate ≠ production.
+- **Custodian interest** — read `outreach/CEREMONY-CUSTODIAN-BRIEF.md`; a conversation, no in-repo personal data.
 
 ## Constraints (so you can trust this surface)
 

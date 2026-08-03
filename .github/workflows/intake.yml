@@ -1,0 +1,57 @@
+# SPDX-License-Identifier: Apache-2.0 OR MIT
+# Intake pre-checks (L2) — validate submitted evidence on the PR that carries it. This runs the PUBLIC half only
+# (signature, shape, corpus hashes, endpoint probe). It NEVER flips a Definition-of-Done row: the decisive
+# execution check needs a private answer key the maintainer holds offline. A green run means "well-formed".
+name: Intake
+on:
+  pull_request:
+    paths:
+      - "evidence/verifier/**"
+      - "evidence/witness/**"
+permissions:
+  contents: read
+jobs:
+  verifier-attestations:
+    name: verifier attestations (public checks)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: "22" }
+      - name: check changed attestation files
+        run: |
+          set -euo pipefail
+          base="${{ github.event.pull_request.base.sha }}"
+          files=$(git diff --name-only "$base"...HEAD -- 'evidence/verifier/*.json' | grep -v '/TEMPLATE' || true)
+          if [ -z "$files" ]; then echo "no attestation files changed"; exit 0; fi
+          echo "checking: $files"
+          node tools/intake-check.mjs $files
+      - name: reminder
+        if: always()
+        run: echo "NOTE — a green result is 'well-formed', NOT 'counted'. The maintainer confirms execution against the private answer key; make genesis-status counts only signature-checked evidence."
+  witness-candidacies:
+    name: witness candidacies (shape + endpoint probe)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: "22" }
+      - name: check + probe changed candidacy files
+        run: |
+          set -euo pipefail
+          base="${{ github.event.pull_request.base.sha }}"
+          files=$(git diff --name-only "$base"...HEAD -- 'evidence/witness/*.json' | grep -v '/TEMPLATE' || true)
+          if [ -z "$files" ]; then echo "no candidacy files changed"; exit 0; fi
+          node tools/intake-check.mjs $files
+          for f in $files; do
+            echo "::group::probe $f"
+            node tools/witness-probe.mjs "$f" || echo "(probe failed — reported, not merged)"
+            echo "::endgroup::"
+          done
+      - name: reminder
+        if: always()
+        run: echo "NOTE — a probe answering is NOT acceptance. Candidacies confer no quorum standing; production witnesses are constituted through the charter process."

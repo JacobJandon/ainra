@@ -114,5 +114,14 @@ function frame(t) {
 
 size();
 window.addEventListener("resize", size);
+// The hero's spark easter egg releases real gliders into this field (CustomEvent from index.html).
+// The doctrine, playable: one click adds five cells under three rules, and something alive comes of it.
+addEventListener("ainra:glider", (e) => {
+  if (reduced || !cur) return;
+  const gx = Math.max(2, Math.min(cols - 8, Math.floor((e.detail?.x ?? W / 2) / CS)));
+  const clipY = hero ? Math.max(0, hero.getBoundingClientRect().bottom) : 0;
+  const gy = Math.max(1, Math.floor(clipY / CS) + 2);
+  for (const [dy, dx] of PATTERNS[0]) cur[((gy + dy) % rows) * cols + ((gx + dx) % cols)] = 1;
+});
 if (reduced) draw();               // one seeded generation, drawn once — texture without motion
 else requestAnimationFrame(frame);

@@ -1,0 +1,36 @@
+# SPDX-License-Identifier: Apache-2.0 OR MIT
+name: "📐 Specification question or proposed change"
+description: The Standard is ambiguous, contradictory, or should say something different.
+title: "spec: <section> — <the question>"
+labels: ["spec"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The MTS and the Standard are the constitution here: code follows them, not the other way round. Changes go
+        through ADR discipline — this issue, then a numbered decision in `docs/DECISIONS.md`, then code and vectors.
+        Normative documents are frozen (`make check-freeze`); a change to one is never a drive-by edit.
+  - type: input
+    id: section
+    attributes:
+      label: Which section?
+      placeholder: "AINRA_I_The_Standard §4 — assurance tiers · or MTS §27"
+    validations: { required: true }
+  - type: textarea
+    id: question
+    attributes:
+      label: The question or ambiguity
+      description: Quote the exact text, then say what two readers could reasonably conclude from it.
+    validations: { required: true }
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed resolution (optional)
+      description: What should it say instead, and what would that change in an implementation or the corpus?
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I checked `docs/DECISIONS.md` — this is not already a decided question.
+          required: true

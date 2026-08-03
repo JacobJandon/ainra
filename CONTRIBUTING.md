@@ -33,6 +33,28 @@ stack-overflows one crypto-heavy test.
 - Editing a normative doc (`AINRA_I_The_Standard`, the MTS, `DESIGN.md`)? They are **frozen** (`make check-freeze`);
   update `docs/FREEZE.sha256` with `make freeze` in the same PR and explain why in the description.
 
+## The conformance-first rule (verify-logic PRs)
+
+Four independent implementations — the Rust core, the TypeScript SDK, the reference CLI, and the Python verifier —
+must agree **byte-for-byte on every vector, on verdict *and* reason**. That agreement is the product; a PR that
+touches verify logic is judged against it first:
+
+1. **`make diff` stays green.** All four columns, the full corpus (`745` passport + `17` delta + `9` directory).
+   A disagreement is not a "flaky test" — it is either a bug in your change or a real ambiguity in the Standard, and
+   both outcomes need writing down before the PR moves.
+2. **Any corpus delta is explained in the PR body.** If your change adds, removes, or alters vectors, say which and
+   why in plain words: what behaviour is now pinned that was not pinned before. Silent corpus edits are the one
+   thing a reviewer will always reject — the corpus is the contract.
+3. **New behaviour arrives with a vector, not just a unit test.** A unit test protects one implementation; a vector
+   protects all four, forever.
+4. **`make conformance` stays green both ways** — the three in-repo verdict implementations pass clean over the same
+   corpus hash, *and* the deliberately sabotaged adapter is still caught with named divergences. A conformance tool
+   that cannot fail is theatre; if your change makes the broken adapter pass, the runner is what broke.
+
+Adding vectors deliberately? Generate, never hand-write: `cargo run -p ainra-vector-gen -- --out vectors/v1 …`,
+then `make diff`. Proposing a spec change? The MTS is the constitution — open a spec-question issue first, land the
+ADR in `docs/DECISIONS.md`, then the code.
+
 ## Developer Certificate of Origin (DCO — not a CLA)
 We use the **DCO**, not a contributor licence agreement. You keep your copyright; you certify you have the right to
 submit the contribution under the project's licences (Apache-2.0 OR MIT for code; CC0 for vectors). Sign off every

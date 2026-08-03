@@ -8,6 +8,11 @@ contact_links:
     about: >-
       STOP — do NOT open a public issue. Exploitable findings go through the private path in SECURITY.md
       (fail-closed posture; every milestone is adversarially reviewed). Disclosing a live bypass publicly harms users.
+  - name: 📥 Submit an attestation, witness candidacy, or custodian interest
+    url: https://github.com/JacobJandon/ainra/blob/main/evidence/README.md
+    about: >-
+      Verifier attestations, witness endpoints, and custodian interest arrive as pull requests that verify
+      themselves in CI. Start from the intake README — it has the templates and the exact flip conditions.
   - name: 💬 Questions / how do I run this?
     url: https://github.com/JacobJandon/ainra/blob/main/README.md
     about: Start with the README, the kit QUICKSTART/DEPLOY/RUNBOOK files, and docs/STATUS.md.

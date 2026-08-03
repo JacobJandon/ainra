@@ -11,6 +11,7 @@
 - [ ] Every new source file carries the **`SPDX-License-Identifier: Apache-2.0 OR MIT`** header.
 - [ ] If behavior changed, a decision is logged in **`docs/DECISIONS.md`** (D-0xx) and, if it touches the verify path or a normative doc, the **MTS wins** and the deviation is noted.
 - [ ] No telemetry / network / clock added to `ainra-core` or a shipped SDK (N7).
+- [ ] **Touching verify logic?** `make diff` is green across all four implementations and `make conformance` still passes clean **and** still catches the sabotaged adapter. Any corpus delta is explained in the description above (the conformance-first rule in [CONTRIBUTING.md](../CONTRIBUTING.md)).
 - [ ] **DCO sign-off**: every commit is signed off (`git commit -s`) — see [CONTRIBUTING.md](../CONTRIBUTING.md). We use the DCO, not a CLA.
 
 ## Security

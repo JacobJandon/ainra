@@ -1,0 +1,66 @@
+# SPDX-License-Identifier: Apache-2.0 OR MIT
+name: "⚖️ Verifier divergence (two implementations disagree)"
+description: Two AINRA implementations return different verdicts or reasons for the same input. This is the report class we value most.
+title: "divergence: <impl A> vs <impl B> on <vector or input>"
+labels: ["divergence", "conformance"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Why this template exists.** Four independent implementations agreeing byte-for-byte on every vector *is*
+        the product. A divergence means one of them is wrong, or the Standard is ambiguous — both are findings we
+        act on, and both end as a permanent vector in the CC0 corpus.
+
+        **If the divergence lets something invalid verify as VALID, stop** — that is a security finding. Report it
+        privately: [Security → Report a vulnerability](https://github.com/JacobJandon/ainra/security/advisories/new).
+        A divergence in the *reason string*, or one that fails closed on both sides, belongs here in the open.
+  - type: input
+    id: implementations
+    attributes:
+      label: Which implementations disagree?
+      placeholder: "ainra-core (Rust) vs my own Go verifier · or: @ainra/sdk vs packages/sdk-py"
+    validations: { required: true }
+  - type: textarea
+    id: input
+    attributes:
+      label: The exact input
+      description: Vector id from the corpus, or the full bundle + directory + `now` you fed both. Paste it — do not describe it.
+      render: json
+    validations: { required: true }
+  - type: textarea
+    id: verdicts
+    attributes:
+      label: What each one returned
+      description: Verdict AND reason from each implementation, verbatim.
+      placeholder: |
+        ainra-core : {"verdict":"invalid","reason":"stale_status"}
+        my verifier: {"verdict":"invalid","reason":"expired"}
+      render: text
+    validations: { required: true }
+  - type: input
+    id: vector
+    attributes:
+      label: Vector id (if it is a published corpus vector)
+      description: The file and case where the disagreement occurs — leave blank if the input is your own.
+      placeholder: "vectors/v1/valid-chain-0025.json"
+  - type: input
+    id: corpus
+    attributes:
+      label: Corpus hash / version you ran against
+      description: "From the conformance runner output, or the release tag of the vectors tarball."
+      placeholder: "v0.3.0 · corpus sha256 …"
+  - type: textarea
+    id: repro
+    attributes:
+      label: How to reproduce
+      description: Ideally the conformance runner invocation that shows it — `node tools/conformance/run.mjs --adapter ./your-adapter.sh`
+      render: shell
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: This divergence does **not** cause an invalid credential to verify VALID (if it does, I am using the private security channel instead).
+          required: true
+        - label: I pasted the exact input, not a description of it.
+          required: true

@@ -20,7 +20,7 @@ for (const p of pages) {
   //    <a href> to the canonical source repository (user-initiated navigation, loads nothing at render time —
   //    the zero-external-requests privacy guarantee is about loaded resources, not clickable links).
   for (const m of s.matchAll(/(?:src|href)="(https?:)?\/\/[^"]+"/g))
-    if (!/(localhost|127\.|ainra\.org|schema\.org|github\.com\/JacobJandon\/ainra)/.test(m[0])) bad(`${p}: external request ${m[0].slice(0, 80)}`);
+    if (!/(localhost|127\.|ainra\.org|ainra\.vercel\.app|schema\.org|github\.com\/JacobJandon\/ainra)/.test(m[0])) bad(`${p}: external request ${m[0].slice(0, 80)}`);
   // 2. internal links resolve; anchors exist in the target file
   for (const m of s.matchAll(/href="([^"#][^"]*?)(?:#([^"]+))?"/g)) {
     const [, file, anchor] = m;

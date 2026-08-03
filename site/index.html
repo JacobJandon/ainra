@@ -10,24 +10,24 @@
 <noscript><style>.rv,.t-line,.verify-line{opacity:1!important;transform:none!important}
 </style></noscript>
 <meta name="description" content="The identity layer for autonomous AI. AINRA is its neutral root: an open standard — passports for agents, authority classes, revocation measured under a minute in drills, and a public record anyone can verify.">
-<link rel="canonical" href="https://ainra.org/">
+<link rel="canonical" href="https://ainra.vercel.app/">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="manifest" href="site.webmanifest">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="AINRA">
-<meta property="og:url" content="https://ainra.org/">
+<meta property="og:url" content="https://ainra.vercel.app/">
 <meta property="og:title" content="AINRA — The identity layer for autonomous AI">
 <meta property="og:description" content="The neutral, non-profit root of AI-agent identity: an open standard — passports for agents, authority classes, revocation measured under a minute in drills, and a public record anyone can verify.">
-<meta property="og:image" content="https://ainra.org/og-cover.png">
+<meta property="og:image" content="https://ainra.vercel.app/og-cover.png">
 <meta property="og:image:alt" content="AINRA — the neutral root of AI-agent identity">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="AINRA — The identity layer for autonomous AI">
 <meta name="twitter:description" content="The neutral, non-profit root of AI-agent identity — an open standard anyone can verify.">
-<meta name="twitter:image" content="https://ainra.org/og-cover.png">
+<meta name="twitter:image" content="https://ainra.vercel.app/og-cover.png">
 <script type="application/ld+json">
-{"@context":"https://schema.org","@graph":[{"@type":["Organization","NGO"],"@id":"https://ainra.org/#org","name":"AINRA","alternateName":"Agent Identity & Naming Registry Authority","description":"The neutral, non-profit root of AI-agent identity — it keeps the keys, the rules, the revocation feed, and the public record, and is barred by charter from everything else.","url":"https://ainra.org/","logo":"https://ainra.org/og-cover.png","foundingDate":"2026","knowsAbout":["AI agent identity","verifiable credentials","transparency logs","credential revocation","decentralized identifiers"],"subOrganization":{"@type":"Organization","name":"Meridian","description":"AINRA's arm's-length commercial registrar, competing under the same published rules as every registrar and funding the non-profit mission."}},{"@type":"WebSite","@id":"https://ainra.org/#site","name":"AINRA","url":"https://ainra.org/","publisher":{"@id":"https://ainra.org/#org"}}]}
+{"@context":"https://schema.org","@graph":[{"@type":["Organization","NGO"],"@id":"https://ainra.vercel.app/#org","name":"AINRA","alternateName":"Agent Identity & Naming Registry Authority","description":"The neutral, non-profit root of AI-agent identity — it keeps the keys, the rules, the revocation feed, and the public record, and is barred by charter from everything else.","url":"https://ainra.vercel.app/","logo":"https://ainra.vercel.app/og-cover.png","foundingDate":"2026","knowsAbout":["AI agent identity","verifiable credentials","transparency logs","credential revocation","decentralized identifiers"],"subOrganization":{"@type":"Organization","name":"Meridian","description":"AINRA's arm's-length commercial registrar, competing under the same published rules as every registrar and funding the non-profit mission."}},{"@type":"WebSite","@id":"https://ainra.vercel.app/#site","name":"AINRA","url":"https://ainra.vercel.app/","publisher":{"@id":"https://ainra.vercel.app/#org"}}]}
 </script>
 <style>
 /* AINRA landing — merged design: the original page's substance (passport, orbit, four jobs, lifecycle, founding
@@ -472,7 +472,7 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
       </div>
       <div class="ipanel">
         <p class="idesc" id="i-desc">One command. Your coding assistant gains AINRA's skills — verify, issue, present, renew, revoke.</p>
-        <div class="iblock"><span class="icap" id="i-cap">terminal</span><button class="icopy" id="i-copy" type="button">COPY</button><pre id="i-code">npx skills add https://ainra.org/.well-known/skills/index.json</pre></div>
+        <div class="iblock"><span class="icap" id="i-cap">terminal</span><button class="icopy" id="i-copy" type="button">COPY</button><pre id="i-code">npx skills add https://ainra.vercel.app/.well-known/skills/index.json</pre></div>
       </div>
     </div>
     <p style="text-align:center;margin-top:20px;font-size:13px;color:var(--muted)"><a href="get.html" style="color:var(--green);font-weight:600">Get a passport →</a> · <a href="llms.txt" style="color:var(--green);font-weight:600">/llms.txt</a> · <a href="skills.md" style="color:var(--green);font-weight:600">/skills.md</a></p>
@@ -846,10 +846,10 @@ nav .ndocs:hover{color:var(--ink);background:rgba(11,18,32,.045)}
   }
   /* multi-method installer — one panel, tabbed by open convention (skill · MCP · prompt · HTTP) */
   const METHODS={
-    skill:{cap:'terminal',desc:"One command. Your coding assistant gains AINRA's skills — verify, issue, present, renew, revoke.",code:'npx skills add https://ainra.org/.well-known/skills/index.json'},
-    mcp:{cap:'.mcp.json',desc:'Add the AINRA MCP server; your agent gets tools for verify · lookup · status · issue · renew · revoke. The reference server ships in the AINRA repo (published to npm at genesis).',code:'{\n  "mcpServers": {\n    "ainra": {\n      "command": "node",\n      "args": ["packages/mcp/src/server.mjs"],\n      "env": { "AINRA_TARGET": "https://ainra.org" }\n    }\n  }\n}'},
-    prompt:{cap:'paste to any agent',desc:'Paste this to any agent. It reads the machine-readable map and onboards itself — verify a passport, get one on the test-root, present it.',code:"Read https://ainra.org/llms.txt and https://ainra.org/skills.md. Verify an AINRA passport locally with @ainra/sdk; then, on the staging TEST-ROOT, issue one through the registrar's public door and revoke it. Report the verdict-event at each step. Works over MCP, the skills convention, or plain HTTP — no account."},
-    http:{cap:'terminal',desc:'No skill runtime, no SDK. Read the capability map and call plain HTTP — you fetch signed facts and verify them yourself. The root does no work.',code:'curl https://ainra.org/llms.txt'}
+    skill:{cap:'terminal',desc:"One command. Your coding assistant gains AINRA's skills — verify, issue, present, renew, revoke.",code:'npx skills add https://ainra.vercel.app/.well-known/skills/index.json'},
+    mcp:{cap:'.mcp.json',desc:'Add the AINRA MCP server; your agent gets tools for verify · lookup · status · issue · renew · revoke. The reference server ships in the AINRA repo (published to npm at genesis). Point AINRA_TARGET at a network you run — the staging TEST-ROOT (make stage-up) today, the production root at genesis.',code:'{\n  "mcpServers": {\n    "ainra": {\n      "command": "node",\n      "args": ["packages/mcp/src/server.mjs"],\n      "env": { "AINRA_TARGET": "http://127.0.0.1:8091" }\n    }\n  }\n}'},
+    prompt:{cap:'paste to any agent',desc:'Paste this to any agent. It reads the machine-readable map and onboards itself — verify a passport, get one on the test-root, present it.',code:"Read https://ainra.vercel.app/llms.txt and https://ainra.vercel.app/skills.md. Verify an AINRA passport locally with @ainra/sdk; then, on the staging TEST-ROOT, issue one through the registrar's public door and revoke it. Report the verdict-event at each step. Works over MCP, the skills convention, or plain HTTP — no account."},
+    http:{cap:'terminal',desc:'No skill runtime, no SDK. Read the capability map and call plain HTTP — you fetch signed facts and verify them yourself. The root does no work.',code:'curl https://ainra.vercel.app/llms.txt'}
   };
   const iDesc=$('i-desc'),iCap=$('i-cap'),iCode=$('i-code'),iCopy=$('i-copy');
   if(iDesc&&iCode){

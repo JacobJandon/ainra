@@ -128,15 +128,21 @@ That is the entire message. Send it once, after a decent interval, and then dele
 Categories, not names — you pick the faces. Twenty verifier asks to land three attestations; thirty interview asks
 to land eight interviews; five custodian conversations to start.
 
+**The positioning rule: go where money flows.** Identity gets adopted where an impostor costs money, and the
+parties who verify hardest are the ones moving funds. When two candidates are otherwise equal, take the one closer
+to a payment — the agent that transacts over the agent that chats, the marketplace over the demo, the risk owner
+over the enthusiast. (Named commercial brands still never appear in our materials — the rule picks *categories*.)
+
 **Verifier targets.** Verifiable-credentials implementers in the standards community · people who run or contribute
 to transparency logs and witnesses · university applied-crypto and systems-security groups (say plainly that a
 graduate student can do the whole challenge in an afternoon) · maintainers of open-source authentication and PKI
 tooling · independent security consultancies that publish research · standards-adjacent engineers who post
 conformance and interoperability work. The ask is small and genuinely flattering.
 
-**Interview targets.** Teams shipping agents that transact — payments, procurement, support, operations bots ·
-platform and API owners deciding whether to admit agents at all · maintainers of agent frameworks and their tool
-layers · fraud and risk people at marketplaces. You are asking about their problem, not about your solution.
+**Interview targets — money-adjacent first.** Teams shipping agents that transact — payments, procurement,
+checkout, treasury, operations · fraud and risk people at marketplaces and payment platforms · platform and API
+owners deciding whether to admit paying agents at all · maintainers of agent frameworks and their tool layers.
+You are asking about their problem, not about your solution.
 
 **Custodian targets.** Respected neutral technologists: standards elders, university faculty, foundation people,
 security researchers with public reputations. Five jurisdictions minimum, which is a constraint on *who you ask*,

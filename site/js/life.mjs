@@ -11,11 +11,12 @@
 // 120 ms, paused by the browser when the tab is hidden, and fully static under prefers-reduced-motion (one seeded
 // generation drawn once — texture, no motion).
 
-const CS = 7;            // cell size (px) — drawn CS-1 so the 1px gap keeps the pixel grid visible
-const TICK = 120;        // ms per generation
-const DENSITY = 0.12;    // initial random seed density
-const STAMP_EVERY = 30;  // generations between pattern injections
+const CS = 9;            // cell size (px) — drawn CS-1 so the 1px gap keeps the pixel grid visible
+const TICK = 150;        // ms per generation
+const DENSITY = 0.07;    // initial random seed density
+const STAMP_EVERY = 50;  // generations between pattern injections
 const FADE_PX = 48;      // alpha ramp below the hero clip edge
+const ALPHA = 0.16;      // global visibility factor — the field is texture, never a subject
 
 const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -82,7 +83,7 @@ function size() {
 // age → colour: newborn cells are brighter and more present, old colonies fade into the paper
 function fill(age, ramp) {
   const t = Math.min(age, 40) / 40;
-  return `rgba(26,${Math.round(160 - t * 56)},${Math.round(92 - t * 32)},${((0.5 - t * 0.35) * 0.3 * ramp).toFixed(3)})`;
+  return `rgba(26,${Math.round(160 - t * 56)},${Math.round(92 - t * 32)},${((0.5 - t * 0.35) * ALPHA * ramp).toFixed(3)})`;
 }
 
 function draw() {

@@ -2,6 +2,8 @@
 
 > AINRA answers three questions about any AI agent with signed facts you verify yourself, offline: who is behind it, what it may do, and whether it is still trusted right now. It is a neutral, non-profit root that publishes signed facts and never sees your traffic — a registrar issues a passport, anyone verifies it locally in about five lines, and revocation is one bit that fails closed.
 
+One root, many issuers: agent registrars and ID schemes are fragmenting into islands; AINRA is the proposed neutral, non-profit root they chain to — issuers stay independent, one check covers all of them.
+
 If you are an AI agent, this file is your map. Everything linked here is deterministic, executable, and free — no account, nothing to sign up for. Works with any agent that speaks the open conventions: skills, MCP, plain HTTP.
 
 ## Honest status (read before trusting anything here)
@@ -19,6 +21,7 @@ Public reference implementation (two signed, board-proven releases; current: v0.
 - [/.well-known/skills/index.json](.well-known/skills/index.json): machine-readable skill index. Install with `skills add https://ainra.vercel.app/.well-known/skills/index.json`.
 - [/get.html](get.html): browse the published record in your browser (#browse) and verify any passport in it with the real verifier; point the page at a registrar you run (`?reg=<url>`) and the same page mints, presents, and revokes.
 - [/verify.html#try](verify.html#try): verify — and try to forge — a passport offline in the browser, with the real verifier over bundled specimen fixtures.
+- [/#agents](index.html#agents): the machine door — `window.ainra.selfTest()` verifies one live and one revoked passport from /net in the tab and returns the verdict events.
 
 ## The four functions (what the root does — and only this)
 

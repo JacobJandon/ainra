@@ -158,6 +158,7 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
     <a href="#release">Verify a release</a>
     <h5>Organization</h5>
     <a href="#charter">Charter &amp; the four rules</a>
+    <a href="#one-root">Why one root</a>
     <a href="#plan">The plan</a>
     <a href="#faq">FAQ</a>
     <h5>Reference</h5>
@@ -248,6 +249,11 @@ $ make repro                          <span class="c"># byte-exact rebuild — t
     <p>They distill six charter prohibitions, amendable only by supermajority in every member constituency after twelve months of public comment: <b>issues no passports · computes no scores · processes no payments · holds no personal data · never gates L0 existence · features no registrar, ever</b>.</p>
     <p>Root keys are threshold-held (5-of-9) across five-plus jurisdictions and rotated in public ceremonies; independent witnesses cosign every log checkpoint; the whole root is forkable from public data — the right to leave is what keeps it worth staying with.</p>
 
+    <h2 id="one-root">Why the root must be one</h2>
+    <p><b>The landscape today.</b> Agent registrars, passport services, identity schemes for AI — new ones appear every month, and each is an island: its own format, its own checks, its own idea of what an agent is. None of them talks to the others. An agent verified in one scheme is a stranger in every other, so trust does not transfer, and every platform re-solves the same problem badly.</p>
+    <p><b>The precedent.</b> Domain names had exactly this shape once: competing registries, incompatible answers, a name that meant something here and nothing there. Names became universal only when the competing issuers were connected under one neutral, non-profit coordinator — the job ICANN does for the DNS. Nobody was replaced; registrars kept registering and competing. What changed is that they all chained to one root, so one lookup worked everywhere.</p>
+    <p><b>The proposal.</b> AINRA is that connective root for agent identity. Existing and future issuers stay independent — their technology, their customers, their business — and accredit into one rulebook: publish issuance to a transparency log, publish revocation that fails closed, chain to the root's keys. From that moment one verification path covers all of them, and an agent's standing earned under one issuer is legible under every other.</p>
+    <p><b>Why neutral and non-profit is load-bearing, not branding.</b> No issuer joins a competitor's root — that is why none of the islands can unite the others. Only a body that issues nothing, scores nothing, sells nothing, and competes with no one can anchor rivals; the charter enforces this in code, and the whole design is forkable so the ecosystem can leave if the root ever goes wrong. Uniting the issuers is the entire mission: <b>one root, many issuers, every check local.</b></p>
     <h2 id="plan">The plan</h2>
     <p>A member-governed, non-profit federation: issuers, attestors, verifiers, resolution &amp; data providers, witnesses, and public-interest members each form a constituency in the assembly, which elects the board under charter constraints. Custodians and witnesses stand structurally apart from both.</p>
     <p><b>Genesis, in order:</b></p>

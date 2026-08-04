@@ -129,12 +129,6 @@ nav{position:sticky;top:0;z-index:60;background:rgba(245,246,243,.86);backdrop-f
 .hero .sub{margin:14px auto 0;max-width:720px;font-size:16.5px;color:var(--muted)}
 /* the questions — the centerpiece (M25). Stacked list, one roving emphasized line; the full list is
    always in the markup, so no-JS and reduced-motion readers see everything with the first line lit. */
-.qs{margin:18px auto 0;max-width:640px}
-.qs ul{list-style:none;display:grid;grid-template-columns:1fr 1fr;gap:6px 30px;text-align:left;margin:0;padding:0}
-.qs li{font-size:15.5px;font-weight:600;letter-spacing:-.01em;line-height:1.45;color:var(--muted);padding-left:19px;position:relative;transition:color .4s ease}
-.qs li::before{content:"?";position:absolute;left:0;top:0;font-family:var(--mono);font-size:12px;font-weight:700;color:var(--green);opacity:.45;transition:opacity .4s ease}
-.qs li.lit{color:var(--ink)}
-.qs li.lit::before{opacity:1}
 @media(max-width:700px){.qs ul{grid-template-columns:1fr;gap:6px}}
 @media(prefers-reduced-motion:reduce){.qs li,.qs li::before{transition:none}}
 .ans{margin:16px auto 0;max-width:720px}
@@ -226,21 +220,7 @@ section{padding:88px 0}
   background:repeating-radial-gradient(circle at 112% -22%,rgba(87,192,143,.09) 0 2px,transparent 2px 11px)}
 .dark .eyebrow{color:var(--green-br)}
 .dark .sec-head .lede{color:#98A1B3}
-.orbit-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:48px;align-items:center;position:relative;z-index:1}
 @media(max-width:900px){.orbit-grid{grid-template-columns:1fr}}
-.orbit{width:100%;max-width:560px;margin:0 auto}
-.orbit svg{display:block;width:100%;height:auto}
-/* the legend as a CHAIN, not boxes: glyph rows on a pixel-dashed rail — everything chains up to the root */
-.legend{display:grid;gap:0;position:relative}
-.legend::before{content:"";position:absolute;left:38px;top:26px;bottom:26px;width:2px;
-  background-image:linear-gradient(rgba(87,192,143,.45) 55%,transparent 55%);background-size:2px 9px}
-.leg2{display:grid;grid-template-columns:78px 1fr;gap:16px;align-items:center;padding:13px 0;position:relative}
-.leg2+.leg2{border-top:1px dashed rgba(255,255,255,.09)}
-.l-ico{display:flex;align-items:center;justify-content:center;background:var(--ink);padding:7px 0;position:relative}
-.leg2 b{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;color:var(--green-br);display:block;margin-bottom:5px}
-.leg2 p{font-size:13.5px;color:#B9C1CF;line-height:1.55}
-.leg2.core b{color:#fff}
-@media(max-width:900px){.leg2{grid-template-columns:64px 1fr}.legend::before{left:31px}}
 
 /* four jobs (original) */
 /* problem → fix → control: a pixel triptych (no boxes) — glyphs drawn as rect grids, shimmer like the field */
@@ -255,6 +235,86 @@ section{padding:88px 0}
 .pxa.d1{animation-delay:.85s}.pxa.d2{animation-delay:1.7s}.pxa.d3{animation-delay:2.55s}
 @media(prefers-reduced-motion:reduce){.pxa{animation:none}}
 @media(max-width:900px){.trip{grid-template-columns:1fr;gap:24px}.t-arrow{height:22px;transform:rotate(90deg)}}
+/* ── pixel merge (owner-directed, looks only): engraved-hands hero art, grain, pixel display type ── */
+body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:99;opacity:.045;mix-blend-mode:multiply;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E")}
+.hero h1{font-family:var(--px);font-weight:700;font-size:clamp(2.5rem,5.6vw,4.4rem);line-height:.98;letter-spacing:.005em}
+.subkick{margin-top:14px;font-family:var(--mono);font-size:11px;letter-spacing:.3em;font-weight:700;color:var(--green)}
+.sec-head h2,.cta-final h2{font-family:var(--px);font-weight:700;letter-spacing:.005em;line-height:1.02}
+#dither{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0}
+.hand{position:absolute;z-index:1;pointer-events:none}
+.hand-r{right:-2vw;top:34vh;width:min(30vw,400px);image-rendering:pixelated}
+.hand-l{left:-3vw;bottom:2vh;width:min(32vw,430px);image-rendering:pixelated}
+.spark-burst{position:absolute;width:6px;height:6px;background:var(--green);pointer-events:none;z-index:5}
+.spark-stamp{position:absolute;transform:translate(-50%,-140%);font-family:var(--mono);font-size:9px;letter-spacing:.22em;color:var(--green);background:var(--card);border:1px solid var(--green);padding:5px 10px;white-space:nowrap;opacity:0;transition:opacity .25s;pointer-events:none;z-index:6}
+.spark-stamp.on{opacity:1}
+.spark{cursor:pointer;position:absolute;z-index:4;width:150px;height:150px;transform:translate(-50%,-50%)}
+.spark .glow{position:absolute;inset:0;background:radial-gradient(circle,rgba(87,192,143,.55),rgba(87,192,143,.16) 42%,rgba(87,192,143,0) 68%)}
+.spark svg{position:absolute;left:50%;top:50%;width:30px;height:34px;transform:translate(-50%,-50%);filter:drop-shadow(0 2px 8px rgba(26,107,78,.4))}
+@keyframes sparkpulse{0%,100%{opacity:.82}50%{opacity:1}}
+.spark.off .glow{opacity:.18;transition:opacity .3s}
+.spark.off svg{filter:grayscale(1) opacity(.5);transition:filter .3s}
+.spark{animation:sparkpulse 3.4s ease-in-out infinite}
+@media(prefers-reduced-motion:reduce){.spark{animation:none}}
+.hero .wrap{position:relative;z-index:3}
+@media(max-width:760px){.spark{display:none}.hand-r{width:44vw;right:-20vw;top:9vh;opacity:.45}.hand-l{width:48vw;left:-16vw;bottom:1vh;opacity:.6}}
+nav .btn{white-space:nowrap;flex:none}
+@media(max-width:1360px){.brand .mean{display:none}}
+/* the agents door — a button unmistakably for machines, inside the integrate section */
+.agent-strip{display:flex;flex-direction:column;align-items:center;gap:9px;margin-top:26px}
+.agent-cta{font-family:var(--mono);font-size:12.5px;font-weight:700;letter-spacing:.16em;color:var(--green);
+  background:var(--card);border:1.5px solid var(--green);border-radius:4px;padding:13px 22px;cursor:pointer;
+  transition:background .15s,color .15s}
+.agent-cta:hover{background:var(--green);color:#fff}
+.agent-cta:disabled{opacity:.6;cursor:wait}
+@keyframes acblink{0%,49%{opacity:1}50%,100%{opacity:0}}
+.agent-cta .blink{display:inline-block;margin-left:7px;animation:acblink 1.1s step-end infinite}
+@media(prefers-reduced-motion:reduce){.agent-cta .blink{animation:none}}
+.a-hint{font-size:12px;color:var(--muted);text-align:center}
+.a-hint a{color:var(--green);font-weight:600}
+.a-hint code{font-family:var(--mono);font-size:11px;background:rgba(11,18,32,.06);padding:1px 6px;border-radius:5px}
+.a-out{margin:18px auto 0;max-width:820px;background:#0A101E;color:#B9F4D8;border-radius:12px;padding:16px 18px;font-family:var(--mono);font-size:11px;line-height:1.55;overflow-x:auto;text-align:left;white-space:pre-wrap;word-break:break-word}
+/* the doctrine, captioning the Game of Life field that runs behind the page (js/life.mjs) */
+.life-note{font-family:var(--mono);font-size:9.5px;letter-spacing:.3em;font-weight:700;color:var(--green);opacity:.55;text-align:center;margin:30px 0 -14px}
+nav .ndocs{font-size:14px;font-weight:500;color:var(--muted);padding:9px 12px;border-radius:10px}
+nav .ndocs:hover{color:var(--ink);background:rgba(11,18,32,.045)}
+@media(max-width:1150px){.nav-hide-mid{display:none}}
+@media(max-width:900px){nav .ndocs{display:none}}
+[id]{scroll-margin-top:92px}
+.tick{border-top:1px solid var(--line);border-bottom:1px solid var(--line);overflow:hidden;background:var(--card)}
+.tick-in{display:flex;white-space:nowrap;animation:tickmv 32s linear infinite;padding:11px 0;font-family:var(--mono);font-size:11px;letter-spacing:.28em;color:var(--muted)}
+.tick-in span{padding:0 30px}
+.tick-in b{color:var(--green)}
+@keyframes tickmv{to{transform:translateX(-50%)}}
+@media(prefers-reduced-motion:reduce){.tick-in{animation:none}}
+/* alive (owner-directed): entrance + idle animation, all reduced-motion-gated */
+@keyframes hwrise{0%{opacity:0;transform:translateY(30px) scale(.92)}60%{opacity:1}100%{opacity:1;transform:none}}
+.hero h1{position:relative;overflow:visible}
+.hero h1 .hw{display:inline-block;will-change:transform,opacity}
+.alive .hero h1 .hw{animation:hwrise .5s steps(6,end) both;animation-delay:calc(.06s * var(--i))}
+@keyframes scanline{from{transform:translateX(-108%)}to{transform:translateX(108%)}}
+.hero h1::after{content:"";position:absolute;inset:-6px -12px;pointer-events:none;
+  background:linear-gradient(100deg,transparent 42%,rgba(87,192,143,.28) 50%,transparent 58%);
+  transform:translateX(-108%);animation:scanline 1.1s cubic-bezier(.3,.4,.2,1) .7s 1 both}
+@keyframes h1glitch{0%,93.5%,100%{transform:none;clip-path:none}94.2%{transform:translate(-2px,1px)}95.4%{transform:translate(2px,-1px);clip-path:inset(0 0 12% 0)}96.6%{transform:translate(-1px,0);clip-path:none}}
+.alive .hero h1{animation:h1glitch 8.5s linear 4s infinite}
+@keyframes ubreathe{0%,100%{box-shadow:inset 0 -0.13em 0 rgba(26,107,78,.26)}50%{box-shadow:inset 0 -0.34em 0 rgba(26,107,78,.38)}}
+.alive .hero h1 .u{animation:ubreathe 3.6s ease-in-out infinite}
+.kick{background-size:220% 100%}
+@keyframes kickdrift{from{background-position:0% 0}to{background-position:100% 0}}
+.alive .kick{animation:kickdrift 9s ease-in-out infinite alternate}
+@keyframes subkickin{from{opacity:0;letter-spacing:.6em}to{opacity:1;letter-spacing:.3em}}
+.subkick{animation:subkickin .8s cubic-bezier(.2,.6,.2,1) .55s both}
+@keyframes bobR{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+@keyframes bobL{0%,100%{transform:translateY(0)}50%{transform:translateY(6px)}}
+.alive .hand-r{animation:bobR 6.5s ease-in-out infinite}
+.alive .hand-l{animation:bobL 7.5s ease-in-out infinite}
+@media(prefers-reduced-motion:reduce){
+  .hero h1,.alive .hero h1,.hero h1::after,.alive .kick,.subkick,.alive .hand-r,.alive .hand-l,.alive .hero h1 .u,.hero h1 .hw,.alive .hero h1 .hw{animation:none!important}
+  .hero h1 .hw{opacity:1;transform:none}
+  .hero h1{opacity:1;transform:none}
+  .subkick{opacity:1}
+}
 
 /* lifecycle (original) */
 .steps{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;counter-reset:step}
@@ -409,7 +469,6 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
     <p class="sub rv in">Autonomous AI already acts — buying, building, paying other agents, even renting humans. Agent IDs are multiplying, each an island. <b>One neutral root under them all.</b></p>
     <div class="cta-row rv in">
       <a class="btn btn-green" href="verify.html#try">Try it live →</a>
-      <a class="btn btn-ghost" href="docs.html#standard">Read the standard</a>
     </div>
 
     <div class="pass-wrap rv in">
@@ -496,152 +555,6 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
 
 
 
-<section class="dark" id="root">
-  <div class="wrap">
-    <div class="sec-head rv">
-      <span class="eyebrow">Many issuers · one root</span>
-      <h2 style="color:#fff">Everything orbits the root.</h2>
-      <p class="lede">Registrars, passport services, ID schemes — each an island today, like domains before a common root. Chained to one neutral root they stay independent, and one check covers them all: trust earned anywhere is trust recognized everywhere.</p>
-    </div>
-    <div class="orbit-grid">
-      <div class="orbit rv" role="img" aria-label="Diagram: the AINRA root at the center, registrars in the first ring, agent passports in the second, verifiers in the outer ring">
-        <svg viewBox="0 0 640 640" fill="none">
-          <defs><style>
-            .oring{stroke:rgba(255,255,255,.16);stroke-dasharray:3 6}
-            .ochip{fill:#111B30;stroke:rgba(255,255,255,.22)}
-            .otxt{font-family:'B612 Mono',monospace;font-size:11px;letter-spacing:.08em;fill:#C6CDDA}
-            .otag{font-family:'B612 Mono',monospace;font-size:9.5px;letter-spacing:.14em;fill:#57C08F}
-            .oray{stroke:rgba(87,192,143,.45);stroke-dasharray:2 5}
-          /* ── pixel merge (owner-directed, looks only): engraved-hands hero art, grain, pixel display type ── */
-body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:99;opacity:.045;mix-blend-mode:multiply;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E")}
-.hero h1{font-family:var(--px);font-weight:700;font-size:clamp(2.5rem,5.6vw,4.4rem);line-height:.98;letter-spacing:.005em}
-.subkick{margin-top:14px;font-family:var(--mono);font-size:11px;letter-spacing:.3em;font-weight:700;color:var(--green)}
-.sec-head h2,.cta-final h2{font-family:var(--px);font-weight:700;letter-spacing:.005em;line-height:1.02}
-.qs li{font-family:var(--px);font-weight:700;font-size:17px;letter-spacing:.01em}
-#dither{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0}
-.hand{position:absolute;z-index:1;pointer-events:none}
-.hand-r{right:-2vw;top:34vh;width:min(30vw,400px);image-rendering:pixelated}
-.hand-l{left:-3vw;bottom:2vh;width:min(32vw,430px);image-rendering:pixelated}
-.spark-burst{position:absolute;width:6px;height:6px;background:var(--green);pointer-events:none;z-index:5}
-.spark-stamp{position:absolute;transform:translate(-50%,-140%);font-family:var(--mono);font-size:9px;letter-spacing:.22em;color:var(--green);background:var(--card);border:1px solid var(--green);padding:5px 10px;white-space:nowrap;opacity:0;transition:opacity .25s;pointer-events:none;z-index:6}
-.spark-stamp.on{opacity:1}
-.spark{cursor:pointer;position:absolute;z-index:4;width:150px;height:150px;transform:translate(-50%,-50%)}
-.spark .glow{position:absolute;inset:0;background:radial-gradient(circle,rgba(87,192,143,.55),rgba(87,192,143,.16) 42%,rgba(87,192,143,0) 68%)}
-.spark svg{position:absolute;left:50%;top:50%;width:30px;height:34px;transform:translate(-50%,-50%);filter:drop-shadow(0 2px 8px rgba(26,107,78,.4))}
-@keyframes sparkpulse{0%,100%{opacity:.82}50%{opacity:1}}
-.spark.off .glow{opacity:.18;transition:opacity .3s}
-.spark.off svg{filter:grayscale(1) opacity(.5);transition:filter .3s}
-.spark{animation:sparkpulse 3.4s ease-in-out infinite}
-@media(prefers-reduced-motion:reduce){.spark{animation:none}}
-.hero .wrap{position:relative;z-index:3}
-@media(max-width:760px){.spark{display:none}.hand-r{width:44vw;right:-20vw;top:9vh;opacity:.45}.hand-l{width:48vw;left:-16vw;bottom:1vh;opacity:.6}}
-nav .btn{white-space:nowrap;flex:none}
-@media(max-width:1360px){.brand .mean{display:none}}
-/* the agents door — a button unmistakably for machines, inside the integrate section */
-.agent-strip{display:flex;flex-direction:column;align-items:center;gap:9px;margin-top:26px}
-.agent-cta{font-family:var(--mono);font-size:12.5px;font-weight:700;letter-spacing:.16em;color:var(--green);
-  background:var(--card);border:1.5px solid var(--green);border-radius:4px;padding:13px 22px;cursor:pointer;
-  transition:background .15s,color .15s}
-.agent-cta:hover{background:var(--green);color:#fff}
-.agent-cta:disabled{opacity:.6;cursor:wait}
-@keyframes acblink{0%,49%{opacity:1}50%,100%{opacity:0}}
-.agent-cta .blink{display:inline-block;margin-left:7px;animation:acblink 1.1s step-end infinite}
-@media(prefers-reduced-motion:reduce){.agent-cta .blink{animation:none}}
-.a-hint{font-size:12px;color:var(--muted);text-align:center}
-.a-hint a{color:var(--green);font-weight:600}
-.a-hint code{font-family:var(--mono);font-size:11px;background:rgba(11,18,32,.06);padding:1px 6px;border-radius:5px}
-.a-out{margin:18px auto 0;max-width:820px;background:#0A101E;color:#B9F4D8;border-radius:12px;padding:16px 18px;font-family:var(--mono);font-size:11px;line-height:1.55;overflow-x:auto;text-align:left;white-space:pre-wrap;word-break:break-word}
-/* the doctrine, captioning the Game of Life field that runs behind the page (js/life.mjs) */
-.life-note{font-family:var(--mono);font-size:9.5px;letter-spacing:.3em;font-weight:700;color:var(--green);opacity:.55;text-align:center;margin:30px 0 -14px}
-nav .ndocs{font-size:14px;font-weight:500;color:var(--muted);padding:9px 12px;border-radius:10px}
-nav .ndocs:hover{color:var(--ink);background:rgba(11,18,32,.045)}
-@media(max-width:1150px){.nav-hide-mid{display:none}}
-@media(max-width:900px){nav .ndocs{display:none}}
-[id]{scroll-margin-top:92px}
-.tick{border-top:1px solid var(--line);border-bottom:1px solid var(--line);overflow:hidden;background:var(--card)}
-.tick-in{display:flex;white-space:nowrap;animation:tickmv 32s linear infinite;padding:11px 0;font-family:var(--mono);font-size:11px;letter-spacing:.28em;color:var(--muted)}
-.tick-in span{padding:0 30px}
-.tick-in b{color:var(--green)}
-@keyframes tickmv{to{transform:translateX(-50%)}}
-@media(prefers-reduced-motion:reduce){.tick-in{animation:none}}
-/* alive (owner-directed): entrance + idle animation, all reduced-motion-gated */
-@keyframes hwrise{0%{opacity:0;transform:translateY(30px) scale(.92)}60%{opacity:1}100%{opacity:1;transform:none}}
-.hero h1{position:relative;overflow:visible}
-.hero h1 .hw{display:inline-block;will-change:transform,opacity}
-.alive .hero h1 .hw{animation:hwrise .5s steps(6,end) both;animation-delay:calc(.06s * var(--i))}
-@keyframes scanline{from{transform:translateX(-108%)}to{transform:translateX(108%)}}
-.hero h1::after{content:"";position:absolute;inset:-6px -12px;pointer-events:none;
-  background:linear-gradient(100deg,transparent 42%,rgba(87,192,143,.28) 50%,transparent 58%);
-  transform:translateX(-108%);animation:scanline 1.1s cubic-bezier(.3,.4,.2,1) .7s 1 both}
-@keyframes h1glitch{0%,93.5%,100%{transform:none;clip-path:none}94.2%{transform:translate(-2px,1px)}95.4%{transform:translate(2px,-1px);clip-path:inset(0 0 12% 0)}96.6%{transform:translate(-1px,0);clip-path:none}}
-.alive .hero h1{animation:h1glitch 8.5s linear 4s infinite}
-@keyframes ubreathe{0%,100%{box-shadow:inset 0 -0.13em 0 rgba(26,107,78,.26)}50%{box-shadow:inset 0 -0.34em 0 rgba(26,107,78,.38)}}
-.alive .hero h1 .u{animation:ubreathe 3.6s ease-in-out infinite}
-.kick{background-size:220% 100%}
-@keyframes kickdrift{from{background-position:0% 0}to{background-position:100% 0}}
-.alive .kick{animation:kickdrift 9s ease-in-out infinite alternate}
-@keyframes subkickin{from{opacity:0;letter-spacing:.6em}to{opacity:1;letter-spacing:.3em}}
-.subkick{animation:subkickin .8s cubic-bezier(.2,.6,.2,1) .55s both}
-@keyframes bobR{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
-@keyframes bobL{0%,100%{transform:translateY(0)}50%{transform:translateY(6px)}}
-.alive .hand-r{animation:bobR 6.5s ease-in-out infinite}
-.alive .hand-l{animation:bobL 7.5s ease-in-out infinite}
-@media(prefers-reduced-motion:reduce){
-  .hero h1,.alive .hero h1,.hero h1::after,.alive .kick,.subkick,.alive .hand-r,.alive .hand-l,.alive .hero h1 .u,.hero h1 .hw,.alive .hero h1 .hw{animation:none!important}
-  .hero h1 .hw{opacity:1;transform:none}
-  .hero h1{opacity:1;transform:none}
-  .subkick{opacity:1}
-}
-</style></defs>
-          <circle cx="320" cy="320" r="132" class="oring" stroke-width="1.2"/>
-          <circle cx="320" cy="320" r="212" class="oring" stroke-width="1.2"/>
-          <circle cx="320" cy="320" r="292" class="oring" stroke-width="1.2"/>
-          <line x1="320" y1="40" x2="320" y2="238" class="oray" stroke-width="1.2"/>
-          <line x1="590" y1="320" x2="402" y2="320" class="oray" stroke-width="1.2"/>
-          <line x1="320" y1="600" x2="320" y2="402" class="oray" stroke-width="1.2"/>
-          <line x1="50" y1="320" x2="238" y2="320" class="oray" stroke-width="1.2"/>
-          <g transform="translate(238,238) scale(1.464)"><use href="#ainra-sigil-lt"/></g>
-          <text x="320" y="252" text-anchor="middle" class="otag">THE ROOT</text>
-          <g>
-            <rect x="212" y="164" width="132" height="26" rx="13" class="ochip"/>
-            <text x="278" y="181" text-anchor="middle" class="otxt">LICENSED ISSUERS</text>
-            <rect x="392" y="368" width="176" height="26" rx="13" class="ochip"/>
-            <text x="480" y="385" text-anchor="middle" class="otxt">ENTERPRISE DIRECTORIES</text>
-            <rect x="96" y="392" width="184" height="26" rx="13" class="ochip"/>
-            <text x="188" y="409" text-anchor="middle" class="otxt">PERMISSIONLESS CHAINS</text>
-            <text x="320" y="150" text-anchor="middle" class="otag">RING 1 · INDEPENDENT REGISTRARS</text>
-          </g>
-          <g>
-            <rect x="404" y="176" width="150" height="26" rx="13" class="ochip"/>
-            <text x="479" y="193" text-anchor="middle" class="otxt">COMMERCE AGENTS</text>
-            <rect x="82" y="212" width="122" height="26" rx="13" class="ochip"/>
-            <text x="143" y="229" text-anchor="middle" class="otxt">CODE AGENTS</text>
-            <rect x="234" y="486" width="170" height="26" rx="13" class="ochip"/>
-            <text x="319" y="503" text-anchor="middle" class="otxt">AUTONOMOUS FLEETS</text>
-            <text x="320" y="86" text-anchor="middle" class="otag">RING 2 · AGENTS CARRYING PASSPORTS</text>
-          </g>
-          <g>
-            <rect x="238" y="18" width="164" height="26" rx="13" class="ochip" stroke="rgba(87,192,143,.5)"/>
-            <text x="320" y="35" text-anchor="middle" class="otxt">PAYMENT NETWORKS</text>
-            <rect x="512" y="286" width="112" height="26" rx="13" class="ochip" stroke="rgba(87,192,143,.5)"/>
-            <text x="568" y="303" text-anchor="middle" class="otxt">EDGE &amp; CDN</text>
-            <rect x="252" y="576" width="136" height="26" rx="13" class="ochip" stroke="rgba(87,192,143,.5)"/>
-            <text x="320" y="593" text-anchor="middle" class="otxt">APPS &amp; APIS</text>
-            <rect x="8" y="286" width="168" height="26" rx="13" class="ochip" stroke="rgba(87,192,143,.5)"/>
-            <text x="92" y="303" text-anchor="middle" class="otxt">CHAINS &amp; MARKETS</text>
-          </g>
-        </svg>
-      </div>
-      <div class="legend rv">
-        <div class="leg2 core"><div class="l-ico"><svg viewBox="0 0 66 66" width="66" height="66" aria-hidden="true"><rect class="pxa d3" x="30" y="0" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d0" x="6" y="6" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d3" x="12" y="6" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d2" x="18" y="6" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d1" x="24" y="6" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d0" x="30" y="6" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d3" x="36" y="6" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d2" x="42" y="6" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d1" x="48" y="6" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d0" x="54" y="6" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d1" x="6" y="12" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d1" x="54" y="12" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d2" x="6" y="18" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d0" x="18" y="18" width="5" height="5" fill="#57C08F"/><rect class="pxa d3" x="24" y="18" width="5" height="5" fill="#57C08F"/><rect class="pxa d2" x="30" y="18" width="5" height="5" fill="#57C08F"/><rect class="pxa d1" x="36" y="18" width="5" height="5" fill="#57C08F"/><rect class="pxa d0" x="42" y="18" width="5" height="5" fill="#57C08F"/><rect class="pxa d2" x="54" y="18" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d3" x="6" y="24" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d1" x="18" y="24" width="5" height="5" fill="#57C08F"/><rect class="pxa d1" x="42" y="24" width="5" height="5" fill="#57C08F"/><rect class="pxa d3" x="54" y="24" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d1" x="0" y="30" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d0" x="6" y="30" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d3" x="12" y="30" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d1" x="24" y="30" width="5" height="5" fill="#57C08F"/><rect class="pxa d3" x="36" y="30" width="5" height="5" fill="#57C08F"/><rect class="pxa d1" x="48" y="30" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d0" x="54" y="30" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d3" x="60" y="30" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d1" x="6" y="36" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d3" x="18" y="36" width="5" height="5" fill="#57C08F"/><rect class="pxa d3" x="42" y="36" width="5" height="5" fill="#57C08F"/><rect class="pxa d1" x="54" y="36" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d2" x="6" y="42" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d0" x="18" y="42" width="5" height="5" fill="#57C08F"/><rect class="pxa d3" x="24" y="42" width="5" height="5" fill="#57C08F"/><rect class="pxa d2" x="30" y="42" width="5" height="5" fill="#57C08F"/><rect class="pxa d1" x="36" y="42" width="5" height="5" fill="#57C08F"/><rect class="pxa d0" x="42" y="42" width="5" height="5" fill="#57C08F"/><rect class="pxa d2" x="54" y="42" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d3" x="6" y="48" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d3" x="54" y="48" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d0" x="6" y="54" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d3" x="12" y="54" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d2" x="18" y="54" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d1" x="24" y="54" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d0" x="30" y="54" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d3" x="36" y="54" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d2" x="42" y="54" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d1" x="48" y="54" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d0" x="54" y="54" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d1" x="30" y="60" width="5" height="5" fill="#E7EAF0"/></svg></div><div><b>THE ROOT — AINRA</b><p>Keys, rules, revocation, logs. Everything chains up to it; every check stays local and fast.</p></div></div>
-        <div class="leg2"><div class="l-ico"><svg viewBox="0 0 66 66" width="66" height="66" aria-hidden="true"><rect class="pxa d3" x="30" y="0" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d1" x="24" y="6" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d0" x="30" y="6" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d3" x="36" y="6" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d0" x="12" y="12" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d3" x="18" y="12" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d2" x="24" y="12" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d1" x="30" y="12" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d0" x="36" y="12" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d3" x="42" y="12" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d2" x="48" y="12" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d1" x="12" y="18" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d3" x="48" y="18" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d2" x="12" y="24" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d0" x="24" y="24" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d2" x="36" y="24" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d0" x="48" y="24" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d3" x="12" y="30" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d1" x="24" y="30" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d3" x="36" y="30" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d1" x="48" y="30" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d0" x="12" y="36" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d2" x="24" y="36" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d0" x="36" y="36" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d2" x="48" y="36" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d1" x="12" y="42" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d0" x="18" y="42" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d3" x="24" y="42" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d2" x="30" y="42" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d1" x="36" y="42" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d0" x="42" y="42" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d3" x="48" y="42" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d3" x="6" y="48" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d2" x="12" y="48" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d1" x="18" y="48" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d0" x="24" y="48" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d3" x="30" y="48" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d2" x="36" y="48" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d1" x="42" y="48" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d0" x="48" y="48" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d3" x="54" y="48" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d0" x="30" y="54" width="5" height="5" fill="#57C08F"/><rect class="pxa d2" x="24" y="60" width="5" height="5" fill="#57C08F"/><rect class="pxa d1" x="30" y="60" width="5" height="5" fill="#57C08F"/><rect class="pxa d0" x="36" y="60" width="5" height="5" fill="#57C08F"/></svg></div><div><b>RING 1 · INDEPENDENT REGISTRARS</b><p>Separate organizations issuing under identical published rules.</p></div></div>
-        <div class="leg2"><div class="l-ico"><svg viewBox="0 0 66 36" width="66" height="36" aria-hidden="true"><rect class="pxa d1" x="18" y="0" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d0" x="24" y="0" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d3" x="30" y="0" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d3" x="12" y="6" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d2" x="18" y="6" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d1" x="24" y="6" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d0" x="30" y="6" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d3" x="36" y="6" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d0" x="12" y="12" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d3" x="18" y="12" width="5" height="5" fill="#57C08F"/><rect class="pxa d2" x="24" y="12" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d1" x="30" y="12" width="5" height="5" fill="#57C08F"/><rect class="pxa d0" x="36" y="12" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d1" x="12" y="18" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d0" x="18" y="18" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d3" x="24" y="18" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d2" x="30" y="18" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d1" x="36" y="18" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d3" x="48" y="18" width="5" height="5" fill="#57C08F"/><rect class="pxa d2" x="54" y="18" width="5" height="5" fill="#57C08F"/><rect class="pxa d1" x="18" y="24" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d0" x="24" y="24" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d3" x="30" y="24" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d0" x="48" y="24" width="5" height="5" fill="#57C08F"/><rect class="pxa d3" x="54" y="24" width="5" height="5" fill="#57C08F"/><rect class="pxa d2" x="18" y="30" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d0" x="30" y="30" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d1" x="48" y="30" width="5" height="5" fill="#57C08F"/><rect class="pxa d0" x="54" y="30" width="5" height="5" fill="#57C08F"/></svg></div><div><b>RING 2 · AGENTS</b><p>Each carries a passport chained to the root; its running copies get short-lived keys.</p></div></div>
-        <div class="leg2"><div class="l-ico"><svg viewBox="0 0 66 60" width="66" height="60" aria-hidden="true"><rect class="pxa d2" x="12" y="0" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d1" x="18" y="0" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d0" x="24" y="0" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d3" x="30" y="0" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d0" x="6" y="6" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d3" x="36" y="6" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d2" x="0" y="12" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d3" x="42" y="12" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d3" x="0" y="18" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d2" x="30" y="18" width="5" height="5" fill="#57C08F"/><rect class="pxa d0" x="42" y="18" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d0" x="0" y="24" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d2" x="12" y="24" width="5" height="5" fill="#57C08F"/><rect class="pxa d0" x="24" y="24" width="5" height="5" fill="#57C08F"/><rect class="pxa d3" x="30" y="24" width="5" height="5" fill="#57C08F"/><rect class="pxa d1" x="42" y="24" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d0" x="6" y="30" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d2" x="18" y="30" width="5" height="5" fill="#57C08F"/><rect class="pxa d1" x="24" y="30" width="5" height="5" fill="#57C08F"/><rect class="pxa d3" x="36" y="30" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d0" x="12" y="36" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d3" x="18" y="36" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d2" x="24" y="36" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d1" x="30" y="36" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d2" x="30" y="42" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d1" x="36" y="42" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d2" x="36" y="48" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d1" x="42" y="48" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d2" x="42" y="54" width="5" height="5" fill="#E7EAF0"/><rect class="pxa d1" x="48" y="54" width="5" height="5" fill="#E7EAF0"/></svg></div><div><b>RING 3 · VERIFIERS</b><p>Anyone deciding whether to trust an agent — the check runs on their own machine, and each picks its own bar.</p></div></div>
-      </div>
-    </div>
-  </div>
-</section>
 
 
 <section id="why" class="rv">
@@ -650,18 +563,6 @@ nav .ndocs:hover{color:var(--ink);background:rgba(11,18,32,.045)}
       <span class="eyebrow">Why this exists</span>
       <h2>Soon, your AI will act for you.</h2>
     </div>
-    <div class="qs" style="margin-top:26px">
-      <ul aria-label="The questions nobody can answer about an agent today">
-        <li class="lit">Who created this agent?</li>
-        <li>Who controls it now?</li>
-        <li>What is it allowed to do?</li>
-        <li>Has it been verified — or revoked?</li>
-        <li>Is it pretending to be another?</li>
-        <li>Can it legally act for a company?</li>
-        <li>Can I safely delegate to it?</li>
-      </ul>
-    </div>
-    <p class="ans a1" style="text-align:center;margin-top:18px">There is no universal way to answer these. AINRA is that way:</p>
     <div class="trip" style="margin-top:34px">
       <div class="t-cell">
         <div class="t-ico"><svg viewBox="0 0 91 98" width="91" height="98"  aria-hidden="true"><rect class="pxa d3" x="35" y="0" width="6" height="6" fill="#8a6a14"/><rect class="pxa d2" x="42" y="0" width="6" height="6" fill="#8a6a14"/><rect class="pxa d1" x="49" y="0" width="6" height="6" fill="#8a6a14"/><rect class="pxa d1" x="28" y="7" width="6" height="6" fill="#8a6a14"/><rect class="pxa d1" x="56" y="7" width="6" height="6" fill="#8a6a14"/><rect class="pxa d2" x="56" y="14" width="6" height="6" fill="#8a6a14"/><rect class="pxa d0" x="49" y="21" width="6" height="6" fill="#8a6a14"/><rect class="pxa d2" x="42" y="28" width="6" height="6" fill="#8a6a14"/><rect class="pxa d0" x="42" y="42" width="6" height="6" fill="#8a6a14"/><rect class="pxa d2" x="14" y="56" width="6" height="6" fill="#0B1220"/><rect class="pxa d1" x="21" y="56" width="6" height="6" fill="#0B1220"/><rect class="pxa d0" x="28" y="56" width="6" height="6" fill="#0B1220"/><rect class="pxa d0" x="56" y="56" width="6" height="6" fill="#9AA3AE"/><rect class="pxa d3" x="63" y="56" width="6" height="6" fill="#9AA3AE"/><rect class="pxa d2" x="70" y="56" width="6" height="6" fill="#9AA3AE"/><rect class="pxa d0" x="7" y="63" width="6" height="6" fill="#0B1220"/><rect class="pxa d3" x="14" y="63" width="6" height="6" fill="#0B1220"/><rect class="pxa d2" x="21" y="63" width="6" height="6" fill="#0B1220"/><rect class="pxa d1" x="28" y="63" width="6" height="6" fill="#0B1220"/><rect class="pxa d0" x="35" y="63" width="6" height="6" fill="#0B1220"/><rect class="pxa d2" x="49" y="63" width="6" height="6" fill="#9AA3AE"/><rect class="pxa d2" x="77" y="63" width="6" height="6" fill="#9AA3AE"/><rect class="pxa d1" x="7" y="70" width="6" height="6" fill="#0B1220"/><rect class="pxa d0" x="14" y="70" width="6" height="6" fill="#57C08F"/><rect class="pxa d3" x="21" y="70" width="6" height="6" fill="#0B1220"/><rect class="pxa d2" x="28" y="70" width="6" height="6" fill="#57C08F"/><rect class="pxa d1" x="35" y="70" width="6" height="6" fill="#0B1220"/><rect class="pxa d3" x="49" y="70" width="6" height="6" fill="#9AA3AE"/><rect class="pxa d1" x="63" y="70" width="6" height="6" fill="#9AA3AE"/><rect class="pxa d3" x="77" y="70" width="6" height="6" fill="#9AA3AE"/><rect class="pxa d2" x="7" y="77" width="6" height="6" fill="#0B1220"/><rect class="pxa d1" x="14" y="77" width="6" height="6" fill="#0B1220"/><rect class="pxa d0" x="21" y="77" width="6" height="6" fill="#0B1220"/><rect class="pxa d3" x="28" y="77" width="6" height="6" fill="#0B1220"/><rect class="pxa d2" x="35" y="77" width="6" height="6" fill="#0B1220"/><rect class="pxa d0" x="49" y="77" width="6" height="6" fill="#9AA3AE"/><rect class="pxa d0" x="77" y="77" width="6" height="6" fill="#9AA3AE"/><rect class="pxa d2" x="14" y="84" width="6" height="6" fill="#0B1220"/><rect class="pxa d1" x="21" y="84" width="6" height="6" fill="#0B1220"/><rect class="pxa d0" x="28" y="84" width="6" height="6" fill="#0B1220"/><rect class="pxa d0" x="56" y="84" width="6" height="6" fill="#9AA3AE"/><rect class="pxa d3" x="63" y="84" width="6" height="6" fill="#9AA3AE"/><rect class="pxa d2" x="70" y="84" width="6" height="6" fill="#9AA3AE"/><rect class="pxa d3" x="14" y="91" width="6" height="6" fill="#0B1220"/><rect class="pxa d1" x="28" y="91" width="6" height="6" fill="#0B1220"/><rect class="pxa d1" x="56" y="91" width="6" height="6" fill="#9AA3AE"/><rect class="pxa d3" x="70" y="91" width="6" height="6" fill="#9AA3AE"/></svg></div>
@@ -684,8 +585,6 @@ nav .ndocs:hover{color:var(--ink);background:rgba(11,18,32,.045)}
         <p>You set the limits, you pull the switch — we just make them provable.</p>
       </div>
     </div>
-    <p class="ans a1" style="text-align:center;max-width:680px;margin:28px auto 0">Tomorrow's checks look like today's — KYC for people, KYB for companies, <b>KYA for agents</b>: every acting AI carrying a scannable ID. The passport above already wears its machine-readable zone.</p>
-    <p class="ans a1" style="text-align:center;max-width:680px;margin:30px auto 0">AINRA is a <b>proposal</b> for that neutral root — one open standard anyone can run, own, or fork. You are not asked to trust its founders; everything is public.</p>
   </div>
 </section>
 
@@ -728,7 +627,7 @@ nav .ndocs:hover{color:var(--ink);background:rgba(11,18,32,.045)}
       <div>
         <h4>Root</h4>
         <ul>
-          <li><a href="#root">What the root does</a></li>
+          <li><a href="docs.html#one-root">What the root does</a></li>
           <li><a href="docs.html#charter">Charter</a></li>
           <li><a href="foundation.html">Honest status</a></li>
           <li><a href="docs.html#faq">FAQ</a></li>
@@ -909,14 +808,6 @@ nav .ndocs:hover{color:var(--ink);background:rgba(11,18,32,.045)}
     sp.addEventListener('click',burst);
     sp.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();burst();}});
   })();
-
-  /* the questions — rove the emphasis down the list. The full list is static markup (no-JS shows
-     everything, first line lit); under prefers-reduced-motion the emphasis never moves. */
-  const qLines=[...document.querySelectorAll('.qs li')];
-  if(qLines.length&&!reduce){
-    let qi=Math.max(0,qLines.findIndex(l=>l.classList.contains('lit')));
-    setInterval(()=>{qLines[qi].classList.remove('lit');qi=(qi+1)%qLines.length;qLines[qi].classList.add('lit');},2600);
-  }
   /* multi-method installer — one panel, tabbed by open convention (skill · MCP · prompt · HTTP) */
   const METHODS={
     skill:{cap:'terminal',desc:"One command. Your coding assistant gains AINRA's skills — verify, issue, present, renew, revoke.",code:'npx skills add https://ainra.vercel.app/.well-known/skills/index.json'},

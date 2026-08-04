@@ -402,8 +402,7 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
       <path d="M33 9.5 L17 18 L17 37 L33 28.5 Z" fill="#0f4a35"/>
     </svg>
   </div>
-  <svg class="wm-crest" viewBox="0 0 160 160" aria-hidden="true"><use href="#ainra-crest"/></svg>
-  <div class="wrap">
+    <div class="wrap">
     <div class="kick rv in">TURNING FUTURE INTO A WORKING PRESENT</div>
     <h1 class="rv in">Every agent needs<br>an <span class="u">identity</span>.</h1>
     <div class="subkick rv in" aria-label="The identity layer for autonomous AI">THE IDENTITY LAYER FOR AUTONOMOUS AI</div>
@@ -536,13 +535,6 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:99;opa
 .spark{animation:sparkpulse 3.4s ease-in-out infinite}
 @media(prefers-reduced-motion:reduce){.spark{animation:none}}
 .hero .wrap{position:relative;z-index:3}
-/* the margin watermark — this page is a DOCUMENT (passport, seal, machine zone), and what belongs in a
-   document's margin is a watermark: the crest, engraved-faint, turning like an official seal. */
-.wm-crest{position:absolute;z-index:1;pointer-events:none;left:4.5vw;top:24%;width:250px;height:250px;
-  color:var(--ink);opacity:.10;animation:wmspin 150s linear infinite}
-@keyframes wmspin{to{transform:rotate(360deg)}}
-@media(prefers-reduced-motion:reduce){.wm-crest{animation:none}}
-@media(max-width:900px){.wm-crest{display:none}}
 @media(max-width:760px){.spark{display:none}.hand-r{width:44vw;right:-20vw;top:9vh;opacity:.45}.hand-l{width:48vw;left:-16vw;bottom:1vh;opacity:.6}}
 nav .btn{white-space:nowrap;flex:none}
 @media(max-width:1360px){.brand .mean{display:none}}

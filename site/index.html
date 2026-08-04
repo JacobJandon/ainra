@@ -402,7 +402,7 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
       <path d="M33 9.5 L17 18 L17 37 L33 28.5 Z" fill="#0f4a35"/>
     </svg>
   </div>
-  <div class="glider" id="heroGlider" aria-hidden="true" title=""><svg viewBox="0 0 78 78" width="78" height="78"><g class="gph" data-ph="0"><rect x="0" y="13" width="12" height="12" fill="#1A6B4E"/><rect x="26" y="13" width="12" height="12" fill="#0B1220"/><rect x="13" y="26" width="12" height="12" fill="#0B1220"/><rect x="26" y="26" width="12" height="12" fill="#0B1220"/><rect x="13" y="39" width="12" height="12" fill="#1A6B4E"/></g><g class="gph" data-ph="1" style="opacity:0"><rect x="26" y="13" width="12" height="12" fill="#0B1220"/><rect x="0" y="26" width="12" height="12" fill="#1A6B4E"/><rect x="26" y="26" width="12" height="12" fill="#0B1220"/><rect x="13" y="39" width="12" height="12" fill="#0B1220"/><rect x="26" y="39" width="12" height="12" fill="#1A6B4E"/></g><g class="gph" data-ph="2" style="opacity:0"><rect x="13" y="13" width="12" height="12" fill="#1A6B4E"/><rect x="26" y="26" width="12" height="12" fill="#0B1220"/><rect x="39" y="26" width="12" height="12" fill="#1A6B4E"/><rect x="13" y="39" width="12" height="12" fill="#0B1220"/><rect x="26" y="39" width="12" height="12" fill="#0B1220"/></g><g class="gph" data-ph="3" style="opacity:0"><rect x="26" y="13" width="12" height="12" fill="#1A6B4E"/><rect x="39" y="26" width="12" height="12" fill="#0B1220"/><rect x="13" y="39" width="12" height="12" fill="#0B1220"/><rect x="26" y="39" width="12" height="12" fill="#0B1220"/><rect x="39" y="39" width="12" height="12" fill="#1A6B4E"/></g></svg></div>
+  <svg class="wm-crest" viewBox="0 0 160 160" aria-hidden="true"><use href="#ainra-crest"/></svg>
   <div class="wrap">
     <div class="kick rv in">TURNING FUTURE INTO A WORKING PRESENT</div>
     <h1 class="rv in">Every agent needs<br>an <span class="u">identity</span>.</h1>
@@ -536,13 +536,13 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:99;opa
 .spark{animation:sparkpulse 3.4s ease-in-out infinite}
 @media(prefers-reduced-motion:reduce){.spark{animation:none}}
 .hero .wrap{position:relative;z-index:3}
-/* the glider — the doctrine's emblem, walking its REAL Conway cycle across the hero: four computed
-   phases (newborn cells in green), the container drifting one cell per full cycle, exactly as B3/S23
-   moves it. The same five cells the spark egg releases into the field below. */
-.glider{position:absolute;z-index:2;pointer-events:none;left:7vw;top:15%;opacity:0;transition:opacity 1.2s}
-.glider.on{opacity:.85}
-@media(prefers-reduced-motion:reduce){.glider{opacity:.6!important;transform:none!important}}
-@media(max-width:900px){.glider{display:none}}
+/* the margin watermark — this page is a DOCUMENT (passport, seal, machine zone), and what belongs in a
+   document's margin is a watermark: the crest, engraved-faint, turning like an official seal. */
+.wm-crest{position:absolute;z-index:1;pointer-events:none;left:4.5vw;top:24%;width:250px;height:250px;
+  color:var(--ink);opacity:.10;animation:wmspin 150s linear infinite}
+@keyframes wmspin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.wm-crest{animation:none}}
+@media(max-width:900px){.wm-crest{display:none}}
 @media(max-width:760px){.spark{display:none}.hand-r{width:44vw;right:-20vw;top:9vh;opacity:.45}.hand-l{width:48vw;left:-16vw;bottom:1vh;opacity:.6}}
 nav .btn{white-space:nowrap;flex:none}
 @media(max-width:1360px){.brand .mean{display:none}}
@@ -916,22 +916,6 @@ nav .ndocs:hover{color:var(--ink);background:rgba(11,18,32,.045)}
     }
     sp.addEventListener('click',burst);
     sp.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();burst();}});
-    /* the hero glider: a real B3/S23 walker. Each 480ms tick shows the next computed phase and drifts
-       the emblem 1/4 cell diagonally — one whole cell per period, which is exactly a glider's speed (c/4). */
-    var gl=document.getElementById('heroGlider');
-    if(gl && !reduce){
-      var CSg=13, RUN=16, ph=0, stepN=0, gs=gl.querySelectorAll('.gph');
-      gl.classList.add('on');
-      setInterval(function(){
-        if(document.hidden) return;
-        ph=(ph+1)%4; stepN++;
-        gs.forEach(function(f,i){f.style.opacity=i===ph?'1':'0';});
-        var d=stepN*CSg/4;
-        gl.style.transform='translate('+d+'px,'+d+'px)';
-        if(stepN>=RUN*4){ gl.classList.remove('on');
-          setTimeout(function(){ stepN=0; gl.style.transform='translate(0,0)'; gl.classList.add('on'); },1400); stepN=-3; }
-      },480);
-    } else if(gl){ gl.classList.add('on'); }
   })();
 
   /* the questions — rove the emphasis down the list. The full list is static markup (no-JS shows

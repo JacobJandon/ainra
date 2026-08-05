@@ -16,6 +16,10 @@ now* — with **facts, never scores, never a price, never the decision itself.**
 decision is the verifier's.** Everything is built so a stranger can verify **offline, in ~5 lines, with the root
 dark**, trusting the **source** — not us.
 
+**No install at all?** [`examples/verify-in-browser/`](examples/verify-in-browser/) runs the real verifier in your
+browser over a real conformance vector — open it, change one byte of a signature, watch it refuse. Nothing is
+uploaded and no request leaves the page at verification time.
+
 ## Start here — two commands
 
 ```sh

@@ -20,6 +20,12 @@ This is a **reference implementation** with a **staging network on a TEST-ROOT**
 does **not** exist yet: the production root (born only at a recorded genesis ceremony — a pending milestone) and any
 production usage. No trust migrates from staging. Treat every verdict here as `LOCAL TESTBED` or `STAGING · TEST-ROOT`.
 
+## 0 · See it work with nothing installed
+
+`examples/verify-in-browser/` is four static files: open `index.html` over any static server and the real
+verifier runs in the page against a real vector. Useful when you want to show a human the verdict rather than
+describe it.
+
 ## 1 · Verify a passport
 
 One command runs the real verifier on a valid and a revoked credential and prints the verdict plus the named-reason

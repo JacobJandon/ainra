@@ -32,7 +32,11 @@
 :root{--ink:#0B1220;--ink-2:#111B30;--paper:#F5F6F3;--card:#FFFFFF;--green:#1A6B4E;--green-br:#57C08F;--red:#A83A2C;--amber:#8a6a14;--muted:#5A6372;--line:#E2E5DF;
 --mono:'B612 Mono',ui-monospace,'SFMono-Regular',Menlo,Consolas,monospace;--body:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;--display:'Bricolage Grotesque',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
 *{margin:0;padding:0;box-sizing:border-box}
-html{scroll-behavior:smooth}
+@media(prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
+/* §14 — the two signals beyond reduced-motion: make the one translucent surface solid, and give a
+   high-contrast reader darker text, a solid bar, and no moving field behind the words. */
+@media(prefers-reduced-transparency:reduce){nav{background:var(--paper);backdrop-filter:none}#life-field{display:none}}
+@media(prefers-contrast:more){:root{--muted:#3A4250}nav{background:var(--paper);backdrop-filter:none}#life-field{display:none}:focus-visible{outline-width:3px}}
 body{font-family:var(--body);background:var(--paper);color:var(--ink);font-size:15.5px;line-height:1.6;-webkit-font-smoothing:antialiased}
 ::selection{background:var(--green);color:#fff}
 a{color:inherit;text-decoration:none}

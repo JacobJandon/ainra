@@ -34,7 +34,11 @@
   --display:'Bricolage Grotesque',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
 }
 *{margin:0;padding:0;box-sizing:border-box}
-html{scroll-behavior:smooth}
+@media(prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
+/* §14 — the two signals beyond reduced-motion: make the one translucent surface solid, and give a
+   high-contrast reader darker text, a solid bar, and no moving field behind the words. */
+@media(prefers-reduced-transparency:reduce){nav{background:var(--paper);backdrop-filter:none}#life-field{display:none}}
+@media(prefers-contrast:more){:root{--muted:#3A4250}nav{background:var(--paper);backdrop-filter:none}#life-field{display:none}:focus-visible{outline-width:3px}}
 body{font-family:var(--body);background:var(--paper);color:var(--ink);font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased}
 ::selection{background:var(--green);color:#fff}
 a{color:inherit;text-decoration:none}
@@ -53,7 +57,7 @@ button{font-family:var(--body);cursor:pointer;border:none;background:none;color:
 .brand .mean{border-left:1px solid var(--line);padding-left:12px;font-family:var(--mono);font-size:8.5px;line-height:1.5;letter-spacing:.16em;color:var(--muted);text-transform:uppercase;white-space:nowrap}
 @media(max-width:560px){.brand .mean{display:none}}
 
-nav{position:sticky;top:0;z-index:50;background:rgba(245,246,243,.86);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+nav{position:sticky;top:0;z-index:60;background:rgba(245,246,243,.86);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
 .nav-in{display:flex;align-items:center;justify-content:space-between;height:70px;gap:16px}
 .nav-links{display:flex;gap:24px;font-size:14px;font-weight:500;color:var(--muted)}
 .nav-links a:hover{color:var(--ink)}
@@ -418,6 +422,7 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
 .code-foot b{color:var(--green)}
 /* pixel display type (site-wide rollout, looks only) */
 h1,.sec-head h2,.hero-h{font-family:'Pixelify Sans',var(--display);font-weight:700;letter-spacing:.005em;line-height:1.04}
+.hero-h{font-size:clamp(1.9rem,4vw,2.75rem);margin-top:12px}
 nav .btn{white-space:nowrap;flex:none}
 @media(max-width:1360px){.brand .mean{display:none}}
 nav .ndocs{font-size:14px;font-weight:500;color:var(--muted);padding:9px 12px;border-radius:10px}
@@ -901,7 +906,7 @@ async function verify(){
   if(!sel) return;
   const {rec,R}=sel;
   $("#big").textContent="…"; $("#big").className="big pend"; $("#reason").textContent="running the real verifier…";
-  await new Promise(r=>setTimeout(r,180));
+  await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))); // paint the pending state, then go — no manufactured lag
   let wire=forge(toWire(rec,R));
   let v;
   try{ v=runVector(wire); }

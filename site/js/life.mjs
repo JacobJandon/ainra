@@ -51,10 +51,11 @@ function stamp(g, w, h) {
 }
 
 // ── the field ────────────────────────────────────────────────────────────────────────────────────────────────────
-// Lift the page above the canvas once (nav/main/footer are the only direct body children that hold content).
+// Lift the page above the canvas once. NOTE: nav is deliberately EXCLUDED — it carries its own
+// position:sticky;z-index:60, and a body>nav rule here (specificity 0,0,2) would beat it and kill sticky.
 const style = document.createElement("style");
 style.textContent = `#life-field{position:fixed;inset:0;z-index:0;pointer-events:none}
-body>nav,body>main,body>header,body>footer{position:relative;z-index:1}`;
+body>main,body>header,body>footer{position:relative;z-index:1}`;
 document.head.appendChild(style);
 
 const canvas = document.createElement("canvas");

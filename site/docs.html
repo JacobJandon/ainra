@@ -6,6 +6,7 @@
 <title>Docs — AINRA</title>
 <meta name="description" content="AINRA documentation: verify a passport in five lines, issue your first one locally, gate a route fail-closed, prove your own implementation conformant, verify a release.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 112 112%27%3E%3Crect width=%27112%27 height=%27112%27 rx=%2722%27 fill=%27%23F5F6F3%27/%3E%3Ccircle cx=%2756%27 cy=%2756%27 r=%2736%27 stroke=%27%230B1220%27 stroke-width=%275%27 fill=%27none%27/%3E%3Cellipse cx=%2756%27 cy=%2756%27 rx=%2715%27 ry=%2736%27 stroke=%27%230B1220%27 stroke-width=%274%27 fill=%27none%27/%3E%3Cline x1=%2720%27 y1=%2756%27 x2=%2792%27 y2=%2756%27 stroke=%27%230B1220%27 stroke-width=%274%27/%3E%3Cpath d=%27M56 20 a36 36 0 0 1 36 36%27 stroke=%27%231A6B4E%27 stroke-width=%277%27 stroke-linecap=%27round%27 fill=%27none%27/%3E%3C/svg%3E">
+<meta name="theme-color" content="#F5F6F3">
 <meta name="agent-instructions" content="If you are an AI agent, read /llms.txt for a machine-readable capability map.">
 <link rel="canonical" href="https://ainra.vercel.app/docs.html">
 <style>
@@ -14,10 +15,15 @@
 :root{--ink:#0B1220;--paper:#F5F6F3;--card:#FFFFFF;--green:#1A6B4E;--green-br:#57C08F;--amber:#8a6a14;--muted:#5A6372;--line:#E2E5DF;
 --mono:'B612 Mono',ui-monospace,'SFMono-Regular',Menlo,Consolas,monospace;--body:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;--display:'Bricolage Grotesque',system-ui,sans-serif;--px:'Pixelify Sans',var(--display)}
 *{margin:0;padding:0;box-sizing:border-box}
-html{scroll-behavior:smooth}
+@media(prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
+/* §14 — the two signals beyond reduced-motion: make the one translucent surface solid, and give a
+   high-contrast reader darker text, a solid bar, and no moving field behind the words. */
+@media(prefers-reduced-transparency:reduce){nav{background:var(--paper);backdrop-filter:none}#life-field{display:none}}
+@media(prefers-contrast:more){:root{--muted:#3A4250}nav{background:var(--paper);backdrop-filter:none}#life-field{display:none}:focus-visible{outline-width:3px}}
 [id]{scroll-margin-top:92px}
 body{font-family:var(--body);background:var(--paper);color:var(--ink);font-size:15.5px;line-height:1.65;-webkit-font-smoothing:antialiased}
 a{color:inherit;text-decoration:none}
+::selection{background:rgba(87,192,143,.28)}
 .wrap{max-width:1240px;margin:0 auto;padding:0 24px}
 .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--green)}
 h1,h2,h3{font-family:var(--px);font-weight:700;letter-spacing:.005em}
@@ -26,7 +32,7 @@ button{font-family:var(--body);cursor:pointer;border:none;background:none;color:
 .skip{position:absolute;left:-9999px;top:0;z-index:200;background:var(--ink);color:#fff;padding:10px 16px;font-weight:600}
 .skip:focus{left:0}
 /* nav (shared chrome; stamped from _includes by the sync tool) */
-nav{position:sticky;top:0;z-index:50;background:rgba(245,246,243,.86);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+nav{position:sticky;top:0;z-index:60;background:rgba(245,246,243,.86);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
 .nav-in{display:flex;align-items:center;justify-content:space-between;height:70px;gap:16px}
 .brand{display:flex;align-items:center;gap:12px;min-width:0}
 .brand .sigil{width:48px;height:48px;flex:none}

@@ -68,9 +68,38 @@ reappear. Deviations from this table get reported, not improvised.
   **Acceptance met: the differential is byte-identical before and after** — 745/745 core↔sdk, 10/10 canon 3-way,
   4/4 canon-reject, 17/17 delta, 9/9 directory, and core↔py 745/745 · 17/17 · 9/9. `make repro` still byte-exact
   across 790 files.
-- **Task 2 — WASM surface — pending Task 1.**
-- **Task 3 — demo on our own ground — pending Task 2.**
-- **Task 4 — close it like a release — pending.**
+- **Task 2 — WASM surface — DONE.** `crates/ainra-wasm` exports `verify(bundle, directory, now) -> verdictEvent`,
+  `run_vector`, and `version` — three functions, each one line, each handing straight to the adapter. It parses
+  nothing of its own, **not even JSON text**, because deciding what counts as readable input is a decision and that
+  decision must have one home; a CI gate greps the crate for any decode call. No network, no telemetry, no clock.
+  **One thing had to change to do this honestly, and it is worth recording rather than burying:** the single decode
+  path was `.expect()` throughout. That is safe for a generator reading fixtures it just wrote and fatal for a
+  browser taking pasted bytes, where an abort is a dead page rather than a refusal. The *forbidden* fix was a
+  lenient decoder inside the WASM crate — the exact second implementation this milestone exists to prevent. The
+  correct fix was making the one path fail closed, so a malformed field now yields `schema_violation` for **every**
+  caller. Same reasoning moved the verdict-event vocabulary (`number_from_name`, `event_json`) out of the CLI
+  binary: a third Rust copy is the same drift class as a second decoder. The differential is unchanged
+  byte-for-byte, re-proven after the rewrite.
+  **Acceptance met — the browser is a verified surface, not a demo:** `make wasm-diff` pushes all 745 vectors
+  through the compiled artifact in a headless browser and requires agreement on verdict *and* named reason →
+  **745/745**. Negative control proven (one flipped signature bit → 744/745, exit 1). Artifact **367 KiB** + 9 KiB
+  glue, under a ceiling enforced at build time; a dedicated `[profile.wasm-release]` keeps every existing
+  artifact's bytes — and `make repro` — untouched.
+- **Task 3 — demo on our own ground — DONE.** `/verify.html#try` now runs `ainra-core` itself, so the page's claim
+  is literal rather than a family resemblance. Paste-or-pick (a vector, an `{anchors, presentation}` pair, or a
+  bare presentation); a malformed paste says *what it could not find*, because a demo that answers "invalid" to a
+  typo teaches the wrong lesson about why things fail; the flip-a-byte controls are verified to produce the reason
+  each label promises. Degradation is honest: if WebAssembly will not load, the page falls back to the JavaScript
+  mirror and **says so** in the provenance line. Wired through README, `/llms.txt`, `skills.md`, and the landing
+  page's integrate door — each naming *which* verifier answers, since that is the whole claim.
+  **Driving the real page found a live bug worth more than the feature:** the assurance-tier rail selected
+  `[data-t]` globally, which also matched the four forge buttons — clicking one threw and left the forgery *off*,
+  so every visitor who tried to forge a passport saw **VALID**. The entire "then try to forge one" half of the
+  page had been doing nothing. Fixed and re-verified on both engines.
+- **Task 4 — close it like a release — DONE.** This plan, the CHANGELOG entry, the code map in README, and
+  `docs/WASM-DEMO.md` (L4's honest "not shipped" note, now recorded as closed with the original text kept).
+  Counts restated above. **No version bump:** this changes internal structure and adds a surface; it does not cut a
+  release.
 
 _No version bump is planned: this milestone changes internal structure and adds a surface; it does not cut a
 release. Versions stay where they are unless a release is actually being closed._

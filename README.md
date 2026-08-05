@@ -16,9 +16,13 @@ now* — with **facts, never scores, never a price, never the decision itself.**
 decision is the verifier's.** Everything is built so a stranger can verify **offline, in ~5 lines, with the root
 dark**, trusting the **source** — not us.
 
-**No install at all?** [`examples/verify-in-browser/`](examples/verify-in-browser/) runs the real verifier in your
-browser over a real conformance vector — open it, change one byte of a signature, watch it refuse. Nothing is
-uploaded and no request leaves the page at verification time.
+**No install at all?** Two routes, differing in which verifier answers.
+[`examples/verify-in-browser/`](examples/verify-in-browser/) is four static files running the JavaScript verifier —
+open it, change one byte of a signature, watch it refuse. the live site's [**Try it**](https://ainra.vercel.app/verify.html#try) panel (`make site SERVE=1` locally) runs
+**`ainra-core` itself**, the Rust verify path compiled to WebAssembly (`make wasm`), so the browser is checking with
+the same code the CLI does — and `make wasm-diff` pushes all 745 vectors through that exact artifact in a headless
+browser, requiring 745/745 on verdict and named reason. Nothing is uploaded and no request leaves the page at
+verification time, either way.
 
 ## Start here — two commands
 
@@ -133,6 +137,12 @@ Deploy is one GitHub Pages workflow the owner enables at publish time (see `site
                                           │
   crates/ainra-core  ── the pure verify/issue library (N7: no I/O, no clock) ── the 9-step verify, 15 reasons
         │  hybrid Ed25519 + ML-DSA-65 (both-or-invalid) · RFC 6962 Merkle · Token Status List
+        ▼
+  crates/ainra-adapter ── the ONE place external bytes become core verify types, and the canonical verdict event.
+        │  Pure, fail-closed. Every Rust consumer goes through it; `make one-decode-path` fails the build if a
+        │  second parser appears anywhere else (L5).
+        ├──▶ crates/ainra-wasm ── that same path compiled to WebAssembly for the browser. A thin binding: no
+        │      parsing, no network, no clock. `make wasm-diff` = 745/745 in a headless browser.
         ▼
   crates/ainra-ceremony (FROST 5-of-9 + SLH-DSA dual root, signing side, NEVER in verify)
   services/ainra-services (logd · statusd · witnessd + k-of-N quorum · registrar-box)

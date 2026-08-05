@@ -13,6 +13,43 @@ We **publicly own fixed security bugs** — hiding them would be the opposite of
 The three real-world genesis DoD rows remain the only open work: a recorded public ceremony with independent
 custodians, ≥3 external verifiers, and a 14-day 3-region soak. The machinery for all three is built and rehearsed.
 
+### L5 — one decode path in Rust, and a browser surface that uses it
+
+- **`crates/ainra-adapter`** — there is now exactly **one** code path that turns external bytes into core verify
+  types, and every consumer calls it. Mapping the boundary first (`docs/PLAN-L5.md`) found that the second
+  implementation **already existed**: `anchors_from_export` in the CLI's seed path was a partial trust-anchor
+  decoder that **failed open**, substituting an all-zero issuer key for a malformed one, so a corrupt export
+  produced a plausible verdict instead of `unknown_registrar`. It is deleted. Blast radius, checked and stated: it
+  was reachable only from fixture generation, so no released verify path consumed it — latent, not exploited.
+- **The one path now fails closed.** It was `.expect()` throughout, which is safe for a generator reading fixtures
+  it just wrote and fatal for a browser taking pasted bytes. A malformed field now yields `schema_violation` for
+  every caller instead of aborting. The differential is **byte-identical before and after**: 745/745 core↔sdk,
+  10/10 canon 3-way, 4/4 canon-reject, 17/17 delta, 9/9 directory, core↔py 745/745 · 17/17 · 9/9.
+- **Enforced mechanically, not by convention** — `make one-decode-path` scans every Rust file and fails if a moved
+  signature reappears or if `TrustAnchors`/`Presentation` are built from parsed JSON outside the adapter. It is a
+  CI gate and a board row. It earned its place on first run by catching the fail-open decoder.
+- **`crates/ainra-wasm`** — the verify path compiled to WebAssembly: three exports, each one line, each handing
+  straight to the adapter. No parsing of its own, no network, no telemetry, and no clock (`now` is an argument,
+  because freshness is the verifier's policy, never the presenter's). **367 KiB** under a ceiling enforced at build
+  time; a dedicated Cargo profile, so every existing artifact's bytes and the reproducibility manifest are
+  unchanged.
+- **The browser joins the differential as a verified surface** — `make wasm-diff` runs the full corpus through the
+  compiled artifact in a headless browser and requires agreement with the core on verdict *and* named reason:
+  **745/745**. The harness carries its own negative control (`NEGATIVE_CONTROL=1` flips one signature bit; the run
+  must fail — proven at 744/745, exit 1), because a differential that cannot fail proves nothing.
+- **The demo runs on our own ground, on the real core.** `/verify.html#try` verifies through the compiled Rust
+  verifier, so "the same code that passes all 745 conformance vectors" is literal. Paste-or-pick; a malformed paste
+  says *what it could not find*; and if WebAssembly will not load the page falls back to the JavaScript mirror and
+  **says so** rather than quietly answering with a different implementation than it claims.
+
+#### Fixed
+
+- **The forge half of the live demo did nothing.** On `/verify.html#try`, the assurance-tier rail selected
+  `[data-t]` globally, which also matched the four "try to forge one" buttons: clicking one flipped
+  `aria-pressed` and then threw, and the demo's own listener read that as "already on" and switched the forgery
+  back off. Every visitor who tried to forge a passport was shown **VALID**. The selector is scoped to its own
+  rail; all four controls are verified to produce the reason their label promises, on both engines.
+
 ### L3 — the human half gets a sequence, and published counts get a gate
 
 - **`campaign/`** — the fourteen ordered steps that move those three rows: one primary action per step, the six

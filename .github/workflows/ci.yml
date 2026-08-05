@@ -131,6 +131,16 @@ jobs:
         run: make check-freeze
       - name: CHANGELOG claim ≤ board evidence (M23.1 — no board, no release)
         run: make changelog-board-check
+      - name: one decode path (no second bytes→core-types parser — L5)
+        run: node tools/one-decode-path.mjs
+      - name: ainra-wasm binds only, never parses (L5)
+        run: |
+          # The browser surface must stay a thin binding. If it grows its own decoding, the differential can no
+          # longer speak for it — catch that here rather than in a divergence report months later.
+          if grep -nE "serde_json::from_|b64::decode|::decode\(|struct Wire" crates/ainra-wasm/src/lib.rs; then
+            echo "crates/ainra-wasm must not parse — route it through crates/ainra-adapter"; exit 1
+          fi
+          echo "ainra-wasm clean: binding only"
       - name: ainra-core has no network / IO / clock (N7)
         run: |
           if grep -rnE "std::net|std::fs|reqwest|hyper|ureq|tokio|std::process|SystemTime|Instant|std::env" crates/ainra-core/src/; then
@@ -139,6 +149,40 @@ jobs:
           echo "ainra-core clean: no net/fs/clock/env"
       - name: SDK dependency audit
         run: cd packages/sdk-ts && npm ci && npm audit --audit-level=high
+
+  wasm-surface:
+    name: browser verifier (745 vectors through the real artifact)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install wasm-bindgen-cli (pinned to the crate version)
+        run: |
+          VER=$(grep -oP '=\K[0-9.]+' crates/ainra-wasm/Cargo.toml | head -1)
+          cargo install wasm-bindgen-cli --version "$VER" --locked
+      - name: Build the browser verifier (size ceiling enforced)
+        run: bash tools/build-wasm.sh
+      - name: Install a headless browser
+        run: |
+          npm i -D playwright-core@latest
+          npx playwright install chromium --only-shell
+      - name: Full corpus through the WASM, in a browser — must be 745/745
+        env:
+          PLAYWRIGHT_DRIVER_PATH: ${{ github.workspace }}/node_modules
+        run: node tools/wasm-differential.mjs
+      - name: Negative control — the harness must be able to fail
+        env:
+          PLAYWRIGHT_DRIVER_PATH: ${{ github.workspace }}/node_modules
+        run: |
+          if NEGATIVE_CONTROL=1 node tools/wasm-differential.mjs; then
+            echo "NEGATIVE CONTROL DID NOT FAIL — the differential is not checking anything"; exit 1
+          fi
+          echo "negative control OK: a flipped signature bit is caught"
 
   fuzz-smoke:
     name: fuzz smoke (parsers never panic)

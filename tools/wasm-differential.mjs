@@ -73,8 +73,27 @@ const server = createServer((req, res) => {
   res.writeHead(200, { "content-type": MIME[extname(p)] ?? "application/octet-stream" }).end(readFileSync(p));
 });
 
-const require = createRequire(join(process.env.HOME, ".claude/skills/gstack/node_modules/x.js"));
-const { chromium } = require("playwright-core");
+// Resolve the browser driver from wherever it actually lives: a local install (CI does `npm i playwright-core`),
+// then a couple of well-known developer locations. Hard-coding one path is how a harness passes on the author's
+// machine and is silently unavailable everywhere else.
+function loadDriver() {
+  const roots = [
+    import.meta.url,                                                   // this repo's node_modules, if any
+    ...(process.env.PLAYWRIGHT_DRIVER_PATH ? [`file://${process.env.PLAYWRIGHT_DRIVER_PATH}/x.js`] : []),
+    `file://${join(process.env.HOME ?? "", ".claude/skills/gstack/node_modules/x.js")}`,
+  ];
+  for (const r of roots) {
+    try { return createRequire(r)("playwright-core"); } catch { /* try the next */ }
+  }
+  return null;
+}
+const driver = loadDriver();
+if (!driver) {
+  console.error("playwright-core is not installed, so the browser surface cannot be checked.");
+  console.error("Install it (npm i -D playwright-core) or set PLAYWRIGHT_DRIVER_PATH to a node_modules directory.");
+  process.exit(1);
+}
+const { chromium } = driver;
 
 // Resolve a browser WITHOUT hard-coding a vendor's binary path. Beyond neutrality (S7 rightly flags a product name
 // baked into source), a pinned path is simply wrong on anyone else's machine — the driver's own default already

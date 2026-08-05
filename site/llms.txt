@@ -23,7 +23,7 @@ Public reference implementation (two signed, board-proven releases; current: v0.
 - [/skills.md](skills.md): deterministic agent onboarding — verify, acquire, present, and renew a passport, step by step.
 - [/.well-known/skills/index.json](.well-known/skills/index.json): machine-readable skill index. Install with `skills add https://ainra.vercel.app/.well-known/skills/index.json`.
 - [/get.html](get.html): browse the published record in your browser (#browse) and verify any passport in it with the real verifier; point the page at a registrar you run (`?reg=<url>`) and the same page mints, presents, and revokes.
-- [/verify.html#try](verify.html#try): verify — and try to forge — a passport offline in the browser, with the real verifier over bundled specimen fixtures.
+- [/verify.html#try](verify.html#try): verify — and try to forge — a passport offline in the browser. The engine is ainra-core itself, the Rust verify path compiled to WebAssembly; the same corpus that gates the Rust build is run through that exact artifact in a headless browser and must agree 745/745. Pick a specimen or paste your own bundle. If WebAssembly cannot load, the page falls back to the JavaScript mirror and says so.
 - [/#agents](index.html#agents): the machine door — `window.ainra.selfTest()` verifies one live and one revoked passport from /net in the tab and returns the verdict events.
 
 ## The four functions (what the root does — and only this)

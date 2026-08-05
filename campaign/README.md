@@ -15,6 +15,7 @@ deadline is a promise about a calendar, which is the one claim this repository c
 | [`GATES.md`](GATES.md) | The public gate register — K1 and K4, their bars, and every reading on the record. |
 | [`TEMPLATES.md`](TEMPLATES.md) | The six asks, the categories of people to send them to, and the interview script. |
 | [`JURISDICTION.md`](JURISDICTION.md) | Which country the root incorporates in. Undecided; step 4 of the sequence. |
+| [`FREE-INFRASTRUCTURE.md`](FREE-INFRASTRUCTURE.md) | What a pre-entity, pre-revenue root can get for nothing — ranked, with the ones to refuse. |
 | `gates.json` | The machine-readable gate register. `GATES.md`'s table is generated from it. |
 
 ## The one command

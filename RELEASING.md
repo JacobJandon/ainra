@@ -76,6 +76,13 @@ Then the maintainer:
 environment with its quickstart passing (M24 Task 4) — so all that remains for a human is to press the button once
 the version is final.
 
+> **Wire provenance in the SAME pass — it cannot be retrofitted.** A version published without attestation stays
+> that way forever. npm takes `--provenance` (signed by the public-good Sigstore instance and logged in a public
+> transparency ledger — needs `id-token: write` and a case-exact `repository` field); PyPI takes PEP 740
+> attestations via Trusted Publishers; crates.io has Trusted Publishing over OIDC and owners can now *enforce* it,
+> disabling token publishing entirely. All three are free and need no legal entity. See
+> [`campaign/FREE-INFRASTRUCTURE.md`](campaign/FREE-INFRASTRUCTURE.md).
+
 **Run `make publish-preflight` first.** It re-proves every one of those dry runs on the machine you are about to
 publish from — versions agree across all four packages, the version is tagged, each package packs with a README and
 a license and no local `file:` dependency, and the packed npm tarball *and* the built wheel each install into a

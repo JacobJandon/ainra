@@ -43,6 +43,23 @@ counterpart a trust root eventually acquires.
 signatures. It opens EU innovation funding routes. Against it: those funding rhythms are slower than the gate dates
 in [`GATES.md`](GATES.md), and the entity buys nothing with the regulator or grant body in the first option.
 
+## The finding that cuts the other way (2026-08-05)
+
+A sweep of free infrastructure ([`FREE-INFRASTRUCTURE.md`](FREE-INFRASTRUCTURE.md)) turned up a pattern nobody
+expected: **incorporating may cost more than it unlocks, at this stage.** Programmes AINRA qualifies for *today*
+gate on being non-commercial or on being a natural person: a major edge provider's OSS programme requires you
+*"operate solely on a non-profit basis"*, a developer-tools grant requires *"non-commercial open source development"*,
+an AI-tooling programme requires *"a natural person, not a corporation"*, and a hosting programme excludes anything
+that is *"a commercial project"*. **NLnet — the best funding fit found,
+€5k–€50k — states outright that you may apply as an individual and that not having an entity yet is not a problem.**
+The Commons Conservancy offers a legal home at *no cost at all*, designed precisely for projects without an entity.
+
+Against that, the only in-scope programme a company would unlock is a startup track AINRA fails on other grounds.
+
+This does not settle the question — the regulator conversation and the custodian paperwork still want a legal person,
+and that argument is unchanged. But "incorporate early to unlock things" is now the weaker half of the case, and the
+memo should not pretend otherwise. Consider whether a Commons Conservancy conversation comes *before* a filing.
+
 ## The recommendation
 
 **Take the UK shell now for the institution and the grant path; keep your Bulgarian base personally; revisit an EU

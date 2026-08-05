@@ -1,0 +1,18 @@
+# Free for public repos, no account, no entity. Keeps the dependency floor honest between audits —
+# a trust root that ships stale crypto dependencies is making a claim it cannot support.
+version: 2
+updates:
+  - package-ecosystem: cargo
+    directory: /
+    schedule: { interval: weekly }
+    open-pull-requests-limit: 5
+  - package-ecosystem: npm
+    directories: ["/packages/sdk-ts", "/packages/middleware", "/packages/mcp", "/apps/cli-node"]
+    schedule: { interval: weekly }
+    open-pull-requests-limit: 5
+  - package-ecosystem: pip
+    directory: /packages/sdk-py
+    schedule: { interval: weekly }
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: weekly }

@@ -1,0 +1,29 @@
+# OpenSSF Scorecard — 23 automated supply-chain checks, free for public repos, no entity required.
+# A project whose entire pitch is "don't trust us, verify us" should publish a third-party-legible
+# score rather than asking anyone to take our word for the same properties.
+name: scorecard
+on:
+  branch_protection_rule:
+  schedule: [{ cron: "27 5 * * 1" }]
+  push: { branches: [main] }
+  workflow_dispatch:
+permissions: read-all
+jobs:
+  analysis:
+    name: Scorecard analysis
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write   # upload the SARIF result to the security tab
+      id-token: write          # publish the result so the badge can resolve it
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      - uses: ossf/scorecard-action@v2
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          publish_results: true
+      - uses: github/codeql-action/upload-sarif@v3
+        with: { sarif_file: results.sarif }

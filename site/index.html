@@ -266,6 +266,29 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:99;opa
 @media(max-width:760px){.spark{display:none}.hand-r{width:44vw;right:-20vw;top:9vh;opacity:.45}.hand-l{width:48vw;left:-16vw;bottom:1vh;opacity:.6}}
 nav .btn{white-space:nowrap;flex:none}
 @media(max-width:1360px){.brand .mean{display:none}}
+/* the loop — prove on the left, check on the right, the arrow between them is the whole product */
+.pair{display:grid;grid-template-columns:1fr 44px 1fr;gap:18px;align-items:start;margin-top:26px}
+.pr-side{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px}
+.pr-k{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--green);margin-bottom:12px}
+.pr-lbl{display:block;font-size:13px;color:var(--muted);margin-bottom:7px}
+.pr-in{width:100%;font-family:var(--mono);font-size:12px;color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:10px 11px}
+.pr-in:focus-visible{border-color:var(--green)}
+.pr-ta{resize:vertical;line-height:1.5;word-break:break-all}
+.pr-go{margin-top:12px;width:100%}
+.pr-out{margin-top:14px;position:relative}
+.pr-out code{display:block;font-family:var(--mono);font-size:11px;background:#0A101E;color:#B9F4D8;border-radius:8px;padding:12px 68px 12px 12px;word-break:break-all;line-height:1.5}
+.pr-copy{position:absolute;top:9px;right:9px;font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.6);border:1px solid rgba(255,255,255,.2);border-radius:6px;padding:6px 10px;background:none;cursor:pointer;transition:color .15s,border-color .15s,background .1s ease-out}
+.pr-copy:hover{color:#fff;border-color:rgba(255,255,255,.5)}
+.pr-copy:active{background:rgba(255,255,255,.14);color:#fff}
+.pr-note{margin-top:10px;font-size:12px;color:var(--muted);line-height:1.5}
+.pr-arrow{align-self:center;text-align:center;font-family:var(--mono);font-size:20px;color:var(--green);opacity:.5}
+.pr-verdict{margin-top:14px;border-radius:8px;padding:13px 14px;font-family:var(--mono);font-size:11.5px;line-height:1.6}
+.pr-verdict.ok{background:rgba(26,107,78,.09);border:1px solid rgba(26,107,78,.35);color:var(--green)}
+.pr-verdict.no{background:rgba(138,106,20,.09);border:1px solid rgba(138,106,20,.4);color:var(--amber)}
+.pr-verdict b{display:block;font-size:13px;margin-bottom:7px;letter-spacing:.06em}
+.pr-verdict .pc{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;color:var(--muted);font-size:11px;margin-top:9px;padding-top:9px;border-top:1px dashed var(--line)}
+.pr-verdict .pc i{font-style:normal;color:var(--ink)}
+@media(max-width:820px){.pair{grid-template-columns:1fr;gap:12px}.pr-arrow{transform:rotate(90deg);font-size:16px}}
 /* the agents door — a button unmistakably for machines, inside the integrate section */
 .agent-strip{display:flex;flex-direction:column;align-items:center;gap:9px;margin-top:26px}
 .agent-cta{font-family:var(--mono);font-size:12.5px;font-weight:700;letter-spacing:.16em;color:var(--green);
@@ -462,11 +485,11 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
   </div>
     <div class="wrap">
     <div class="kick rv in">TURNING FUTURE INTO A WORKING PRESENT</div>
-    <h1 class="rv in">Every agent needs<br>an <span class="u">identity</span>.</h1>
+    <h1 class="rv in">Prove your agent.<br>Check <span class="u">theirs</span>.</h1>
     <div class="subkick rv in" aria-label="The identity layer for autonomous AI">THE IDENTITY LAYER FOR AUTONOMOUS AI</div>
     <p class="sub rv in">Autonomous AI already acts — buying, building, paying other agents, even renting humans. Agent IDs are multiplying, each an island. <b>One neutral root under them all.</b></p>
     <div class="cta-row rv in">
-      <a class="btn btn-green" href="verify.html#try">Try it live →</a>
+      <a class="btn btn-green" href="#pair">Prove &amp; check →</a>
       <a class="btn btn-ghost" href="docs.html#standard">Read the standard</a>
     </div>
 
@@ -523,6 +546,37 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
 </header>
 
 <div class="wrap"><div class="life-note rv">SIMPLE RULES → COMPLEX SYSTEMS</div></div>
+
+<section id="pair" class="rv" style="padding:30px 0 6px">
+  <div class="wrap" style="max-width:1000px">
+    <div class="sec-head" style="text-align:center;max-width:640px;margin:0 auto">
+      <span class="eyebrow">The loop</span>
+      <h2>Two sides of one check.</h2>
+      <p class="lede" style="margin-top:10px">One side proves, the other checks — and the check runs on the checker's own machine, never ours. Try both, right here.</p>
+    </div>
+    <div class="pair">
+      <div class="pr-side">
+        <span class="pr-k">① Prove — you have an agent</span>
+        <label class="pr-lbl" for="pv-pick">Pick one from the public record</label>
+        <select id="pv-pick" class="pr-in"></select>
+        <button class="btn btn-green pr-go" id="pv-make" type="button">Make a proof link →</button>
+        <div class="pr-out" id="pv-out" hidden>
+          <code id="pv-link"></code>
+          <button class="pr-copy" id="pv-copy" type="button">COPY</button>
+          <p class="pr-note">Hand this to anyone. It carries the agent's name — the record it points at is public, so they verify it themselves without asking you, or us, for anything.</p>
+        </div>
+      </div>
+      <div class="pr-arrow" aria-hidden="true">→</div>
+      <div class="pr-side">
+        <span class="pr-k">② Check — someone showed you one</span>
+        <label class="pr-lbl" for="pv-in">Paste a proof link, an agent name, or a full bundle</label>
+        <textarea id="pv-in" class="pr-in pr-ta" rows="2" placeholder="ainra:registrar-07:acme:invoicing@4.2.1"></textarea>
+        <button class="btn btn-ghost pr-go" id="pv-check" type="button">Check it →</button>
+        <div class="pr-verdict" id="pv-verdict" hidden aria-live="polite"></div>
+      </div>
+    </div>
+  </div>
+</section>
 
 <section id="integrate" class="rv" style="padding:48px 0 14px">
   <div class="wrap">
@@ -880,8 +934,10 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
    verifies one live passport AND one revoked one with the real bundled verifier, and returns machine-readable
    verdict events. No account, no server of ours, nothing uploaded — the check runs in this tab. */
 const MAP = { llms: "/llms.txt", skills: "/skills.md", skills_index: "/.well-known/skills/index.json", record: "/net/registry.json", source: "https://github.com/JacobJandon/ainra" };
+let SDK = null;
+const sdk = async () => (SDK ||= await import("./vendor/ainra-sdk.js"));
 async function selfTest() {
-  const { runVector, verdictEvent } = await import("./vendor/ainra-sdk.js");
+  const { runVector, verdictEvent } = await sdk();
   const REG = await (await fetch("net/registry.json", { cache: "no-store" })).json();
   const NOW = REG.generated_window?.verified_at ?? 0;
   const wire = (rec, R) => ({ name: rec.sub, expect: {},
@@ -907,6 +963,94 @@ async function selfTest() {
     note: "verified locally in this tab against the published record — the root did no work and saw nothing" };
 }
 window.ainra = { selfTest, map: MAP };
+
+/* ── the loop: prove ⇄ check ──────────────────────────────────────────────────────────────────────
+   A proof link carries the agent's NAME, not the credential: the record it points at is public, so the
+   person you hand it to resolves it and verifies the signatures in their own browser — without asking
+   you, or us, for anything. Pasting a full bundle works too (that is what a real integration receives).
+   Nothing is uploaded and no request reaches us; the check is the same runVector the SDK ships. */
+let RECORD = null;
+async function record() {
+  if (!RECORD) {
+    const REG = await (await fetch("net/registry.json", { cache: "no-store" })).json();
+    const rows = [];
+    for (const R of REG.registrars || []) for (const e of R.records || []) rows.push({ rec: e.record, R });
+    RECORD = { REG, rows, now: REG.generated_window?.verified_at ?? 0 };
+  }
+  return RECORD;
+}
+const toWire = (rec, R, now) => ({ name: rec.sub, expect: {},
+  anchors: { [R.registrar]: { issuer_key: R.accreditation.issuer_key, log_root_key: R.accreditation.log_root_key } },
+  presentation: { claims: btoa(String.fromCharCode(...new TextEncoder().encode(rec.claims))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,""),
+    issuer_sig: { ed25519: rec.issuer_sig_ed25519, mldsa65: rec.issuer_sig_mldsa65 },
+    now, chain_keys: rec.chain_keys, hop_proofs: rec.hop_proofs,
+    status_list: R.status_list.status_list_b64, status_len: R.status_list.bit_len, status_issued_at: R.status_list.issued_at,
+    freshness: "F3", checkpoint: { origin: rec.log_origin, size: rec.checkpoint_size, root: rec.checkpoint_root },
+    checkpoint_sig: rec.checkpoint_sig, leaf_index: rec.leaf_index, inclusion_proof: rec.inclusion_proof,
+    mandate_revocations: [], revoked_delegates: [] } });
+
+const $ = (id) => document.getElementById(id);
+(async function loop() {
+  const pick = $("pv-pick"); if (!pick) return;
+  const { rows } = await record();
+  rows.sort((a, b) => (a.rec.revoked ? 1 : 0) - (b.rec.revoked ? 1 : 0));
+  for (const r of rows) {
+    const o = document.createElement("option");
+    o.value = r.rec.sub; o.textContent = r.rec.sub + (r.rec.revoked ? "  · revoked" : "");
+    pick.appendChild(o);
+  }
+  const linkFor = (name) => location.origin + location.pathname + "#check=" + encodeURIComponent(name);
+  $("pv-make").addEventListener("click", () => {
+    $("pv-link").textContent = linkFor(pick.value);
+    $("pv-out").hidden = false;
+  });
+  $("pv-copy").addEventListener("click", () => {
+    const btn = $("pv-copy"), txt = $("pv-link").textContent;
+    (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject())
+      .then(() => { btn.textContent = "COPIED"; setTimeout(() => (btn.textContent = "COPY"), 1400); },
+            () => { btn.textContent = "COPY FAILED"; setTimeout(() => (btn.textContent = "COPY"), 1600); });
+  });
+
+  const out = $("pv-verdict");
+  const show = (ok, head, pieces) => {
+    out.hidden = false; out.className = "pr-verdict " + (ok ? "ok" : "no");
+    out.innerHTML = "<b>" + head + "</b>" + (pieces
+      ? '<div class="pc">' + pieces.map(([k, v]) => "<span>" + k + "</span><i>" + v + "</i>").join("") + "</div>"
+      : "");
+  };
+  async function check() {
+    const raw = $("pv-in").value.trim();
+    if (!raw) return show(false, "NOTHING TO CHECK · paste a link, a name, or a bundle");
+    const { rows, now } = await record();
+    let wire = null, name = raw;
+    if (raw.startsWith("{")) { try { wire = JSON.parse(raw); name = wire.name || "(bundle)"; } catch { return show(false, "INVALID · that is not readable JSON"); } }
+    else {
+      const m = raw.match(/#check=([^&\s]+)/); if (m) name = decodeURIComponent(m[1]);
+      const hit = rows.find((r) => r.rec.sub === name);
+      if (!hit) return show(false, "NOT IN THE RECORD · no agent published under that name");
+      wire = toWire(hit.rec, hit.R, now);
+    }
+    const { runVector, verdictEvent } = await sdk();
+    let v; try { v = runVector(wire); } catch (e) { return show(false, "INVALID · " + e.message); }
+    const ok = v.verdict === "valid";
+    let ev = {}; try { ev = verdictEvent(wire.presentation, v, now); } catch {}
+    const [, reg, op, rest] = (name.match(/^ainra:([^:]+):([^:]+):(.+)$/) || []);
+    show(ok, ok ? "VALID · this agent is who it says" : "INVALID · " + (v.reason || "refused"),
+      [["name", name], ["operator", op || "—"], ["registrar", reg || "—"],
+       ["authority", ev.tier || "—"], ["keys", "Ed25519 + ML-DSA-65"],
+       ["log entry", "leaf " + (wire.presentation.leaf_index ?? "—") + " · height " + (wire.presentation.checkpoint?.size ?? "—")],
+       ["checked", "in your browser — the root did no work and saw nothing"]]);
+  }
+  $("pv-check").addEventListener("click", check);
+
+  /* someone handed you a link: fill it in, check it, and take them to the answer */
+  const h = location.hash.match(/#check=([^&]+)/);
+  if (h) {
+    $("pv-in").value = decodeURIComponent(h[1]);
+    await check();
+    $("pv-in").closest("section").scrollIntoView({ block: "start" });
+  }
+})();
 const btn = document.getElementById("agentTest"), out = document.getElementById("agentOut");
 if (btn) { const idle = btn.innerHTML; btn.addEventListener("click", async () => {
   btn.disabled = true; btn.textContent = ">_ VERIFYING\u2026";

@@ -15,6 +15,7 @@ path = "src/main.rs"
 
 [dependencies]
 ainra-core = { path = "../../crates/ainra-core" }
+ainra-adapter = { path = "../../crates/ainra-adapter" }
 serde = { workspace = true, features = ["std"] }
 serde_json = { workspace = true, features = ["std"] }
 rand_core = { workspace = true }

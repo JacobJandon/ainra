@@ -1,0 +1,15 @@
+# SPDX-License-Identifier: Apache-2.0 OR MIT
+[package]
+name = "ainra-adapter"
+description = "The single Rust path from external bytes to ainra-core verify types. Pure: no I/O, no clock, no argv. Every consumer — vector generator, conformance runner, WASM surface — calls in here, so there is exactly one answer to what a wire encoding means."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]
+ainra-core = { path = "../ainra-core" }
+serde = { workspace = true, features = ["std"] }
+serde_json = { workspace = true, features = ["std"] }

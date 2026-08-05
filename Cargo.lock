@@ -9,6 +9,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "320119579fcad9c21884f5c4861d16174d0e06250625266f50fe6898340abefa"
 
 [[package]]
+name = "ainra-adapter"
+version = "0.3.0"
+dependencies = [
+ "ainra-core",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "ainra-ceremony"
 version = "0.3.0"
 dependencies = [
@@ -25,6 +34,7 @@ dependencies = [
 name = "ainra-cli-rs"
 version = "0.3.0"
 dependencies = [
+ "ainra-adapter",
  "ainra-core",
  "ainra-services",
  "rand_chacha 0.3.1",
@@ -69,6 +79,7 @@ dependencies = [
 name = "ainra-vector-gen"
 version = "0.3.0"
 dependencies = [
+ "ainra-adapter",
  "ainra-core",
  "rand_chacha 0.3.1",
  "rand_core 0.6.4",

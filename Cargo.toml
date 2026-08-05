@@ -4,6 +4,7 @@
 resolver = "2"
 members = [
     "crates/ainra-core",
+    "crates/ainra-adapter", # L5: the ONE bytes→core-types path; every consumer depends on it
     "crates/ainra-cli-rs",     # M3: the `ainra` reference CLI (offline + persistent, over core+services)
     "crates/ainra-ceremony",   # M4: FROST 5-of-9 root ceremony (signing side; never in the verify path)
     "tools/vector-gen",

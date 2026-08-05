@@ -56,6 +56,7 @@ run "ceremony dry-run"   "witness-reproducible"         bash tools/ceremony-dry-
 run "ceremony multi"     "FROST 5-of-9 across processes" bash tools/ceremony-rehearsal-multi.sh
 run "soak instrument"    "measured p95, signed report"  bash tools/soak-smoke.sh 12
 run "witness quorum"     "fork refused over HTTP"       bash tools/drill-networked.sh
+run "one decode path"    "no duplicate bytes→core parser" node tools/one-decode-path.mjs
 run "S7 neutrality"      "no brands / no impersonation" node tools/s7-lint.mjs
 run "license headers"    "SPDX on every source file"    node tools/license-check.mjs
 run "status honesty"     "README == STATUS claim"       node tools/status-consistency.mjs

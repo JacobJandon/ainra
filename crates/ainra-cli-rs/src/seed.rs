@@ -356,7 +356,7 @@ pub fn reverify_registry(registry: &serde_json::Value) -> (usize, Vec<String>) {
     let empty = Vec::new();
     for reg in registry["registrars"].as_array().unwrap_or(&empty) {
         // Rebuild trust anchors from the accreditation.
-        let anchors = anchors_from_export(reg);
+        let anchors = ainra_adapter::anchors_from_export_json(reg);
         let now = reg["verified_at"].as_u64().unwrap_or(VERIFY_NOW);
         let published: ainra_services::status::SignedStatusList =
             match serde_json::from_value(reg["status_list"].clone()) {
@@ -405,29 +405,6 @@ pub fn reverify_registry(registry: &serde_json::Value) -> (usize, Vec<String>) {
     (checked, bad)
 }
 
-fn anchors_from_export(reg: &serde_json::Value) -> ainra_core::verify::TrustAnchors {
-    use ainra_core::{crypto, verify};
-    let mut registrars = std::collections::BTreeMap::new();
-    let acc = &reg["accreditation"];
-    let id = acc["registrar"].as_str().unwrap_or("").to_string();
-    let ed = b64::decode(acc["issuer_key"]["ed25519"].as_str().unwrap_or(""))
-        .ok()
-        .and_then(|v| v.try_into().ok())
-        .unwrap_or([0u8; 32]);
-    let ml = b64::decode(acc["issuer_key"]["mldsa65"].as_str().unwrap_or("")).unwrap_or_default();
-    let log_root = b64::decode(acc["log_root_key"].as_str().unwrap_or("")).unwrap_or_default();
-    registrars.insert(
-        id,
-        verify::RegistrarInfo {
-            issuer_key: crypto::HybridPublic {
-                ed25519: ed,
-                mldsa65: ml,
-            },
-            log_root_key: log_root,
-        },
-    );
-    verify::TrustAnchors { registrars }
-}
 
 /// A deterministic principal-proof reference (opaque hex; never PII) so each lineage's authority proof is stable.
 /// FNV-1a over `registrar:lineage` → 16 hex chars — just an opaque, stable reference (never a real attestation).

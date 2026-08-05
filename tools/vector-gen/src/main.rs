@@ -16,99 +16,15 @@
 use std::collections::BTreeMap;
 use std::path::Path;
 
+// L5: every bytes → core-types conversion moved to ainra-adapter. This binary keeps only binary concerns
+// (argv, file I/O, printing) and calls the ONE decode path for everything else.
+use ainra_adapter::*;
+use serde_json::{json, Value};
 use ainra_core::passport::ActLink;
 use ainra_core::verdict::{Reason, Verdict};
-use ainra_core::{b64, canon, chain, checkpoint, crypto, mandate, merkle, status, verify};
+use ainra_core::{b64, canon, chain, checkpoint, crypto, merkle, status, verify};
 use rand_chacha::ChaCha20Rng;
 use rand_core::SeedableRng;
-use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
-
-// ── Wire format (stable; the TS SDK mirrors these exact field names) ───────────────────────────────────────────
-
-#[derive(Serialize, Deserialize, Clone)]
-struct WireKey {
-    ed25519: String,
-    mldsa65: String,
-}
-#[derive(Serialize, Deserialize, Clone)]
-struct WireSig {
-    ed25519: String,
-    mldsa65: String,
-}
-#[derive(Serialize, Deserialize, Clone)]
-struct WireRegistrar {
-    issuer_key: WireKey,
-    log_root_key: String,
-}
-#[derive(Serialize, Deserialize, Clone)]
-struct WireCheckpoint {
-    origin: String,
-    size: u64,
-    root: String,
-}
-/// One hop's transparency-log inclusion evidence (M2 D-012).
-#[derive(Serialize, Deserialize, Clone)]
-struct WireHopProof {
-    leaf_index: u64,
-    proof: Vec<String>,
-}
-/// A checkpoint signature in one of the two ADR-002 modes.
-#[derive(Serialize, Deserialize, Clone)]
-struct WireCheckpointSig {
-    mode: String, // "root" | "delegate"
-    #[serde(skip_serializing_if = "Option::is_none")]
-    slh: Option<String>, // root mode
-    #[serde(skip_serializing_if = "Option::is_none")]
-    cert: Option<WireDelegateCert>, // delegate mode
-    #[serde(skip_serializing_if = "Option::is_none")]
-    sig_ed25519: Option<String>, // delegate mode
-}
-#[derive(Serialize, Deserialize, Clone)]
-struct WireDelegateCert {
-    delegate_ed25519: String,
-    scopes: Vec<String>,
-    nbf: u64,
-    exp: u64,
-    sig_slh: String,
-}
-#[derive(Serialize, Deserialize, Clone)]
-struct WirePresentation {
-    claims: String,
-    issuer_sig: WireSig,
-    now: u64,
-    // One key per chain PARTY (hops + 1): [delegator_0, delegatee_0=delegator_1, …, subject] (M2 D-012).
-    chain_keys: Vec<WireKey>,
-    hop_proofs: Vec<WireHopProof>,
-    status_list: String,
-    status_len: u64,
-    status_issued_at: u64,
-    freshness: String,
-    checkpoint: WireCheckpoint,
-    checkpoint_sig: WireCheckpointSig,
-    leaf_index: u64,
-    inclusion_proof: Vec<String>,
-    // The operative mandate path is inside the signed `claims` (authenticated); only the revocation set is here.
-    mandate_revocations: Vec<String>,
-    /// Revoked delegate-cert fingerprints (base64url SHA-256), M4. Omitted (default empty) for pre-M4 vectors so
-    /// the existing corpus is byte-unchanged.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    revoked_delegates: Vec<String>,
-}
-#[derive(Serialize, Deserialize, Clone)]
-struct WireExpect {
-    verdict: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    reason: Option<String>,
-}
-#[derive(Serialize, Deserialize, Clone)]
-struct Vector {
-    name: String,
-    description: String,
-    expect: WireExpect,
-    anchors: BTreeMap<String, WireRegistrar>,
-    presentation: WirePresentation,
-}
 
 // ── Credential construction (issuer side, full control incl. secret keys) ──────────────────────────────────────
 
@@ -676,124 +592,8 @@ fn invalid(mut v: Vector, reason: Reason, description: &str) -> Vector {
 
 // ── Replay (the --check path) ──────────────────────────────────────────────────────────────────────────────────
 
-fn decode32(s: &str) -> [u8; 32] {
-    b64::decode_array::<32>(s).expect("32-byte field")
-}
-
-fn run(v: &Vector) -> Verdict {
-    let claims = b64::decode(&v.presentation.claims).expect("claims");
-    let issuer_sig = crypto::HybridSig {
-        ed25519: b64::decode(&v.presentation.issuer_sig.ed25519).expect("sig ed"),
-        mldsa65: b64::decode(&v.presentation.issuer_sig.mldsa65).expect("sig ml"),
-    };
-    let chain_keys: Vec<crypto::HybridPublic> = v
-        .presentation
-        .chain_keys
-        .iter()
-        .map(|k| crypto::HybridPublic {
-            ed25519: decode32(&k.ed25519),
-            mldsa65: b64::decode(&k.mldsa65).expect("ml"),
-        })
-        .collect();
-    let hop_proofs: Vec<verify::HopLogProof> = v
-        .presentation
-        .hop_proofs
-        .iter()
-        .map(|hp| verify::HopLogProof {
-            leaf_index: hp.leaf_index,
-            proof: hp.proof.iter().map(|s| decode32(s)).collect(),
-        })
-        .collect();
-    let checkpoint_sig = decode_cp_sig(&v.presentation.checkpoint_sig);
-    let status_list = status::StatusList::decode(
-        &b64::decode(&v.presentation.status_list).expect("status bytes"),
-        v.presentation.status_len as usize,
-    )
-    .expect("decode status list");
-    let checkpoint = checkpoint::Checkpoint {
-        origin: v.presentation.checkpoint.origin.clone(),
-        tree_size: v.presentation.checkpoint.size,
-        root: decode32(&v.presentation.checkpoint.root),
-    };
-    let inclusion_proof: Vec<[u8; 32]> = v
-        .presentation
-        .inclusion_proof
-        .iter()
-        .map(|s| decode32(s))
-        .collect();
-    let freshness = match v.presentation.freshness.as_str() {
-        "F1" => status::Freshness::F1,
-        "F2" => status::Freshness::F2,
-        "F3" => status::Freshness::F3,
-        other => panic!("unknown freshness {other}"),
-    };
-    let mandate_revocations =
-        mandate::RevocationSet::from_ids(v.presentation.mandate_revocations.clone());
-
-    let mut registrars = BTreeMap::new();
-    for (id, r) in &v.anchors {
-        registrars.insert(
-            id.clone(),
-            verify::RegistrarInfo {
-                issuer_key: crypto::HybridPublic {
-                    ed25519: decode32(&r.issuer_key.ed25519),
-                    mldsa65: b64::decode(&r.issuer_key.mldsa65).expect("issuer ml"),
-                },
-                log_root_key: b64::decode(&r.log_root_key).expect("log root"),
-            },
-        );
-    }
-    let anchors = verify::TrustAnchors { registrars };
-
-    let revoked_delegates: std::collections::BTreeSet<[u8; 32]> = v
-        .presentation
-        .revoked_delegates
-        .iter()
-        .map(|fp| decode32(fp))
-        .collect();
-    let pres = verify::Presentation {
-        claims: &claims,
-        issuer_sig,
-        now: v.presentation.now,
-        chain_keys,
-        hop_proofs,
-        status_list,
-        status_issued_at: v.presentation.status_issued_at,
-        freshness,
-        checkpoint,
-        checkpoint_sig,
-        leaf_index: v.presentation.leaf_index,
-        inclusion_proof,
-        mandate_path: Vec::new(),
-        mandate_proofs: Vec::new(),
-        mandate_revocations,
-        revoked_delegates,
-    };
-    verify::verify(&pres, &anchors)
-}
 
 /// Reconstruct a `CheckpointSig` from its wire form (root or ADR-002 delegate mode).
-fn decode_cp_sig(w: &WireCheckpointSig) -> checkpoint::CheckpointSig {
-    match w.mode.as_str() {
-        "root" => checkpoint::CheckpointSig::Root {
-            slh: b64::decode(w.slh.as_deref().unwrap_or("")).expect("slh"),
-        },
-        "delegate" => {
-            let c = w.cert.as_ref().expect("delegate cert");
-            checkpoint::CheckpointSig::Delegate {
-                cert: checkpoint::DelegateCert {
-                    delegate_ed25519: decode32(&c.delegate_ed25519),
-                    scopes: c.scopes.clone(),
-                    nbf: c.nbf,
-                    exp: c.exp,
-                    sig_slh: b64::decode(&c.sig_slh).expect("cert slh"),
-                },
-                sig_ed25519: b64::decode(w.sig_ed25519.as_deref().unwrap_or("")).expect("del sig"),
-            }
-        }
-        other => panic!("unknown checkpoint sig mode {other}"),
-    }
-}
 
 fn expected(v: &Vector) -> Verdict {
     if v.expect.verdict == "valid" {
@@ -1430,117 +1230,9 @@ fn generate() -> Vec<Vector> {
 // by the REAL core (`StatusDelta::verify` / `FreshHead::verify`) — never hand-written. The sdk-ts `runDeltaVector`
 // re-derives the same accept/reason; the diff harness compares (a core↔sdk cross-check on the delta codec).
 
-#[derive(Serialize, Deserialize, Clone)]
-struct WireDeltaCert {
-    delegate_ed25519: String,
-    scopes: Vec<String>,
-    nbf: u64,
-    exp: u64,
-    sig_slh: String,
-}
-#[derive(Serialize, Deserialize, Clone)]
-struct WireDeltaExpect {
-    accept: bool,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    reason: Option<String>,
-}
-#[derive(Serialize, Deserialize, Clone)]
-struct WireDeltaVector {
-    name: String,
-    kind: String, // "delta" | "fresh_head"
-    expect: WireDeltaExpect,
-    root_pub_slh: String,
-    cert: WireDeltaCert,
-    now: u64,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    registrar_pub: Option<WireKey>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    uri: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    from_seq: Option<u64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    seq: Option<u64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    ts: Option<u64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    idx: Option<Vec<u64>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    new_status: Option<bool>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    sig_registrar: Option<WireKey>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    countersig_delegate: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    status_hash: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    sig_delegate: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    freshness: Option<String>,
-}
-
-fn cert_wire(c: &checkpoint::DelegateCert) -> WireDeltaCert {
-    WireDeltaCert {
-        delegate_ed25519: b64::encode(&c.delegate_ed25519),
-        scopes: c.scopes.clone(),
-        nbf: c.nbf,
-        exp: c.exp,
-        sig_slh: b64::encode(&c.sig_slh),
-    }
-}
-fn reason_str(r: Reason) -> String {
-    r.as_str().to_string()
-}
 
 /// Run ainra-core's status-delta / fresh-head verify for one wire vector (shared by `--check-delta` and the
 /// conformance `--emit delta` stdin mode, so both exercise the SAME core path — no second reimplementation).
-fn delta_verify(v: &WireDeltaVector) -> Result<(), Reason> {
-    let root_pub = b64::decode(&v.root_pub_slh).expect("root pk");
-    let cert = checkpoint::DelegateCert {
-        delegate_ed25519: b64::decode_array::<32>(&v.cert.delegate_ed25519).expect("delegate pk"),
-        scopes: v.cert.scopes.clone(),
-        nbf: v.cert.nbf,
-        exp: v.cert.exp,
-        sig_slh: b64::decode(&v.cert.sig_slh).expect("cert sig"),
-    };
-    if v.kind == "delta" {
-        let reg = v.registrar_pub.as_ref().expect("registrar_pub");
-        let reg_pub = crypto::HybridPublic {
-            ed25519: b64::decode_array::<32>(&reg.ed25519).expect("reg ed"),
-            mldsa65: b64::decode(&reg.mldsa65).expect("reg ml"),
-        };
-        let sig = v.sig_registrar.as_ref().expect("sig_registrar");
-        let d = status::StatusDelta {
-            uri: v.uri.clone().expect("uri"),
-            from_seq: v.from_seq.expect("from_seq"),
-            seq: v.seq.expect("seq"),
-            ts: v.ts.expect("ts"),
-            idx: v.idx.clone().expect("idx"),
-            new_status: v.new_status.expect("new_status"),
-            sig_registrar: crypto::HybridSig {
-                ed25519: b64::decode(&sig.ed25519).expect("sig ed"),
-                mldsa65: b64::decode(&sig.mldsa65).expect("sig ml"),
-            },
-            countersig_delegate: b64::decode(v.countersig_delegate.as_deref().expect("countersig"))
-                .expect("countersig b64"),
-        };
-        d.verify(&reg_pub, &root_pub, &cert, v.now)
-    } else {
-        let h = status::FreshHead {
-            uri: v.uri.clone().expect("uri"),
-            seq: v.seq.expect("seq"),
-            ts: v.ts.expect("ts"),
-            status_hash: b64::decode_array::<32>(v.status_hash.as_deref().expect("hash"))
-                .expect("hash b64"),
-            sig_delegate: b64::decode(v.sig_delegate.as_deref().expect("sig")).expect("sig b64"),
-        };
-        let f = match v.freshness.as_deref() {
-            Some("F2") => status::Freshness::F2,
-            Some("F3") => status::Freshness::F3,
-            _ => status::Freshness::F1,
-        };
-        h.verify(&root_pub, &cert, v.now, f)
-    }
-}
 
 fn generate_delta_vectors() -> Vec<WireDeltaVector> {
     let mut rng = ChaCha20Rng::seed_from_u64(0x00DE_17A0);
@@ -2131,16 +1823,6 @@ fn emit_directory(dir: &str) {
 
 /// Run ainra-core's directory `accredit` for one directory wire vector (shared by `--check-directory` and the
 /// conformance `--emit directory` stdin mode).
-fn directory_result(v: &serde_json::Value) -> serde_json::Value {
-    let d: ainra_core::directory::Directory =
-        serde_json::from_value(v["directory"].clone()).expect("dir");
-    let root_ed = b64::decode_array::<32>(v["root_ed25519"].as_str().unwrap()).expect("ed");
-    let root_slh = b64::decode(v["root_slh"].as_str().unwrap()).expect("slh");
-    match d.accredit(&root_ed, &root_slh) {
-        Ok(acc) => json!({ "accept": true, "registrars": acc.anchors.registrars.len() }),
-        Err(_) => json!({ "accept": false }),
-    }
-}
 
 /// Conformance runner adapter (M24 Task 2): read published vectors as JSON Lines on stdin — one vector per line —
 /// and for each print `<name>\t<canonical-result-json>` computed by the REAL ainra-core verify path. This is the

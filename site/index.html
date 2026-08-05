@@ -137,6 +137,7 @@ nav{position:sticky;top:0;z-index:60;background:rgba(245,246,243,.93);backdrop-f
 .icopy:hover{color:#fff;border-color:rgba(255,255,255,.4)}
 .hero h1 .u{box-shadow:inset 0 -0.13em 0 rgba(26,107,78,.26)}
 .hero .sub{margin:14px auto 0;max-width:720px;font-size:16.5px;color:var(--muted)}
+.hero .sub2{margin-top:12px;max-width:700px;font-size:15px}
 /* the questions — the centerpiece (M25). Stacked list, one roving emphasized line; the full list is
    always in the markup, so no-JS and reduced-motion readers see everything with the first line lit. */
 @media(max-width:700px){.qs ul{grid-template-columns:1fr;gap:6px}}
@@ -399,6 +400,45 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
 .status .live i{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2.4s infinite}
 .openbadge{display:inline-flex;align-items:center;gap:9px;font-size:11px;font-weight:600;color:var(--muted);border:1px solid var(--line2);border-radius:99px;padding:6px 13px;font-family:var(--body);letter-spacing:0}
 @media(max-width:760px){.foot{grid-template-columns:1fr 1fr}}
+
+/* ── the root and its rings (L6). Reuses .dark, which the landing already defined but no longer used. ────── */
+.orbit-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:44px;align-items:center;position:relative;z-index:1}
+.orbit{width:100%;max-width:520px;margin:0 auto}
+.orbit svg{display:block;width:100%;height:auto}
+@media(max-width:1020px){.orbit-grid{grid-template-columns:1fr;gap:30px}}
+/* Below this the canvas scales under ~380px and the 11px chip labels would render around 6px. The legend names
+   every category in prose, so the chips go and the shape stays. An illegible label is worse than no label. */
+@media(max-width:760px){.ocats{display:none}}
+/* the legend is a CHAIN, not a set of boxes — everything visibly chains up to the root */
+.legend{display:grid;gap:0;position:relative}
+.legend::before{content:"";position:absolute;left:19px;top:30px;bottom:30px;width:2px;
+  background-image:linear-gradient(rgba(87,192,143,.5) 55%,transparent 55%);background-size:2px 9px}
+.leg{display:grid;grid-template-columns:40px 1fr;gap:16px;align-items:start;padding:15px 0;position:relative}
+.leg+.leg{border-top:1px dashed rgba(255,255,255,.10)}
+.leg .n{font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:var(--green-br);
+  background:var(--ink);border:1px solid rgba(87,192,143,.42);border-radius:50%;
+  width:38px;height:38px;display:flex;align-items:center;justify-content:center;position:relative;z-index:1}
+.leg b{font-family:var(--mono);font-size:10.5px;letter-spacing:.13em;color:var(--green-br);display:block;margin-bottom:6px}
+.leg p{font-size:14px;color:#B9C1CF;line-height:1.6}
+.leg.core .n{background:var(--green);border-color:var(--green);color:#fff}
+.leg.core b{color:#fff}
+@media(max-width:560px){.leg{grid-template-columns:32px 1fr;gap:12px}.leg .n{width:30px;height:30px;font-size:10px}.legend::before{left:15px}}
+/* what we stand for — stances, not features. Each is something we DO or REFUSE. */
+.stand{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);
+  border:1px solid var(--line);border-radius:14px;overflow:hidden}
+@media(max-width:900px){.stand{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:600px){.stand{grid-template-columns:1fr}}
+.st-cell{background:var(--card);padding:24px 22px}
+.st-cell .k{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--green);display:block;margin-bottom:9px}
+.st-cell .k.no{color:#8A2B2B}
+.st-cell h3{font-size:16.5px;font-weight:700;letter-spacing:-.015em;margin-bottom:6px;line-height:1.3}
+.st-cell p{font-size:13.5px;color:var(--muted);line-height:1.55}
+/* the field as it stands — an evidence strip; every number self-counted and dated */
+.field-note{margin-top:30px;font-size:13.5px;color:#98A1B3;line-height:1.7;max-width:820px}
+.field-note b{color:#E7EAF0}
+.field-note a{color:var(--green-br);font-weight:600;border-bottom:1px solid rgba(87,192,143,.4)}
+.field-note a:hover{border-bottom-color:var(--green-br)}
 </style>
 </head>
 <body id="top">
@@ -481,7 +521,8 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
     <div class="wrap">
     <div class="kick rv in">TURNING FUTURE INTO A WORKING PRESENT</div>
     <h1 class="rv in">Identity is <span class="u">assembled</span>,<br>not discovered.</h1>
-    <p class="sub rv in">Autonomous AI already acts — buying, building, paying other agents, even renting humans. Agent IDs are multiplying, each an island. <b>One neutral root under them all.</b></p>
+    <p class="sub rv in">Autonomous AI already acts — buying, building, paying other agents, paying humans for work. Every issuer hands out its own ID, and each one stops at its own edge. <b>One neutral root under all of them.</b></p>
+    <p class="sub sub2 rv in">Everyone is handing agents credentials. Nobody neutral is checking the ones they did not issue — or able to switch one off everywhere at once. That is the part we build, and the only part.</p>
     <div class="cta-row rv in">
       <a class="btn btn-green" href="verify.html#try">Try it live →</a>
       <a class="btn btn-ghost" href="docs.html#standard">Read the standard</a>
@@ -540,6 +581,114 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
 </header>
 
 <div class="wrap"><div class="life-note rv">SIMPLE RULES → COMPLEX SYSTEMS</div></div>
+
+<section id="root" class="dark rv">
+  <div class="wrap">
+    <div class="sec-head" style="max-width:820px">
+      <span class="eyebrow">The shape of it</span>
+      <h2>One root. Three rings.</h2>
+      <p class="lede">Registrars, directories and gateways are multiplying, and each one is complete on its own terms — it issues an ID, scopes it, and can switch it off. Inside its own walls. None of them can check an agent they did not issue, and none can switch one off beyond their own edge. Rings need a centre.</p>
+    </div>
+    <div class="orbit-grid">
+      <div class="orbit rv" role="presentation">
+              <svg viewBox="0 0 600 600" fill="none" role="img" aria-labelledby="ringsTitle ringsDesc">
+<title id="ringsTitle">The AINRA root and its three rings</title>
+<desc id="ringsDesc">A centre marked AINRA, the root. Ring 1, independent registrars: licensed issuers, enterprise directories, permissionless chains. Ring 2, agents carrying passports: commerce agents, code agents, autonomous fleets. Ring 3, verifiers: payment networks, edge and CDN, apps and APIs, chains and markets.</desc>
+<defs><style>
+.oring{stroke:rgba(255,255,255,.17);stroke-dasharray:3 7}
+.ochip{fill:#111B30;stroke:rgba(255,255,255,.24)}
+.ochip3{fill:#111B30;stroke:rgba(87,192,143,.5)}
+.otxt{font-family:'B612 Mono',ui-monospace,monospace;font-size:11px;letter-spacing:.08em;fill:#C6CDDA}
+.otag{font-family:'B612 Mono',ui-monospace,monospace;font-size:10px;letter-spacing:.14em;fill:#57C08F}
+.ocore{font-family:'B612 Mono',ui-monospace,monospace;font-size:15px;letter-spacing:.18em;fill:#fff}
+.oray{stroke:rgba(87,192,143,.28);stroke-dasharray:2 6}
+</style></defs>
+<circle cx="300" cy="300" r="140" class="oring" stroke-width="1.2"/>
+<circle cx="300" cy="300" r="208" class="oring" stroke-width="1.2"/>
+<circle cx="300" cy="300" r="276" class="oring" stroke-width="1.2"/>
+<line x1="300" y1="8" x2="300" y2="224" class="oray" stroke-width="1.2"/>
+<line x1="592" y1="300" x2="376" y2="300" class="oray" stroke-width="1.2"/>
+<line x1="300" y1="592" x2="300" y2="376" class="oray" stroke-width="1.2"/>
+<line x1="8" y1="300" x2="224" y2="300" class="oray" stroke-width="1.2"/>
+<circle cx="300" cy="300" r="68" fill="#0B1220" stroke="#1A6B4E" stroke-width="2"/>
+<circle cx="300" cy="300" r="59" fill="none" stroke="rgba(87,192,143,.32)" stroke-width="1"/>
+<text x="300" y="296" text-anchor="middle" class="ocore">AINRA</text>
+<text x="300" y="316" text-anchor="middle" class="otag">THE ROOT</text>
+<g class="ocats">
+<rect x="231" y="147" width="139" height="26" rx="13" class="ochip"/>
+<text x="300" y="164" text-anchor="middle" class="otxt">LICENSED ISSUERS</text>
+<rect x="88" y="357" width="181" height="26" rx="13" class="ochip"/>
+<text x="179" y="374" text-anchor="middle" class="otxt">ENTERPRISE DIRECTORIES</text>
+<rect x="334" y="357" width="174" height="26" rx="13" class="ochip"/>
+<text x="421" y="374" text-anchor="middle" class="otxt">PERMISSIONLESS CHAINS</text>
+<rect x="414" y="183" width="132" height="26" rx="13" class="ochip"/>
+<text x="480" y="200" text-anchor="middle" class="otxt">COMMERCE AGENTS</text>
+<rect x="68" y="183" width="104" height="26" rx="13" class="ochip"/>
+<text x="120" y="200" text-anchor="middle" class="otxt">CODE AGENTS</text>
+<rect x="227" y="495" width="146" height="26" rx="13" class="ochip"/>
+<text x="300" y="512" text-anchor="middle" class="otxt">AUTONOMOUS FLEETS</text>
+<rect x="369" y="48" width="139" height="26" rx="13" class="ochip3"/>
+<text x="438" y="65" text-anchor="middle" class="otxt">PAYMENT NETWORKS</text>
+<rect x="114" y="48" width="96" height="26" rx="13" class="ochip3"/>
+<text x="162" y="65" text-anchor="middle" class="otxt">EDGE &amp; CDN</text>
+<rect x="474" y="445" width="104" height="26" rx="13" class="ochip3"/>
+<text x="526" y="462" text-anchor="middle" class="otxt">APPS &amp; APIS</text>
+<rect x="5" y="445" width="139" height="26" rx="13" class="ochip3"/>
+<text x="74" y="462" text-anchor="middle" class="otxt">CHAINS &amp; MARKETS</text>
+</g>
+<circle cx="160" cy="300" r="12" fill="#0B1220" stroke="rgba(87,192,143,.55)" stroke-width="1.2"/>
+<text x="160" y="304" text-anchor="middle" class="otag">1</text>
+<circle cx="92" cy="300" r="12" fill="#0B1220" stroke="rgba(87,192,143,.55)" stroke-width="1.2"/>
+<text x="92" y="304" text-anchor="middle" class="otag">2</text>
+<circle cx="24" cy="300" r="12" fill="#0B1220" stroke="rgba(87,192,143,.55)" stroke-width="1.2"/>
+<text x="24" y="304" text-anchor="middle" class="otag">3</text>
+</svg>
+              </div>
+      <div class="legend rv">
+        <div class="leg core">
+          <span class="n" aria-hidden="true">00</span>
+          <div><b>THE ROOT — AINRA</b>
+          <p>Keys, rules, revocation, logs. Everything chains up to it; every check stays local and fast. It issues nothing itself and it never sees the transaction.</p></div>
+        </div>
+        <div class="leg">
+          <span class="n" aria-hidden="true">01</span>
+          <div><b>RING 1 · INDEPENDENT REGISTRARS</b>
+          <p>Separate organizations issuing under identical published rules — licensed issuers, enterprise directories, permissionless chains. Competitors on everything except the rulebook.</p></div>
+        </div>
+        <div class="leg">
+          <span class="n" aria-hidden="true">02</span>
+          <div><b>RING 2 · AGENTS</b>
+          <p>Each carries a passport chained to the root; its running copies get short-lived keys. Commerce agents, code agents, autonomous fleets — one grammar, whoever built them.</p></div>
+        </div>
+        <div class="leg">
+          <span class="n" aria-hidden="true">03</span>
+          <div><b>RING 3 · VERIFIERS</b>
+          <p>Anyone deciding whether to trust an agent — payment networks, edge and CDN, apps and APIs, chains and markets. The check runs on their own machine, and each picks its own bar.</p></div>
+        </div>
+      </div>
+    </div>
+    <p class="field-note">Counted by hand in <b>August 2026</b>, from each party's own published material: <b>130</b> distinct efforts to give AI agents an identity — <b>88</b> single-vendor products, <b>22</b> specifications, <b>11</b> non-profit bodies. Not one of the non-profits operates what it describes; each publishes a specification, convenes a group, or has announced an intent. Revoke an agent at one and it keeps working at all the rest. That is not a gap in anyone's product — it is a missing floor. <a href="https://github.com/JacobJandon/ainra/blob/main/docs/LANDSCAPE.md">The list, with a link on every row →</a></p>
+  </div>
+</section>
+
+<section id="stand" class="rv">
+  <div class="wrap">
+    <div class="sec-head" style="text-align:center;max-width:720px;margin:0 auto">
+      <span class="eyebrow">What we stand for</span>
+      <h2>Six commitments, and their costs.</h2>
+      <p class="lede">Each one is something we do, or refuse to do, forever. They are in the charter because they are worth more when we cannot change our minds.</p>
+    </div>
+    <div class="stand" style="margin-top:34px">
+      <div class="st-cell"><span class="k">We do</span><h3>Check agents we did not issue.</h3><p>A stranger's passport verifies the same as a member's. That is the whole point of a root — otherwise it is a walled garden with a nicer name.</p></div>
+      <div class="st-cell"><span class="k">We do</span><h3>Revoke across everyone at once.</h3><p>One switch, honoured everywhere, in under a minute — and it fails closed. Revocation that stops at your own edge is not revocation, it is housekeeping.</p></div>
+      <div class="st-cell"><span class="k">We do</span><h3>Answer offline, root dark.</h3><p>The check runs on the verifier's machine with no call to us. If we vanish tomorrow, every credential already issued still verifies.</p></div>
+      <div class="st-cell"><span class="k no">We refuse</span><h3>To score anyone.</h3><p>We return facts — who issued it, what it may do, is it still standing. Never a rating, never a ranking. The decision is the verifier's, and each picks its own bar.</p></div>
+      <div class="st-cell"><span class="k no">We refuse</span><h3>To profit from the position.</h3><p>Non-profit, capped fees, verification free forever. A root that can be squeezed will be squeezed — so the ability is removed, not promised.</p></div>
+      <div class="st-cell"><span class="k no">We refuse</span><h3>To flag without appeal.</h3><p>Accreditation is not self-registration, and removal is not a mood. Published rules, a named process, and a way to contest it.</p></div>
+    </div>
+  </div>
+</section>
+
 
 <section id="integrate" class="rv">
   <div class="wrap">

@@ -89,11 +89,24 @@ const brandPat = BRAND.map((n) => {
   const esc = n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   return { name: n, re: new RegExp(`(?<![.\\w])${esc}(?![\\w])`, "i") };
 });
+// ── Citation inventories: the ONE narrow, documented exemption ───────────────────────────────────────────────
+// S7 exists so we never use a real company's name as marketing, as a foil, or as impersonated fixture data. A
+// CITATION INVENTORY is the opposite act: its whole purpose is to name third parties accurately and link to the
+// primary source for each, so a reader can check us. THIRD-PARTY.md has always been exempt for exactly this reason
+// (it inventories every dependency by name); it was exempt only by living outside the scanned tree, which is a
+// weak kind of exemption. This makes the rule explicit instead.
+//
+// The bar for adding a file here is high and deliberately awkward: the file must (a) exist to cite third parties,
+// (b) carry a source link for every named party, and (c) make no comparative or promotional claim about them.
+// Marketing prose does not qualify, and never will. Keep this list at two entries unless there is a real reason.
+const CITATION_INVENTORIES = new Set(["THIRD-PARTY.md", "docs/LANDSCAPE.md"]);
+
 const PROSE_DIRS = ["docs", "kits", "outreach", "campaign", ".github", "site"];
 const PROSE_EXT = new Set([".md", ".txt", ".yml", ".yaml", ".html"]);
 const PROSE_FILES = ["README.md", "CONTRIBUTING.md", "SECURITY.md", "CODE_OF_CONDUCT.md", "GENESIS-CHECKLIST.md"];
 let brandHits = 0;
 function scanProse(label, text) {
+  if (CITATION_INVENTORIES.has(label)) return;   // see the note above — citing a source is not branding
   text.split("\n").forEach((line, i) => {
     for (const p of brandPat) {
       if (!p.re.test(line)) continue;

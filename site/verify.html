@@ -388,9 +388,7 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
 #try .tamper .lead{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;color:var(--amber);text-transform:uppercase;margin-bottom:10px}
 #try .tbtns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 #try .tbtn{border:1px solid var(--line);border-radius:9px;background:var(--paper);padding:9px 10px;text-align:left;font-size:12px;font-weight:600;color:var(--ink);transition:border-color .15s,background .15s}
-#try .tbtn:active,.rail button:active,.codewin .tab:active{transform:scale(.98)}
-.tbtn,.rail button,.codewin .tab{transition:transform .1s ease-out}
-.tbtn:hover{border-color:var(--red)}
+#try .tbtn:active,.rail button:active,.tbtn,.rail button,.tbtn:hover{border-color:var(--red)}
 #try .tbtn span{display:block;font-family:var(--mono);font-size:9px;font-weight:400;color:var(--muted);margin-top:2px;letter-spacing:.04em}
 #try .tbtn[aria-pressed="true"]{border-color:var(--red);background:rgba(168,58,44,.06)}
 #try .verdict-top{display:flex;align-items:center;gap:12px}
@@ -412,20 +410,6 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
 #try .err code{font-family:var(--mono);background:rgba(168,58,44,.12);padding:1px 5px;border-radius:4px}
 #try .btn-green{background:var(--green);color:#fff}#try .btn-green:hover{filter:brightness(1.1)}
 /* in-your-own-code — the five-surface code window (moved from the landing, L1.1) */
-.codewin{max-width:840px;margin:0 auto;background:var(--ink);border:1px solid rgba(11,18,32,.2);border-radius:16px;overflow:hidden;box-shadow:0 28px 64px -30px rgba(11,18,32,.35)}
-.codewin-bar{display:flex;align-items:center;gap:7px;padding:11px 16px;background:#111B30;border-bottom:1px solid rgba(245,246,243,.08)}
-.codewin-bar i{width:10px;height:10px;border-radius:50%;background:#2A3550;display:inline-block}
-.codewin-bar .cap{margin-left:8px;font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#7C8698}
-.codewin-bar button{margin-left:auto;font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:rgba(255,255,255,.55);border:1px solid rgba(255,255,255,.18);border-radius:6px;padding:4px 10px;transition:color .15s,border-color .15s}
-.codewin-bar button:hover{color:#fff;border-color:rgba(255,255,255,.4)}
-.codewin .tabs{display:flex;gap:2px;padding:10px 12px 0;flex-wrap:wrap;background:#111B30}
-.codewin .tab{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;color:#7C8698;background:none;border:1px solid transparent;border-radius:9px 9px 0 0;padding:8px 15px}
-.codewin .tab:hover{color:#C6CDDA}
-.codewin .tab.on{color:var(--green-br);background:#0A101E;border-color:rgba(245,246,243,.1);border-bottom-color:#0A101E}
-.codewin .codebox{background:#0A101E;border-top:1px solid rgba(245,246,243,.1);padding:20px 22px;font-family:var(--mono);font-size:12.5px;line-height:1.85;color:#C9D2E0;white-space:pre;overflow-x:auto;min-height:224px}
-.codewin .codebox .c{color:#8B94A6}.codewin .codebox .g{color:var(--green-br)}.codewin .codebox .w{color:#F5F6F3}
-.code-foot{display:flex;gap:10px 26px;justify-content:center;flex-wrap:wrap;margin:18px auto 0;font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:var(--muted)}
-.code-foot b{color:var(--green)}
 /* pixel display type (site-wide rollout, looks only) */
 h1,.sec-head h2,.hero-h{font-family:'Pixelify Sans',var(--display);font-weight:700;letter-spacing:.005em;line-height:1.04}
 .hero-h{font-size:clamp(1.9rem,4vw,2.75rem);margin-top:12px}
@@ -509,7 +493,7 @@ nav .ndocs[aria-current="page"],.nav-links a[aria-current="page"]{color:var(--gr
 <div class="org-cell rv"><h3>F2 <span>STANDARD</span></h3><p>Status list no older than five minutes, with signed deltas applied. Stale? Fails closed.</p></div>
 <div class="org-cell rv"><h3>F3 <span>OFFLINE</span></h3><p>Air-gapped verification against a cached list up to 24 hours old — still cryptographically complete, still fail-closed.</p></div></div>
 <div class="split rv" style="margin-top:34px">
-<div class="half"><b>REAL TODAY — THE REFERENCE CLI</b><p>A zero-dependency command-line tool with real signatures and a hash-chained local log. It issues, verifies, and revokes — and it catches tampering live: a forged tier and a rewritten log line are both rejected with the exact reason. <a href="ainra-cli-v0.3.0.zip" style="color:var(--green);font-weight:600">Download v0.3.0</a> and try to break it.</p></div>
+<div class="half"><b>REAL TODAY — THE REFERENCE CLI</b><p>A zero-dependency command-line tool with real signatures and a hash-chained local log. It issues, verifies and revokes — and it catches tampering live: a forged tier and a rewritten log line are both rejected with the exact reason. <a href="ainra-cli-v0.3.0.zip" style="color:var(--green);font-weight:600">Download v0.3.0</a> and try to break it.</p></div>
 <div class="fx" aria-hidden="true">→</div>
 <div class="half you"><b>AT FIRST PUBLIC RELEASE — AHEAD</b><p>The full reference implementation: verify in five lines with the SDK, a fail-closed middleware gate, registrar-in-a-box in one command, and the complete conformance vector set — published under CC0, so conformance never needs anyone's permission.</p></div></div>
 <p class="scan-note rv">VERIFICATION IS LOCAL · IT NEVER PHONES HOME · CONFORMANCE IS CLAIMED AGAINST THE VECTOR SET THAT SHIPS AT FIRST PUBLIC RELEASE, NOT GRANTED BY US</p>
@@ -560,35 +544,6 @@ nav .ndocs[aria-current="page"],.nav-links a[aria-current="page"]{color:var(--gr
   </div>
 </section>
 
-<section id="code" style="padding-top:0">
-  <div class="wrap">
-    <div class="sec-head rv" style="text-align:center;max-width:720px;margin:0 auto 36px">
-      <span class="eyebrow">In your own code</span>
-      <h2>Verify locally — one call, fail-closed.</h2>
-      <p class="lede" style="margin-top:12px">Point at the root-signed directory · verify the bundle (signature, authority, freshness, revocation, log inclusion) · gate on the verdict. VALID proceeds; anything else returns a named reason — the decision stays yours.</p>
-    </div>
-    <div class="codewin rv">
-      <div class="codewin-bar"><i></i><i></i><i></i><span class="cap" id="code-cap">verify.ts</span><button id="code-copy" type="button" aria-label="Copy code">COPY</button></div>
-      <div class="tabs" role="tablist" aria-label="Integration surface">
-        <button class="tab on" data-ct="ts" role="tab" aria-selected="true">TypeScript</button>
-        <button class="tab" data-ct="mw" role="tab" aria-selected="false">Middleware</button>
-        <button class="tab" data-ct="py" role="tab" aria-selected="false">Python</button>
-        <button class="tab" data-ct="rs" role="tab" aria-selected="false">Rust</button>
-        <button class="tab" data-ct="cli" role="tab" aria-selected="false">CLI</button>
-      </div>
-      <div class="codebox" id="codebox" role="tabpanel" aria-live="polite"><span class="c">// five lines — offline, root dark, fail-closed</span>
-<span class="c">// (the reference SDK ships in the CLI bundle — npm publish at genesis)</span>
-<span class="w">import</span> { Verifier } <span class="w">from</span> <span class="g">"@ainra/sdk"</span>;
-
-<span class="w">const</span> v = <span class="w">await</span> Verifier.fromDirectory(dir);
-<span class="w">const</span> verdict = v.verify(bundle, now);
-
-<span class="c">// → { status: "VALID" }</span>
-<span class="c">//   or a named reason: revoked | stale_status | …</span></div>
-    </div>
-    <div class="code-foot rv"><span>SAME VERDICT, SAME REASON — <b>4 IMPLEMENTATIONS, 745/745</b></span><span>ROOT OFFLINE · <b>NO CALLS TO US</b></span><span>FIRST FAILURE WINS · <b>FAIL-CLOSED</b></span></div>
-  </div>
-</section>
 
 <section style="padding-top:0" id="authority">
   <div class="wrap">
@@ -846,23 +801,6 @@ nav .ndocs[aria-current="page"],.nav-links a[aria-current="page"]{color:var(--gr
     if(!was){mi.classList.add('open');b.setAttribute('aria-expanded','true');}});});
   document.addEventListener('click',closeDD);
   document.addEventListener('keydown',function(e){if(e.key==='Escape')closeDD();});
-
-  /* in-your-own-code tabs (moved from the landing) */
-  var CODE_S={
-ts:'<span class="c">// five lines — offline, root dark, fail-closed</span>\n<span class="c">// (the reference SDK ships in the CLI bundle — npm publish at genesis)</span>\n<span class="w">import</span> { Verifier } <span class="w">from</span> <span class="g">"@ainra/sdk"</span>;\n\n<span class="w">const</span> v = <span class="w">await</span> Verifier.fromDirectory(dir);\n<span class="w">const</span> verdict = v.verify(bundle, now);\n\n<span class="c">// → { status: "VALID" }</span>\n<span class="c">//   or a named reason: revoked | stale_status | …</span>',
-mw:'<span class="c">// gate any route on a verified passport</span>\n<span class="w">import</span> { ainraGate, Verifier } <span class="w">from</span> <span class="g">"@ainra/middleware"</span>;\n\napp.use(<span class="g">"/agent"</span>, ainraGate(verifier));\n\n<span class="c">// invalid agents receive 403</span>\n<span class="c">// + x-ainra-reason header, fail-closed</span>',
-py:'<span class="c"># an independent verifier — offline, fail-closed</span>\n<span class="c"># pip install -e packages/sdk-py  (PyPI at genesis)</span>\n<span class="c"># agrees with core on every vector</span>\n<span class="w">from</span> ainra <span class="w">import</span> Verifier\n\nv = Verifier.from_directory(dir, root_ed, root_slh)\nverdict = v.verify(bundle, now)\n\n<span class="c"># → verdict.valid is True</span>\n<span class="c">#   or verdict.reason: revoked | stale_status | …</span>',
-rs:'<span class="c">// the reference core — pure, no I/O, no clock</span>\n<span class="w">let</span> verdict = ainra_core::verify(\n    &bundle, &directory, now,\n);\n\n<span class="c">// 9 documented checks, first failure wins;</span>\n<span class="c">// four implementations agree 745/745</span>',
-cli:'<span class="c"># the whole lifecycle, locally, no server</span>\n$ ainra init ./reg registrar-07\n$ ainra issue ./reg --operator acme \\\n    --lineage invoicing --version 1.0.0 --tier L2\n$ ainra verify ./reg \\\n    ainra:registrar-07:acme:invoicing@1.0.0\n<span class="g">VALID</span>   <span class="c"># the real verifier\u2019s output</span>'
-  };
-  var CODE_CAP={ts:'verify.ts',mw:'gate.ts',py:'verify.py',rs:'verify.rs',cli:'terminal'};
-  var cb=document.getElementById('codebox'), ccap=document.getElementById('code-cap'), ccopy=document.getElementById('code-copy');
-  if(cb){
-    var setCodeTab=function(k){cb.innerHTML=CODE_S[k];if(ccap)ccap.textContent=CODE_CAP[k];
-      document.querySelectorAll('.codewin .tab').forEach(function(t){var on=t.dataset.ct===k;t.classList.toggle('on',on);t.setAttribute('aria-selected',on?'true':'false');});};
-    document.querySelectorAll('.codewin .tab').forEach(function(t){t.addEventListener('click',function(){setCodeTab(t.dataset.ct);});});
-    if(ccopy)ccopy.addEventListener('click',function(){(navigator.clipboard?navigator.clipboard.writeText(cb.textContent):Promise.reject()).then(function(){ccopy.textContent='COPIED';setTimeout(function(){ccopy.textContent='COPY';},1400);},function(){});});
-  }
 })();
 </script>
 <script type="module">

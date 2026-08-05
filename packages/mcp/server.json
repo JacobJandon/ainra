@@ -1,0 +1,23 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-09-29/server.schema.json",
+  "name": "io.github.JacobJandon/ainra",
+  "description": "Verify an AI agent's identity offline: run the real AINRA verifier over a presentation bundle and get a verdict plus a named reason. Read-only tools need no credentials; write tools require explicit confirmation and a registrar you control.",
+  "repository": { "url": "https://github.com/JacobJandon/ainra", "source": "github" },
+  "version": "0.3.0",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "@ainra/mcp",
+      "version": "0.3.0",
+      "transport": { "type": "stdio" },
+      "environmentVariables": [
+        {
+          "name": "AINRA_TARGET",
+          "description": "A local registrar directory (e.g. genesis-out) or the base URL of an AINRA network you control. There is no hosted default and no fallback: if the target is unreachable the tools say so and stop.",
+          "isRequired": false,
+          "default": "genesis-out"
+        }
+      ]
+    }
+  ]
+}

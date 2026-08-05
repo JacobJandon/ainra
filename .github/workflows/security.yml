@@ -1,0 +1,73 @@
+# Free-for-public-repo security tooling, switched on. Each of these finds a different class of defect than the
+# four-way conformance differential does — agreement between implementations proves they read the spec the same
+# way; it says nothing about a panic on a malformed input or a stale dependency.
+name: security
+on:
+  push: { branches: [main] }
+  pull_request: { branches: [main] }
+  schedule: [{ cron: "17 3 * * 3" }]
+permissions: { contents: read }
+
+jobs:
+  audit:
+    name: cargo-audit — RustSec advisories against Cargo.lock
+    runs-on: ubuntu-latest
+    permissions: { contents: read }
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262   # v4
+      - run: cargo install cargo-audit --locked
+      - run: cargo audit --deny warnings
+
+  trivy:
+    name: trivy — vulns + secrets across cargo/npm/pip
+    runs-on: ubuntu-latest
+    permissions: { contents: read, security-events: write }
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262   # v4
+      # SHA-pinned deliberately: third-party reporting describes a March-2026 force-push that rewrote 75 of this
+      # action's 76 version tags to exfiltrate CI secrets. A moving tag is not a dependency, it is a promise.
+      - uses: aquasecurity/trivy-action@2736533278103862a861f4a35ebac3e97854d956
+        with:
+          scan-type: fs
+          scanners: vuln,secret
+          format: sarif
+          output: trivy.sarif
+          severity: HIGH,CRITICAL
+          exit-code: '0'      # report into the security tab; the audit job is the gate that fails
+      - uses: github/codeql-action/upload-sarif@v3
+        with: { sarif_file: trivy.sarif }
+
+  miri:
+    name: miri — undefined behaviour in the hand-rolled parsers
+    runs-on: ubuntu-latest
+    permissions: { contents: read }
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262   # v4
+      - name: nightly + miri
+        run: rustup toolchain install nightly --component miri && rustup default nightly
+      # The verify path parses attacker-controlled bytes (CBOR/COSE, base64url, inclusion proofs). Miri catches
+      # UB, out-of-bounds and alignment faults that a passing test suite happily hides.
+      - run: cargo +nightly miri setup
+      - run: cargo +nightly miri test -p ainra-core --lib
+        env: { MIRIFLAGS: "-Zmiri-disable-isolation" }
+
+  fuzz:
+    name: clusterfuzzlite — continuous fuzzing on the parsers
+    runs-on: ubuntu-latest
+    permissions: { contents: read, security-events: write }
+    strategy:
+      fail-fast: false
+      matrix: { sanitizer: [address] }
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262   # v4
+      - name: build fuzzers
+        uses: google/clusterfuzzlite/actions/build_fuzzers@884713a6c30a92e5e8544c39945cd7cb630abcd1 # v1
+        with: { language: rust, sanitizer: '${{ matrix.sanitizer }}' }
+      - name: run fuzzers
+        uses: google/clusterfuzzlite/actions/run_fuzzers@884713a6c30a92e5e8544c39945cd7cb630abcd1 # v1
+        with:
+          github-token: '${{ secrets.GITHUB_TOKEN }}'
+          fuzz-seconds: 300
+          mode: 'code-change'
+          sanitizer: '${{ matrix.sanitizer }}'
+          output-sarif: true

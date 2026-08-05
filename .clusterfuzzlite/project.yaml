@@ -1,0 +1,6 @@
+# ClusterFuzzLite — continuous fuzzing with no eligibility bar, unlike OSS-Fuzz, whose criterion is
+# "a significant user base and/or critical to the global IT infrastructure" (we meet neither yet, and
+# applying early would burn a first impression). Targets live in fuzz/fuzz_targets/.
+language: rust
+sanitizers:
+  - address

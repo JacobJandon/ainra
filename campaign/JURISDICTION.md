@@ -1,9 +1,11 @@
 <!-- SPDX-License-Identifier: Apache-2.0 OR MIT -->
 # Which country the root incorporates in
 
-**Decide at step 4 of the sequence and file in the same sitting.** The real cost here is not choosing the wrong one — it is
-choosing late. Every funding application, the regulator letter, and the custodian paperwork all block on an entity
-existing; each day undecided is a day all three are blocked at once.
+**Decide at step 4 of the sequence — and "wait" is one of the two valid answers.** This memo was written on the
+premise that every funding application, the regulator letter and the custodian paperwork block on an entity
+existing. Research since has shown that premise is largely wrong for the next few months: most of what is reachable
+today is reachable *because* there is no company. What remains true is that leaving the question open by default
+is the one outcome with no argument for it.
 
 ## The decision
 
@@ -60,12 +62,36 @@ This does not settle the question — the regulator conversation and the custodi
 and that argument is unchanged. But "incorporate early to unlock things" is now the weaker half of the case, and the
 memo should not pretend otherwise. Consider whether a Commons Conservancy conversation comes *before* a filing.
 
-## The recommendation
+## The decision table
 
-**Take the UK shell now for the institution and the grant path; keep your Bulgarian base personally; revisit an EU
-vehicle only if EU funding becomes the actual spine rather than a hoped-for one.** The reason is sequencing, not
-patriotism: the regulator conversation and the first grant application are both on the near path, and both want an
-entity that exists this month.
+| | **Incorporate now** | **Wait** |
+|---|---|---|
+| **Funding** | Unlocks nationality-gated public innovation grants. But the best-fitting funder found — €5k–€50k — **explicitly accepts individuals and states that having no entity yet "is not an issue"**, so it unlocks nothing there. | Keeps the programmes that gate on *non-commercial* or *natural person* status: an edge provider's OSS credits (*"operate solely on a non-profit basis"*), a developer-tools grant (*"non-commercial open source development"*), an AI-tooling programme (*"a natural person, not a corporation"*), a hosting programme that excludes *"a commercial project"*. Incorporating **forfeits** these. |
+| **Fiscal hosting** | Not needed — an entity can hold funds itself. | Available without an entity through a fiscal host (≈8–10% + processing), and through a no-cost legal-home foundation whose whole purpose is projects without one. Its gate is an **organization repository**, which costs an hour — see [`../docs/ORG-MOVE.md`](../docs/ORG-MOVE.md). |
+| **The regulator door** | Stronger. A public body that certifies human identity services talks to entities more naturally than to individuals. | Weaker, but not closed — an introductory conversation does not require one, and the letter is an introduction, not an application. |
+| **Custodian paperwork** | Stronger. Nine custodians across five jurisdictions eventually need a legal counterparty for whatever they sign. | Blocking only at the ceremony, which is not scheduled. |
+| **Neutrality optics** | An entity reads as an institution. | A personal account reads as one person's project — but that is fixed by the **organization move**, not by incorporating. Do not conflate the two. |
+| **Cost** | Filing, annual accounts, and the quiet one: the tax and reporting consequences of a non-resident director. | Zero, and reversible. |
+
+**What changed:** "incorporate early to unlock things" was the strong half of the case, and the free-infrastructure
+sweep inverted it — most of what is reachable *today* is reachable **because** there is no company. What survives
+untouched is the long game: the regulator conversation, the custodian paperwork, and the eventual institutional
+shell a root has to have. None of those is due this quarter.
+
+## The question only you can answer
+
+> **Does anything I need in the next 90 days require an entity to exist?**
+
+Work through it concretely: the funding application takes individuals. The witness network, the standards groups,
+the package registries, the CI tooling and the platform credits all take individuals or projects. The ceremony is
+unscheduled. The regulator letter is an introduction.
+
+If the answer is *no*, then the decision is **wait** — and record it as a decision, with the date and the reason,
+exactly as a filing would be recorded. **A decision to wait is a decision.** What is not acceptable is leaving this
+undecided by default, because that is indistinguishable from avoidance and it keeps showing up as BLOCKING in
+`make campaign-status` until someone writes a line here.
+
+If the answer is *yes*, name the thing. One concrete blocked item is enough to justify filing this month.
 
 ## Before you file — verify these yourself
 

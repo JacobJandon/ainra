@@ -6,9 +6,9 @@ multi-region run — those are M2 (§21).
 
 | Operation | Per-op | Throughput |
 |---|---|---|
-| Full credential verify — 9 steps (hybrid Ed25519+ML-DSA-65, SLH-DSA checkpoint, RFC 6962 inclusion) | 455.9 µs | 2193/s |
-| Canonical encode (representative claim body) | 347 ns | 2877930/s |
+| Full credential verify — 9 steps (hybrid Ed25519+ML-DSA-65, SLH-DSA checkpoint, RFC 6962 inclusion) | 489.0 µs | 2045/s |
+| Canonical encode (representative claim body) | 322 ns | 3101337/s |
 
-- verify: 660 vectors × 5 iterations = 3300 verifications.
+- verify: 745 vectors × 5 iterations = 3725 verifications.
 - SLH-DSA-SHA2-128s *signing* is the slow primitive (~0.2 s/op); *verifying* is fast — which is why a
   real log signs one checkpoint and serves many inclusion proofs.

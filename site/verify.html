@@ -21,7 +21,8 @@
 <meta name="twitter:image" content="https://ainra.vercel.app/og-cover.png">
 <noscript><style>.rv,.t-line,.verify-line{opacity:1!important;transform:none!important}.needs-js{display:none!important}#noscript-note{display:block!important}.sec-head .hero-h{font-family:var(--display);font-size:clamp(1.9rem,4vw,2.75rem);font-weight:730;line-height:1.1;margin-top:12px;letter-spacing:-.03em}
 
-</style></noscript><meta name="description" content="How AINRA verification works: four checks, a fail-closed freshness profile, a reference CLI you can download, and a verifier you can run in the browser.">
+</style></noscript><meta name="description" content="Check theirs — the other half of the loop. Four checks, fail-closed freshness, a reference CLI, and a verifier you can run in your own browser. Free, offline, no account.">
+<link rel="preload" href="fonts/pixelify-sans-700.woff2" as="font" type="font/woff2" crossorigin>
 <style>
 @font-face{font-family:'Pixelify Sans';font-style:normal;font-weight:700;font-display:swap;
   src:url(fonts/pixelify-sans-700.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+2013-2014,U+2018-201A,U+201C-201E,U+2022,U+2026}
@@ -39,7 +40,7 @@
    high-contrast reader darker text, a solid bar, and no moving field behind the words. */
 @media(prefers-reduced-transparency:reduce){nav{background:var(--paper);backdrop-filter:none}#life-field{display:none}}
 @media(prefers-contrast:more){:root{--muted:#3A4250}nav{background:var(--paper);backdrop-filter:none}#life-field{display:none}:focus-visible{outline-width:3px}}
-body{font-family:var(--body);background:var(--paper);color:var(--ink);font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased}
+body{font-family:var(--body);background:var(--paper);color:var(--ink);font-size:1rem;line-height:1.6;-webkit-font-smoothing:antialiased}
 ::selection{background:var(--green);color:#fff}
 a{color:inherit;text-decoration:none}
 .wrap{max-width:1080px;margin:0 auto;padding:0 24px}
@@ -57,7 +58,7 @@ button{font-family:var(--body);cursor:pointer;border:none;background:none;color:
 .brand .mean{border-left:1px solid var(--line);padding-left:12px;font-family:var(--mono);font-size:8.5px;line-height:1.5;letter-spacing:.16em;color:var(--muted);text-transform:uppercase;white-space:nowrap}
 @media(max-width:560px){.brand .mean{display:none}}
 
-nav{position:sticky;top:0;z-index:60;background:rgba(245,246,243,.86);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+nav{position:sticky;top:0;z-index:60;background:rgba(245,246,243,.93);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
 .nav-in{display:flex;align-items:center;justify-content:space-between;height:70px;gap:16px}
 .nav-links{display:flex;gap:24px;font-size:14px;font-weight:500;color:var(--muted)}
 .nav-links a:hover{color:var(--ink)}
@@ -68,6 +69,9 @@ nav{position:sticky;top:0;z-index:60;background:rgba(245,246,243,.86);backdrop-f
 .btn-ghost{border-color:var(--line);background:var(--card);color:var(--ink)}
 .btn-ghost:hover{border-color:var(--ink)}
 .burger{display:none;width:40px;height:40px;border:1px solid var(--line);border-radius:10px;background:var(--card);place-items:center;font-family:var(--mono);font-size:15px}
+.burger{transition:background .15s,color .15s,transform .1s ease-out}
+.burger:active{transform:scale(.96)}
+.burger[aria-expanded="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
 @media(max-width:900px){
   .nav-links{display:none;position:absolute;top:70px;left:0;right:0;background:var(--paper);border-bottom:1px solid var(--line);flex-direction:column;gap:0;padding:8px 24px}
   .nav-links a{padding:12px 0;border-top:1px solid var(--line)}
@@ -384,7 +388,9 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
 #try .tamper .lead{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;color:var(--amber);text-transform:uppercase;margin-bottom:10px}
 #try .tbtns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 #try .tbtn{border:1px solid var(--line);border-radius:9px;background:var(--paper);padding:9px 10px;text-align:left;font-size:12px;font-weight:600;color:var(--ink);transition:border-color .15s,background .15s}
-#try .tbtn:hover{border-color:var(--red)}
+#try .tbtn:active,.rail button:active,.codewin .tab:active{transform:scale(.98)}
+.tbtn,.rail button,.codewin .tab{transition:transform .1s ease-out}
+.tbtn:hover{border-color:var(--red)}
 #try .tbtn span{display:block;font-family:var(--mono);font-size:9px;font-weight:400;color:var(--muted);margin-top:2px;letter-spacing:.04em}
 #try .tbtn[aria-pressed="true"]{border-color:var(--red);background:rgba(168,58,44,.06)}
 #try .verdict-top{display:flex;align-items:center;gap:12px}
@@ -427,6 +433,7 @@ nav .btn{white-space:nowrap;flex:none}
 @media(max-width:1360px){.brand .mean{display:none}}
 nav .ndocs{font-size:14px;font-weight:500;color:var(--muted);padding:9px 12px;border-radius:10px}
 nav .ndocs:hover{color:var(--ink);background:rgba(11,18,32,.045)}
+nav .ndocs[aria-current="page"],.nav-links a[aria-current="page"]{color:var(--green);font-weight:700}
 @media(max-width:1150px){.nav-hide-mid{display:none}}
 @media(max-width:900px){nav .ndocs{display:none}}
 [id]{scroll-margin-top:92px}
@@ -488,7 +495,8 @@ nav .ndocs:hover{color:var(--ink);background:rgba(11,18,32,.045)}
 </div></nav>
 <main id="main"><section style="padding-top:118px"><div class="wrap">
 <div class="sec-head rv"><span class="eyebrow">For verifiers &amp; builders</span>
-<h1 class="hero-h">Verify anything.<br>Trust the source, not us.</h1>
+<h1 class="hero-h">Check theirs.<br>Trust the source, not us.</h1>
+    <p class="lede" style="margin-top:10px">One half of the loop — <a href="index.html#pair" style="color:var(--green);font-weight:600">prove yours</a> is the other. The check runs on your machine; nothing reaches us.</p>
 <p class="lede">Every check runs locally, from public artifacts, in milliseconds — offline-capable, with the root dark. Verification never reports to anyone.</p></div>
 <div class="flow rv">
 <div class="fstep"><b>1 · PRESENT</b><p>The agent's request arrives signed; the signature names its passport key.</p></div><div class="fx" aria-hidden="true">→</div>
@@ -783,7 +791,13 @@ nav .ndocs:hover{color:var(--ink);background:rgba(11,18,32,.045)}
   const termOut=$('termOut');
   if(termOut){
     const lines=[...termOut.querySelectorAll('.t-line')];
-    const play=()=>{lines.forEach(l=>l.classList.remove('show'));if(reduce){lines.forEach(l=>l.classList.add('show'));return;}lines.forEach((l,i)=>setTimeout(()=>l.classList.add('show'),260+i*340));};
+    let _tms=[];
+  const play=()=>{
+    /* §3 — a re-press must not race the previous run's timers */
+    _tms.forEach(clearTimeout); _tms=[];
+    lines.forEach(l=>l.classList.remove('show'));
+    if(reduce){lines.forEach(l=>l.classList.add('show'));return;}
+    lines.forEach((l,i)=>_tms.push(setTimeout(()=>l.classList.add('show'),260+i*340)));};
     const to=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){play();to.unobserve(e.target);}}),{threshold:.4});
     to.observe(termOut);
     const rb=$('runBtn'); if(rb)rb.addEventListener('click',play);
@@ -961,4 +975,8 @@ async function boot(){
 boot();
 </script>
 <script type="module" src="js/life.mjs"></script>
+<script>/* aria-current-marker: answer "where am I?" in the nav (§16 wayfinding) */
+(function(){var p=location.pathname.split("/").pop()||"index.html";
+document.querySelectorAll('nav a[href]').forEach(function(a){var h=a.getAttribute("href");
+if(h&&h.split("#")[0]===p)a.setAttribute("aria-current","page");});})();</script>
 </body></html>

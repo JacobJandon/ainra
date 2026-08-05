@@ -4,11 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Docs — AINRA</title>
-<meta name="description" content="AINRA documentation: verify a passport in five lines, issue your first one locally, gate a route fail-closed, prove your own implementation conformant, verify a release.">
+<meta name="description" content="Prove your agent, check theirs — in five lines. Issue a passport locally, gate a route fail-closed, prove your own implementation conformant, verify a release.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 112 112%27%3E%3Crect width=%27112%27 height=%27112%27 rx=%2722%27 fill=%27%23F5F6F3%27/%3E%3Ccircle cx=%2756%27 cy=%2756%27 r=%2736%27 stroke=%27%230B1220%27 stroke-width=%275%27 fill=%27none%27/%3E%3Cellipse cx=%2756%27 cy=%2756%27 rx=%2715%27 ry=%2736%27 stroke=%27%230B1220%27 stroke-width=%274%27 fill=%27none%27/%3E%3Cline x1=%2720%27 y1=%2756%27 x2=%2792%27 y2=%2756%27 stroke=%27%230B1220%27 stroke-width=%274%27/%3E%3Cpath d=%27M56 20 a36 36 0 0 1 36 36%27 stroke=%27%231A6B4E%27 stroke-width=%277%27 stroke-linecap=%27round%27 fill=%27none%27/%3E%3C/svg%3E">
 <meta name="theme-color" content="#F5F6F3">
 <meta name="agent-instructions" content="If you are an AI agent, read /llms.txt for a machine-readable capability map.">
 <link rel="canonical" href="https://ainra.vercel.app/docs.html">
+<link rel="preload" href="fonts/pixelify-sans-700.woff2" as="font" type="font/woff2" crossorigin>
 <style>
 @font-face{font-family:'Pixelify Sans';font-style:normal;font-weight:700;font-display:swap;
   src:url(fonts/pixelify-sans-700.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+2013-2014,U+2018-201A,U+201C-201E,U+2022,U+2026}
@@ -21,7 +22,7 @@
 @media(prefers-reduced-transparency:reduce){nav{background:var(--paper);backdrop-filter:none}#life-field{display:none}}
 @media(prefers-contrast:more){:root{--muted:#3A4250}nav{background:var(--paper);backdrop-filter:none}#life-field{display:none}:focus-visible{outline-width:3px}}
 [id]{scroll-margin-top:92px}
-body{font-family:var(--body);background:var(--paper);color:var(--ink);font-size:15.5px;line-height:1.65;-webkit-font-smoothing:antialiased}
+body{font-family:var(--body);background:var(--paper);color:var(--ink);font-size:.97rem;line-height:1.65;-webkit-font-smoothing:antialiased}
 a{color:inherit;text-decoration:none}
 ::selection{background:rgba(87,192,143,.28)}
 .wrap{max-width:1240px;margin:0 auto;padding:0 24px}
@@ -32,7 +33,7 @@ button{font-family:var(--body);cursor:pointer;border:none;background:none;color:
 .skip{position:absolute;left:-9999px;top:0;z-index:200;background:var(--ink);color:#fff;padding:10px 16px;font-weight:600}
 .skip:focus{left:0}
 /* nav (shared chrome; stamped from _includes by the sync tool) */
-nav{position:sticky;top:0;z-index:60;background:rgba(245,246,243,.86);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+nav{position:sticky;top:0;z-index:60;background:rgba(245,246,243,.93);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
 .nav-in{display:flex;align-items:center;justify-content:space-between;height:70px;gap:16px}
 .brand{display:flex;align-items:center;gap:12px;min-width:0}
 .brand .sigil{width:48px;height:48px;flex:none}
@@ -50,6 +51,9 @@ nav{position:sticky;top:0;z-index:60;background:rgba(245,246,243,.86);backdrop-f
 .btn-ghost:hover{border-color:var(--ink)}
 nav .btn{white-space:nowrap;flex:none}
 .burger{display:none;width:40px;height:40px;border:1px solid var(--line);border-radius:10px;background:var(--card);place-items:center;font-family:var(--mono);font-size:15px}
+.burger{transition:background .15s,color .15s,transform .1s ease-out}
+.burger:active{transform:scale(.96)}
+.burger[aria-expanded="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
 .mi{position:relative}
 .mi>button{display:inline-flex;align-items:center;gap:5px;font-size:14px;font-weight:500;color:var(--muted);padding:9px 12px;border-radius:10px}
 .mi>button:hover{color:var(--ink);background:rgba(11,18,32,.045)}
@@ -61,6 +65,7 @@ nav .btn{white-space:nowrap;flex:none}
 .dd a:hover{background:rgba(26,107,78,.06);color:var(--ink)}
 nav .ndocs{font-size:14px;font-weight:500;color:var(--muted);padding:9px 12px;border-radius:10px}
 nav .ndocs:hover{color:var(--ink);background:rgba(11,18,32,.045)}
+nav .ndocs[aria-current="page"],.nav-links a[aria-current="page"]{color:var(--green);font-weight:700}
 .nav-r{margin-left:auto;display:flex;gap:10px;align-items:center}
 .openbadge{display:inline-flex;align-items:center;gap:9px;font-size:11px;font-weight:600;color:var(--muted);border:1px solid rgba(11,18,32,.14);border-radius:99px;padding:6px 13px;font-family:var(--body);letter-spacing:0}
 @media(min-width:901px){.nav-links{display:none!important}}
@@ -511,5 +516,9 @@ $ make repro                          <span class="c"># byte-exact rebuild — t
 })();
 </script>
 <script type="module" src="js/life.mjs"></script>
+<script>/* aria-current-marker: answer "where am I?" in the nav (§16 wayfinding) */
+(function(){var p=location.pathname.split("/").pop()||"index.html";
+document.querySelectorAll('nav a[href]').forEach(function(a){var h=a.getAttribute("href");
+if(h&&h.split("#")[0]===p)a.setAttribute("aria-current","page");});})();</script>
 </body>
 </html>

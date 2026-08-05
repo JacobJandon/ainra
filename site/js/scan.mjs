@@ -105,8 +105,9 @@ function render(rows) {
   }
 }
 
-function verifyRow(rec, R, detail) {
-  detail.hidden = false; detail.innerHTML = `<div class="s-verd pend">running the verifier in your browser…</div>`;
+function verifyRow(rec, R, detail, btn) {
+  detail.hidden = false;
+  if (btn) { btn.setAttribute("aria-expanded", "true"); btn.textContent = "Hide ↥"; } detail.innerHTML = `<div class="s-verd pend">running the verifier in your browser…</div>`;
   setTimeout(() => {
     const wire = toWire(rec, R);
     let v; try { v = runVector(wire); } catch (e) { detail.innerHTML = `<div class="s-verd no">ERROR — ${e.message}</div>`; return; }

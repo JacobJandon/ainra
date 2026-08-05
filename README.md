@@ -7,6 +7,9 @@
 
 **Live site:** https://ainra.vercel.app/ · **Source & releases:** https://github.com/JacobJandon/ainra · **[Roadmap](ROADMAP.md)** · **[Governance](GOVERNANCE.md)**
 
+**Prove your agent. Check theirs.** Both halves run locally — an agent presents signed facts, whoever receives them
+verifies on their own machine, and nothing reaches us in either direction.
+
 **AINRA** does exactly four jobs — **accredit · anchor · revoke · log** — and nothing else. It answers the three
 questions every counterparty asks about an AI agent — *who is behind it, what may it do, is it still trusted right
 now* — with **facts, never scores, never a price, never the decision itself.** Doctrine: **login is ours; the

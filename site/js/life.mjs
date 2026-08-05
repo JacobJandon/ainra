@@ -103,8 +103,15 @@ function draw() {
   }
 }
 
+let lastClip = -1;
 function frame(t) {
   requestAnimationFrame(frame);
+  // The clip edge follows the hero at DISPLAY rate, not at generation rate — pinning it to the 150ms
+  // tick made the field's top edge stair-step down the page while scrolling (§11 frame-level smoothness).
+  if (hero) {
+    const cy = Math.max(0, hero.getBoundingClientRect().bottom);
+    if (Math.abs(cy - lastClip) > 0.5) { lastClip = cy; draw(); }
+  }
   if (t - last < TICK) return;
   last = t; gen++;
   if (gen % STAMP_EVERY === 0) stamp(cur, cols, rows);
@@ -114,7 +121,12 @@ function frame(t) {
 }
 
 size();
-window.addEventListener("resize", size);
+let rsz; window.addEventListener("resize", () => {
+  clearTimeout(rsz);
+  // size() reassigns canvas.width, which CLEARS the bitmap. Without a redraw the reduced-motion path
+  // (one static generation) loses the field entirely on any resize or phone rotation.
+  rsz = setTimeout(() => { size(); draw(); }, 120);
+});
 // The hero's spark easter egg releases real gliders into this field (CustomEvent from index.html).
 // The doctrine, playable: one click adds five cells under three rules, and something alive comes of it.
 addEventListener("ainra:glider", (e) => {

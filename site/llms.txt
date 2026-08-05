@@ -1,5 +1,8 @@
 # AINRA — the neutral root of AI-agent identity
 
+**Prove your agent. Check theirs.** Both halves run locally: an agent presents signed facts, and whoever receives
+them verifies those facts on their own machine. No account, no call to us, no telemetry — that is the whole protocol.
+
 > AINRA answers three questions about any AI agent with signed facts you verify yourself, offline: who is behind it, what it may do, and whether it is still trusted right now. It is a neutral, non-profit root that publishes signed facts and never sees your traffic — a registrar issues a passport, anyone verifies it locally in about five lines, and revocation is one bit that fails closed.
 
 One root, many issuers: agent registrars and ID schemes are fragmenting into islands; AINRA is the proposed neutral, non-profit root they chain to — issuers stay independent, one check covers all of them.

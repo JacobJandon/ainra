@@ -11,7 +11,7 @@
 <meta property="og:site_name" content="AINRA">
 <meta property="og:url" content="https://ainra.vercel.app/status.html">
 <meta property="og:title" content="Foundation — AINRA">
-<meta property="og:description" content="Exactly what exists today: the public Standard v5.1, a reference CLI, an open reference implementation with two signed releases — and zero sealed logs until the first public ceremony.">
+<meta property="og:description" content="Prove your agent, check theirs — and here is exactly what exists behind that today: the public Standard v5.1, a reference CLI, two signed releases, and zero sealed logs until the first public ceremony.">
 <meta property="og:image" content="https://ainra.vercel.app/og-cover.png">
 <meta property="og:image:alt" content="AINRA — the neutral root of AI-agent identity">
 <meta property="og:image:width" content="1200">
@@ -21,7 +21,8 @@
 <meta name="twitter:description" content="Exactly what exists today — and what does not yet. Operator-run genesis root; public ceremony pending.">
 <meta name="twitter:image" content="https://ainra.vercel.app/og-cover.png">
 <noscript><style>.rv,.t-line,.verify-line{opacity:1!important;transform:none!important}.sec-head .hero-h{font-family:var(--display);font-size:clamp(1.9rem,4vw,2.75rem);font-weight:730;line-height:1.1;margin-top:12px;letter-spacing:-.03em}
-</style></noscript><meta name="description" content="Exactly what exists today: the public Standard v5.1, a reference CLI, an open reference implementation with two signed releases — and zero sealed logs until the first public ceremony.">
+</style></noscript><meta name="description" content="Prove your agent, check theirs — and here is exactly what exists behind that today: the public Standard v5.1, a reference CLI, two signed releases, and zero sealed logs until the first public ceremony.">
+<link rel="preload" href="fonts/pixelify-sans-700.woff2" as="font" type="font/woff2" crossorigin>
 <style>
 @font-face{font-family:'Pixelify Sans';font-style:normal;font-weight:700;font-display:swap;
   src:url(fonts/pixelify-sans-700.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+2013-2014,U+2018-201A,U+201C-201E,U+2022,U+2026}
@@ -39,7 +40,7 @@
    high-contrast reader darker text, a solid bar, and no moving field behind the words. */
 @media(prefers-reduced-transparency:reduce){nav{background:var(--paper);backdrop-filter:none}#life-field{display:none}}
 @media(prefers-contrast:more){:root{--muted:#3A4250}nav{background:var(--paper);backdrop-filter:none}#life-field{display:none}:focus-visible{outline-width:3px}}
-body{font-family:var(--body);background:var(--paper);color:var(--ink);font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased}
+body{font-family:var(--body);background:var(--paper);color:var(--ink);font-size:1rem;line-height:1.6;-webkit-font-smoothing:antialiased}
 ::selection{background:var(--green);color:#fff}
 a{color:inherit;text-decoration:none}
 .wrap{max-width:1080px;margin:0 auto;padding:0 24px}
@@ -57,7 +58,7 @@ button{font-family:var(--body);cursor:pointer;border:none;background:none;color:
 .brand .mean{border-left:1px solid var(--line);padding-left:12px;font-family:var(--mono);font-size:8.5px;line-height:1.5;letter-spacing:.16em;color:var(--muted);text-transform:uppercase;white-space:nowrap}
 @media(max-width:560px){.brand .mean{display:none}}
 
-nav{position:sticky;top:0;z-index:60;background:rgba(245,246,243,.86);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+nav{position:sticky;top:0;z-index:60;background:rgba(245,246,243,.93);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
 .nav-in{display:flex;align-items:center;justify-content:space-between;height:70px;gap:16px}
 .nav-links{display:flex;gap:24px;font-size:14px;font-weight:500;color:var(--muted)}
 .nav-links a:hover{color:var(--ink)}
@@ -68,6 +69,9 @@ nav{position:sticky;top:0;z-index:60;background:rgba(245,246,243,.86);backdrop-f
 .btn-ghost{border-color:var(--line);background:var(--card);color:var(--ink)}
 .btn-ghost:hover{border-color:var(--ink)}
 .burger{display:none;width:40px;height:40px;border:1px solid var(--line);border-radius:10px;background:var(--card);place-items:center;font-family:var(--mono);font-size:15px}
+.burger{transition:background .15s,color .15s,transform .1s ease-out}
+.burger:active{transform:scale(.96)}
+.burger[aria-expanded="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
 @media(max-width:900px){
   .nav-links{display:none;position:absolute;top:70px;left:0;right:0;background:var(--paper);border-bottom:1px solid var(--line);flex-direction:column;gap:0;padding:8px 24px}
   .nav-links a{padding:12px 0;border-top:1px solid var(--line)}
@@ -408,6 +412,7 @@ nav .btn{white-space:nowrap;flex:none}
 @media(max-width:1360px){.brand .mean{display:none}}
 nav .ndocs{font-size:14px;font-weight:500;color:var(--muted);padding:9px 12px;border-radius:10px}
 nav .ndocs:hover{color:var(--ink);background:rgba(11,18,32,.045)}
+nav .ndocs[aria-current="page"],.nav-links a[aria-current="page"]{color:var(--green);font-weight:700}
 @media(max-width:1150px){.nav-hide-mid{display:none}}
 @media(max-width:900px){nav .ndocs{display:none}}
 [id]{scroll-margin-top:92px}
@@ -938,4 +943,8 @@ nav .ndocs:hover{color:var(--ink);background:rgba(11,18,32,.045)}
   setInterval(function(){qLines[qi].classList.remove('lit');qi=(qi+1)%qLines.length;qLines[qi].classList.add('lit')},2600);}})();
 </script>
 <script type="module" src="js/life.mjs"></script>
+<script>/* aria-current-marker: answer "where am I?" in the nav (§16 wayfinding) */
+(function(){var p=location.pathname.split("/").pop()||"index.html";
+document.querySelectorAll('nav a[href]').forEach(function(a){var h=a.getAttribute("href");
+if(h&&h.split("#")[0]===p)a.setAttribute("aria-current","page");});})();</script>
 </body></html>

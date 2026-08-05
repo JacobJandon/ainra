@@ -14,6 +14,16 @@ const EXPLORER = (qs.get("scan") || (onLocal ? "http://127.0.0.1:8090" : "")).re
 const NOW = 1776729600;
 
 const $ = (s) => document.querySelector(s);
+// §16 — report failure inline, in the page's own voice, instead of a blocking OS dialog
+function fail(msg) {
+  let el = $("#g-err");
+  if (!el) { el = document.createElement("p"); el.id = "g-err"; el.className = "g-err";
+    el.setAttribute("role", "alert");
+    el.style.cssText = "margin-top:12px;font-family:var(--mono);font-size:11.5px;color:var(--amber);line-height:1.5";
+    ($("#g-flow") || $("#get") || document.body).appendChild(el); }
+  el.textContent = String(msg);
+  clearTimeout(fail._t); fail._t = setTimeout(() => { el.textContent = ""; }, 6000);
+}
 let rec = null, anchors = null;
 
 const clean = (s, d) => { const c = [...(s || "")].filter((ch) => /[a-z0-9-]/i.test(ch)).join("").toLowerCase().replace(/^-+|-+$/g, "").slice(0, 24); return c || d; };
@@ -55,7 +65,7 @@ async function mint() {
     if (!rec.sub) throw new Error(rec.error || "issue failed");
     renderCard(rec);
     step(2);
-  } catch (e) { alert("Could not mint: " + e.message); }
+  } catch (e) { fail("Could not mint: " + e.message); }
   finally { $("#g-mint").disabled = false; $("#g-mint").textContent = "Mint my passport →"; }
 }
 
@@ -88,21 +98,29 @@ async function verify() {
 }
 
 async function download() {
+  const b = $("#g-download"); if (b) { b.disabled = true; b.dataset.t = b.textContent; b.textContent = "Preparing…"; }
+  try { return await _download(); } finally { if (b) { b.disabled = false; b.textContent = b.dataset.t; } }
+}
+async function _download() {
   try {
     const pres = await (await fetch(`${REG}/present?sub=${encodeURIComponent(rec.sub)}&now=${NOW}`)).json();
     const bundle = { name: rec.sub, anchors, presentation: pres, note: "AINRA passport bundle (STAGING · TEST-ROOT specimen). Verify with @ainra/sdk runVector(this)." };
     const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: "application/json" });
     const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = rec.sub.replace(/[:@]/g, "_") + ".passport.json"; a.click();
-  } catch (e) { alert("Download failed: " + e.message); }
+  } catch (e) { fail("Download failed: " + e.message); }
 }
 
 async function revoke() {
+  const v = $("#g-verdict"); if (v) { v.textContent = "…"; v.className = "g-verdict pend"; }
+  return _revoke();
+}
+async function _revoke() {
   if (!confirm("Revoke this specimen? It will fail closed on re-verify — that's the point.")) return;
   try {
     const rv = await (await fetch(REG + "/demo/revoke", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sub: rec.sub, now: NOW }) })).json();
     if (rv.revoked !== rec.sub) throw new Error(rv.error || "revoke failed");
     await verify(); // re-verify → INVALID·revoked
-  } catch (e) { alert("Revoke failed: " + e.message); }
+  } catch (e) { fail("Revoke failed: " + e.message); }
 }
 
 function unavailable(html) { const u = $("#g-unavailable"); if (u) { u.innerHTML = html; u.hidden = false; } const f = $("#g-flow"); if (f) f.hidden = true; }

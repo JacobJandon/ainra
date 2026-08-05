@@ -1,6 +1,8 @@
 <!-- SPDX-License-Identifier: Apache-2.0 OR MIT -->
 # AINRA — agent onboarding
 
+**Prove your agent. Check theirs.** This file is the deterministic path through both halves.
+
 You are an agent. This file tells you, deterministically, how to verify an AINRA passport, acquire one, present it,
 and renew it. Every command below is executable exactly as written from the repository root. There is no marketing
 here and nothing to sign up for.

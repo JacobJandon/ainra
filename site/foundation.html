@@ -156,13 +156,6 @@ section{padding:92px 0}
 .sec-head h2{font-size:clamp(1.9rem,4vw,2.75rem);font-weight:730;line-height:1.1;margin-top:12px;letter-spacing:-.03em}
 .sec-head .lede{margin-top:14px;color:var(--muted);font-size:16.5px}
 
-.qs{margin:18px auto 0;max-width:640px}
-.qs ul{list-style:none;display:grid;grid-template-columns:1fr 1fr;gap:6px 30px;text-align:left;margin:0;padding:0}
-.qs li{font-size:15.5px;font-weight:600;letter-spacing:-.01em;line-height:1.45;color:var(--muted);padding-left:19px;position:relative;transition:color .4s ease}
-.qs li::before{content:"?";position:absolute;left:0;top:0;font-family:var(--mono);font-size:12px;font-weight:700;color:var(--green);opacity:.45;transition:opacity .4s ease}
-.qs li.lit{color:var(--ink)}
-.qs li.lit::before{opacity:1}
-.qs li{font-family:var(--px);font-weight:700;font-size:17px;letter-spacing:.01em}
 /* the orbit panel — ported from the landing: the drawn architecture lives beside its argument */
 .orbit-panel{background:var(--ink);border-radius:16px;padding:30px 30px 34px;margin:22px 0 8px;color:#E7EAF0}
 .orbit-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:48px;align-items:center;position:relative;z-index:1}
@@ -536,26 +529,6 @@ nav .ndocs[aria-current="page"],.nav-links a[aria-current="page"]{color:var(--gr
 </div>
 <p class="scan-note rv">NOTHING ON THIS SITE IS SIMULATED WITHOUT SAYING SO · NUMBERS ARE MEASURED OR THEY ARE ABSENT</p>
 </div></section>
-<section class="sec" id="why">
-  <div class="wrap">
-    <div class="head">
-      <h2>Soon, your AI will act for you.</h2>
-      <p class="lede">Seven questions nobody can answer about an agent today — and the passport answers all of them with signed facts.</p>
-    </div>
-    <div class="qs" style="margin-top:26px">
-      <ul aria-label="The questions nobody can answer about an agent today">
-        <li class="lit">Who created this agent?</li>
-        <li>Who controls it now?</li>
-        <li>What is it allowed to do?</li>
-        <li>Has it been verified — or revoked?</li>
-        <li>Is it pretending to be another?</li>
-        <li>Can it legally act for a company?</li>
-        <li>Can I safely delegate to it?</li>
-      </ul>
-    </div>
-    <p class="lede" style="margin-top:22px;text-align:center">Tomorrow's checks look like today's — KYC for people, KYB for companies, <b>KYA for agents</b>: every acting AI carrying a scannable ID with a machine-readable zone.</p>
-  </div>
-</section>
 <section class="sec" id="core">
   <div class="wrap">
     <div class="head">
@@ -936,12 +909,6 @@ nav .ndocs[aria-current="page"],.nav-links a[aria-current="page"]{color:var(--gr
 })();
 </script>
 <script type="module" src="js/live.mjs"></script>
-<script>
-  (function(){var reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
-  var qLines=[].slice.call(document.querySelectorAll('.qs li'));
-  if(qLines.length&&!reduce){var qi=Math.max(0,qLines.findIndex(function(l){return l.classList.contains('lit')}));
-  setInterval(function(){qLines[qi].classList.remove('lit');qi=(qi+1)%qLines.length;qLines[qi].classList.add('lit')},2600);}})();
-</script>
 <script type="module" src="js/life.mjs"></script>
 <script>/* aria-current-marker: answer "where am I?" in the nav (§16 wayfinding) */
 (function(){var p=location.pathname.split("/").pop()||"index.html";

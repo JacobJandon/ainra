@@ -1,0 +1,19 @@
+# SPDX-License-Identifier: Apache-2.0 OR MIT
+[package]
+name = "ainra-wasm"
+description = "The verify path compiled to WebAssembly. A THIN binding over ainra-adapter — it parses nothing of its own, calls nothing, and reads no clock. If this crate ever needs to convert something itself, that is a design fault to report, not code to write."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+ainra-core = { path = "../ainra-core" }
+ainra-adapter = { path = "../ainra-adapter" }
+serde_json = { workspace = true, features = ["std"] }
+wasm-bindgen = "=0.2.126"   # MUST match the wasm-bindgen-cli version exactly

@@ -104,127 +104,249 @@ pub struct Vector {
     pub presentation: WirePresentation,
 }
 
-// ── decoding helpers (fail-closed: a malformed field yields a refusable value, never a plausible one) ───────
+// ── decoding helpers ───────────────────────────────────────────────────────────────────────────────────────
+//
+// Fail-closed, and that is load-bearing rather than stylistic. These were `.expect(...)` back when this code only
+// ever read fixtures the generator had just written. The WASM surface (L5 Task 2) hands the very same path bytes a
+// stranger pasted into a browser, where an abort is a dead page rather than a refusal. The fix is **not** a second,
+// lenient decoder for untrusted callers — that is exactly the divergence this crate exists to prevent. It is this
+// one path learning to return a refusable `Reason`, so every caller fails closed identically. The corpus is
+// unaffected: all 745 vectors are well-formed, so no arm below changes its answer, and the differential re-proves
+// that byte-for-byte.
 
-pub fn decode32(s: &str) -> [u8; 32] {
-    b64::decode_array::<32>(s).expect("32-byte field")
+/// One decode step: the value, or the reason these bytes are unusable.
+pub type D<T> = Result<T, Reason>;
+
+/// Any decode error is a schema violation — we never guess at what malformed bytes meant.
+fn bad<T, E>(r: Result<T, E>) -> D<T> {
+    r.map_err(|_| Reason::SchemaViolation)
 }
 
+pub fn decode32(s: &str) -> D<[u8; 32]> {
+    bad(b64::decode_array::<32>(s))
+}
 
-pub fn decode_cp_sig(w: &WireCheckpointSig) -> checkpoint::CheckpointSig {
-    match w.mode.as_str() {
+pub fn decode_cp_sig(w: &WireCheckpointSig) -> D<checkpoint::CheckpointSig> {
+    Ok(match w.mode.as_str() {
         "root" => checkpoint::CheckpointSig::Root {
-            slh: b64::decode(w.slh.as_deref().unwrap_or("")).expect("slh"),
+            slh: bad(b64::decode(w.slh.as_deref().unwrap_or("")))?,
         },
         "delegate" => {
-            let c = w.cert.as_ref().expect("delegate cert");
+            let c = w.cert.as_ref().ok_or(Reason::SchemaViolation)?;
             checkpoint::CheckpointSig::Delegate {
                 cert: checkpoint::DelegateCert {
-                    delegate_ed25519: decode32(&c.delegate_ed25519),
+                    delegate_ed25519: decode32(&c.delegate_ed25519)?,
                     scopes: c.scopes.clone(),
                     nbf: c.nbf,
                     exp: c.exp,
-                    sig_slh: b64::decode(&c.sig_slh).expect("cert slh"),
+                    sig_slh: bad(b64::decode(&c.sig_slh))?,
                 },
-                sig_ed25519: b64::decode(w.sig_ed25519.as_deref().unwrap_or("")).expect("del sig"),
+                sig_ed25519: bad(b64::decode(w.sig_ed25519.as_deref().unwrap_or("")))?,
             }
         }
-        other => panic!("unknown checkpoint sig mode {other}"),
-    }
+        // An unrecognised signature mode is REFUSED, never guessed. A verifier that treats a mode it does not know
+        // as "probably the root one" is a verifier that can be talked past.
+        _ => return Err(Reason::SchemaViolation),
+    })
 }
 
-// ── the single vector → Presentation/TrustAnchors → Verdict path ───────────────────────────────────────────
-
-pub fn run(v: &Vector) -> Verdict {
-    let claims = b64::decode(&v.presentation.claims).expect("claims");
-    let issuer_sig = crypto::HybridSig {
-        ed25519: b64::decode(&v.presentation.issuer_sig.ed25519).expect("sig ed"),
-        mldsa65: b64::decode(&v.presentation.issuer_sig.mldsa65).expect("sig ml"),
-    };
-    let chain_keys: Vec<crypto::HybridPublic> = v
-        .presentation
-        .chain_keys
-        .iter()
-        .map(|k| crypto::HybridPublic {
-            ed25519: decode32(&k.ed25519),
-            mldsa65: b64::decode(&k.mldsa65).expect("ml"),
-        })
-        .collect();
-    let hop_proofs: Vec<verify::HopLogProof> = v
-        .presentation
-        .hop_proofs
-        .iter()
-        .map(|hp| verify::HopLogProof {
-            leaf_index: hp.leaf_index,
-            proof: hp.proof.iter().map(|s| decode32(s)).collect(),
-        })
-        .collect();
-    let checkpoint_sig = decode_cp_sig(&v.presentation.checkpoint_sig);
-    let status_list = status::StatusList::decode(
-        &b64::decode(&v.presentation.status_list).expect("status bytes"),
-        v.presentation.status_len as usize,
-    )
-    .expect("decode status list");
-    let checkpoint = checkpoint::Checkpoint {
-        origin: v.presentation.checkpoint.origin.clone(),
-        tree_size: v.presentation.checkpoint.size,
-        root: decode32(&v.presentation.checkpoint.root),
-    };
-    let inclusion_proof: Vec<[u8; 32]> = v
-        .presentation
-        .inclusion_proof
-        .iter()
-        .map(|s| decode32(s))
-        .collect();
-    let freshness = match v.presentation.freshness.as_str() {
-        "F1" => status::Freshness::F1,
-        "F2" => status::Freshness::F2,
-        "F3" => status::Freshness::F3,
-        other => panic!("unknown freshness {other}"),
-    };
-    let mandate_revocations =
-        mandate::RevocationSet::from_ids(v.presentation.mandate_revocations.clone());
-
+/// Trust anchors from either directory shape we actually publish, in **one** decoder.
+///
+/// Accepted: the conformance/directory form (`{"<registrar-id>": {issuer_key, log_root_key}}`, optionally nested
+/// under `anchors`) and a registrar's own signed export (`{"accreditation": {...}}`). Anything else yields **no**
+/// anchors, which makes every credential `unknown_registrar` — the fail-closed answer. This replaced a second
+/// partial decoder that substituted an all-zero issuer key for a malformed one (see docs/PLAN-L5.md § finding #6).
+pub fn anchors_from_json(v: &serde_json::Value) -> verify::TrustAnchors {
     let mut registrars = BTreeMap::new();
-    for (id, r) in &v.anchors {
+    if v.get("accreditation").is_some() {
+        return anchors_from_export_json(v);
+    }
+    let map = match v.get("anchors").unwrap_or(v).as_object() {
+        Some(m) => m,
+        None => return verify::TrustAnchors { registrars },
+    };
+    for (id, r) in map {
+        let Ok(w) = serde_json::from_value::<WireRegistrar>(r.clone()) else {
+            continue; // an unreadable entry is simply not an anchor; it never becomes a lenient one
+        };
+        let (Ok(ed), Ok(ml), Ok(root)) = (
+            decode32(&w.issuer_key.ed25519),
+            bad(b64::decode(&w.issuer_key.mldsa65)),
+            bad(b64::decode(&w.log_root_key)),
+        ) else {
+            continue;
+        };
         registrars.insert(
             id.clone(),
             verify::RegistrarInfo {
                 issuer_key: crypto::HybridPublic {
-                    ed25519: decode32(&r.issuer_key.ed25519),
-                    mldsa65: b64::decode(&r.issuer_key.mldsa65).expect("issuer ml"),
+                    ed25519: ed,
+                    mldsa65: ml,
                 },
-                log_root_key: b64::decode(&r.log_root_key).expect("log root"),
+                log_root_key: root,
             },
         );
     }
-    let anchors = verify::TrustAnchors { registrars };
+    verify::TrustAnchors { registrars }
+}
 
-    let revoked_delegates: std::collections::BTreeSet<[u8; 32]> = v
-        .presentation
-        .revoked_delegates
-        .iter()
-        .map(|fp| decode32(fp))
-        .collect();
+/// Decode a wire presentation into the core type. `now` is the **verifier's**, never the presenter's — freshness
+/// and expiry are the receiving side's policy, so the caller supplies the clock and this overrides whatever the
+/// bundle claims the time is.
+fn presentation_parts(
+    p: &WirePresentation,
+    now: u64,
+) -> D<(
+    Vec<u8>,
+    crypto::HybridSig,
+    Vec<crypto::HybridPublic>,
+    Vec<verify::HopLogProof>,
+    checkpoint::CheckpointSig,
+    status::StatusList,
+    checkpoint::Checkpoint,
+    Vec<[u8; 32]>,
+    status::Freshness,
+    mandate::RevocationSet,
+    std::collections::BTreeSet<[u8; 32]>,
+    u64,
+)> {
+    let claims = bad(b64::decode(&p.claims))?;
+    let issuer_sig = crypto::HybridSig {
+        ed25519: bad(b64::decode(&p.issuer_sig.ed25519))?,
+        mldsa65: bad(b64::decode(&p.issuer_sig.mldsa65))?,
+    };
+    let mut chain_keys = Vec::with_capacity(p.chain_keys.len());
+    for k in &p.chain_keys {
+        chain_keys.push(crypto::HybridPublic {
+            ed25519: decode32(&k.ed25519)?,
+            mldsa65: bad(b64::decode(&k.mldsa65))?,
+        });
+    }
+    let mut hop_proofs = Vec::with_capacity(p.hop_proofs.len());
+    for hp in &p.hop_proofs {
+        let mut proof = Vec::with_capacity(hp.proof.len());
+        for s in &hp.proof {
+            proof.push(decode32(s)?);
+        }
+        hop_proofs.push(verify::HopLogProof {
+            leaf_index: hp.leaf_index,
+            proof,
+        });
+    }
+    let checkpoint_sig = decode_cp_sig(&p.checkpoint_sig)?;
+    let status_list = bad(status::StatusList::decode(
+        &bad(b64::decode(&p.status_list))?,
+        p.status_len as usize,
+    ))?;
+    let checkpoint = checkpoint::Checkpoint {
+        origin: p.checkpoint.origin.clone(),
+        tree_size: p.checkpoint.size,
+        root: decode32(&p.checkpoint.root)?,
+    };
+    let mut inclusion_proof = Vec::with_capacity(p.inclusion_proof.len());
+    for s in &p.inclusion_proof {
+        inclusion_proof.push(decode32(s)?);
+    }
+    let freshness = match p.freshness.as_str() {
+        "F1" => status::Freshness::F1,
+        "F2" => status::Freshness::F2,
+        "F3" => status::Freshness::F3,
+        _ => return Err(Reason::SchemaViolation),
+    };
+    let mandate_revocations = mandate::RevocationSet::from_ids(p.mandate_revocations.clone());
+    let mut revoked_delegates = std::collections::BTreeSet::new();
+    for fp in &p.revoked_delegates {
+        revoked_delegates.insert(decode32(fp)?);
+    }
+    Ok((
+        claims,
+        issuer_sig,
+        chain_keys,
+        hop_proofs,
+        checkpoint_sig,
+        status_list,
+        checkpoint,
+        inclusion_proof,
+        freshness,
+        mandate_revocations,
+        revoked_delegates,
+        now,
+    ))
+}
+
+// ── the single vector → Presentation/TrustAnchors → Verdict path ───────────────────────────────────────────
+
+/// Verify one decoded wire presentation against decoded anchors at `now`.
+///
+/// This is **the** conversion: every surface — the generator, the conformance runner, the CLI, the browser —
+/// reaches core verify types through this function and no other.
+pub fn verify_wire(p: &WirePresentation, anchors: &verify::TrustAnchors, now: u64) -> Verdict {
+    let parts = match presentation_parts(p, now) {
+        Ok(parts) => parts,
+        Err(reason) => return Verdict::invalid(reason),
+    };
+    let (
+        claims,
+        issuer_sig,
+        chain_keys,
+        hop_proofs,
+        checkpoint_sig,
+        status_list,
+        checkpoint,
+        inclusion_proof,
+        freshness,
+        mandate_revocations,
+        revoked_delegates,
+        now,
+    ) = parts;
     let pres = verify::Presentation {
         claims: &claims,
         issuer_sig,
-        now: v.presentation.now,
+        now,
         chain_keys,
         hop_proofs,
         status_list,
-        status_issued_at: v.presentation.status_issued_at,
+        status_issued_at: p.status_issued_at,
         freshness,
         checkpoint,
         checkpoint_sig,
-        leaf_index: v.presentation.leaf_index,
+        leaf_index: p.leaf_index,
         inclusion_proof,
         mandate_path: Vec::new(),
         mandate_proofs: Vec::new(),
         mandate_revocations,
         revoked_delegates,
     };
-    verify::verify(&pres, &anchors)
+    verify::verify(&pres, anchors)
+}
+
+/// Run one conformance vector. A vector pins its own `now` on purpose — determinism is the point of the corpus.
+pub fn run(v: &Vector) -> Verdict {
+    let mut registrars = BTreeMap::new();
+    for (id, r) in &v.anchors {
+        let (Ok(ed), Ok(ml), Ok(root)) = (
+            decode32(&r.issuer_key.ed25519),
+            bad(b64::decode(&r.issuer_key.mldsa65)),
+            bad(b64::decode(&r.log_root_key)),
+        ) else {
+            return Verdict::invalid(Reason::SchemaViolation);
+        };
+        registrars.insert(
+            id.clone(),
+            verify::RegistrarInfo {
+                issuer_key: crypto::HybridPublic {
+                    ed25519: ed,
+                    mldsa65: ml,
+                },
+                log_root_key: root,
+            },
+        );
+    }
+    verify_wire(
+        &v.presentation,
+        &verify::TrustAnchors { registrars },
+        v.presentation.now,
+    )
 }
 
 // ── status-delta vectors ───────────────────────────────────────────────────────────────────────────────────
@@ -389,4 +511,119 @@ pub fn anchors_from_export_json(reg: &serde_json::Value) -> verify::TrustAnchors
         },
     );
     verify::TrustAnchors { registrars }
+}
+
+// ── the canonical verdict EVENT (docs/PRESENTATION.md) ─────────────────────────────────────────────────────
+//
+// Fixed key order: status · reason · name · number · tier · freshness_age_s. This lived in the CLI binary while
+// the CLI was its only Rust emitter; the browser surface would have made it a third copy alongside the SDK's, in
+// the same drift class as a second decoder. It is wire vocabulary, so it belongs in the library — the same
+// reasoning that moved `reason_str` here. A differential asserts the Rust and TS emitters are byte-identical.
+
+/// The permanent AINRA Number: strip `@version` from a name → `did:ainra:reg:op:lineage`. `None` if it doesn't parse.
+/// Mirrors the SDK's `numberFromName` exactly.
+pub fn number_from_name(sub: &str) -> Option<String> {
+    if !sub.contains('@') {
+        return None;
+    }
+    let body = sub.strip_prefix("ainra:")?;
+    let before_at = body.split('@').next()?;
+    let parts: Vec<&str> = before_at.split(':').collect();
+    let ok = parts.len() == 3
+        && parts.iter().all(|p| {
+            !p.is_empty()
+                && p.bytes()
+                    .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
+        });
+    ok.then(|| format!("did:ainra:{}:{}:{}", parts[0], parts[1], parts[2]))
+}
+
+fn jstr(o: Option<&str>) -> String {
+    o.map_or_else(
+        || "null".to_string(),
+        |v| serde_json::to_string(v).unwrap_or_else(|_| "null".into()),
+    )
+}
+
+/// Canonical serialization — fixed key order, compact. MUST byte-match the SDK's `serializeVerdictEvent`.
+pub fn event_json(
+    status: &str,
+    reason: Option<&str>,
+    name: Option<&str>,
+    number: Option<&str>,
+    tier: Option<&str>,
+    age: Option<i64>,
+) -> String {
+    format!(
+        r#"{{"status":{},"reason":{},"name":{},"number":{},"tier":{},"freshness_age_s":{}}}"#,
+        serde_json::to_string(status).unwrap_or_else(|_| "\"invalid\"".into()),
+        jstr(reason),
+        jstr(name),
+        jstr(number),
+        jstr(tier),
+        age.map_or_else(|| "null".to_string(), |v| v.to_string()),
+    )
+}
+
+/// Build the event from a verdict plus the presentation it was reached on. `name`/`number`/`tier` come out of the
+/// **signed** claims; undecodable claims leave them null rather than inventing them — a well-formed event that
+/// admits it knows less.
+pub fn verdict_event(p: &WirePresentation, verdict: &Verdict, now: u64) -> String {
+    let (mut name, mut number, mut tier) = (None, None, None);
+    if let Ok(bytes) = b64::decode(&p.claims) {
+        if let Ok(c) = serde_json::from_slice::<serde_json::Value>(&bytes) {
+            if let Some(sub) = c.get("sub").and_then(|v| v.as_str()) {
+                number = number_from_name(sub);
+                name = Some(sub.to_string());
+            }
+            tier = c.get("tier").and_then(|v| v.as_str()).map(str::to_string);
+        }
+    }
+    let age = (now as i64 - p.status_issued_at as i64).max(0);
+    let reason = verdict.reason().map(reason_str);
+    event_json(
+        if verdict.is_valid() { "valid" } else { "invalid" },
+        reason.as_deref(),
+        name.as_deref(),
+        number.as_deref(),
+        tier.as_deref(),
+        Some(age),
+    )
+}
+
+// ── string entries: the only thing a non-Rust surface ever needs to call ───────────────────────────────────
+//
+// These take &str rather than a pre-parsed value on purpose. If the WASM binding parsed JSON itself it would own
+// a decision — what counts as readable — and that decision is precisely what must have one home.
+
+/// Unreadable input is a **verdict**, not an exception. Every surface refuses identically.
+fn schema_violation_event() -> String {
+    event_json("invalid", Some("schema_violation"), None, None, None, None)
+}
+
+/// Verify a presented bundle against a directory at the verifier's `now`. Returns the canonical verdict event.
+///
+/// `now_secs` is the **caller's** clock and overrides whatever the bundle claims the time is: freshness and expiry
+/// are the receiving side's policy. This never panics and never allocates unboundedly on hostile input.
+pub fn verify_bundle_json(bundle_json: &str, directory_json: &str, now_secs: u64) -> String {
+    let Ok(p) = serde_json::from_str::<WirePresentation>(bundle_json) else {
+        return schema_violation_event();
+    };
+    let Ok(dir) = serde_json::from_str::<serde_json::Value>(directory_json) else {
+        return schema_violation_event();
+    };
+    let anchors = anchors_from_json(&dir);
+    let verdict = verify_wire(&p, &anchors, now_secs);
+    verdict_event(&p, &verdict, now_secs)
+}
+
+/// Run one conformance vector from its JSON text and return the verdict as JSON (`{"verdict":…}` / `…,"reason":…`).
+/// This is the entry the cross-surface differential drives, so "it runs in your browser" is a claim the corpus can
+/// defend rather than a description.
+pub fn run_vector_json(vector_json: &str) -> String {
+    let Ok(v) = serde_json::from_str::<Vector>(vector_json) else {
+        return r#"{"verdict":"invalid","reason":"schema_violation"}"#.to_string();
+    };
+    serde_json::to_string(&run(&v))
+        .unwrap_or_else(|_| r#"{"verdict":"invalid","reason":"schema_violation"}"#.to_string())
 }

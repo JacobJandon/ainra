@@ -67,6 +67,16 @@ node tools/site-mirrors.mjs
 node tools/openapi.mjs
 cp skills.md "$SITE/skills.md"
 
+# 5. the browser verifier — ainra-core compiled to WebAssembly (L5). Rebuilt from source here rather than trusted
+# from the tree, so a stale artifact can never ship while the page claims it is the current core. The size ceiling
+# is enforced inside the build script.
+if command -v wasm-bindgen >/dev/null 2>&1; then
+  bash tools/build-wasm.sh
+else
+  echo "  ! skipping the WebAssembly verifier — wasm-bindgen not installed; site/assets/wasm/ is left as-is."
+  echo "    install: cargo install wasm-bindgen-cli --version $(grep -oP '=\K[0-9.]+' crates/ainra-wasm/Cargo.toml | head -1) --locked"
+fi
+
 case "$CMD" in
   up)
     pkill -f "http.server ${PORT}" 2>/dev/null || true

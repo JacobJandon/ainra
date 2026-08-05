@@ -597,46 +597,8 @@ fn cmd_reverify(a: &[String]) -> i32 {
 // compact JSON line each. Byte-identical to the SDK's `serializeVerdictEvent` (a differential asserts it), so the
 // `ainra` CLI, the middleware, and the MCP server all speak one event shape. The verdict is the registry's own
 // core-computed verdict (self-checked at seed time by the pure verifier).
-fn number_from_name(sub: &str) -> Option<String> {
-    // ainra:reg:op:lineage@ver → did:ainra:reg:op:lineage (the permanent AINRA Number). Mirrors sdk numberFromName.
-    if !sub.contains('@') {
-        return None;
-    }
-    let body = sub.strip_prefix("ainra:")?;
-    let before_at = body.split('@').next()?;
-    let parts: Vec<&str> = before_at.split(':').collect();
-    let ok = parts.len() == 3
-        && parts.iter().all(|p| {
-            !p.is_empty()
-                && p.bytes()
-                    .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
-        });
-    ok.then(|| format!("did:ainra:{}:{}:{}", parts[0], parts[1], parts[2]))
-}
-fn jstr(o: Option<&str>) -> String {
-    o.map_or_else(
-        || "null".to_string(),
-        |v| serde_json::to_string(v).unwrap_or_else(|_| "null".into()),
-    )
-}
-fn event_json(
-    status: &str,
-    reason: Option<&str>,
-    name: Option<&str>,
-    number: Option<&str>,
-    tier: Option<&str>,
-    age: Option<i64>,
-) -> String {
-    format!(
-        r#"{{"status":{},"reason":{},"name":{},"number":{},"tier":{},"freshness_age_s":{}}}"#,
-        serde_json::to_string(status).unwrap(),
-        jstr(reason),
-        jstr(name),
-        jstr(number),
-        jstr(tier),
-        age.map_or_else(|| "null".to_string(), |v| v.to_string()),
-    )
-}
+use ainra_adapter::{event_json, number_from_name};
+
 fn cmd_events(a: &[String]) -> i32 {
     let Some(path) = pos(a, 0) else {
         eprintln!("usage: ainra events <registry.json>   (e.g. run `ainra seed <dir>` first, then `ainra events <dir>/registry.json`)");

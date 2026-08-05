@@ -421,6 +421,24 @@ nav .ndocs[aria-current="page"],.nav-links a[aria-current="page"]{color:var(--gr
 @media(max-width:1150px){.nav-hide-mid{display:none}}
 @media(max-width:900px){nav .ndocs{display:none}}
 [id]{scroll-margin-top:92px}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.paste{margin:14px 0 2px;border-top:1px solid rgba(11,18,32,.10);padding-top:12px}
+.paste>summary{cursor:pointer;font-size:13px;font-weight:600;color:var(--muted);list-style:none}
+.paste>summary::-webkit-details-marker{display:none}
+.paste>summary::before{content:"▸ ";color:var(--green)}
+.paste[open]>summary::before{content:"▾ "}
+.paste>summary:focus-visible{outline:2px solid var(--green);outline-offset:3px;border-radius:3px}
+.pnote{font-size:12.5px;line-height:1.5;color:var(--muted);margin:8px 0 8px}
+.pnote code{font-size:12px}
+#pasteBox{width:100%;font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--ink);background:#fff;
+  border:1px solid rgba(11,18,32,.16);border-radius:6px;padding:8px 10px;resize:vertical}
+#pasteBox:focus-visible{outline:2px solid var(--green);outline-offset:1px}
+.prow{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.perr{margin-top:8px;font-size:12.5px;line-height:1.5;color:#8A2B2B}
+.ev{margin-top:8px;font:11.5px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--muted);
+  background:rgba(11,18,32,.045);border-radius:5px;padding:7px 9px;overflow-x:auto;white-space:pre}
+.degraded{margin-top:8px;font-size:12.5px;line-height:1.55;color:#7A5A18;background:rgba(180,130,20,.09);
+  border-left:2px solid rgba(180,130,20,.55);border-radius:0 5px 5px 0;padding:8px 10px}
 </style></head><body id="top">
 <a href="#main" class="skip">Skip to content</a>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -513,6 +531,17 @@ nav .ndocs[aria-current="page"],.nav-links a[aria-current="page"]{color:var(--gr
           <label class="fld" for="pick">Choose a live lineage</label>
           <select id="pick"></select>
           <div class="pf" id="pfields"></div>
+          <details class="paste">
+            <summary>Or paste your own bundle</summary>
+            <p class="pnote">A conformance vector, a <code>{anchors, presentation}</code> pair, or a bare presentation (checked against the registrar selected above). It is read in this tab and nothing is sent anywhere.</p>
+            <label class="sr-only" for="pasteBox">Bundle JSON</label>
+            <textarea id="pasteBox" spellcheck="false" rows="5" placeholder='{"anchors":{…},"presentation":{…}}'></textarea>
+            <div class="prow">
+              <button class="btn btn-ghost" id="pasteBtn" type="button">Verify what I pasted</button>
+              <button class="btn btn-ghost" id="pasteClear" type="button" hidden>Back to the picker</button>
+            </div>
+            <div class="perr" id="pasteErr" role="alert" hidden></div>
+          </details>
           <div class="tamper">
             <div class="lead">▸ Forge it — flip one field, then re-verify</div>
             <div class="tbtns">
@@ -781,7 +810,9 @@ nav .ndocs[aria-current="page"],.nav-links a[aria-current="page"]{color:var(--gr
     ['L3 · BACKED','KYB-verified operator + zero-knowledge principal + liability insurance attestation. The floor for consumer-scale payments and contract execution.'],
     ['L4 · REGULATED','L3 plus sector license, independent audit, and third-party work validation. High-value autonomous transactions and critical infrastructure.']
   ];
-  const railBtns=[...document.querySelectorAll('[data-t]')];
+  // SCOPED to this rail on purpose: `[data-t]` alone also matches the demo's forge buttons further up the page,
+  // which silently disabled the entire tamper interaction (and threw on every click).
+  const railBtns=[...document.querySelectorAll('.rail[aria-label="Assurance tiers"] [data-t]')];
   railBtns.forEach(b=>b.addEventListener('click',()=>{
     railBtns.forEach(x=>x.setAttribute('aria-pressed','false'));
     b.setAttribute('aria-pressed','true');
@@ -804,8 +835,12 @@ nav .ndocs[aria-current="page"],.nav-links a[aria-current="page"]{color:var(--gr
 })();
 </script>
 <script type="module">
-// try-it-live — folded from the old demo page. The real @ainra/sdk verifier, in this tab, over specimen fixtures.
-let runVector;
+// try-it-live. The engine is ainra-core itself — the Rust verify path compiled to WebAssembly (L5) — so "the same
+// code that passes all 745 conformance vectors" is literal here rather than a family resemblance. A harness runs the
+// whole corpus through this exact artifact in a headless browser and requires 745/745 agreement with the core.
+// If WebAssembly cannot load, the page falls back to the JavaScript mirror and SAYS SO in the provenance line;
+// it never quietly answers with a different implementation than the one it claims.
+let ENGINE = null;
 const $=(s)=>document.querySelector(s);
 function showLoadError(msg){ const d=$("#demo"); if(d) d.style.display="none"; const n=$("#noscript-note"); if(n){ n.style.display="block"; n.textContent=msg+" The same verifier is also a downloadable CLI — get it above."; } }
 const REASONS={
@@ -818,6 +853,7 @@ const REASONS={
   ceiling_exceeded:"a capability exceeds the scope ceiling", unknown_registrar:"the issuer is not in the accredited directory",
   schema_violation:"the passport violated the schema (missing MUST or forbidden field)",
 };
+const escapeHtml=(t)=>String(t).replace(/[&<>"']/g,(c)=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const enc=(u)=>btoa(String.fromCharCode(...u)).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
 const b64u=(s)=>{s=s.replace(/-/g,"+").replace(/_/g,"/");while(s.length%4)s+="=";const b=atob(s);const u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u;};
 let REG=null, NOW=0, ROWS=[], sel=null, tamper=new Set();
@@ -842,6 +878,25 @@ function forge(wire){
   if(tamper.has("proof")){ p.inclusion_proof=[enc(new Uint8Array(32))]; }
   return wire;
 }
+async function loadEngine(){
+  // Preferred: the real core. `verify` takes the bundle, the directory, and OUR clock — the verifier's time, never
+  // the presenter's — and returns the one canonical verdict event every AINRA surface emits.
+  try{
+    const m = await import("./assets/wasm/ainra_wasm.js");
+    await m.default();
+    return { kind:"wasm", label:"ainra-core · Rust → WebAssembly", note:"",
+      verify:(pres,anchors,now)=>{ const e=JSON.parse(m.verify(JSON.stringify(pres),JSON.stringify(anchors),now));
+                                   return { verdict:e.status, reason:e.reason, event:e }; } };
+  }catch(e){ /* fall through — and be honest about it below */ }
+  try{
+    const s = await import("./vendor/ainra-sdk.js");
+    return { kind:"js", label:"@ainra/sdk · JavaScript mirror",
+      note:"WebAssembly did not load here, so this ran the independent JavaScript implementation instead. The differential holds both to the same answers on all 745 vectors — but the Rust core did not run in this tab, and we would rather say that than let you assume it did.",
+      verify:(pres,anchors,now)=>{ const v=s.runVector({name:"",expect:{},anchors,presentation:pres});
+                                   return { verdict:v.verdict, reason:v.reason, event:null }; } };
+  }catch(e){ return null; }
+}
+
 const STEP_LABELS=[
   ["schema","schema + name grammar"],["issuer","issuer accredited in the directory"],["window","validity window (now within nbf…exp)"],
   ["sig","hybrid signatures — Ed25519 + ML-DSA-65"],["chain","delegation chain narrows"],["status","revocation status is fresh &amp; authentic"],
@@ -855,17 +910,17 @@ function renderFields(rec){
   $("#pfields").innerHTML=rows.map(([k,v])=>`<span>${k}</span><span>${v}</span>`).join("");
 }
 async function verify(){
-  if(!sel) return;
-  const {rec,R}=sel;
+  if(!sel && !pasted) return;
   $("#big").textContent="…"; $("#big").className="big pend"; $("#reason").textContent="running the real verifier…";
   await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))); // paint the pending state, then go — no manufactured lag
-  let wire=forge(toWire(rec,R));
+  const wire = pasted ? {presentation:pasted.pres, anchors:pasted.anchors} : forge(toWire(sel.rec, sel.R));
+  const rec = pasted ? {} : sel.rec;
   let v;
-  try{ v=runVector(wire); }
+  try{ v=ENGINE.verify(wire.presentation, wire.anchors, NOW); }
   catch(e){
     $("#big").textContent="ERROR"; $("#big").className="big no";
     $("#reason").innerHTML="the verifier threw an unexpected exception — this is a demo bug, not a verdict on the passport";
-    $("#steps").innerHTML=""; $("#prov").innerHTML="verifier <b>@ainra/sdk</b> · exception: "+String(e&&e.message||e).slice(0,120);
+    $("#steps").innerHTML=""; $("#prov").innerHTML="verifier <b>"+ENGINE.label+"</b> · exception: "+String(e&&e.message||e).slice(0,120);
     return;
   }
   const ok=v.verdict==="valid";
@@ -878,20 +933,50 @@ async function verify(){
     const icon = state==="ok"?"✓":state==="no"?"✗":"·";
     return `<div class="dstep"><span class="i ${state}">${icon}</span><span class="t">${label}${i===failStep&&!ok?` <b>← ${v.reason}</b>`:""}</span></div>`;
   }).join("");
-  const provRoot = rec.checkpoint_root||"";
-  $("#prov").innerHTML = `verifier <b>@ainra/sdk</b> · 9 checks · verdict computed in this tab · checkpoint root <b>${provRoot.slice(0,20)}…</b> · ${tamper.size?`forgery applied: ${[...tamper].join(", ")}`:"unmodified passport"}`;
+  const provRoot = (pasted ? (wire.presentation.checkpoint&&wire.presentation.checkpoint.root) : rec.checkpoint_root)||"";
+  const evLine = v.event ? `<div class="ev">${escapeHtml(JSON.stringify(v.event))}</div>` : "";
+  $("#prov").innerHTML = `verifier <b>${ENGINE.label}</b> · 9 checks · verdict computed in this tab · checkpoint root <b>${provRoot.slice(0,20)}…</b> · ${pasted?"your pasted bundle":tamper.size?`forgery applied: ${[...tamper].join(", ")}`:"unmodified passport"}`
+    + evLine + (ENGINE.note?`<div class="degraded">${ENGINE.note}</div>`:"");
   $("#resetBtn").hidden = tamper.size===0;
 }
+// Paste-or-pick. Accepts the three shapes our own tooling actually emits, and refuses anything else by SAYING what
+// it could not find — a demo that answers "invalid" to a typo teaches the wrong lesson about why things fail.
+let pasted=null;
+function readPasted(text){
+  let j;
+  try{ j=JSON.parse(text); }catch(e){ return {err:"That is not valid JSON: "+e.message}; }
+  if(!j||typeof j!=="object") return {err:"Expected a JSON object."};
+  const pres = j.presentation ?? (j.claims!==undefined ? j : null);
+  if(!pres) return {err:"No presentation found. Paste a conformance vector, a {anchors, presentation} pair, or a bare presentation object."};
+  const anchors = j.anchors ?? (sel ? {[sel.R.registrar]:{issuer_key:sel.R.accreditation.issuer_key, log_root_key:sel.R.accreditation.log_root_key}} : null);
+  if(!anchors) return {err:"No anchors given, and no registrar is selected to check against."};
+  return {pres, anchors};
+}
+function verifyPasted(){
+  const box=$("#pasteBox"), errBox=$("#pasteErr");
+  const r=readPasted(box.value.trim());
+  if(r.err){ errBox.textContent=r.err; errBox.hidden=false; return; }
+  errBox.hidden=true;
+  pasted=r; tamper.clear();
+  document.querySelectorAll(".tbtn").forEach(b=>b.setAttribute("aria-pressed","false"));
+  $("#pasteClear").hidden=false;
+  $("#pfields").innerHTML='<span>source</span><span>pasted by you</span>';
+  verify();
+}
+function clearPasted(){
+  pasted=null; $("#pasteClear").hidden=true; $("#pasteErr").hidden=true;
+  if(sel) select(sel.rec.sub);
+}
 function select(sub){
-  const row=ROWS.find(r=>r.rec.sub===sub); sel=row; tamper.clear();
+  const row=ROWS.find(r=>r.rec.sub===sub); sel=row; tamper.clear(); pasted=null; $("#pasteClear").hidden=true;
   document.querySelectorAll(".tbtn").forEach(b=>b.setAttribute("aria-pressed","false"));
   renderFields(row.rec);
   $("#big").textContent="—"; $("#big").className="big pend"; $("#reason").textContent="press Verify to run the checker"; $("#steps").innerHTML=""; $("#prov").innerHTML=""; $("#resetBtn").hidden=true;
 }
 async function boot(){
   if(!$("#demo")) return;
-  try{ ({ runVector } = await import("./vendor/ainra-sdk.js")); }
-  catch(e){ showLoadError("Could not load the in-browser verifier (vendor/ainra-sdk.js)."); return; }
+  ENGINE = await loadEngine();
+  if(!ENGINE){ showLoadError("Could not load the in-browser verifier."); return; }
   try{ REG=await (await fetch("data/registry.json",{cache:"no-store"})).json(); }
   catch(e){ showLoadError("Could not load the demo data (data/registry.json). Serve this page over http (e.g. `python3 -m http.server` in site/)."); return; }
   NOW=REG.generated_window?.verified_at ?? 0;
@@ -908,6 +993,8 @@ async function boot(){
   }));
   $("#verifyBtn").addEventListener("click",verify);
   $("#resetBtn").addEventListener("click",()=>{select(sel.rec.sub);});
+  $("#pasteBtn").addEventListener("click",verifyPasted);
+  $("#pasteClear").addEventListener("click",clearPasted);
   select(ordered[0].rec.sub);
 }
 boot();

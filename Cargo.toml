@@ -5,6 +5,7 @@ resolver = "2"
 members = [
     "crates/ainra-core",
     "crates/ainra-adapter", # L5: the ONE bytes→core-types path; every consumer depends on it
+    "crates/ainra-wasm",       # L5: the browser surface — a thin binding over the adapter, no parsing of its own
     "crates/ainra-cli-rs",     # M3: the `ainra` reference CLI (offline + persistent, over core+services)
     "crates/ainra-ceremony",   # M4: FROST 5-of-9 root ceremony (signing side; never in the verify path)
     "tools/vector-gen",
@@ -59,3 +60,13 @@ codegen-units = 1
 [profile.dev.package.ml-dsa]
 opt-level = 3
 codegen-units = 1
+
+# L5 — the browser artifact only. Deliberately a SEPARATE profile: touching `release` would change every published
+# binary's bytes and invalidate the reproducibility manifest for a size win that only the .wasm needs.
+[profile.wasm-release]
+inherits = "release"
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

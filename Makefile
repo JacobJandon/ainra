@@ -401,3 +401,14 @@ site-demo: ainrascan
 	@rm -rf site/data/registrar-*
 	@echo "stripped site/data/registrar-* — the browser demo reads only registry.json; registrar key-seed material must never ship"
 	@echo "site/demo.html is ready — open site/index.html → 'Try it live'"
+
+# ── L5: the browser surface ────────────────────────────────────────────────────────────────────────────────
+wasm: ## build the browser verifier into site/assets/wasm (size ceiling enforced)
+	@bash tools/build-wasm.sh
+
+wasm-diff: wasm ## run the FULL conformance corpus through the WASM in a headless browser; must be N/N
+	@node tools/wasm-differential.mjs
+
+wasm-diff-negative: wasm ## prove the browser differential can fail (one flipped signature bit)
+	@NEGATIVE_CONTROL=1 node tools/wasm-differential.mjs && (echo "NEGATIVE CONTROL DID NOT FAIL"; exit 1) || echo "negative control OK: the harness reports mismatches."
+

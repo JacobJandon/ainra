@@ -42,6 +42,16 @@ run() { # run <name> <note-on-pass> <command...>
   fi
 }
 
+# Some rows need a toolchain we deliberately do NOT make a prerequisite of cloning (the WASM row needs
+# wasm-bindgen-cli and a headless browser). Those SKIP loudly, naming what is missing and the command that installs
+# it. A skip is never a pass: it prints in the board, it is counted, and the summary says so. CI installs the
+# toolchain, so the row is genuinely enforced there — the skip is a courtesy to a stranger, not a hole in the gate.
+SKIPPED=0
+skip() { # skip <name> <why>
+  printf '  \033[33m[SKIP]\033[0m %-22s %s\n' "$1" "$2"
+  NAMES+=("$1"); RESULTS+=("SKIP"); NOTES+=("$2"); SKIPPED=$((SKIPPED+1))
+}
+
 echo "AINRA preflight — clone-and-it-works board"
 echo "toolchain: $(rustc --version 2>/dev/null || echo 'rustc?') · $(node --version 2>/dev/null || echo 'node?')"
 echo "────────────────────────────────────────────────────────────────"
@@ -57,6 +67,11 @@ run "ceremony multi"     "FROST 5-of-9 across processes" bash tools/ceremony-reh
 run "soak instrument"    "measured p95, signed report"  bash tools/soak-smoke.sh 12
 run "witness quorum"     "fork refused over HTTP"       bash tools/drill-networked.sh
 run "one decode path"    "no duplicate bytes→core parser" node tools/one-decode-path.mjs
+if command -v wasm-bindgen >/dev/null 2>&1 && node tools/wasm-differential.mjs --probe >/dev/null 2>&1; then
+  run "browser verifier"   "745 vectors agree in-browser"  make wasm-diff
+else
+  skip "browser verifier" "needs wasm-bindgen-cli + a headless browser (enforced in CI; see make wasm)"
+fi
 run "S7 neutrality"      "no brands / no impersonation" node tools/s7-lint.mjs
 run "license headers"    "SPDX on every source file"    node tools/license-check.mjs
 run "status honesty"     "README == STATUS claim"       node tools/status-consistency.mjs
@@ -70,7 +85,12 @@ fi
 
 echo "────────────────────────────────────────────────────────────────"
 if [ "$FAIL" = "0" ]; then
-  echo -e "  \033[32mALL GREEN\033[0m — a stranger can clone this repo and every gate passes."
+  if [ "$SKIPPED" != "0" ]; then
+    echo -e "  \033[32mALL GREEN\033[0m — every gate that ran passed; \033[33m$SKIPPED skipped\033[0m for a missing optional toolchain:"
+    for i in "${!NAMES[@]}"; do [ "${RESULTS[$i]}" = "SKIP" ] && echo "    – ${NAMES[$i]}: ${NOTES[$i]}"; done
+  else
+    echo -e "  \033[32mALL GREEN\033[0m — a stranger can clone this repo and every gate passes."
+  fi
   exit 0
 else
   echo -e "  \033[31mRED\033[0m — the following rows failed:"

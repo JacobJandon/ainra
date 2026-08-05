@@ -26,6 +26,11 @@ const MOVED = [
   { re: /fn\s+delta_verify\b/,                what: "delta-vector verification" },
   { re: /fn\s+directory_result\b/,            what: "directory-vector evaluation" },
   { re: /fn\s+anchors_from_export\b/,         what: "the fail-open anchor decoder deleted in L5" },
+  // The verdict EVENT is wire vocabulary too. It lived in the CLI binary while the CLI was Rust's only emitter;
+  // the browser surface would have made it a third copy alongside the SDK's, in the same drift class as a second
+  // decoder — a log format that is "canonical" in three places is a log format with three answers.
+  { re: /fn\s+number_from_name\b/,            what: "the AINRA-Number derivation" },
+  { re: /fn\s+event_json\b/,                  what: "the canonical verdict-event serializer" },
 ];
 // A second decoder rarely announces itself; it looks like an innocent local conversion. Flag the shape.
 // Assembling TrustAnchors from IN-PROCESS values is legitimate — a registrar knows its own keys and never parsed

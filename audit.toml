@@ -1,0 +1,22 @@
+# SPDX-License-Identifier: Apache-2.0 OR MIT
+# cargo-audit configuration.
+#
+# Ignores are written down with a reason, a blast radius, and what would make us revisit — an undocumented ignore
+# is indistinguishable from not running the tool.
+
+[advisories]
+ignore = [
+  # RUSTSEC-2023-0089 — `atomic-polyfill` is UNMAINTAINED (an unmaintained notice, not a vulnerability; there is
+  # no known CVE and no exploit path published).
+  #
+  # Where it comes from:  ainra-ceremony → frost-ed25519 3.0 → frost-core → postcard → heapless 0.7 → atomic-polyfill
+  # Blast radius:         the SIGNING side only. Verified with `cargo tree -p ainra-core`: the verify path does not
+  #                       depend on it, and neither do ainra-adapter, ainra-wasm, ainra-cli-rs, ainra-services or
+  #                       the vector generator. Nothing a relying party executes touches this crate.
+  # Why not upgraded:     frost-ed25519 3.0.0 is the current release; the dependency is pinned inside it, so there
+  #                       is no version of the audited ZF FROST implementation that drops heapless 0.7 today.
+  # Revisit when:         frost-ed25519 publishes a release that moves to heapless 0.8+, or this advisory is
+  #                       upgraded from "unmaintained" to an actual vulnerability. Either flips this back to a hard
+  #                       failure — the entry is narrow (one ID) precisely so that it does.
+  "RUSTSEC-2023-0089",
+]

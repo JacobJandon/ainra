@@ -35,7 +35,7 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262   # v4
         with: { fetch-depth: 0 }
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
-        with: { node-version: '22.14.0' }
+        with: { node-version: '22.22.2' }
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with: { python-version: '3.12' }
       # The script builds the sdk and the wheel to inspect what would actually ship. A bare runner has neither the
@@ -60,7 +60,7 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262   # v4
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: '22.14.0'   # >= 22.14.0, required for trusted publishing
+          node-version: '22.22.2'   # floor for trusted publishing AND for current npm (npm 12 needs ^22.22.2)
           registry-url: https://registry.npmjs.org
       - name: npm >= 11.5.1 (required for trusted publishing)
         run: npm install -g npm@latest && npm --version
@@ -117,6 +117,8 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262   # v4
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
-        with: { node-version: '22.14.0', registry-url: https://registry.npmjs.org }
+        with: { node-version: '22.22.2', registry-url: https://registry.npmjs.org }
+      # npm@latest couples this job to whatever npm requires today; that is precisely how it broke (npm 12
+      # raised its node floor under a pinned node). Keep it, but keep the node pin at or above that floor.
       - run: npm install -g npm@latest
       - run: cd packages/sdk-ts && npm install --no-audit --no-fund && npm run build && npm publish --dry-run --provenance --access public

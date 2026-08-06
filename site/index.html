@@ -446,8 +446,6 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
   border:2px solid rgba(255,255,255,.85);transition:transform .18s,background .18s}
 .video-poster:hover .video-btn{transform:scale(1.06);background:var(--green)}
 .video-poster:focus-visible{outline:3px solid var(--green);outline-offset:3px}
-.video-note{margin:12px auto 0;max-width:860px;text-align:center;font-family:var(--mono);font-size:10.5px;
-  letter-spacing:.08em;color:var(--muted)}
 </style>
 </head>
 <body id="top">
@@ -473,10 +471,13 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
       <circle cx="56" cy="56" r="2.4" fill="#0B1220"/>
     </g>
     <g id="ainra-sigil-lt">
+      <g id="sigil-snake">
       <path d="M 98.4 33.5 A 48 48 0 1 1 78.5 13.6" fill="none" stroke="#E7EAF0" stroke-width="3" stroke-linecap="round"/>
       <path d="M 95.8 29.2 L 98.7 27.2 M 91.7 23.9 L 94.3 21.5 M 86.9 19.2 L 89.1 16.6" stroke="#E7EAF0" stroke-width="1" opacity=".5"/>
       <path d="M 80.6 11.5 L 83.4 18.5 L 76.4 15.7 Z" fill="#E7EAF0"/>
       <circle cx="79.6" cy="14.2" r="1.1" fill="#0B1220"/>
+      </g>
+      <g id="sigil-globe">
       <circle cx="56" cy="56" r="36" stroke="#E7EAF0" stroke-width="1.2" fill="none"/>
       <circle cx="56" cy="56" r="26" stroke="#E7EAF0" stroke-width="1.6" fill="none"/>
       <ellipse cx="56" cy="56" rx="11" ry="26" stroke="#E7EAF0" stroke-width="1" fill="none"/>
@@ -484,6 +485,7 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
       <path d="M33.5 43 h45 M33.5 69 h45" stroke="#E7EAF0" stroke-width="0.8" opacity="0.6"/>
       <path d="M56 30 a26 26 0 0 1 26 26" stroke="#57C08F" stroke-width="3" stroke-linecap="round" fill="none"/>
       <circle cx="56" cy="56" r="2.4" fill="#E7EAF0"/>
+      </g>
     </g>
     <g id="ainra-crest">
       <circle cx="80" cy="80" r="78" fill="none" stroke="currentColor" stroke-width="2.5"/>
@@ -531,7 +533,7 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
     <div class="kick rv in">TURNING FUTURE INTO A WORKING PRESENT</div>
     <h1 class="rv in">Identity is <span class="u">assembled</span>,<br>not discovered.</h1>
     <p class="sub rv in">Autonomous AI already acts — buying, building, paying other agents, even renting humans. Agent IDs are multiplying, each an island. <b>One neutral root under them all.</b></p>
-    <p class="sub sub2 rv in">Everyone hands agents credentials. Nobody neutral checks the ones they did not issue. And the first loss-of-control incidents are already public — nothing can be tracked, restricted or banned until it can be identified.</p>
+    <p class="sub sub2 rv in">Everyone hands agents credentials; nobody neutral checks them. And the first loss-of-control incidents are already public — nothing can be restrained until it can be identified.</p>
     <div class="cta-row rv in">
       <a class="btn btn-green" href="verify.html#try">Try it live →</a>
       <a class="btn btn-ghost" href="docs.html#standard">Read the standard</a>
@@ -613,6 +615,12 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
 .ocore{font-family:'B612 Mono',ui-monospace,monospace;font-size:15px;letter-spacing:.18em;fill:#fff}
 .oray{stroke:rgba(87,192,143,.28);stroke-dasharray:2 6}
 </style></defs>
+<g id="snake-outer" aria-hidden="true">
+  <path d="M 16.7 229.4 A 292 292 0 1 1 25.6 399.9" fill="none" stroke="#E7EAF0" stroke-width="3" stroke-linecap="round"/>
+  <path d="M 19.3 359.7 L 9.5 361.8 M 13.6 320.0 L 3.6 320.8 M 13.6 279.9 L 3.6 279.2" stroke="#E7EAF0" stroke-width="1.6" opacity=".5"/>
+  <path d="M 20.1 384.9 L 33.1 397.2 L 18.1 402.6 Z" fill="#E7EAF0"/>
+  <circle cx="26.3" cy="394.3" r="2.2" fill="#0B1220"/>
+</g>
 <circle cx="300" cy="300" r="140" class="oring" stroke-width="1.2"/>
 <circle cx="300" cy="300" r="208" class="oring" stroke-width="1.2"/>
 <circle cx="300" cy="300" r="276" class="oring" stroke-width="1.2"/>
@@ -620,7 +628,7 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
 <line x1="592" y1="300" x2="376" y2="300" class="oray" stroke-width="1.2"/>
 <line x1="300" y1="592" x2="300" y2="434" class="oray" stroke-width="1.2"/>
 <line x1="8" y1="300" x2="224" y2="300" class="oray" stroke-width="1.2"/>
-<g transform="translate(223.1,223.1) scale(1.3725)"><use href="#ainra-sigil-lt"/></g>
+<g transform="translate(223.1,223.1) scale(1.3725)"><use href="#sigil-globe"/></g>
 <text x="300" y="400" text-anchor="middle" class="ocore">AINRA</text>
 <text x="300" y="418" text-anchor="middle" class="otag">THE ROOT</text>
 <g class="ocats">
@@ -774,7 +782,6 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
         <span class="video-btn" aria-hidden="true"><svg viewBox="0 0 24 24" width="30" height="30"><path d="M8 5v14l11-7z" fill="#fff"/></svg></span>
       </button>
     </div>
-    <p class="video-note">Nothing loads from the video host until you press play — consistent with this site making no external requests on its own.</p>
   </div>
 </section>
 
@@ -790,7 +797,7 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
   var b=document.getElementById("videoPlay");if(!b)return;
   b.addEventListener("click",function(){
     var f=document.createElement("iframe");
-    f.src="https://www.youtube-nocookie.com/embed/ZlHlpMpu8ug?autoplay=1&rel=0";
+    f.src="https://www.youtube.com/embed/ZlHlpMpu8ug?autoplay=1&rel=0";
     f.title="A national security emergency — AI Governance and Safety Canada";
     f.allow="autoplay; encrypted-media; picture-in-picture; fullscreen";
     f.setAttribute("allowfullscreen","");

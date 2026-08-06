@@ -129,6 +129,57 @@ The loud half is not the lesson. **A negative control that cannot fire is indist
 through that process; the post-mortem is in that file, and **the FIPS 204 KAT suite is the pinning vector** — it
 would have caught a functional regression in either direction, and it now runs on every board.
 
+
+## PARKED — npm + PyPI publishing
+
+Publishing did not happen this session, and it is blocked on two things that are the maintainer's to do. Neither
+is a defect; both are gates behaving correctly.
+
+**Blocker 1 — trusted-publisher binding (one-time, two web UIs, ~5 min).** The maintainer chose OIDC trusted
+publishing over pasted tokens, which is the right call: provenance **cannot** be retrofitted onto a version that
+is already public, so a local token publish would permanently forfeit attestation on these packages.
+
+```
+npmjs.com  → @ainra org → Trusted Publisher → repo JacobJandon/ainra + workflow .github/workflows/publish.yml
+pypi.org   → Publishing → pending publisher → same repo + workflow, environment: pypi
+```
+
+**Blocker 2 — the packages need a tag that contains their version bump.** All five moved 0.3.0 → 0.3.1 to match
+the tree they ship from, and `publish-preflight` now compares bytes rather than merely checking a tag exists, so
+it correctly refuses:
+
+```
+[BLOCK] tag matches tree   packages differ from tag v0.3.1 — bump the version, or publish from a checkout of the tag
+```
+
+A tag is never moved here, so v0.3.1 cannot absorb the bump. The bump commit needs its own tag.
+
+### Resume — one paste, after both blockers clear
+
+```sh
+cd ~/Desktop/Solvatron/ainra
+git tag -s v0.3.2 -m "AINRA v0.3.2 — package metadata release (0.3.1 → 0.3.2); no source change"   # maintainer's button
+git push origin v0.3.2
+make publish-preflight                      # must print READY with "tag matches tree"
+gh workflow run publish.yml -f target=dry-run   # proves the path; publishes nothing
+gh workflow run publish.yml -f target=npm-sdk
+gh workflow run publish.yml -f target=npm-middleware
+gh workflow run publish.yml -f target=pypi
+```
+
+Then verify from the PUBLIC registries in a clean environment, and only then propagate registry install commands
+into the README/site through the generators:
+
+```sh
+npm view @ainra/sdk version && pip download ainra==<v> -d /tmp/x --no-deps
+```
+
+**Names are unclaimed as of this session:** `@ainra/sdk`, `@ainra/middleware`, `@ainra/mcp` and PyPI `ainra` all
+return 404, so nothing was lost by waiting.
+
+**Not done, deliberately:** registry install commands were NOT propagated into the README or the site. Publishing
+them before the packages exist would put a command on a public page that fails for whoever runs it.
+
 ## Release
 
 `v0.3.1`, with the full board at the release commit in [`docs/releases/v0.3.1-board.md`](releases/v0.3.1-board.md).

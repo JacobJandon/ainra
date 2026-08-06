@@ -30,7 +30,7 @@ ed25519-dalek = { version = "2", default-features = false, features = ["alloc", 
 # used either. DECISIONS D-006. FIPS 204 / FIPS 205 (RustCrypto).
 ml-dsa = { version = "0.1.1", default-features = false, features = ["alloc"] }
 slh-dsa = { version = "0.0.3" }
-sha2 = { version = "0.10", default-features = false }
+sha2 = { version = "0.11", default-features = false }
 signature = { version = "2", default-features = false }
 rand_core = { version = "0.6", default-features = false }
 # Encoding

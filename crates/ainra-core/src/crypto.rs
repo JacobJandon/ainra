@@ -16,7 +16,7 @@ use alloc::vec::Vec;
 // same traits, so these two imports cover ed25519 AND slh-dsa sign/verify. `Keypair` is needed for
 // `SigningKey::verifying_key()` (slh-dsa impls `KeypairRef` → blanket `Keypair`).
 use ed25519_dalek::{Signer as _, Verifier as _};
-use ml_dsa::{KeyGen, MlDsa65};
+use ml_dsa::{MlDsa65, Seed as MlSeed};
 use rand_core::CryptoRngCore;
 use signature::Keypair as _;
 use slh_dsa::Sha2_128s;
@@ -45,7 +45,7 @@ const MLDSA_CTX: &[u8] = b""; // empty context string; deterministic signing (re
 /// A hybrid keypair (Ed25519 + ML-DSA-65). Fixture/registrar-side; the verify path never needs the secret keys.
 pub struct HybridKeypair {
     ed: ed25519_dalek::SigningKey,
-    ml: ml_dsa::KeyPair<MlDsa65>,
+    ml: ml_dsa::SigningKey<MlDsa65>,
 }
 
 /// A hybrid public key = the two public keys a verifier chains to.
@@ -67,14 +67,27 @@ impl HybridKeypair {
     /// reproducibility (the seed is public and labeled TEST — never a production key).
     pub fn generate(rng: &mut impl CryptoRngCore) -> Self {
         let ed = ed25519_dalek::SigningKey::generate(rng);
-        let ml = MlDsa65::key_gen(rng);
+        // ml-dsa 0.1 is seed-first: `SigningKey::from_seed` IS FIPS 204 Algorithm 6, and 0.1's own rng path does
+        // exactly this — fill a 32-byte seed, then expand it. 0.0.4's `key_gen(rng)` did the same. Drawing the
+        // seed here instead of handing over the rng therefore produces the BYTE-IDENTICAL key for a given seeded
+        // CSPRNG, which is what keeps the reproducible corpus reproducible across the upgrade. It also avoids
+        // straddling two incompatible `rand_core` generations.
+        let mut xi = MlSeed::default();
+        rng.fill_bytes(&mut xi);
+        let ml = ml_dsa::SigningKey::<MlDsa65>::from_seed(&xi);
         Self { ed, ml }
     }
 
     pub fn public(&self) -> HybridPublic {
         HybridPublic {
             ed25519: self.ed.verifying_key().to_bytes(),
-            mldsa65: self.ml.verifying_key().encode().to_vec(),
+            // NOT `.verifying_key()`: that comes from `signature` v3's `Keypair`, while this workspace still
+            // pins `signature` v2 for ed25519/slh-dsa, so both versions are in the graph and the v2 trait is the
+            // one in scope. `AsRef<VerifyingKey<_>>` is inherent to ml-dsa and version-agnostic.
+            mldsa65: {
+                let vk: &ml_dsa::VerifyingKey<MlDsa65> = self.ml.as_ref();
+                vk.encode().to_vec()
+            },
         }
     }
 
@@ -84,7 +97,7 @@ impl HybridKeypair {
         let ed = self.ed.sign(msg).to_bytes().to_vec();
         let ml = self
             .ml
-            .signing_key()
+            .expanded_key()
             .sign_deterministic(msg, MLDSA_CTX)
             .map_err(|_| Error::Canon("ml-dsa sign failed".into()))?
             .encode()
@@ -224,11 +237,12 @@ mod tests {
         let pk = kp.public();
         assert_eq!(pk.ed25519.len(), ED25519_PK);
         assert_eq!(pk.mldsa65.len(), MLDSA65_PK, "ML-DSA-65 pk must be 1952 B");
-        assert_eq!(
-            kp.ml.signing_key().encode().to_vec().len(),
-            MLDSA65_SK,
-            "ML-DSA-65 sk must be 4032 B"
-        );
+        // ml-dsa 0.1 stores the 32-byte seed and derives the expanded key on demand; the 4032-byte FIPS 204
+        // skEncode form is still normative (it is what NIST's vectors publish), so the size assertion stays on
+        // that encoding rather than on whatever the crate happens to hold in memory this release.
+        #[allow(deprecated)]
+        let sk_expanded_len = kp.ml.expanded_key().to_expanded().len();
+        assert_eq!(sk_expanded_len, MLDSA65_SK, "ML-DSA-65 sk must be 4032 B");
         let sig = kp.sign(b"m").unwrap();
         assert_eq!(sig.ed25519.len(), ED25519_SIG);
         assert_eq!(

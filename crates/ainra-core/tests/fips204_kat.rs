@@ -13,13 +13,16 @@
 //! **ML-DSA-65, external signature interface, pure (not pre-hash), external-mu off, deterministic**.
 //!
 //! What each half proves:
-//!   * `keyGen`  — a seed expands to the byte-exact public and secret key NIST specifies.
-//!   * `sigGen`  — deterministic signing over (sk, message, context) produces the byte-exact signature NIST
-//!                 specifies. This is the strongest form available: not "a valid signature", *the* signature.
-//!   * `sigVer`  — 15 cases, **12 of them negative** (modified z, modified hint, modified commitment, modified
-//!                 message). A verifier that accepts everything passes the positive cases and fails here.
+//!
+//! * `keyGen` — a seed expands to the byte-exact public and secret key NIST specifies.
+//! * `sigGen` — deterministic signing over (sk, message, context) produces the byte-exact signature NIST
+//!   specifies. This is the strongest form available: not "a valid signature", *the* signature.
+//! * `sigVer` — 15 cases, **12 of them negative** (modified z, modified hint, modified commitment, modified
+//!   message). A verifier that accepts everything passes the positive cases and fails here.
 
-use ml_dsa::{B32, KeyGen, MlDsa65};
+use ml_dsa::{
+    ExpandedSigningKey, ExpandedSigningKeyBytes, MlDsa65, Seed, SigningKey, VerifyingKey,
+};
 
 const KAT: &str = include_str!("../../../vectors/nist/ml-dsa-65-fips204-kat.json");
 
@@ -40,15 +43,22 @@ fn fips204_keygen_matches_nist() {
     for c in cases {
         let tc = c["tcId"].as_u64().unwrap_or(0);
         let seed = hex(c["seed"].as_str().expect("seed"));
-        let xi = B32::try_from(&seed[..]).expect("seed is 32 bytes");
-        let kp = MlDsa65::key_gen_internal(&xi);
+        let xi = Seed::try_from(&seed[..]).expect("seed is 32 bytes");
+        // `from_seed` IS FIPS 204 Algorithm 6 — the same algorithm 0.0.4 reached through `key_gen_internal`.
+        let sk = SigningKey::<MlDsa65>::from_seed(&xi);
+        let vk: &VerifyingKey<MlDsa65> = sk.as_ref();
         assert_eq!(
-            kp.verifying_key().encode().as_slice(),
+            vk.encode().as_slice(),
             hex(c["pk"].as_str().expect("pk")).as_slice(),
             "tc{tc}: public key differs from NIST"
         );
+        // NIST publishes the EXPANDED (Algorithm 24 skEncode) secret key; 0.1 prefers the 32-byte seed form and
+        // marks the expanded encoding deprecated, but the encoding itself is still normative and still the thing
+        // NIST specifies — so this is exactly where we want to keep checking it.
+        #[allow(deprecated)]
+        let sk_expanded = sk.expanded_key().to_expanded();
         assert_eq!(
-            kp.signing_key().encode().as_slice(),
+            sk_expanded.as_slice(),
             hex(c["sk"].as_str().expect("sk")).as_slice(),
             "tc{tc}: secret key differs from NIST"
         );
@@ -64,8 +74,9 @@ fn fips204_siggen_matches_nist_byte_for_byte() {
     for c in cases {
         let tc = c["tcId"].as_u64().unwrap_or(0);
         let sk_bytes = hex(c["sk"].as_str().expect("sk"));
-        let enc = ml_dsa::EncodedSigningKey::<MlDsa65>::try_from(&sk_bytes[..]).expect("sk length");
-        let sk = ml_dsa::SigningKey::<MlDsa65>::decode(&enc);
+        let enc = ExpandedSigningKeyBytes::<MlDsa65>::try_from(&sk_bytes[..]).expect("sk length");
+        #[allow(deprecated)]
+        let sk = ExpandedSigningKey::<MlDsa65>::from_expanded(&enc);
         let msg = hex(c["message"].as_str().expect("message"));
         let ctx = hex(c["context"].as_str().unwrap_or(""));
         let sig = sk.sign_deterministic(&msg, &ctx).expect("sign");
@@ -94,10 +105,13 @@ fn fips204_sigver_matches_nist_including_negatives() {
 
         let pk_bytes = hex(c["pk"].as_str().expect("pk"));
         let vk = match ml_dsa::EncodedVerifyingKey::<MlDsa65>::try_from(&pk_bytes[..]) {
-            Ok(enc) => ml_dsa::VerifyingKey::<MlDsa65>::decode(&enc),
+            Ok(enc) => VerifyingKey::<MlDsa65>::decode(&enc),
             // a malformed key is a refusal, and a refusal is only correct on a negative case
             Err(_) => {
-                assert!(!want, "tc{tc}: NIST expects PASS but the public key would not decode");
+                assert!(
+                    !want,
+                    "tc{tc}: NIST expects PASS but the public key would not decode"
+                );
                 continue;
             }
         };

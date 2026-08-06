@@ -19,7 +19,16 @@ jobs:
       # cargo-audit reads .cargo/audit.toml automatically — there is no --config flag (-c is --color, which is
       # how the first attempt at wiring this failed). The file carries ONE narrow ignore with its reason, blast
       # radius, and the condition that flips it back to a hard failure.
-      - run: cargo audit --deny warnings
+      #
+      # REPORT EVERYTHING, THEN DECIDE. `--deny warnings` alone stops at the first denied finding, and that is
+      # exactly how RUSTSEC-2025-0144 — a real timing side-channel in ml-dsa, a DIRECT dependency of the verify
+      # path — stayed invisible behind an "unmaintained" notice on an unrelated transitive crate. The first pass
+      # is informational and always succeeds, so the whole picture reaches the log; the second pass is the gate.
+      # One notice can never hide another again.
+      - name: report every advisory (informational — never fails)
+        run: cargo audit || true
+      - name: gate on advisories (the failing check)
+        run: cargo audit --deny warnings
 
   trivy:
     name: trivy — vulns + secrets across cargo/npm/pip
@@ -37,7 +46,7 @@ jobs:
           output: trivy.sarif
           severity: HIGH,CRITICAL
           exit-code: '0'      # report into the security tab; the audit job is the gate that fails
-      - uses: github/codeql-action/upload-sarif@v3
+      - uses: github/codeql-action/upload-sarif@c4dd10e44af883a891fe31ced449bcb4a6728b9b # v3.37.6
         with: { sarif_file: trivy.sarif }
 
   miri:

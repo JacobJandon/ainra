@@ -55,6 +55,50 @@ Adding vectors deliberately? Generate, never hand-write: `cargo run -p ainra-vec
 then `make diff`. Proposing a spec change? The MTS is the constitution — open a spec-question issue first, land the
 ADR in `docs/DECISIONS.md`, then the code.
 
+## A check that has never passed does not exist
+
+**Every check you add must be shown to fail, and shown to pass, before it counts.** Not "the code looks right" —
+run it both ways and paste both outputs.
+
+This is not a style preference. In one milestone (M26) we found three checks in this repository that had never
+once done their job, and each looked healthy from a distance:
+
+| Check | What it appeared to be | What it actually was |
+|---|---|---|
+| `scorecard` | a published OpenSSF score | referenced `ossf/scorecard-action@v2`, a tag that does not exist — it had never resolved, so the score was never published |
+| `clusterfuzzlite` | continuous fuzzing on the parsers | failed at *build* (`rustc 1.91 is not supported`) on every run — it had never fuzzed a single input |
+| `cargo-audit` | advisories gated | short-circuited on an "unmaintained" notice, hiding a real timing side-channel in a **direct dependency of the verify path** |
+
+A red job reads as "the check found something". Two of those three meant "the check never ran". That failure mode
+is worse than having no check, because it buys false confidence and trains people to route around the red.
+
+### Worked example: a check that passed while checking nothing
+
+`tools/interop-verify.mjs` verifies that freshly-signed material is accepted by our two independent ML-DSA
+implementations, and that each refuses a flipped bit. The first version did this:
+
+```js
+if (sdk.verifyHybrid(pk, msg, sig) !== "ok") bad("rejected a genuine signature");   // WRONG
+if (sdk.verifyHybrid(pk, msg, tampered) === "ok") bad("accepted a flipped bit");    // WRONG, and silent
+```
+
+`verifyHybrid` returns **`null`** on success — `HybridResult = null | "alg_downgrade" | "sig_invalid"`. There is
+no `"ok"`. So the first line reported every genuine signature as rejected (loud, and caught), and the second line
+compared against a value that can never occur, so it reported **"3/3 flipped-bit refused" while testing nothing**
+(silent, and nearly missed).
+
+The loud half is not the lesson. The silent half is: a negative control that cannot fire is indistinguishable
+from one that passes.
+
+### What this means for your PR
+
+- Add a **negative control** the same day you add the check — usually an env-gated corruption, as in
+  `NEGATIVE_CONTROL=1 node tools/interop-verify.mjs` or `make wasm-diff-negative`. Prove it exits non-zero.
+- **Paste both runs** in the PR: the failing one and the passing one.
+- If a check cannot be made to fail on demand, say so explicitly rather than leaving it looking green.
+- A gate that skips when its tooling is missing must **say so in the board output** (`[SKIP]` with the reason).
+  Silence is indistinguishable from success.
+
 ## Developer Certificate of Origin (DCO — not a CLA)
 We use the **DCO**, not a contributor licence agreement. You keep your copyright; you certify you have the right to
 submit the contribution under the project's licences (Apache-2.0 OR MIT for code; CC0 for vectors). Sign off every

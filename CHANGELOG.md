@@ -10,6 +10,46 @@ We **publicly own fixed security bugs** — hiding them would be the opposite of
 
 ## [Unreleased]
 
+## [0.3.1] — security
+
+Fixes one advisory, end to end, and closes the class of CI failure that hid it. Full workings:
+[`docs/PLAN-M26.md`](docs/PLAN-M26.md) · board at the release commit:
+[`docs/releases/v0.3.1-board.md`](docs/releases/v0.3.1-board.md).
+
+### Security
+
+- **RUSTSEC-2025-0144 — timing side-channel in `ml-dsa` `decompose()`.** `ml-dsa` 0.0.4 → 0.1.1, where Barrett
+  reduction replaces an operand-dependent hardware division on values derived from the secret components `s2` and
+  `t0`. **Signing-side leak**: verification consumes only public inputs, so relying parties had no secret exposed
+  — but registrar issuance, ceremony delegates and the CLI all sign, so the fix was taken in full. Publicly owned
+  in [`SECURITY.md`](SECURITY.md) with the post-mortem, as promised there.
+- **`getrandom` removed from the verify path.** A default feature of `ml-dsa` 0.1 that our seed-first key
+  derivation never reaches, and which broke the WebAssembly build outright.
+- **The pinning vector is NIST's own answers.** Our 745 vectors were generated *by* the vulnerable crate and could
+  not adjudicate a change to it, so FIPS 204 ML-DSA-65 known-answer tests were wired in first — keyGen, byte-exact
+  sigGen, and 15 sigVer cases of which 12 are negative. 0.0.4 passed them, so there was no second finding.
+
+### Fixed — checks that had never once run
+
+- **`scorecard` had never resolved.** It referenced `ossf/scorecard-action@v2`, which is not a tag on that action,
+  so the OpenSSF score this project advertises had never been published.
+- **`clusterfuzzlite` had never fuzzed anything.** It failed at *build* on every run (`rustc 1.91 is not
+  supported` against `ainra-core`'s declared 1.96 floor). All three targets now build and run — proven with a
+  short campaign: 2,819,057 / 2,365,037 / 589,127 executions, no crashes.
+- **`cargo-audit` short-circuited.** `--deny warnings` stopped at an unmaintained notice on a transitive crate and
+  never reached the real vulnerability in a direct dependency. It now reports every advisory before it gates.
+- **56 GitHub Actions references pinned to commit SHAs**, 0 floating, across all 8 workflows.
+
+### Added
+
+- `make interop` — freshly-signed material verified by two independent ML-DSA implementations
+  (`@noble/post-quantum` and OpenSSL), each required to refuse a flipped bit. Necessary because the regenerated
+  corpus came out byte-identical, which makes "the vectors still pass" an easy test to pass.
+- A **negative control for every security gate**, and the rule behind them in [`CONTRIBUTING.md`](CONTRIBUTING.md):
+  *a check that has never passed does not exist* — with a worked example of a negative control that reported
+  "3/3 refused" while testing nothing.
+
+
 The three real-world genesis DoD rows remain the only open work: a recorded public ceremony with independent
 custodians, ≥3 external verifiers, and a 14-day 3-region soak. The machinery for all three is built and rehearsed.
 

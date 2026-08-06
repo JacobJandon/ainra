@@ -72,6 +72,48 @@ The historical examples in "Our posture" above are exactly that record: each one
 decision in the log. That is the standard your report will be held to — and the reason a good report here is
 permanent, not just patched.
 
+## Post-mortem: RUSTSEC-2025-0144 — timing side-channel in `ml-dsa` (fixed in v0.3.1)
+
+The first finding to arrive through the process above, written up to the standard that section promises.
+
+**What it was.** `ml-dsa` ≤ 0.1.0-rc.2 computed `r1.0 / TwoGamma2::U32` in `decompose()` with a hardware division
+instruction. Division timing is operand-dependent, and `decompose()` is reached through `high_bits()` /
+`low_bits()` on values derived from the secret key components **s2** and **t0**. Upstream advisory:
+[GHSA-hcp2-x6j4-29j7](https://github.com/RustCrypto/signatures/security/advisories/GHSA-hcp2-x6j4-29j7),
+6.4 medium, published 2025-12-12.
+
+**Blast radius, stated honestly.** This is a **signing-side** leak. Verification consumes only public inputs — the
+public key, the signature, the message — so a relying party running the verifier has no secret for the timing to
+expose. The signing side is ours and is real: registrar issuance, ceremony delegates, and the CLI all sign. The
+scoping did not soften the fix; `ml-dsa` was taken to 0.1.1, where Barrett reduction replaces the division.
+
+**Why our CI did not catch it, which is the more useful half.** `cargo-audit` ran on every push and was *red* —
+but `--deny warnings` stops at the first denied finding, and that was an **unmaintained** notice on
+`atomic-polyfill`, a transitive crate of the signing-side FROST dependency. The real vulnerability sat behind it,
+unreported, in a **direct dependency of the verify path**. A gate that stops at the first problem can hide a worse
+one behind a lesser one.
+
+Two neighbouring checks turned out never to have run at all: `scorecard` referenced an action tag that does not
+exist (`ossf/scorecard-action@v2`), and `clusterfuzzlite` — "continuous fuzzing on the parsers" — failed at
+*build* on every run and had never fuzzed a single input. Both read as ordinary red jobs.
+
+**What changed.**
+
+* `ml-dsa` 0.0.4 → 0.1.1. `getrandom` dropped from the verify path entirely along the way (it was a default
+  feature, unreachable in our use, and it broke the WebAssembly build).
+* **The pinning vector is the FIPS 204 KAT suite** — NIST's own ML-DSA-65 keyGen / sigGen / sigVer answers
+  ([`vectors/nist/ml-dsa-65-fips204-kat.json`](vectors/nist/ml-dsa-65-fips204-kat.json), 15 sigVer cases of which
+  12 are negative). Our own 745 vectors could not adjudicate this: they were generated *by* the vulnerable crate.
+  The KATs are independent of it in both directions, and they now run on every board.
+* `cargo-audit` reports **every** advisory before it gates, so one notice can never hide another again.
+* All **56** GitHub Actions references pinned to commit SHAs.
+* `CONTRIBUTING.md` gained the rule these three failures taught: **a check that has never passed does not exist**,
+  with a worked example of a negative control that passed while testing nothing.
+
+**Not fixed by us:** nothing here was reported by an outside researcher — this was found by reading our own red
+CI honestly. Full workings: [`docs/PLAN-M26.md`](docs/PLAN-M26.md) and
+[`SECURITY-ADVISORIES.md`](SECURITY-ADVISORIES.md).
+
 ## Verifying what you run
 You do not have to trust us: the SDK is byte-differential-tested against the Rust core over the public CC0 vectors
 (`make diff`), every published artifact is byte-reproducible from source (`make repro`), and any mirror is

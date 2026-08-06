@@ -401,7 +401,11 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
 .openbadge{display:inline-flex;align-items:center;gap:9px;font-size:11px;font-weight:600;color:var(--muted);border:1px solid var(--line2);border-radius:99px;padding:6px 13px;font-family:var(--body);letter-spacing:0}
 @media(max-width:760px){.foot{grid-template-columns:1fr 1fr}}
 
-/* ── the root and its rings (L6). Reuses .dark, which the landing already defined but no longer used. ────── */
+/* ── the root and its rings. Framed exactly like foundation.html: a light section with a centred head, and the
+      diagram + legend inside a dark rounded panel — rather than a full-bleed dark band. ───────────────────── */
+.orbit-panel{background:var(--ink);border-radius:16px;padding:30px 30px 34px;margin:22px 0 8px;color:#E7EAF0;position:relative}
+.orbit-panel::before{content:"";position:absolute;inset:0;pointer-events:none;border-radius:16px;opacity:.13;
+  background:repeating-radial-gradient(circle at 112% -22%,rgba(87,192,143,.09) 0 2px,transparent 2px 11px)}
 .orbit-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:44px;align-items:center;position:relative;z-index:1}
 .orbit{width:100%;max-width:520px;margin:0 auto}
 .orbit svg{display:block;width:100%;height:auto}
@@ -423,21 +427,10 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
 .leg.core .n{background:var(--green);border-color:var(--green);color:#fff}
 .leg.core b{color:#fff}
 @media(max-width:560px){.leg{grid-template-columns:32px 1fr;gap:12px}.leg .n{width:30px;height:30px;font-size:10px}.legend::before{left:15px}}
-/* what we stand for — stances, not features. Each is something we DO or REFUSE. */
-.stand{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);
-  border:1px solid var(--line);border-radius:14px;overflow:hidden}
-@media(max-width:900px){.stand{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:600px){.stand{grid-template-columns:1fr}}
-.st-cell{background:var(--card);padding:24px 22px}
-.st-cell .k{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;
-  color:var(--green);display:block;margin-bottom:9px}
-.st-cell .k.no{color:#8A2B2B}
-.st-cell h3{font-size:16.5px;font-weight:700;letter-spacing:-.015em;margin-bottom:6px;line-height:1.3}
-.st-cell p{font-size:13.5px;color:var(--muted);line-height:1.55}
 /* the field as it stands — an evidence strip; every number self-counted and dated */
-.field-note{margin-top:30px;font-size:13.5px;color:#98A1B3;line-height:1.7;max-width:820px}
-.field-note b{color:#E7EAF0}
-.field-note a{color:var(--green-br);font-weight:600;border-bottom:1px solid rgba(87,192,143,.4)}
+.field-note{margin:22px auto 0;font-size:13.5px;color:var(--muted);line-height:1.7;max-width:760px;text-align:center}
+.field-note b{color:var(--ink)}
+.field-note a{color:var(--green);font-weight:600;border-bottom:1px solid rgba(87,192,143,.4)}
 .field-note a:hover{border-bottom-color:var(--green-br)}
 </style>
 </head>
@@ -522,7 +515,7 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
     <div class="kick rv in">TURNING FUTURE INTO A WORKING PRESENT</div>
     <h1 class="rv in">Identity is <span class="u">assembled</span>,<br>not discovered.</h1>
     <p class="sub rv in">Autonomous AI already acts — buying, building, paying other agents, even renting humans. Agent IDs are multiplying, each an island. <b>One neutral root under them all.</b></p>
-    <p class="sub sub2 rv in">Credential gateways, agent keys, scoped access — everyone is handing agents credentials, and every one of them stops at its own wall. Nobody neutral checks the agents they did not issue, and nobody can switch one off everywhere at once. That is the part we build, and the only part.</p>
+    <p class="sub sub2 rv in">Everyone hands agents credentials. Nobody neutral checks the ones they did not issue.</p>
     <div class="cta-row rv in">
       <a class="btn btn-green" href="verify.html#try">Try it live →</a>
       <a class="btn btn-ghost" href="docs.html#standard">Read the standard</a>
@@ -582,13 +575,14 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
 
 <div class="wrap"><div class="life-note rv">SIMPLE RULES → COMPLEX SYSTEMS</div></div>
 
-<section id="root" class="dark rv">
+<section id="root" class="rv">
   <div class="wrap">
-    <div class="sec-head" style="max-width:820px">
+    <div class="sec-head" style="max-width:760px;margin:0 auto 26px;text-align:center">
       <span class="eyebrow">The shape of it</span>
       <h2>One root. Three rings.</h2>
-      <p class="lede">Registrars, directories and gateways are multiplying, and each one is complete on its own terms — it issues an ID, scopes it, and can switch it off. Inside its own walls. None of them can check an agent they did not issue, and none can switch one off beyond their own edge. Rings need a centre.</p>
+      <p class="lede">Registrars, directories and gateways each issue an ID, scope it, and can switch it off — inside their own walls. Rings need a centre.</p>
     </div>
+    <div class="orbit-panel">
     <div class="orbit-grid">
       <div class="orbit rv" role="presentation">
               <svg viewBox="0 0 600 672" fill="none" role="img" aria-labelledby="ringsTitle ringsDesc">
@@ -651,48 +645,29 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
         <div class="leg core">
           <span class="n" aria-hidden="true">00</span>
           <div><b>THE ROOT — AINRA</b>
-          <p>Keys, rules, revocation, logs. Everything chains up to it; every check stays local and fast. It issues nothing itself and it never sees the transaction.</p></div>
+          <p>Keys, rules, revocation, logs. Everything chains up to it; every check stays local and fast.</p></div>
         </div>
         <div class="leg">
           <span class="n" aria-hidden="true">01</span>
           <div><b>RING 1 · INDEPENDENT REGISTRARS</b>
-          <p>Separate organizations issuing under identical published rules — licensed issuers, enterprise directories, permissionless chains. Competitors on everything except the rulebook.</p></div>
+          <p>Separate organizations issuing under identical published rules.</p></div>
         </div>
         <div class="leg">
           <span class="n" aria-hidden="true">02</span>
           <div><b>RING 2 · AGENTS</b>
-          <p>Each carries a passport chained to the root; its running copies get short-lived keys. Commerce agents, code agents, autonomous fleets — one grammar, whoever built them.</p></div>
+          <p>Each carries a passport chained to the root; its running copies get short-lived keys.</p></div>
         </div>
         <div class="leg">
           <span class="n" aria-hidden="true">03</span>
           <div><b>RING 3 · VERIFIERS</b>
-          <p>Anyone deciding whether to trust an agent — payment networks, edge and CDN, apps and APIs, chains and markets. The check runs on their own machine, and each picks its own bar.</p></div>
+          <p>Anyone deciding whether to trust an agent — the check runs on their own machine, and each picks its own bar.</p></div>
         </div>
       </div>
     </div>
-    <p class="field-note">The pattern, not the names. Nearly every effort to give an AI agent an identity — credential gateways, key vaults, enterprise directories, bot registries, payment enrolments — issues that identity to agents its own customer already controls, and stops at its own wall. Very few can check an agent somebody else issued. <b>None</b> is a non-profit operating the thing it describes: the neutral bodies publish a specification, convene a group, or announce an intent, while everything actually running belongs to a company that also sells the product doing the blocking. Revoke an agent in one and it keeps working in all the rest. That is not a gap in anyone's product — it is a missing floor, and no one is short of talent or funding to build it. <a href="https://github.com/JacobJandon/ainra/blob/main/docs/LANDSCAPE.md">How we counted, with a source on every row →</a></p>
+    </div>
+    <p class="field-note">The pattern, not the names. Nearly every effort to give an agent an identity issues it to agents its own customer already controls, and stops at its own wall. None is a non-profit operating the thing it describes. Revoke an agent in one and it keeps working in all the rest — a missing floor, not a gap in anyone's product. <a href="https://github.com/JacobJandon/ainra/blob/main/docs/LANDSCAPE.md">How we counted →</a></p>
   </div>
 </section>
-
-<section id="stand" class="rv">
-  <div class="wrap">
-    <div class="sec-head" style="text-align:center;max-width:720px;margin:0 auto">
-      <span class="eyebrow">What we stand for</span>
-      <h2>Six commitments, and their costs.</h2>
-      <p class="lede">Each one is something we do, or refuse to do, forever. They are in the charter because they are worth more when we cannot change our minds.</p>
-    </div>
-    <div class="stand" style="margin-top:34px">
-      <div class="st-cell"><span class="k">We do</span><h3>Check agents we did not issue.</h3><p>A stranger's passport verifies the same as a member's. That is the whole point of a root — otherwise it is a walled garden with a nicer name.</p></div>
-      <div class="st-cell"><span class="k">We do</span><h3>Revoke across everyone at once.</h3><p>One switch, honoured everywhere, in under a minute — and it fails closed. Revocation that stops at your own edge is not revocation, it is housekeeping.</p></div>
-      <div class="st-cell"><span class="k">We do</span><h3>Answer offline, root dark.</h3><p>The check runs on the verifier's machine with no call to us. If we vanish tomorrow, every credential already issued still verifies.</p></div>
-      <div class="st-cell"><span class="k no">We refuse</span><h3>To score anyone.</h3><p>We return facts — who issued it, what it may do, is it still standing. Never a rating, never a ranking. The decision is the verifier's, and each picks its own bar.</p></div>
-      <div class="st-cell"><span class="k no">We refuse</span><h3>To profit from the position.</h3><p>Non-profit, capped fees, verification free forever. A root that can be squeezed will be squeezed — so the ability is removed, not promised.</p></div>
-      <div class="st-cell"><span class="k no">We refuse</span><h3>To flag without appeal.</h3><p>Accreditation is not self-registration, and removal is not a mood. Published rules, a named process, and a way to contest it.</p></div>
-    </div>
-  </div>
-</section>
-
-
 <section id="integrate" class="rv">
   <div class="wrap">
     <div class="sec-head" style="text-align:center;max-width:700px;margin:0 auto">

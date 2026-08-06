@@ -15,7 +15,7 @@ unsafe_code = "forbid"
 [dependencies]
 ainra-core = { path = "../ainra-core" }
 frost-ed25519 = { version = "3" }
-rand_chacha = { version = "0.3", default-features = false }
+rand_chacha = { version = "0.9", default-features = false }
 rand_core = { workspace = true }
 serde = { workspace = true, features = ["std"] }
 serde_json = { workspace = true, features = ["std"] }

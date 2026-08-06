@@ -16,11 +16,17 @@ const bad = (m) => { console.log("  ✗ " + m); fail++; };
 
 for (const p of pages) {
   const s = html[p];
-  // 1. external resource requests — the site must stay self-contained. One deliberate exception: a plain
-  //    <a href> to the canonical source repository (user-initiated navigation, loads nothing at render time —
-  //    the zero-external-requests privacy guarantee is about loaded resources, not clickable links).
+  // 1. external resource requests — the site must stay self-contained. Two deliberate exceptions, both
+  //    user-initiated (the zero-external-requests privacy guarantee is about resources loaded at render time,
+  //    not about what a visitor chooses to click):
+  //      a. a plain <a href> to the canonical source repository;
+  //      b. ONE embed URL for the §watch video, pinned to its exact ID. It appears only inside a click handler —
+  //         this scanner cannot tell a JS string from an attribute, so it fires on `f.src="…"` — and the page
+  //         itself never requests it: the poster is a LOCAL jpeg, the iframe exists only after the visitor
+  //         presses play, and the note under the player says so. Any other external URL, including any other
+  //         video, still fails this gate.
   for (const m of s.matchAll(/(?:src|href)="(https?:)?\/\/[^"]+"/g))
-    if (!/(localhost|127\.|ainra\.org|ainra\.vercel\.app|schema\.org|github\.com\/JacobJandon\/ainra)/.test(m[0])) bad(`${p}: external request ${m[0].slice(0, 80)}`);
+    if (!/(localhost|127\.|ainra\.org|ainra\.vercel\.app|schema\.org|github\.com\/JacobJandon\/ainra|youtube-nocookie\.com\/embed\/ZlHlpMpu8ug)/.test(m[0])) bad(`${p}: external request ${m[0].slice(0, 80)}`);
   // 2. internal links resolve; anchors exist in the target file
   for (const m of s.matchAll(/href="([^"#][^"]*?)(?:#([^"]+))?"/g)) {
     const [, file, anchor] = m;

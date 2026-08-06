@@ -58,7 +58,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
- "signature 2.2.0",
+ "signature 3.0.0",
  "slh-dsa",
  "thiserror 1.0.69",
 ]

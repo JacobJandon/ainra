@@ -418,3 +418,10 @@ wasm-diff: wasm ## run the FULL conformance corpus through the WASM in a headles
 wasm-diff-negative: wasm ## prove the browser differential can fail (one flipped signature bit)
 	@NEGATIVE_CONTROL=1 node tools/wasm-differential.mjs && (echo "NEGATIVE CONTROL DID NOT FAIL"; exit 1) || echo "negative control OK: the harness reports mismatches."
 
+
+# M26 (d) — freshly-signed material checked by two INDEPENDENT ML-DSA implementations (noble + OpenSSL).
+interop: sdk-build ## cross-implementation interop on material that has never existed before
+	@node tools/interop-verify.mjs
+
+interop-negative: sdk-build ## prove the interop harness can fail (one corrupted signature byte)
+	@NEGATIVE_CONTROL=1 node tools/interop-verify.mjs && (echo "NEGATIVE CONTROL DID NOT FAIL"; exit 1) || echo "negative control OK: corruption is caught."

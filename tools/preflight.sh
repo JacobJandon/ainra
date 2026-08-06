@@ -68,6 +68,7 @@ run "ceremony multi"     "FROST 5-of-9 across processes" bash tools/ceremony-reh
 run "soak instrument"    "measured p95, signed report"  bash tools/soak-smoke.sh 12
 run "witness quorum"     "fork refused over HTTP"       bash tools/drill-networked.sh
 run "one decode path"    "no duplicate bytes→core parser" node tools/one-decode-path.mjs
+run "cross-impl interop" "fresh sigs verify in TS + PY"   make interop
 if command -v wasm-bindgen >/dev/null 2>&1 && node tools/wasm-differential.mjs --probe >/dev/null 2>&1; then
   run "browser verifier"   "745 vectors agree in-browser"  make wasm-diff
 else

@@ -23,9 +23,12 @@ repository = "https://example.invalid/ainra"       # placeholder; no real URLs (
 [workspace.dependencies]
 # Cryptography — ONLY audited libraries (MTS §3, §24 BOM). No bespoke primitives, ever.
 ed25519-dalek = { version = "2", default-features = false, features = ["alloc", "rand_core"] }
-# ml-dsa/slh-dsa 0.0.x gate a pkcs8-only import behind only `alloc` (crate bug), so we take their default feature
-# set (alloc + pkcs8) which compiles cleanly. DECISIONS D-006. FIPS 204 / FIPS 205 (RustCrypto).
-ml-dsa = { version = "0.1.1" }
+# ml-dsa 0.1: default-features OFF on purpose. `getrandom` is a DEFAULT feature, and taking it would (a) put
+# getrandom on the verify path, which then refuses to build for wasm32-unknown-unknown without a JS backend, and
+# (b) carry an RNG into a library that must never need one. Since HybridKeypair::generate draws its own 32-byte
+# seed and calls FIPS 204 Algorithm 6 via `from_seed`, ml-dsa's RNG plumbing is dead weight here. `pkcs8` is not
+# used either. DECISIONS D-006. FIPS 204 / FIPS 205 (RustCrypto).
+ml-dsa = { version = "0.1.1", default-features = false, features = ["alloc"] }
 slh-dsa = { version = "0.0.3" }
 sha2 = { version = "0.10", default-features = false }
 signature = { version = "2", default-features = false }

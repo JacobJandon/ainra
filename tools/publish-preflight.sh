@@ -40,10 +40,19 @@ if [ "$V_SDK" = "$V_MW" ] && [ "$V_SDK" = "$V_MCP" ] && [ "$V_SDK" = "$V_PY" ]; 
 else
   block "version agreement" "sdk=$V_SDK middleware=$V_MW mcp=$V_MCP py=$V_PY — they must match before a release goes out"
 fi
-if git rev-parse "v$V_SDK" >/dev/null 2>&1; then
-  pass "tag exists" "v$V_SDK is tagged — publishing this version is publishing tagged source"
-else
+if ! git rev-parse "v$V_SDK" >/dev/null 2>&1; then
   block "tag exists" "no tag v$V_SDK — a package must never be published from untagged source (D-040)"
+else
+  # A tag EXISTING for this version is not the same as this version's files MATCHING that tag. Checked the
+  # existing-tag way, the packages sat at 0.3.0 while their READMEs and manifests had moved on since v0.3.0 — so
+  # "publishing tagged source" would have shipped an npm tarball whose README the v0.3.0 tag does not contain.
+  # The claim is about bytes, so compare bytes.
+  DRIFT="$(git diff --name-only "v$V_SDK" -- packages apps/cli-node 2>/dev/null || true)"
+  if [ -z "$DRIFT" ]; then
+    pass "tag exists" "v$V_SDK is tagged AND the package tree matches it byte for byte"
+  else
+    block "tag matches tree" "packages differ from tag v$V_SDK — bump the version, or publish from a checkout of the tag. Drifted: $(echo "$DRIFT" | tr '\n' ' ' | cut -c1-120)"
+  fi
 fi
 if [ -z "$(git status --porcelain)" ]; then pass "clean tree" "nothing uncommitted"; else
   skip "clean tree" "working tree is dirty — publish from a clean checkout of the tag, not from here"; fi

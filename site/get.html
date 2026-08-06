@@ -225,15 +225,35 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
     <span class="eyebrow">AINRAscan · the live network</span>
     <h1>Nothing here is a mock-up.</h1>
     <p class="sub">A real registrar, a real transparency log, and real verdicts computed on your own machine from the log's own inclusion proofs. No account, and nothing you do on this page is uploaded.</p>
-    <div class="jump">
-      <a class="btn btn-green" href="#get">Get a passport →</a>
-      <a class="btn btn-ghost" href="#browse">Browse the record</a>
-    </div>
   </div>
 
+  <!-- ── BROWSE THE RECORD (AINRAscan) ──────────────────────────────────── -->
+  <div class="wrap">
+    <div class="sec-head" id="browse"><h2>Browse the live record.</h2><p>Every passport the network has issued — active and revoked alike, each one chained to the root, each one checkable here without asking anyone.</p></div>
+    <div id="scan">
+      <div id="s-flow">
+        <div class="s-stats">
+          <div class="s-stat"><b id="s-root">—</b><span>root</span></div>
+          <div class="s-stat"><b id="s-regs">—</b><span>registrars</span></div>
+          <div class="s-stat"><b id="s-issued">—</b><span>passports</span></div>
+          <div class="s-stat"><b id="s-revoked">—</b><span>revoked</span></div>
+          <div class="s-stat"><b id="s-height">—</b><span>checkpoint height</span></div>
+        </div>
+        <div class="s-rootdark" id="s-rootdark" hidden></div>
+        <div class="s-rootdark" id="s-suite" hidden></div>
+        <div class="s-rootdark" id="s-witnesses" hidden></div>
+        <div class="s-search">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M20 20l-3.5-3.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          <input id="s-search" type="search" placeholder="Search by name, operator, or tier…" aria-label="Search passports" autocomplete="off">
+        </div>
+        <div class="s-rows" id="s-rows"></div>
+      </div>
+      <div id="s-down" class="err" hidden></div>
+    </div>
+  </div>
   <!-- ── GET A PASSPORT ─────────────────────────────────────────────────── -->
   <div class="wrap">
-    <div class="sec-head"><h2>Get a passport.</h2><p>Name your agent, mint it against a live registrar, and use it — real signatures, logged before it is valid.</p></div>
+    <div class="sec-head"><h2>Get a passport.</h2><p>Real signatures from a real registrar, sealed into the transparency log before the credential is valid.</p></div>
     <div class="stepper">
       <span class="g-dot" data-i="1" data-on="1">1 · Name it</span>
       <span class="g-dot" data-i="2" data-on="0">2 · Get it</span>
@@ -300,30 +320,6 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
     </div>
   </div>
 
-  <!-- ── BROWSE THE RECORD (AINRAscan) ──────────────────────────────────── -->
-  <div class="wrap">
-    <div class="sec-head" id="browse"><h2>Browse the live record.</h2><p>Every passport in the network, read from the public contract and verifiable on your own machine — active or revoked, all chained to the root.</p></div>
-    <div id="scan">
-      <div id="s-flow">
-        <div class="s-stats">
-          <div class="s-stat"><b id="s-root">—</b><span>root</span></div>
-          <div class="s-stat"><b id="s-regs">—</b><span>registrars</span></div>
-          <div class="s-stat"><b id="s-issued">—</b><span>passports</span></div>
-          <div class="s-stat"><b id="s-revoked">—</b><span>revoked</span></div>
-          <div class="s-stat"><b id="s-height">—</b><span>checkpoint height</span></div>
-        </div>
-        <div class="s-rootdark" id="s-rootdark" hidden></div>
-        <div class="s-rootdark" id="s-suite" hidden></div>
-        <div class="s-rootdark" id="s-witnesses" hidden></div>
-        <div class="s-search">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M20 20l-3.5-3.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-          <input id="s-search" type="search" placeholder="Search by name, operator, or tier…" aria-label="Search passports" autocomplete="off">
-        </div>
-        <div class="s-rows" id="s-rows"></div>
-      </div>
-      <div id="s-down" class="err" hidden></div>
-    </div>
-  </div>
 </main>
 
 <footer>

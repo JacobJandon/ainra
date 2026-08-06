@@ -30,4 +30,4 @@ rand_core = { workspace = true }
 proptest = { workspace = true }
 serde_json = { workspace = true, features = ["std"] }   # reads the NIST FIPS 204 KAT corpus in tests only
 hex = { workspace = true }
-rand_chacha = { version = "0.3", default-features = false }   # seeded CSPRNG for reproducible crypto-test keys
+rand_chacha = { version = "0.9", default-features = false }   # seeded CSPRNG for reproducible crypto-test keys

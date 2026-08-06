@@ -18,7 +18,7 @@ ainra-adapter = { path = "../ainra-adapter" }
 ainra-services = { path = "../../services/ainra-services" }
 serde = { workspace = true, features = ["std"] }
 serde_json = { workspace = true, features = ["std"] }
-rand_chacha = { version = "0.3", default-features = false }
+rand_chacha = { version = "0.9", default-features = false }
 rand_core = { workspace = true }
 
 [[bin]]

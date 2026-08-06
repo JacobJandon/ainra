@@ -1,7 +1,8 @@
 <!-- SPDX-License-Identifier: Apache-2.0 OR MIT -->
 # Deploying the AINRA site
 
-The whole `site/` folder is **static and fully self-contained** — no build step, no CDN, no web fonts, no telemetry,
+The whole `site/` folder is **static** — no build step, no CDN, no web fonts, no telemetry (one exception: the
+landing's §watch video is a direct embed and loads from the video host),
 no backend. Every page (including the in-browser demo) works from a plain file server. That makes it deployable to any
 static host in one step.
 

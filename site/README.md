@@ -23,9 +23,13 @@ exactly this: see `.github/workflows/pages.yml`).
 
 ## Nothing phones home
 
-Every page is **fully self-contained**: no CDN, no web fonts, no external scripts, no external images (all graphics are
-inline SVG), no analytics, no fetch calls. This is deliberate — a site for a neutral root whose whole pitch is *verify,
-don't trust; nothing phones home* must not itself leak every visitor to a third party. Typography uses a
+Every page is self-contained apart from ONE embedded video on the landing (§watch, a direct embed that loads from
+its host): no CDN, no web fonts, no external scripts, no other external images (all other graphics are
+inline SVG), no analytics, no fetch calls. That was deliberate — a site for a neutral root whose pitch is *verify,
+don't trust* should not leak its visitors to third parties — and the video is a deliberate exception, made with
+eyes open: it was first shipped as a click-to-load facade that loaded nothing until a visitor pressed play, but
+that facade failed to play reliably, and a section nobody can watch argues nothing. The rest of the site keeps the
+property; the §watch section does not, and this file says so rather than letting the old claim stand. Typography uses a
 system-font stack (the design names `Bricolage Grotesque` / `Inter` / `B612 Mono` first and degrades gracefully to
 `system-ui` / `ui-monospace` if they aren't installed locally). The S7 neutrality lint scans these pages, so no
 commercial third-party name can slip into them.

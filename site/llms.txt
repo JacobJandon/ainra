@@ -70,5 +70,5 @@ verifies itself in CI. Full flow + flip conditions: [evidence/README.md](https:/
 
 ## Constraints (so you can trust this surface)
 
-- Fully self-contained site: no CDN, no web fonts, no third-party requests, zero telemetry.
+- Self-contained apart from one embedded video on the landing (§watch, which loads from its host): no CDN, no web fonts, no other third-party requests, zero telemetry.
 - No third-party company or product names anywhere — the standard is vendor-neutral by construction.

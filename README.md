@@ -121,7 +121,7 @@ kill-gates and every re-dating on the record — is **[campaign/](campaign/)** (
 
 The public front door lives in [`site/`](site/) — the landing (with the founding-table call to get involved), the
 Standard, verify and claim walkthroughs, foundations, and the honest [status page](site/status.html). Plain HTML/CSS,
-**no framework, nothing phones home** (no CDN, web fonts, external scripts/images, or analytics — deliberate for a
+**no framework, no analytics** (no CDN, no web fonts, no external scripts or images, zero telemetry — deliberate for a
 neutral root). Build + serve locally:
 
 ```sh

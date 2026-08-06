@@ -25,7 +25,7 @@ repository = "https://example.invalid/ainra"       # placeholder; no real URLs (
 ed25519-dalek = { version = "2", default-features = false, features = ["alloc", "rand_core"] }
 # ml-dsa/slh-dsa 0.0.x gate a pkcs8-only import behind only `alloc` (crate bug), so we take their default feature
 # set (alloc + pkcs8) which compiles cleanly. DECISIONS D-006. FIPS 204 / FIPS 205 (RustCrypto).
-ml-dsa = { version = "0.0.4" }
+ml-dsa = { version = "0.1.1" }
 slh-dsa = { version = "0.0.3" }
 sha2 = { version = "0.10", default-features = false }
 signature = { version = "2", default-features = false }

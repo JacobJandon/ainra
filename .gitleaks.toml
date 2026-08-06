@@ -24,6 +24,15 @@ paths = [
   # specimen-network site data (current + historical layouts): accreditation/log/issuer PUBLIC keys only —
   # verified 32-byte Ed25519 verification keys, zero private markers (L1 pre-push audit, docs/PLAN-L1.md)
   '''site/data/.*\.json''',
+  # the PUBLISHED network directory + the no-install browser example (added L3/L4). Same class as site/data above,
+  # and checked the same way before allowlisting: every key-bearing field in these files is an explicit PUBLIC key
+  # or a signature — issuer_key, log_root_key, status_key, chain_keys, root_pub_slh, sig_*. `log_root_key` is
+  # documented in ainra-core as "SLH-DSA PUBLIC key that signs this registrar's log checkpoints"; it is populated
+  # from `root.public()` and only ever passed to `verify_sig_mode`, never used to sign. A verifier CANNOT check a
+  # checkpoint without it, so publishing it is the point. No field name matching secret/private/seed/token/
+  # passphrase exists anywhere in these files.
+  '''site/net/.*\.json''',
+  '''examples/verify-in-browser/.*\.json''',
 ]
 # test the regexes against the full line (default target is the captured secret, which drops the SHA256: prefix)
 regexTarget = "line"

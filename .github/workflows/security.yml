@@ -16,9 +16,10 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262   # v4
       - run: cargo install cargo-audit --locked
-      # -f/-c are explicit so the ignore list is visible in the log rather than picked up implicitly.
-      # audit.toml carries one narrow ignore with its reason, blast radius, and revisit condition.
-      - run: cargo audit --deny warnings -c audit.toml
+      # cargo-audit reads .cargo/audit.toml automatically — there is no --config flag (-c is --color, which is
+      # how the first attempt at wiring this failed). The file carries ONE narrow ignore with its reason, blast
+      # radius, and the condition that flips it back to a hard failure.
+      - run: cargo audit --deny warnings
 
   trivy:
     name: trivy — vulns + secrets across cargo/npm/pip

@@ -76,6 +76,12 @@ push-advisory-check: sdk-build
 changelog-board-check:
 	node tools/changelog-board-guard.mjs
 
+# One target the board can call: exactly what CI gates on for style/lints, so a green board implies a green CI
+# on this axis. Split out after CI failed on `cargo fmt --check` while `make preflight` reported ALL GREEN.
+lint-check:
+	@cargo fmt --all -- --check
+	@cargo clippy --workspace --all-targets -- -D warnings
+
 fmt:
 	cargo fmt --all -- --check
 

@@ -405,7 +405,6 @@ pub fn reverify_registry(registry: &serde_json::Value) -> (usize, Vec<String>) {
     (checked, bad)
 }
 
-
 /// A deterministic principal-proof reference (opaque hex; never PII) so each lineage's authority proof is stable.
 /// FNV-1a over `registrar:lineage` → 16 hex chars — just an opaque, stable reference (never a real attestation).
 fn principal_proof(registrar: &str, lineage: &str) -> String {

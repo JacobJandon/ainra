@@ -155,7 +155,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+      # Pinned to 1.96.1 like every other job. @stable installs the target for the STABLE toolchain, but
+      # rust-toolchain.toml pins 1.96.1 and cargo honours that — so the target landed on a toolchain cargo never
+      # used and the wasm build failed with "can't find crate for `core`".
+      - uses: dtolnay/rust-toolchain@1.96.1
         with:
           targets: wasm32-unknown-unknown
       - uses: actions/setup-node@v4

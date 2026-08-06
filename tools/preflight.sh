@@ -56,6 +56,7 @@ echo "AINRA preflight — clone-and-it-works board"
 echo "toolchain: $(rustc --version 2>/dev/null || echo 'rustc?') · $(node --version 2>/dev/null || echo 'node?')"
 echo "────────────────────────────────────────────────────────────────"
 
+run "fmt + clippy"       "rustfmt clean, no clippy warns" make lint-check
 run "build + tests"      "release test suite"          make test
 run "differential"       "4 impls agree over vectors"  make diff
 run "conformance"        "runner: 3 clean, broken caught" make conformance

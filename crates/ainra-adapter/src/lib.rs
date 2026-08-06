@@ -193,23 +193,25 @@ pub fn anchors_from_json(v: &serde_json::Value) -> verify::TrustAnchors {
 /// Decode a wire presentation into the core type. `now` is the **verifier's**, never the presenter's — freshness
 /// and expiry are the receiving side's policy, so the caller supplies the clock and this overrides whatever the
 /// bundle claims the time is.
-fn presentation_parts(
-    p: &WirePresentation,
-    now: u64,
-) -> D<(
-    Vec<u8>,
-    crypto::HybridSig,
-    Vec<crypto::HybridPublic>,
-    Vec<verify::HopLogProof>,
-    checkpoint::CheckpointSig,
-    status::StatusList,
-    checkpoint::Checkpoint,
-    Vec<[u8; 32]>,
-    status::Freshness,
-    mandate::RevocationSet,
-    std::collections::BTreeSet<[u8; 32]>,
-    u64,
-)> {
+/// Everything a [`verify::Presentation`] needs, owned, so the borrowed `claims` outlives the borrow.
+///
+/// A named struct rather than the tuple this started as: twelve positional fields are unreadable at the call site
+/// and one transposed pair would compile silently into a wrong verdict. Clippy flagged it and clippy was right.
+struct Decoded {
+    claims: Vec<u8>,
+    issuer_sig: crypto::HybridSig,
+    chain_keys: Vec<crypto::HybridPublic>,
+    hop_proofs: Vec<verify::HopLogProof>,
+    checkpoint_sig: checkpoint::CheckpointSig,
+    status_list: status::StatusList,
+    checkpoint: checkpoint::Checkpoint,
+    inclusion_proof: Vec<[u8; 32]>,
+    freshness: status::Freshness,
+    mandate_revocations: mandate::RevocationSet,
+    revoked_delegates: std::collections::BTreeSet<[u8; 32]>,
+}
+
+fn presentation_parts(p: &WirePresentation) -> D<Decoded> {
     let claims = bad(b64::decode(&p.claims))?;
     let issuer_sig = crypto::HybridSig {
         ed25519: bad(b64::decode(&p.issuer_sig.ed25519))?,
@@ -258,7 +260,7 @@ fn presentation_parts(
     for fp in &p.revoked_delegates {
         revoked_delegates.insert(decode32(fp)?);
     }
-    Ok((
+    Ok(Decoded {
         claims,
         issuer_sig,
         chain_keys,
@@ -270,8 +272,7 @@ fn presentation_parts(
         freshness,
         mandate_revocations,
         revoked_delegates,
-        now,
-    ))
+    })
 }
 
 // ── the single vector → Presentation/TrustAnchors → Verdict path ───────────────────────────────────────────
@@ -281,41 +282,28 @@ fn presentation_parts(
 /// This is **the** conversion: every surface — the generator, the conformance runner, the CLI, the browser —
 /// reaches core verify types through this function and no other.
 pub fn verify_wire(p: &WirePresentation, anchors: &verify::TrustAnchors, now: u64) -> Verdict {
-    let parts = match presentation_parts(p, now) {
-        Ok(parts) => parts,
+    let d = match presentation_parts(p) {
+        Ok(d) => d,
         Err(reason) => return Verdict::invalid(reason),
     };
-    let (
-        claims,
-        issuer_sig,
-        chain_keys,
-        hop_proofs,
-        checkpoint_sig,
-        status_list,
-        checkpoint,
-        inclusion_proof,
-        freshness,
-        mandate_revocations,
-        revoked_delegates,
-        now,
-    ) = parts;
     let pres = verify::Presentation {
-        claims: &claims,
-        issuer_sig,
+        claims: &d.claims,
+        issuer_sig: d.issuer_sig,
+        // the CALLER's clock, not `p.now` — freshness and expiry are the verifier's policy, never the presenter's
         now,
-        chain_keys,
-        hop_proofs,
-        status_list,
+        chain_keys: d.chain_keys,
+        hop_proofs: d.hop_proofs,
+        status_list: d.status_list,
         status_issued_at: p.status_issued_at,
-        freshness,
-        checkpoint,
-        checkpoint_sig,
+        freshness: d.freshness,
+        checkpoint: d.checkpoint,
+        checkpoint_sig: d.checkpoint_sig,
         leaf_index: p.leaf_index,
-        inclusion_proof,
+        inclusion_proof: d.inclusion_proof,
         mandate_path: Vec::new(),
         mandate_proofs: Vec::new(),
-        mandate_revocations,
-        revoked_delegates,
+        mandate_revocations: d.mandate_revocations,
+        revoked_delegates: d.revoked_delegates,
     };
     verify::verify(&pres, anchors)
 }
@@ -506,7 +494,10 @@ pub fn anchors_from_export_json(reg: &serde_json::Value) -> verify::TrustAnchors
     registrars.insert(
         id,
         verify::RegistrarInfo {
-            issuer_key: crypto::HybridPublic { ed25519: ed, mldsa65 },
+            issuer_key: crypto::HybridPublic {
+                ed25519: ed,
+                mldsa65,
+            },
             log_root_key,
         },
     );
@@ -582,7 +573,11 @@ pub fn verdict_event(p: &WirePresentation, verdict: &Verdict, now: u64) -> Strin
     let age = (now as i64 - p.status_issued_at as i64).max(0);
     let reason = verdict.reason().map(reason_str);
     event_json(
-        if verdict.is_valid() { "valid" } else { "invalid" },
+        if verdict.is_valid() {
+            "valid"
+        } else {
+            "invalid"
+        },
         reason.as_deref(),
         name.as_deref(),
         number.as_deref(),

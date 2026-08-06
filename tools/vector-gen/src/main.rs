@@ -19,12 +19,12 @@ use std::path::Path;
 // L5: every bytes → core-types conversion moved to ainra-adapter. This binary keeps only binary concerns
 // (argv, file I/O, printing) and calls the ONE decode path for everything else.
 use ainra_adapter::*;
-use serde_json::{json, Value};
 use ainra_core::passport::ActLink;
 use ainra_core::verdict::{Reason, Verdict};
 use ainra_core::{b64, canon, chain, checkpoint, crypto, merkle, status, verify};
 use rand_chacha::ChaCha20Rng;
 use rand_core::SeedableRng;
+use serde_json::{json, Value};
 
 // ── Credential construction (issuer side, full control incl. secret keys) ──────────────────────────────────────
 
@@ -591,9 +591,6 @@ fn invalid(mut v: Vector, reason: Reason, description: &str) -> Vector {
 }
 
 // ── Replay (the --check path) ──────────────────────────────────────────────────────────────────────────────────
-
-
-/// Reconstruct a `CheckpointSig` from its wire form (root or ADR-002 delegate mode).
 
 fn expected(v: &Vector) -> Verdict {
     if v.expect.verdict == "valid" {
@@ -1230,10 +1227,6 @@ fn generate() -> Vec<Vector> {
 // by the REAL core (`StatusDelta::verify` / `FreshHead::verify`) — never hand-written. The sdk-ts `runDeltaVector`
 // re-derives the same accept/reason; the diff harness compares (a core↔sdk cross-check on the delta codec).
 
-
-/// Run ainra-core's status-delta / fresh-head verify for one wire vector (shared by `--check-delta` and the
-/// conformance `--emit delta` stdin mode, so both exercise the SAME core path — no second reimplementation).
-
 fn generate_delta_vectors() -> Vec<WireDeltaVector> {
     let mut rng = ChaCha20Rng::seed_from_u64(0x00DE_17A0);
     let registrar = crypto::HybridKeypair::generate(&mut rng);
@@ -1820,9 +1813,6 @@ fn emit_directory(dir: &str) {
     .expect("write manifest");
     println!("wrote {} directory vectors to {}", vectors.len(), dir);
 }
-
-/// Run ainra-core's directory `accredit` for one directory wire vector (shared by `--check-directory` and the
-/// conformance `--emit directory` stdin mode).
 
 /// Conformance runner adapter (M24 Task 2): read published vectors as JSON Lines on stdin — one vector per line —
 /// and for each print `<name>\t<canonical-result-json>` computed by the REAL ainra-core verify path. This is the

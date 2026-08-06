@@ -23,10 +23,11 @@ for (const p of pages) {
   //      b. ONE embed URL for the §watch video, pinned to its exact ID. It appears only inside a click handler —
   //         this scanner cannot tell a JS string from an attribute, so it fires on `f.src="…"` — and the page
   //         itself never requests it: the poster is a LOCAL jpeg, the iframe exists only after the visitor
-  //         presses play (the button's aria-label says so). Any other external URL, including any other
+  //         is a direct embed. Its two preconnect hints are matched as BARE ORIGINS only
+  //         (href="https://www.youtube.com" exactly) — a deeper link to the video host still fails the gate. Any other external URL, including any other
   //         video, still fails this gate.
   for (const m of s.matchAll(/(?:src|href)="(https?:)?\/\/[^"]+"/g))
-    if (!/(localhost|127\.|ainra\.org|ainra\.vercel\.app|schema\.org|github\.com\/JacobJandon\/ainra|youtube(?:-nocookie)?\.com\/embed\/ZlHlpMpu8ug)/.test(m[0])) bad(`${p}: external request ${m[0].slice(0, 80)}`);
+    if (!/(localhost|127\.|ainra\.org|ainra\.vercel\.app|schema\.org|github\.com\/JacobJandon\/ainra|youtube(?:-nocookie)?\.com\/embed\/ZlHlpMpu8ug|href="https:\/\/(www\.youtube|i\.ytimg)\.com")/.test(m[0])) bad(`${p}: external request ${m[0].slice(0, 80)}`);
   // 2. internal links resolve; anchors exist in the target file
   for (const m of s.matchAll(/href="([^"#][^"]*?)(?:#([^"]+))?"/g)) {
     const [, file, anchor] = m;

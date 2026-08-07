@@ -21,6 +21,7 @@
 <meta name="twitter:image" content="https://ainra.vercel.app/og-cover.png">
 <noscript><style>.rv,.t-line,.verify-line{opacity:1!important;transform:none!important}.needs-js{display:none!important}#noscript-note{display:block!important}.sec-head .hero-h{font-family:var(--display);font-size:clamp(1.9rem,4vw,2.75rem);font-weight:730;line-height:1.1;margin-top:12px;letter-spacing:-.03em}
 
+
 </style></noscript><meta name="description" content="Check theirs — the other half of the loop. Four checks, fail-closed freshness, a reference CLI, and a verifier you can run in your own browser. Free, offline, no account.">
 <link rel="preload" href="fonts/pixelify-sans-700.woff2" as="font" type="font/woff2" crossorigin>
 <style>
@@ -398,6 +399,13 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
 #try .reason b{color:var(--red)}
 #try .dsteps{margin-top:16px;display:grid;gap:2px}
 #try .dstep{display:grid;grid-template-columns:22px 1fr;gap:10px;align-items:baseline;padding:7px 8px;border-radius:8px}
+@media(prefers-reduced-motion:no-preference){
+  #try .dstep{opacity:0;animation:dstep-in .28s ease-out forwards}
+  #try .dstep:nth-child(2){animation-delay:.05s}#try .dstep:nth-child(3){animation-delay:.1s}
+  #try .dstep:nth-child(4){animation-delay:.15s}#try .dstep:nth-child(5){animation-delay:.2s}
+  #try .dstep:nth-child(6){animation-delay:.25s}#try .dstep:nth-child(7){animation-delay:.3s}
+}
+@keyframes dstep-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
 #try .dstep:nth-child(odd){background:var(--paper)}
 #try .dstep .i{font-family:var(--mono);font-weight:700;font-size:13px}
 #try .dstep .i.ok{color:var(--green)}#try .dstep .i.no{color:var(--red)}#try .dstep .i.pend{color:var(--muted)}
@@ -439,6 +447,15 @@ nav .ndocs[aria-current="page"],.nav-links a[aria-current="page"]{color:var(--gr
   background:rgba(11,18,32,.045);border-radius:5px;padding:7px 9px;overflow-x:auto;white-space:pre}
 .degraded{margin-top:8px;font-size:12.5px;line-height:1.55;color:#7A5A18;background:rgba(180,130,20,.09);
   border-left:2px solid rgba(180,130,20,.55);border-radius:0 5px 5px 0;padding:8px 10px}
+/* ── polish pass: press feedback, wayfinding, cross-page transitions, announce on small screens ─────────── */
+@media(prefers-reduced-motion:no-preference){
+  .btn{transition:transform .16s,box-shadow .16s,background .16s,border-color .16s}
+  .btn:hover{transform:translateY(-1px);box-shadow:0 6px 18px -8px rgba(11,18,32,.4)}
+  .btn:active{transform:translateY(0);box-shadow:none}
+}
+nav .nav-links a[aria-current="page"],nav .ndocs[aria-current="page"]{text-decoration:underline;text-underline-offset:6px;text-decoration-thickness:2px}
+@media(max-width:480px){.announce{font-size:11px;padding:8px 12px}}
+@media(max-width:1023px){nav .mean{display:none}}
 </style></head><body id="top">
 <a href="#main" class="skip">Skip to content</a>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -479,7 +496,7 @@ nav .ndocs[aria-current="page"],.nav-links a[aria-current="page"]{color:var(--gr
     </g>
   </defs>
 </svg>
-<div class="announce">Don't trust us — verify us: everything is in the test phase, and every claim is checkable from a cold clone. <a href="docs.html">Run it →</a></div>
+<div class="announce">Don't trust us — verify us: every claim runs from a cold clone. <a href="docs.html#install">Run it →</a></div>
 <nav><div class="wrap nav-in">
   <a class="brand" href="index.html" aria-label="AINRA — Agent Identity and Naming Registry Authority">
     <span class="sigil" aria-hidden="true"><svg viewBox="0 0 112 112"><use href="#ainra-sigil"/></svg></span>

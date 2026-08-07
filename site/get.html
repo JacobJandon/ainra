@@ -184,6 +184,16 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
 .status .live{display:inline-flex;align-items:center;gap:7px}
 .status .live i{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2.4s infinite}
 @media(max-width:760px){.foot{grid-template-columns:1fr 1fr}}
+
+/* ── polish pass: press feedback, wayfinding, cross-page transitions, announce on small screens ─────────── */
+@media(prefers-reduced-motion:no-preference){
+  .btn{transition:transform .16s,box-shadow .16s,background .16s,border-color .16s}
+  .btn:hover{transform:translateY(-1px);box-shadow:0 6px 18px -8px rgba(11,18,32,.4)}
+  .btn:active{transform:translateY(0);box-shadow:none}
+}
+nav .nav-links a[aria-current="page"],nav .ndocs[aria-current="page"]{text-decoration:underline;text-underline-offset:6px;text-decoration-thickness:2px}
+@media(max-width:480px){.announce{font-size:11px;padding:8px 12px}}
+@media(max-width:1023px){nav .mean{display:none}}
 </style>
 </head>
 <body id="top">

@@ -104,7 +104,14 @@ function draw() {
 }
 
 let lastClip = -1;
+let running = false;
+// A field nobody can see should not cost anything. The loop stops when the tab is hidden and restarts on
+// return — the same restraint the rest of the site applies to network requests, applied to the CPU.
+function start() { if (!running && !reduced) { running = true; last = performance.now(); requestAnimationFrame(frame); } }
+document.addEventListener("visibilitychange", () => { if (document.hidden) running = false; else start(); });
+
 function frame(t) {
+  if (document.hidden) { running = false; return; }   // let the loop die rather than burn a background tab
   requestAnimationFrame(frame);
   // The clip edge follows the hero at DISPLAY rate, not at generation rate — pinning it to the 150ms
   // tick made the field's top edge stair-step down the page while scrolling (§11 frame-level smoothness).
@@ -137,4 +144,4 @@ addEventListener("ainra:glider", (e) => {
   for (const [dy, dx] of PATTERNS[0]) cur[((gy + dy) % rows) * cols + ((gx + dx) % cols)] = 1;
 });
 if (reduced) draw();               // one seeded generation, drawn once — texture without motion
-else requestAnimationFrame(frame);
+else start();

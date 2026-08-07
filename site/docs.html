@@ -127,6 +127,16 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
 .doc-masthead{font-size:clamp(30px,4.4vw,44px);line-height:1.06;margin:0 0 14px;font-family:var(--display);letter-spacing:-.02em;font-weight:730}
 .doc .tbl{font-family:var(--mono);font-size:12.5px;line-height:1.65;background:rgba(11,18,32,.04);border:1px solid rgba(11,18,32,.1);border-radius:10px;padding:14px 16px;overflow-x:auto;white-space:pre;margin:0 0 16px}
 .doc hr{border:none;border-top:1px solid rgba(11,18,32,.12);margin:34px 0}
+
+/* ── polish pass: press feedback, wayfinding, cross-page transitions, announce on small screens ─────────── */
+@media(prefers-reduced-motion:no-preference){
+  .btn{transition:transform .16s,box-shadow .16s,background .16s,border-color .16s}
+  .btn:hover{transform:translateY(-1px);box-shadow:0 6px 18px -8px rgba(11,18,32,.4)}
+  .btn:active{transform:translateY(0);box-shadow:none}
+}
+nav .nav-links a[aria-current="page"],nav .ndocs[aria-current="page"]{text-decoration:underline;text-underline-offset:6px;text-decoration-thickness:2px}
+@media(max-width:480px){.announce{font-size:11px;padding:8px 12px}}
+@media(max-width:1023px){nav .mean{display:none}}
 </style></head><body id="top">
 <a href="#main" class="skip">Skip to content</a>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><g id="ainra-sigil">

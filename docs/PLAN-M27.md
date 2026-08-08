@@ -87,6 +87,53 @@ the browser's mixed-content rule at ~1.4 s, before the deadline is ever reached.
 | `@ainra/sdk` still not installable from a registry | A publish needs the maintainer's trusted-publisher setup and a tag containing the package bump — a human step, parked by design. #5 makes the docs honest about it; it does not pretend the package exists. |
 | The network is not reachable by strangers | Architecture, not a defect: daemons bind `127.0.0.1`, and issuance happens at a registrar, never at the root. `get.html` says so in its own words rather than degrading silently. |
 
+---
+
+## Task 3 · The walk becomes a schedule
+
+A walk done once is an anecdote. [`tools/stranger-journeys.mjs`](../tools/stranger-journeys.mjs) replays five
+journeys against the **deployed** site, daily and on demand
+([`.github/workflows/stranger.yml`](../.github/workflows/stranger.yml)), needing no secrets and touching nothing:
+
+| Journey | What it refuses to let rot |
+|---|---|
+| `land-and-navigate` | every page loads, every internal link a stranger can click resolves |
+| `lost-and-found` | the 404's own escape routes are root-absolute and work (finding #1) |
+| `browse-the-record` | the record parses, is non-empty, its stamp is readable, and **every page reads the same one** (finding #2) |
+| `read-and-install` | the download the docs offer actually serves (finding #4) |
+| `agent-arrival` | `llms.txt`'s links resolve and its `current:` matches the newest **public** release, read from the releases API — where a stranger stands, not from our own tags (finding #3) |
+
+**Three verdicts, kept apart on purpose.** Reaching NETWORK DOWN took a real correction: several pages link straight
+into `/net`, so deleting the record also breaks links, and the first version collapsed to SITE BROKEN — meaning that
+verdict could never have been reached at all, and a served-but-empty site would have been misfiled forever. Failures
+are now classified by *what* is missing, not by *who* linked to it.
+
+```
+pages missing            → SITE BROKEN
+pages fine, record gone  → NETWORK DOWN
+production, right now    → ALL UP   (5/5 journeys)
+```
+
+It refuses to report success it did not earn: a journey that cannot complete yields `INCOMPLETE`, never ALL UP, and
+CI fails on that too — a monitor that reports "we didn't look" as green is worse than no monitor. Plain HTTP, no
+browser, because CI must not be able to fail this by running out of memory, which is exactly what defeated the
+browser walk on this machine.
+
+**The workflow runs its own negative control first, every run, in the same job as the real walk** — a deliberately
+broken surface that must not pass. A monitor that cannot fail is not a monitor, and the only way to know this one
+still can is to watch it fail right next to the green we intend to believe. First CI run:
+
+```
+negative control — a deliberately broken surface must NOT pass   ✓   VERDICT: SITE BROKEN
+walk production as a stranger                                    ✓   VERDICT: ALL UP
+```
+
+`make campaign-status` carries it as a row — `PUBLIC SURFACE   checked <when> → <verdict>`. It reports the last walk
+**this machine** did, never CI's (which it cannot see) and never a guess; with nothing on record it says "never
+walked from this machine", not nothing and not OK.
+
+---
+
 ### What the walk actually taught
 
 Every one of #1–#11 was a **claim nothing checked**. Not one was a broken build, a failing test, or a crash — each

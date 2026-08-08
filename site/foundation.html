@@ -325,6 +325,10 @@ section{padding:92px 0}
 .live-cell .lv{font-family:var(--display);font-size:28px;font-weight:750;display:block;letter-spacing:-.02em}
 .live-cell .lk{font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;color:var(--muted);text-transform:uppercase;margin-top:4px;display:block}
 .live-foot{font-size:12px;color:var(--muted);margin-top:12px}
+.live-down{margin-top:12px;padding:12px 14px;border-radius:10px;background:rgba(180,130,20,.09);
+  border-left:2px solid rgba(180,130,20,.55);font-size:12.5px;line-height:1.6;color:#7A5A18}
+.live-down code{font-size:11.5px}
+[data-live].is-down{color:#8A2B2B;font-weight:700}
 .live-foot b{color:var(--ink)}
 @media(prefers-reduced-motion:reduce){.live-dot{animation:none}}
 .org-cell h3{font-size:16.5px;margin-bottom:10px;display:flex;align-items:baseline;gap:10px}
@@ -516,13 +520,17 @@ nav .nav-links a[aria-current="page"],nav .ndocs[aria-current="page"]{text-decor
 <p class="lede">This page states exactly what exists — nothing more. It changes only when reality does. If anything here ever disagrees with reality, that is a bug: tell us.</p></div>
 <div class="org-grid"><div class="org-cell rv"><h3>STANDARD <span>v5.1 — PUBLIC ✓</span></h3><p>The complete normative specification. <a href="docs.html#standard" style="color:var(--green);font-weight:600">Read it</a> or take the <a href="AINRA_I_The_Standard.md" style="color:var(--green);font-weight:600">canonical file</a>.</p></div><div class="org-cell rv"><h3>REFERENCE CLI <span>v0.3.1 — WORKING ✓</span></h3><p>Zero-dependency, real signatures, hash-chained log; catches forged tiers and rewritten history live. <a href="ainra-cli-v0.3.1.zip" style="color:var(--green);font-weight:600">Download</a>.</p></div><div class="org-cell rv"><h3>REFERENCE IMPLEMENTATION <span>PUBLIC · THREE SIGNED RELEASES</span></h3><p>The full stack — issuance, transparency log, witness quorum, revocation, verifier SDK — is public with three signed, board-proven releases — the current one is v0.3.1. A stranger's cold clone passes every gate: <a href="https://github.com/JacobJandon/ainra" style="color:var(--green);font-weight:600">the repository</a>.</p></div><div class="org-cell rv"><h3>GENESIS ROOT <span>MINTED · OPERATOR-RUN</span></h3><p>A FROST 5-of-9 + SLH-DSA dual-root exists; the network runs under it and passports verify root-dark, trusting only the root (<span style="font-family:var(--mono);font-size:11px">make genesis-verify</span>). The distributed public ceremony across independent custodians — plus the external verifiers and soak — is the remaining real-world milestone.</p></div><div class="org-cell rv"><h3>WITNESSES <span>RECRUITING</span></h3><p>Independent institutions wanted to cosign checkpoints — so no single party can rewrite the log. Running a witness is deliberately cheap. <a href="foundation.html#access" style="color:var(--green);font-weight:600">Take the seat</a>.</p></div><div class="org-cell rv"><h3>EXTERNAL VERIFIERS <span>INVITED</span></h3><p>The drop-in verifier kit and the self-serve conformance programme are published; third parties verify — and attest — on their own infrastructure. Attestations so far: 0 of the 3 needed. Want a seat? <a href="foundation.html#access" style="color:var(--green);font-weight:600">Join the founding table</a>.</p></div><div class="org-cell rv"><h3>CONFORMANCE <span>745/745 ✓</span></h3><p>Four independent implementations — Rust, TypeScript, the reference CLI, and Python — agree on all 745 CC0 conformance vectors, byte-for-byte. Reproduced with one command (<span style="font-family:var(--mono);font-size:11px">make diff</span>) in the reference repository; the vector corpus is published alongside it.</p></div><div class="org-cell rv"><h3>REVOCATION <span>&lt;60s [MEASURED]</span></h3><p>Revocation propagation measured under 60 seconds, fail-closed, in networked drills of the reference stack (<span style="font-family:var(--mono);font-size:11px">make soak-smoke</span>). The 14-day multi-region soak runs at genesis.</p></div></div>
 <div class="live-panel rv" data-live-panel hidden>
-  <div class="live-head"><span class="live-dot"></span><b data-live="net">STAGING</b>&nbsp;NETWORK · <b data-live="root">TEST-ROOT</b> · <span data-live="mode">published record</span>, read in your browser</div>
+  <div class="live-head"><span class="live-dot"></span><b data-live="net">STAGING</b>&nbsp;NETWORK · <b data-live="root">TEST-ROOT</b> · <span data-live="mode">published record</span> · <span data-live="as-of">—</span>, read in your browser</div>
   <div class="live-grid">
     <div class="live-cell"><span class="lv" data-live="registrars">—</span><span class="lk">registrars</span></div>
     <div class="live-cell"><span class="lv" data-live="issued">—</span><span class="lk">passports issued</span></div>
     <div class="live-cell"><span class="lv" data-live="revoked">—</span><span class="lk">revoked</span></div>
     <div class="live-cell"><span class="lv" data-live="checkpoint-height">—</span><span class="lk">checkpoint height</span></div>
   </div>
+  <p class="live-down" data-live-down hidden>The contract at <code data-live="endpoint">—</code> did not answer, so
+  nothing above is live right now. Everything else on this site still proves what it proves — the verifier, the
+  vectors and the signatures are checked on your machine, not on ours. To run the network yourself:
+  <code>make stage-install</code> (or <code>make genesis-local</code> for a one-shot local world).</p>
   <p class="live-foot">The same read contract AINRAscan and any mirror use — a staging <b>TEST-ROOT</b>, not production. Point it at a network you run with <code>?net=&lt;url&gt;</code> and these numbers go live. Production logs sealed: <b data-live="logs-sealed">0</b> until genesis.</p>
 </div>
 <p class="scan-note rv">NOTHING ON THIS SITE IS SIMULATED WITHOUT SAYING SO · NUMBERS ARE MEASURED OR THEY ARE ABSENT</p>

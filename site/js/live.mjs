@@ -19,13 +19,24 @@ const CONTRACT = (qs.get("net") || metaC || (onLocalhost ? "http://127.0.0.1:809
 
 if (CONTRACT) connect(CONTRACT);
 
+// M27: a contract that was CONFIGURED and is now unreachable is a fact a visitor deserves, not silence. The page
+// says so in words and stops there — no spinner, no retry loop, no invented number.
+function unreachable(base) {
+  document.querySelectorAll('[data-live="state"]').forEach((el) => {
+    el.textContent = "unreachable";
+    el.classList.add("is-down");
+  });
+  document.querySelectorAll("[data-live-down]").forEach((el) => (el.hidden = false));
+  document.querySelectorAll('[data-live="endpoint"]').forEach((el) => (el.textContent = base));
+}
+
 async function connect(base) {
   let res, reg;
   try {
     res = await fetch(base + "/registry.json", { cache: "no-store" });
-    if (!res.ok) return;                       // no live contract — the static page stands
+    if (!res.ok) { unreachable(base); return; }
     reg = await res.json();
-  } catch { return; }                          // unreachable — honest constants remain, no fake state
+  } catch { unreachable(base); return; }
 
   const root = (res.headers.get("X-AINRA-Root") || "test-root").trim();
   const net = (res.headers.get("X-AINRA-Network") || "staging").trim();
@@ -54,6 +65,17 @@ async function connect(base) {
   set("checkpoint-height", height || "—");
   // Derived, not asserted: a TEST-ROOT ⇒ no production log exists ⇒ 0 sealed. (A real root would report its own count.)
   set("logs-sealed", isTestRoot ? "0" : String(t.sealed ?? 0));
+
+  // WHEN, not just what. "published record" without a date lets a stale export read as current; the contract
+  // carries its own verification time, so show it and let the reader judge the age themselves.
+  const at = reg.generated_window?.verified_at;
+  if (at) {
+    const d = new Date(at * 1000);
+    const iso = d.toISOString().slice(0, 10);
+    const days = Math.max(0, Math.round((Date.now() - d.getTime()) / 86400000));
+    set("as-of", `${iso} (${days} day${days === 1 ? "" : "s"} ago)`);
+  }
+  set("state", /^https?:/i.test(base) ? "answering now" : "published record");
 
   // Reveal blocks that must appear only when a live contract is actually connected (so the public static page,
   // with no reachable contract, never shows an empty or misleading "live" panel).

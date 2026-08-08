@@ -41,10 +41,20 @@ jobs:
       # The script builds the sdk and the wheel to inspect what would actually ship. A bare runner has neither the
       # TypeScript types nor the Python build backend, so both steps failed as BLOCKERs that said nothing about the
       # release. Provision them here rather than teaching the gate to shrug.
-      - name: Provision what the preflight inspects
+      # `npm ci` and NOT `npm install`. install WRITES package-lock.json — and when that lockfile was stale (it
+      # said 0.1.0 for three releases) the write dirtied the very tree the next step diffs against the tag:
+      #     [BLOCK] tag matches tree   packages differ from tag v0.3.2 — Drifted: packages/sdk-ts/package-lock.json
+      # So this provisioning step blocked its own release gate, on every version, and the publish path had never
+      # once got past it. `ci` reads the lockfile and never writes it, so a future drift fails loudly HERE instead
+      # of being rewritten silently underneath the gate. tools/lockfile-sync.mjs catches the drift itself.
+      - name: Provision what the preflight inspects (without touching the tree)
         run: |
-          npm --prefix packages/sdk-ts install --no-audit --no-fund
+          npm --prefix packages/sdk-ts ci --no-audit --no-fund
           python3 -m pip install --quiet build twine
+      - name: the tree must still be pristine — provisioning may never dirty what the gate diffs
+        run: |
+          D=$(git status --porcelain)
+          [ -z "$D" ] || { echo "::error::provisioning modified tracked files, which defeats the release gate:"; echo "$D"; exit 1; }
       - name: publish-preflight (publishes nothing, holds no credentials)
         run: PREFLIGHT_OFFLINE=1 bash tools/publish-preflight.sh
 
@@ -62,10 +72,17 @@ jobs:
         with:
           node-version: '24'        # ships an npm new enough for trusted publishing — no self-upgrade needed
           registry-url: https://registry.npmjs.org
-      - name: npm >= 11.5.1 (required for trusted publishing)
-        run: npm install -g npm@latest && npm --version
+      # ASSERT, never self-upgrade. `npm install -g npm@latest` replaces npm's own global install while it is
+      # running and can die half-way with MODULE_NOT_FOUND — and this is the job holding the credential, so it is
+      # the worst place to mutate the toolchain. The dry-run job already refused to do this; these two disagreed.
+      - name: npm must be new enough for trusted publishing
+        run: |
+          need=11.5.1; have=$(npm --version)
+          printf 'npm %s (need >= %s)\n' "$have" "$need"
+          [ "$(printf '%s\n%s\n' "$need" "$have" | sort -V | head -1)" = "$need" ] || {
+            echo "::error::npm $have is too old for trusted publishing — provenance would be silently skipped"; exit 1; }
       - name: build the SDK (both packages ship dist/)
-        run: cd packages/sdk-ts && npm install --no-audit --no-fund && npm run build
+        run: cd packages/sdk-ts && npm ci --no-audit --no-fund && npm run build
       - name: point middleware at the published SDK, not the local path
         if: inputs.target == 'npm-middleware'
         run: |
@@ -129,4 +146,4 @@ jobs:
           printf 'npm %s (need >= %s)\n' "$have" "$need"
           [ "$(printf '%s\n%s\n' "$need" "$have" | sort -V | head -1)" = "$need" ] || {
             echo "npm $have is too old for trusted publishing — provenance would be silently skipped"; exit 1; }
-      - run: cd packages/sdk-ts && npm install --no-audit --no-fund && npm run build && npm publish --dry-run --provenance --access public
+      - run: cd packages/sdk-ts && npm ci --no-audit --no-fund && npm run build && npm publish --dry-run --provenance --access public

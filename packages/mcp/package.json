@@ -1,6 +1,6 @@
 {
   "name": "@ainra/mcp",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "AINRA as native agent tools — a zero-dependency MCP server wrapping the published verifier, the public record, and the registrar you control.",
   "license": "Apache-2.0 OR MIT",
   "type": "module",

@@ -10,6 +10,51 @@ We **publicly own fixed security bugs** — hiding them would be the opposite of
 
 ## [Unreleased]
 
+## [0.3.3] — the release that could actually be published
+
+`v0.3.2` is a real, signed, board-proven tag, and it **cannot be published**. Finding out why is this release.
+
+With v0.3.2 tagged and `publish-preflight` printing READY locally, the publish workflow was dispatched — and its
+own preflight job blocked:
+
+```
+[BLOCK] tag matches tree   packages differ from tag v0.3.2 — Drifted: packages/sdk-ts/package-lock.json
+[SKIP]  clean tree         working tree is dirty — publish from a clean checkout of the tag, not from here
+```
+
+Nothing had drifted. The workflow provisions the SDK before running the release gate, and it did so with
+`npm install`, which **writes** `package-lock.json`. That lockfile had said `0.1.0` since v0.1.0 — through
+v0.2.0, v0.3.0, v0.3.1 and v0.3.2, because every version bump touched `package.json` and none touched the lock.
+So `npm install` dutifully synced it, and the gate then diffed a tree that the step three lines above it had just
+dirtied.
+
+**The publish path had therefore never once got past its own preflight, on any version.** It could not have. It
+never failed visibly either, because it had never been run to completion — the same family as the three
+never-run checks M26 found, and the reason "the board is green" is not the same claim as "this works".
+
+It never reproduced locally, and never would have: the lockfile is only rewritten when `npm install` runs, and a
+developer machine already has `node_modules`.
+
+### Fixed
+
+- **The lockfiles state their real version.** `packages/sdk-ts` and `packages/middleware` were at `0.1.0`; both
+  are regenerated at 0.3.3.
+- **The provisioning step can no longer dirty the tree it is about to gate.** It uses `npm ci`, which reads the
+  lockfile and never writes it, so a future drift fails loudly at install time instead of being rewritten
+  silently underneath the release gate — and a new step asserts the tree is still pristine afterwards, so this
+  specific betrayal cannot come back by another route.
+- **The npm publish job no longer self-upgrades npm.** `npm install -g npm@latest` replaces npm's own global
+  install while it is running and can die half-way with `MODULE_NOT_FOUND`. The dry-run job already refused to do
+  this and said why in a comment; the publish job — the one actually holding the credential — still did it. Both
+  now assert the version instead of mutating the toolchain.
+
+### Added
+
+- **`make lockfile-sync`** (board row + `make ci`): every committed lockfile must state the version its
+  `package.json` states, in both places npm writes it. Negative-controlled — restoring `0.1.0` produces two named
+  failures and a red board.
+
+
 ## [0.3.2] — the operations release
 
 The published library source is **byte-identical to 0.3.1** — `git diff v0.3.1..v0.3.2 -- packages/*/src crates/`

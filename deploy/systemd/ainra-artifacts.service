@@ -1,0 +1,28 @@
+[Unit]
+Description=AINRA staging artifact server (the public read contract)
+Documentation=https://github.com/JacobJandon/ainra/blob/main/deploy/systemd/README.md
+PartOf=ainra-stage.target
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/Desktop/Solvatron/ainra
+EnvironmentFile=%h/Desktop/Solvatron/ainra/deploy/systemd/env/artifacts.env
+ExecStart=/usr/bin/env node tools/artifact-server.mjs stage/public ${ART_PORT}
+
+Restart=always
+RestartSec=3
+StartLimitIntervalSec=0
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=ainra-artifacts
+
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectControlGroups=yes
+ProtectKernelTunables=yes
+RestrictSUIDSGID=yes
+
+[Install]
+WantedBy=ainra-stage.target

@@ -1,6 +1,6 @@
 # AINRA — the acceptance bar (MTS §28, brief §8): a stranger clones, runs `make test && make vectors && make diff`,
 # and everything is green in under 10 minutes on a laptop.
-.PHONY: one-decode-path bench-gate all test vectors vectors-check diff cli-check suite-migration-drill ceremony-rehearsal-multi witness-check push-advisory-check changelog-board-check fmt clippy fuzz-smoke bench sdk-build sdk-test ci clean status console samples drill explorer demo scale ceremony testbed wedge-build wedge-test repro mirror verify-mirror check-freeze freeze genesis-local verifier-kit-smoke ceremony-dry-run soak-smoke drill-networked preflight s7 license gitleaks audit verify-as-external verifier-triple-drill soak-verify genesis-status verify-transcript genesis-board-demo release doctor verifier-operator-drill site site-up site-down site-check stage-all stage-all-down explorer-up explorer-down ainrascan stage-up stage-down stage-status stage-smoke demo-walkthrough three-clients genesis-verify config-diff declaration genesis-rehearsal site-demo verify issue-first registrar-console mcp-test skills-replay presentation-diff conformance campaign-status campaign-init campaign-gates campaign-check publish-preflight
+.PHONY: one-decode-path bench-gate all test vectors vectors-check diff cli-check suite-migration-drill ceremony-rehearsal-multi witness-check push-advisory-check changelog-board-check fmt clippy fuzz-smoke bench sdk-build sdk-test ci clean status console samples drill explorer demo scale ceremony testbed wedge-build wedge-test repro mirror verify-mirror check-freeze freeze genesis-local verifier-kit-smoke ceremony-dry-run soak-smoke drill-networked preflight s7 license gitleaks audit verify-as-external verifier-triple-drill soak-verify genesis-status verify-transcript genesis-board-demo release doctor verifier-operator-drill site site-up site-down site-check stage-all stage-all-down explorer-up explorer-down ainrascan stage-up stage-down stage-status stage-smoke demo-walkthrough three-clients genesis-verify config-diff declaration genesis-rehearsal site-demo verify issue-first registrar-console mcp-test skills-replay presentation-diff conformance campaign-status campaign-init campaign-gates campaign-check publish-preflight stage-install stage-uninstall stage-health interop interop-negative
 
 all: fmt clippy test vectors diff
 
@@ -425,3 +425,13 @@ interop: sdk-build ## cross-implementation interop on material that has never ex
 
 interop-negative: sdk-build ## prove the interop harness can fail (one corrupted signature byte)
 	@NEGATIVE_CONTROL=1 node tools/interop-verify.mjs && (echo "NEGATIVE CONTROL DID NOT FAIL"; exit 1) || echo "negative control OK: corruption is caught."
+
+# M27 — the staging network as a STANDING service: systemd user units, restart-on-failure, start-on-boot,
+# journal logging, and a watchdog that probes the public contract. Honest claim: runs whenever this machine is
+# on — it binds 127.0.0.1, so it is not reachable from the internet.
+stage-install:   ## install the staging network as user services (survives logout + reboot)
+	@bash tools/stage-install.sh install
+stage-uninstall: ## remove the units (state in stage/ is left alone)
+	@bash tools/stage-install.sh uninstall
+stage-health:    ## probe the public read contract + unit state; exits non-zero when degraded
+	@bash tools/stage-install.sh health

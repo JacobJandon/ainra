@@ -1,0 +1,38 @@
+[Unit]
+# One AINRA staging registrar door. Templated: the instance name IS the registrar id, e.g.
+#   systemctl --user start ainra-registrar@registrar-07
+# The address per instance comes from deploy/systemd/env/<id>.env, written by tools/stage-install.sh.
+Description=AINRA staging registrar door (%i)
+Documentation=https://github.com/JacobJandon/ainra/blob/main/deploy/systemd/README.md
+PartOf=ainra-stage.target
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/Desktop/Solvatron/ainra
+EnvironmentFile=%h/Desktop/Solvatron/ainra/deploy/systemd/env/%i.env
+ExecStart=%h/Desktop/Solvatron/ainra/target/release/registrar-box ${REG_ADDR} %i stage/%i
+
+# Restart on ANY exit, including a clean one: a registrar door that has stopped is a dead door either way, and
+# the whole point of this unit is that the network outlives the terminal that started it.
+Restart=always
+RestartSec=3
+# Do not give up after repeated fast failures — a machine that wakes with a briefly-unavailable dependency must
+# still converge on running, not land in a permanently failed state that only a human notices days later.
+StartLimitIntervalSec=0
+
+# Logs go to the journal, which already rotates and is size-capped. Writing our own files under stage/ would
+# grow unbounded and need a logrotate config nobody would remember to install.
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=ainra-registrar-%i
+
+# The daemon needs nothing outside the repo working tree.
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectControlGroups=yes
+ProtectKernelTunables=yes
+RestrictSUIDSGID=yes
+
+[Install]
+WantedBy=ainra-stage.target

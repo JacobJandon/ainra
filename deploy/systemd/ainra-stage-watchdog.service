@@ -1,0 +1,14 @@
+[Unit]
+# Restart=always only catches a process that EXITED. A daemon can also be alive and useless — wedged, holding
+# its port, serving nothing. This probes the public read contract the way a consumer does and restarts whatever
+# is not actually answering.
+Description=AINRA staging watchdog (probes the public contract, restarts what is dead)
+Documentation=https://github.com/JacobJandon/ainra/blob/main/deploy/systemd/README.md
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/Desktop/Solvatron/ainra
+ExecStart=/usr/bin/env bash tools/stage-watchdog.sh
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=ainra-stage-watchdog

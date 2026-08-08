@@ -1,0 +1,28 @@
+[Unit]
+Description=AINRA staging witness (cosigns log checkpoints)
+Documentation=https://github.com/JacobJandon/ainra/blob/main/deploy/systemd/README.md
+PartOf=ainra-stage.target
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/Desktop/Solvatron/ainra
+EnvironmentFile=%h/Desktop/Solvatron/ainra/deploy/systemd/env/witness.env
+ExecStart=%h/Desktop/Solvatron/ainra/target/release/witnessd ${WIT_ADDR} deploy/staging-witness.config.json
+
+Restart=always
+RestartSec=3
+StartLimitIntervalSec=0
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=ainra-witnessd
+
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectControlGroups=yes
+ProtectKernelTunables=yes
+RestrictSUIDSGID=yes
+
+[Install]
+WantedBy=ainra-stage.target

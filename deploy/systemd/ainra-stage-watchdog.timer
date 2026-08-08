@@ -1,0 +1,13 @@
+[Unit]
+Description=Probe the AINRA staging contract every minute
+Documentation=https://github.com/JacobJandon/ainra/blob/main/deploy/systemd/README.md
+
+[Timer]
+# One minute after boot, then every minute. A wedged door should not outlive a coffee break.
+OnBootSec=1min
+OnUnitActiveSec=1min
+AccuracySec=10s
+Unit=ainra-stage-watchdog.service
+
+[Install]
+WantedBy=timers.target

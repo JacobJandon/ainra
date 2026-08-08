@@ -1,0 +1,10 @@
+[Unit]
+# One handle for the whole staging network. `systemctl --user start ainra-stage.target` brings up both registrar
+# doors, the witness and the artifact server; stopping the target stops all of them.
+Description=AINRA staging network (registrars, witness, artifact server)
+Documentation=https://github.com/JacobJandon/ainra/blob/main/deploy/systemd/README.md
+Wants=ainra-registrar@registrar-07.service ainra-registrar@registrar-11.service ainra-witnessd.service ainra-artifacts.service
+After=ainra-registrar@registrar-07.service ainra-registrar@registrar-11.service ainra-witnessd.service ainra-artifacts.service
+
+[Install]
+WantedBy=default.target

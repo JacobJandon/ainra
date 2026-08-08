@@ -135,6 +135,8 @@ input.txt{width:100%;padding:11px 13px;border:1px solid var(--line);border-radiu
 .s-stat{background:var(--card);padding:16px 14px;text-align:center}
 .s-stat b{font-family:var(--display);font-size:22px;font-weight:750;display:block;letter-spacing:-.02em;word-break:break-all}
 .s-stat span{font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;margin-top:4px;display:block}
+.s-when{max-width:820px;margin:22px auto 0;font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:center}
+.s-when b{color:var(--ink);font-weight:600}
 .s-rootdark{max-width:820px;margin:12px auto 0;font-family:var(--mono);font-size:11px;letter-spacing:.03em;color:var(--muted);text-align:center;background:rgba(26,107,78,.06);border:1px solid var(--line);border-radius:10px;padding:9px 12px}
 .s-rootdark.ok{color:var(--green)}.s-rootdark.ok b{color:var(--green)}.s-rootdark.no{color:var(--red)}
 .s-search{max-width:820px;margin:20px auto 0;position:relative}
@@ -239,9 +241,10 @@ nav .nav-links a[aria-current="page"],nav .ndocs[aria-current="page"]{text-decor
 
   <!-- ── BROWSE THE RECORD (AINRAscan) ──────────────────────────────────── -->
   <div class="wrap">
-    <div class="sec-head" id="browse"><h2>Browse the live record.</h2><p>Every passport the network has issued — active and revoked alike, each one chained to the root, each one checkable here without asking anyone.</p></div>
+    <div class="sec-head" id="browse"><h2>Browse the record.</h2><p>Every passport the network has issued — active and revoked alike, each one chained to the root, each one checkable here without asking anyone.</p></div>
     <div id="scan">
       <div id="s-flow">
+        <div class="s-when" id="s-when" hidden></div>
         <div class="s-stats">
           <div class="s-stat"><b id="s-root">—</b><span>root</span></div>
           <div class="s-stat"><b id="s-regs">—</b><span>registrars</span></div>

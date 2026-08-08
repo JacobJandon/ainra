@@ -12,6 +12,8 @@
 //     "production logs sealed = 0" is DERIVED here, not asserted in copy. Staging figures are labeled STAGING·TEST-ROOT.
 //   * Everything runs client-side against the same public read contract AINRAscan/mirrors use (CORS from M14). Zero telemetry.
 
+import { fetchT, getJSON } from "./net.mjs";
+
 const qs = new URLSearchParams(location.search);
 const metaC = document.querySelector('meta[name="ainra-contract"]')?.content?.trim();
 const onLocalhost = /^(localhost|127\.|0\.0\.0\.0|\[::1\])/.test(location.hostname);
@@ -33,7 +35,7 @@ function unreachable(base) {
 async function connect(base) {
   let res, reg;
   try {
-    res = await fetch(base + "/registry.json", { cache: "no-store" });
+    res = await fetchT(base + "/registry.json", { cache: "no-store" });
     if (!res.ok) { unreachable(base); return; }
     reg = await res.json();
   } catch { unreachable(base); return; }
@@ -66,16 +68,24 @@ async function connect(base) {
   // Derived, not asserted: a TEST-ROOT ⇒ no production log exists ⇒ 0 sealed. (A real root would report its own count.)
   set("logs-sealed", isTestRoot ? "0" : String(t.sealed ?? 0));
 
-  // WHEN, not just what. "published record" without a date lets a stale export read as current; the contract
-  // carries its own verification time, so show it and let the reader judge the age themselves.
-  const at = reg.generated_window?.verified_at;
-  if (at) {
-    const d = new Date(at * 1000);
-    const iso = d.toISOString().slice(0, 10);
-    const days = Math.max(0, Math.round((Date.now() - d.getTime()) / 86400000));
-    set("as-of", `${iso} (${days} day${days === 1 ? "" : "s"} ago)`);
+  // WHEN, not just what — but from the right field. `generated_window.verified_at` is NOT a publication time: it is
+  // the pinned instant staging computes its validity window against (seed.rs::VERIFY_NOW), identical in a record
+  // published today and one published a year ago. Reading an age out of it announced "110 days ago" over a file that
+  // is byte-identical to what the network serves this second. The real publication time is stamped at copy time by
+  // `make site-net` into published.json, so ask that; when it is absent, say nothing rather than infer.
+  const liveNow = /^https?:/i.test(base);
+  if (liveNow) {
+    set("as-of", "answering now");
+  } else {
+    try {
+      const p = await getJSON(base + "/published.json", { cache: "no-store" });
+      if (p?.published_at_iso) {
+        const days = Math.max(0, Math.round((Date.now() - Date.parse(p.published_at_iso)) / 86400000));
+        set("as-of", `published ${p.published_at_iso.slice(0, 10)}${days > 0 ? ` (${days} day${days === 1 ? "" : "s"} ago)` : " (today)"}`);
+      }
+    } catch { /* an unstamped copy states no date, which is the honest alternative to a guessed one */ }
   }
-  set("state", /^https?:/i.test(base) ? "answering now" : "published record");
+  set("state", liveNow ? "answering now" : "published record");
 
   // Reveal blocks that must appear only when a live contract is actually connected (so the public static page,
   // with no reachable contract, never shows an empty or misleading "live" panel).

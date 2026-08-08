@@ -4,6 +4,7 @@
 // inclusion proof locally) → revoke → re-verify (fail-closed). Streams the one canonical M16 verdict-event at each
 // verify. If no registrar is reachable (e.g. a public static deploy), the section degrades to an honest note.
 import { runVector, verdictEvent, serializeVerdictEvent } from "../vendor/ainra-sdk.js";
+import { fetchT, why } from "./net.mjs";
 
 const qs = new URLSearchParams(location.search);
 const meta = (n) => document.querySelector(`meta[name="${n}"]`)?.content?.trim();
@@ -36,15 +37,15 @@ async function boot() {
   if (!$("#lifecycle")) return;
   if (!REG) return unavailable("This runs the whole lifecycle against a live registrar. Start one locally — <code>make stage-all</code> — then reload, or pass <code>?reg=&lt;url&gt;</code>.");
   let health;
-  try { health = await (await fetch(REG + "/health", { cache: "no-store" })).json(); }
-  catch { return unavailable(`No registrar reachable at <code>${REG}</code>. Run <code>make stage-all</code>, or pass <code>?reg=&lt;url&gt;</code>.`); }
+  try { health = await (await fetchT(REG + "/health", { cache: "no-store" })).json(); }
+  catch (e) { return unavailable(`Registrar unavailable — ${why(e, `<code>${REG}</code>`)}. Run <code>make stage-all</code>, or check the URL you passed to <code>?reg=</code>.`); }
   if (!health || !health.ok) return unavailable("A registrar answered but isn't ready.");
   try {
-    const acc = await (await fetch(REG + "/accreditation")).json();
+    const acc = await (await fetchT(REG + "/accreditation")).json();
     anchors = { [REGID]: { issuer_key: acc.issuer_key, log_root_key: acc.log_root_key } };
   } catch { return unavailable("Couldn't read the registrar's accreditation."); }
   let netRoot = health.root || "test-root";
-  if (CONTRACT) { try { netRoot = (await (await fetch(CONTRACT + "/index.json", { cache: "no-store" })).json()).root || netRoot; } catch {} }
+  if (CONTRACT) { try { netRoot = (await (await fetchT(CONTRACT + "/index.json", { cache: "no-store" })).json()).root || netRoot; } catch {} }
   const badge = $("#ll-badge"); if (badge) badge.textContent = (health.network || "staging").toUpperCase() + " · " + netRoot.toUpperCase();
   $("#ll-issue").addEventListener("click", doIssue);
   $("#ll-verify").addEventListener("click", () => doVerify(false));
@@ -58,7 +59,7 @@ async function boot() {
 async function doIssue() {
   enable("#ll-issue", false); setStep(1, "run");
   try {
-    const rec = await (await fetch(REG + "/demo/issue", { method: "POST" })).json();
+    const rec = await (await fetchT(REG + "/demo/issue", { method: "POST" })).json();
     if (!rec.sub) throw new Error(rec.error || "issue failed");
     sub = rec.sub;
     setStep(1, "ok"); $("#ll-sub").textContent = sub; $("#ll-height").textContent = rec.checkpoint_size;
@@ -72,7 +73,7 @@ async function doIssue() {
 async function doVerify(after) {
   const i = after ? 5 : 3; setStep(i, "run");
   try {
-    const pres = await (await fetch(`${REG}/present?sub=${encodeURIComponent(sub)}&now=${NOW}`)).json();
+    const pres = await (await fetchT(`${REG}/present?sub=${encodeURIComponent(sub)}&now=${NOW}`)).json();
     const v = runVector({ name: sub, expect: {}, anchors, presentation: pres });
     const ev = serializeVerdictEvent(verdictEvent(pres, v, NOW));
     const ok = v.verdict === "valid";
@@ -91,7 +92,7 @@ async function doVerify(after) {
 async function doRevoke() {
   enable("#ll-revoke", false); setStep(4, "run");
   try {
-    const rv = await (await fetch(REG + "/demo/revoke", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sub, now: NOW }) })).json();
+    const rv = await (await fetchT(REG + "/demo/revoke", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sub, now: NOW }) })).json();
     if (rv.revoked !== sub) throw new Error(rv.error || "revoke failed");
     setStep(4, "ok"); log(`4 · revoked ${sub}`, "ok");
     enable("#ll-reverify", true);

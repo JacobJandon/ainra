@@ -428,6 +428,12 @@ interop-negative: sdk-build ## prove the interop harness can fail (one corrupted
 
 # M27 — the staging network as a STANDING service: systemd user units, restart-on-failure, start-on-boot,
 # journal logging, and a watchdog that probes the public contract. Honest claim: runs whenever this machine is
+site-net:        ## publish the running network's read contract into site/net/ and stamp when
+	bash tools/site-net.sh publish
+
+site-net-check:  ## is the committed site/net/ still byte-identical to what the network serves?
+	bash tools/site-net.sh check
+
 # on — it binds 127.0.0.1, so it is not reachable from the internet.
 stage-install:   ## install the staging network as user services (survives logout + reboot)
 	@bash tools/stage-install.sh install

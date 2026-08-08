@@ -4,6 +4,7 @@
 // INVALID + the one verdict-event. Works whenever a contract is reachable; degrades to an honest note otherwise.
 // Everything is client-side against the same read contract mirrors use (CORS from M14). Zero telemetry.
 import { runVector, verdictEvent, serializeVerdictEvent, verifyDirectory } from "../vendor/ainra-sdk.js";
+import { fetchT, why } from "./net.mjs";
 
 const qs = new URLSearchParams(location.search);
 const meta = (n) => document.querySelector(`meta[name="${n}"]`)?.content?.trim();
@@ -33,10 +34,34 @@ async function boot() {
   if (!$("#scan")) return;
   if (!CONTRACT) return down("This reads a live AINRA network. Start one — <code>make stage-all</code> — then reload, or pass <code>?net=&lt;contract-url&gt;</code>.");
   let res;
-  try { res = await fetch(CONTRACT + "/registry.json", { cache: "no-store" }); if (!res.ok) throw 0; REG = await res.json(); }
-  catch { return down(`No AINRA contract reachable at <code>${CONTRACT}</code>. Run <code>make stage-all</code>.`); }
+  try { res = await fetchT(CONTRACT + "/registry.json", { cache: "no-store" }); if (!res.ok) throw 0; REG = await res.json(); }
+  catch (e) { return down(`Record unavailable — ${why(e, `<code>${CONTRACT}</code>`)}. Run <code>make stage-all</code>, or check the URL you passed to <code>?net=</code>.`); }
   NOW = REG.generated_window?.verified_at ?? 0;
   const root = (res.headers.get("X-AINRA-Root") || "test-root");
+
+  // Which record is this, and when was it taken? A remote origin is a network answering right now; a same-origin
+  // path is the copy shipped with the site, and its date comes from published.json — stamped by `make site-net` at
+  // the moment of copying. NOT from generated_window.verified_at, which is staging's pinned verification instant and
+  // is the same number however old or new the copy is. No stamp ⇒ no date claimed.
+  {
+    const el = $("#s-when");
+    if (el) {
+      if (/^https?:/i.test(CONTRACT)) {
+        el.innerHTML = "<b>Live</b> — this network is answering right now";
+        el.hidden = false;
+      } else {
+        try {
+          const pub = await (await fetchT(CONTRACT + "/published.json", { cache: "no-store" })).json();
+          if (pub?.published_at_iso) {
+            const days = Math.max(0, Math.round((Date.now() - Date.parse(pub.published_at_iso)) / 86400000));
+            el.innerHTML = `<b>Published record</b> — taken from the network on ${pub.published_at_iso.slice(0, 10)}` +
+              (days > 0 ? ` (${days} day${days === 1 ? "" : "s"} ago)` : " (today)");
+            el.hidden = false;
+          }
+        } catch { /* unstamped copy: say nothing rather than infer a date */ }
+      }
+    }
+  }
 
   $("#s-root").textContent = root.split(":")[0].toUpperCase(); // the TYPE (GENESIS / TEST-ROOT); the full fingerprint is in the note below
   $("#s-regs").textContent = REG.totals?.registrars ?? "—";
@@ -47,8 +72,8 @@ async function boot() {
 
   // root-dark chain: is the published directory dual-root-signed by the published root?
   try {
-    const DIR = await (await fetch(CONTRACT + "/directory.json")).json();
-    const ROOTS = await (await fetch(CONTRACT + "/roots.json")).json();
+    const DIR = await (await fetchT(CONTRACT + "/directory.json")).json();
+    const ROOTS = await (await fetchT(CONTRACT + "/roots.json")).json();
     if (DIR && ROOTS?.root_ed25519) {
       const acc = verifyDirectory(DIR, dec(ROOTS.root_ed25519), dec(ROOTS.root_slh));
       const rd = $("#s-rootdark"); rd.hidden = false;

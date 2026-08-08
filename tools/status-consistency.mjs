@@ -89,9 +89,18 @@ try {
       // past it, on the one page whose whole job is to state what exists today. Checking one instance of a claim
       // does not check the claim.
       const claim = /\b(one|two|three|four|five|six|seven|eight|nine)\s+signed(?:,\s*board-proven)?\s+releases?\b/gi;
-      const surfaces = readdirSync(ROOT + "site")
-        .filter((f) => /\.(html|txt|md)$/i.test(f))
-        .map((f) => "site/" + f);
+      // TRACKED files only. site/status.md and the other markdown mirrors are GENERATED from the HTML and are
+      // gitignored, so their content is derived — checking them gates on an artifact instead of a source. Worse,
+      // it is unreliable in both directions: in a reused build directory a stale mirror fails the board for a
+      // claim its source no longer makes (it did exactly that here), and in a genuinely fresh clone the file does
+      // not exist at all, so the same check passes vacuously. Check what a human wrote; the mirrors follow.
+      let surfaces = [];
+      try {
+        surfaces = execFileSync("git", ["ls-files", "site"], { cwd: ROOT, encoding: "utf8" })
+          .split("\n").map((f) => f.trim()).filter((f) => /\.(html|txt|md)$/i.test(f));
+      } catch {
+        surfaces = readdirSync(ROOT + "site").filter((f) => /\.(html|txt|md)$/i.test(f)).map((f) => "site/" + f);
+      }
       let claims = 0;
       for (const f of surfaces) {
         const body = readFileSync(ROOT + f, "utf8");

@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ainra"
-version = "0.3.1"
+version = "0.3.2"
 description = "Independent Python implementation of the AINRA agent-passport verifier (verify-only, offline, fail-closed). The fourth column of the conformance differential."
 readme = "README.md"
 requires-python = ">=3.10"

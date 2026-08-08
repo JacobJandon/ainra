@@ -10,6 +10,65 @@ We **publicly own fixed security bugs** — hiding them would be the opposite of
 
 ## [Unreleased]
 
+## [0.3.2] — the operations release
+
+The published library source is **byte-identical to 0.3.1** — `git diff v0.3.1..v0.3.2 -- packages/*/src crates/`
+is empty. Everything below is the surface around it: the network that serves the demo, and the deployed site that
+describes it. The version moves because the packages needed a tag that *contains* their bump before they could be
+published at all; `publish-preflight` compares bytes, not tag existence, and was correctly refusing.
+
+Full workings: [`docs/PLAN-M27.md`](docs/PLAN-M27.md) · board at the release commit:
+[`docs/releases/v0.3.2-board.md`](docs/releases/v0.3.2-board.md).
+
+### Fixed — eleven things the public site told visitors that were not true
+
+Found by walking production end to end as a stranger, with no context and no login. Not one was a failing test:
+every one was a claim nothing checked.
+
+- The **404's own escape links were relative**, so at any nested path they resolved into that directory and were
+  themselves 404 — the one page a lost visitor lands on had no working way back.
+- **Two pages published two different networks**, each denying the other's passports: `verify.html` read a 13-lineage
+  dataset while the record browser read an 8-lineage one, the same registrar carrying a different root key in each.
+- **`llms.txt` named the wrong release** — "two signed releases; current: v0.3.0" — the file that calls itself an
+  AI agent's map.
+- **The install step pointed at a download that does not contain what the sentence promised**: "runs with just node"
+  against a release containing only a Linux x86_64 Rust binary.
+- **The verifier kit documented an install route that cannot work** — `npm install @ainra/sdk`, unpublished, and the
+  remedy its troubleshooting page offered for the failure was the cause of the failure.
+- **A registrar that accepts and never answers hung the page forever.** A refused port always failed in
+  milliseconds, which is why this was never caught; a host that drops never rejects, so the honest note never
+  appeared and the mint button sat enabled with no listener attached.
+- **A "110 days old" staleness warning over a current record** — read out of `generated_window.verified_at`, which
+  is a pinned staging constant, not a publication time.
+- **`foundation.html` declared one canonical URL and a different `og:url`**, so every share of the page resolved
+  elsewhere; and it repeated the stale "two signed releases" claim in its description and share card.
+- Plus `verify.html` claiming nine checks while rendering seven, and "live record" surviving in titles above a
+  panel that had been corrected to say published.
+
+### Added — the surface is now watched, not assumed
+
+- **The staging network stands as a service** (`deploy/systemd/`, `make stage-install`). Two layers of recovery,
+  both proven rather than assumed: `Restart=always` catches a process that exited, a watchdog catches one that is
+  alive and useless by probing the same contract a consumer reads. The honest claim is unchanged and deliberately
+  small: *runs whenever this machine is on; binds 127.0.0.1, not reachable from the internet.*
+- **The stranger journeys run daily against the deployed site** (`make stranger`,
+  `.github/workflows/stranger.yml`) with three verdicts kept apart — SITE BROKEN / NETWORK DOWN / ALL UP — and its
+  own negative control in the same job, because a monitor that cannot fail is not a monitor.
+- **`make site-net` stamps the published record when it is copied**, and `make site-net-check` proves the copy
+  still matches the running network byte for byte.
+- **One network gateway for the site** (`site/js/net.mjs`): no page fetch can be written without a deadline.
+
+### Changed — the gates that let those claims through
+
+Each fix is paired with a gate, and each gate is negative-controlled by restoring the defect and watching the board
+go red.
+
+- `tools/status-consistency.mjs` derives the release count and current version from git tags and checks **every**
+  such claim across `site/`, not one file — the first version checked only `llms.txt` and walked straight past the
+  identical stale sentence in `foundation.html`.
+- `tools/link-check.mjs` compares `canonical` against `og:url` on every page.
+
+
 ## [0.3.1] — security
 
 Fixes one advisory, end to end, and closes the class of CI failure that hid it. Full workings:

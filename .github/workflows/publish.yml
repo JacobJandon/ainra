@@ -32,7 +32,7 @@ jobs:
       # ("never publish from untagged source") looked at a tagless checkout and reported "no tag v0.3.0" — while
       # v0.3.0 exists here and on the remote. A safety gate firing for the wrong reason is the worst kind of green:
       # the day it stops firing, you would believe you were protected when you were not.
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262   # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
         with: { fetch-depth: 0 }
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with: { node-version: '24' }
@@ -67,7 +67,7 @@ jobs:
       contents: read
       id-token: write               # mints the OIDC token that IS the credential
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262   # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '24'        # ships an npm new enough for trusted publishing — no self-upgrade needed
@@ -116,7 +116,7 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262   # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with: { python-version: '3.12' }
       - run: python -m pip install --upgrade build && python -m build packages/sdk-py
@@ -132,7 +132,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions: { contents: read, id-token: write }
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262   # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with: { node-version: '24', registry-url: https://registry.npmjs.org }
       # Do NOT self-upgrade npm here. `npm install -g npm@latest` replaces npm's own global install while it

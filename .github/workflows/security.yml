@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions: { contents: read }
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262   # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
       - run: cargo install cargo-audit --locked
       # cargo-audit reads .cargo/audit.toml automatically — there is no --config flag (-c is --color, which is
       # how the first attempt at wiring this failed). The file carries ONE narrow ignore with its reason, blast
@@ -35,7 +35,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions: { contents: read, security-events: write }
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262   # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
       # SHA-pinned deliberately: third-party reporting describes a March-2026 force-push that rewrote 75 of this
       # action's 76 version tags to exfiltrate CI secrets. A moving tag is not a dependency, it is a promise.
       - uses: aquasecurity/trivy-action@2736533278103862a861f4a35ebac3e97854d956
@@ -54,7 +54,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions: { contents: read }
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262   # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
       - name: nightly + miri
         run: rustup toolchain install nightly --component miri && rustup default nightly
       # The verify path parses attacker-controlled bytes (CBOR/COSE, base64url, inclusion proofs). Miri catches
@@ -71,7 +71,7 @@ jobs:
       fail-fast: false
       matrix: { sanitizer: [address] }
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262   # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
       - name: build fuzzers
         uses: google/clusterfuzzlite/actions/build_fuzzers@884713a6c30a92e5e8544c39945cd7cb630abcd1 # v1
         with: { language: rust, sanitizer: '${{ matrix.sanitizer }}' }

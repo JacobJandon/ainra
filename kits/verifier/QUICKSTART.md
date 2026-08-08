@@ -14,7 +14,7 @@ to no one but the maintainer who hands you a challenge.
 ## 0. Prerequisites (2 min)
 - **Node 18+** (built-in `crypto`, `zlib` — nothing else).
 - The **`@ainra/sdk`** package (the only dependency). Inside this repo it's wired to the local build; as an outsider,
-  set `"@ainra/sdk": "^0.3.1"` in `kits/verifier/package.json` and `npm install`.
+  set `"@ainra/sdk": "^0.3.3"` in `kits/verifier/package.json` and `npm install`.
 
 ## 1. Get a challenge from the maintainer (1 min)
 Ask the AINRA maintainers to **mint you a challenge**. They send you a folder — call it `challenge/` — containing

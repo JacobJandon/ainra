@@ -1,13 +1,26 @@
 # Publishing with provenance, wired in the SAME pass as the publish itself.
 #
 # Provenance CANNOT be retrofitted onto a version that is already public — a package published without an
-# attestation stays that way forever. So this workflow is the only publish path: it uses trusted publishing
-# (short-lived OIDC credentials minted per run) on every registry that offers it, and no long-lived token is
-# stored anywhere. Triggered by hand, per registry, so the maintainer keeps the button.
+# attestation stays that way forever. So this workflow is the only publish path, and every publish runs from a
+# GitHub-hosted runner with `id-token: write`, which is what makes attestation possible at all.
+#
+# TWO SEPARATE THINGS, and conflating them cost this project two milestones of parked publishing. Provenance
+# (Sigstore attestation, `--provenance`) is not the same feature as trusted publishing (OIDC replacing a token as
+# the CREDENTIAL). An earlier version of this comment said a token publish "would permanently forfeit attestation"
+# — that is true of a publish from a LAPTOP, which has no OIDC identity to attest to, and false of a token publish
+# from this workflow, which does. The distinction matters because of the npm asymmetry below.
 #
 # BEFORE THE FIRST RUN, one-time setup the maintainer performs (each binds to an exact owner/repo + workflow):
-#   npm       npmjs.com → package/org settings → Trusted Publisher → this repository + .github/workflows/publish.yml
-#   PyPI      pypi.org → publishing → Add a new pending publisher → same repo + workflow + environment: pypi
+#   PyPI  pypi.org/manage/account/publishing → "pending publisher" works for a project that does NOT exist yet:
+#         project `ainra` · owner JacobJandon · repo ainra · workflow publish.yml · environment pypi.
+#         So PyPI is token-free from the very first version.
+#   npm   has NO equivalent. docs.npmjs.com/cli/v11/commands/npm-trust: "Package must exist: The package you're
+#         configuring must already exist on the npm registry." A brand-new package therefore CANNOT be published
+#         by OIDC — the first version needs an automation token in NPM_TOKEN. It still gets full provenance,
+#         because this workflow runs on a GitHub-hosted runner with id-token: write. Configure the Trusted
+#         Publisher immediately AFTER the first publish (npmjs.com → package settings → Trusted Publisher →
+#         Organization or user: JacobJandon · Repository: ainra · Workflow filename: publish.yml · Environment:
+#         blank), then delete the token so every later release is token-free.
 #   crates.io the FIRST version must be published manually; afterwards link the repo and (recommended) enable
 #             owner-enforced trusted publishing so token auth is disabled entirely.
 # Re-point all three if the repository ever moves (docs/ORG-MOVE.md).
@@ -89,12 +102,21 @@ jobs:
           # npm does NOT rewrite file: on publish — a published file: dep installs a dangling symlink.
           npm --prefix packages/middleware pkg set dependencies.@ainra/sdk="^$(node -p "require('./packages/sdk-ts/package.json').version")"
           cd packages/middleware && npm install --no-audit --no-fund && npm run build
+      # NODE_AUTH_TOKEN is the FIRST-publish path only, and it is empty whenever the secret is unset — in which
+      # case npm falls through to OIDC, which is what we want for every release after the package exists. It does
+      # not weaken provenance: `--provenance` attests to this workflow run either way, because the runner has an
+      # OIDC identity regardless of how the publish authenticated. Delete the secret once the Trusted Publisher
+      # is configured, and this line becomes a no-op rather than a thing to remember.
       - name: publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           case "${{ inputs.target }}" in
             npm-sdk)        cd packages/sdk-ts ;;
             npm-middleware) cd packages/middleware ;;
           esac
+          if [ -n "$NODE_AUTH_TOKEN" ]; then echo "authenticating with NPM_TOKEN (first publish — the package does not exist yet, so OIDC is not available)";
+          else echo "no NPM_TOKEN set — authenticating by OIDC trusted publishing"; fi
           npm publish --access public --provenance
       - name: confirm the attestation is on the registry
         run: |

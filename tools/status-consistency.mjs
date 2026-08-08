@@ -58,17 +58,31 @@ try {
   const rel = "site/llms.txt";
   if (existsSync(ROOT + rel)) {
     const txt = readFileSync(ROOT + rel, "utf8");
+    // Count BOARD-PROVEN releases, not raw tags. This project's own rule is "no board at the release commit, no
+    // release" (RELEASING.md), so docs/releases/<v>-board.md IS the definition — and unlike a tag it exists before
+    // the tag does. Counting tags made the check circular during a release: the copy claiming "N releases" has to
+    // be committed BEFORE the tag that makes it N, so the gate was briefly, unavoidably red on every cut, which
+    // is how it trains you to push through it. Board files remove the circularity without weakening the claim.
     let tags = [];
     try {
-      tags = execFileSync("git", ["tag", "--list", "v*", "--sort=-v:refname"], { cwd: ROOT, encoding: "utf8" })
-        .split("\n").map((t) => t.trim()).filter(Boolean);
-    } catch { /* not a git checkout (tarball) — skip rather than assert something unverifiable */ }
+      tags = readdirSync(ROOT + "docs/releases")
+        .map((f) => /^(v[0-9][0-9.]*)-board\.md$/.exec(f)?.[1]).filter(Boolean)
+        .sort((a, b) => b.localeCompare(a, undefined, { numeric: true }));
+    } catch { /* no releases dir — skip rather than assert something unverifiable */ }
     if (tags.length) {
       const words = { 1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six" };
+      // "Current version" and "how many releases have boards" are DIFFERENT facts and must be read from different
+      // places, or the two surfaces contradict each other mid-release. tools/site.sh already mandates one source
+      // for the version — every vX.Y.Z printed in a page must equal apps/cli-node/package.json — so llms.txt reads
+      // from that same source. Checking it against the newest board file instead made the HTML and the agent map
+      // disagree at exactly the moment a release is being cut, which is the defect M27 spent a milestone removing.
+      const cliV = (() => {
+        try { return "v" + JSON.parse(readFileSync(ROOT + "apps/cli-node/package.json", "utf8")).version; } catch { return null; }
+      })();
       const cur = txt.match(/current:\s*(v[0-9][0-9.]*)/i);
-      if (!cur) fail(`${rel}: no "current: vX.Y.Z" statement — the agent map must name the release it describes`);
-      else if (cur[1] !== tags[0]) fail(`${rel}: says current: ${cur[1]}, but the newest tag is ${tags[0]}`);
-      else pass(`${rel} names the current release — ${cur[1]}`);
+      if (!cur) fail(`${rel}: no "current: vX.Y.Z" statement — the agent map must name the version it describes`);
+      else if (cliV && cur[1] !== cliV) fail(`${rel}: says current: ${cur[1]}, but the implementation is ${cliV} (apps/cli-node/package.json — the site's one source of truth)`);
+      else pass(`${rel} names the current version — ${cur[1]}`);
       // Every release-count claim ANYWHERE the site publishes prose, not just this file. The first version of this
       // check looked only at llms.txt and only for a parenthesised "(two signed" — so the identical stale sentence
       // in foundation.html's description and share card ("a reference CLI, two signed releases") walked straight
@@ -84,11 +98,41 @@ try {
         for (const m of body.matchAll(claim)) {
           claims++;
           if (m[1].toLowerCase() !== words[tags.length])
-            fail(`${f}: says "${m[0]}", but ${tags.length} tag(s) exist (${tags.join(", ")})`);
+            fail(`${f}: says "${m[0]}", but ${tags.length} board-proven release(s) exist (${tags.join(", ")})`);
         }
       }
-      if (claims) pass(`${claims} release-count claim(s) across site/ agree with the ${tags.length} real tags`);
+      if (claims) pass(`${claims} release-count claim(s) across site/ agree with the ${tags.length} board-proven releases`);
     }
+  }
+}
+
+// ── A documented install pin is a claim about a version, and it rots exactly like the others ─────────────
+// `"@ainra/sdk": "^0.3.1"` sat in three verifier-kit files across two releases. Walk finding 5 corrected it once
+// by hand, and it went stale again one release later — which is the signal that hand-correction is the wrong
+// tool. The pin a reader is told to paste must be the version the packages are actually at.
+{
+  const cur = (() => {
+    try { return JSON.parse(readFileSync(ROOT + "packages/sdk-ts/package.json", "utf8")).version; } catch { return null; }
+  })();
+  if (cur) {
+    const pin = /["'`]@ainra\/sdk["'`]\s*:\s*["'`]\^?([0-9]+\.[0-9]+\.[0-9]+)["'`]/g;
+    let files;
+    try {
+      files = execFileSync("git", ["ls-files", "*.md", "*.json"], { cwd: ROOT, encoding: "utf8" })
+        .split("\n").map((f) => f.trim()).filter(Boolean)
+        .filter((f) => !f.includes("node_modules") && !f.endsWith("package-lock.json"));
+    } catch { files = []; }
+    let pins = 0, stale = 0;
+    for (const f of files) {
+      let body;
+      try { body = readFileSync(ROOT + f, "utf8"); } catch { continue; }
+      for (const m of body.matchAll(pin)) {
+        // The in-repo manifests point at the local build by path; only WRITTEN-DOWN pins are claims to a reader.
+        pins++;
+        if (m[1] !== cur) { fail(`${f}: documents \`@ainra/sdk\` at ${m[1]}, but the package is at ${cur}`); stale++; }
+      }
+    }
+    if (pins && !stale) pass(`${pins} documented @ainra/sdk pin(s) all match the real package version (${cur})`);
   }
 }
 

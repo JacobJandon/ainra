@@ -101,9 +101,11 @@ Publish order matters: **`@ainra/sdk` first** (the other two resolve it by name)
 - [ ] **`@ainra/middleware` — rewrite the SDK dependency before publishing.** In the repo it is
       `"@ainra/sdk": "file:../sdk-ts"` (so the offline monorepo build resolves the sibling). **npm does NOT rewrite
       `file:` on publish** (only the `workspace:` protocol is rewritten) — a published `file:` dependency installs a
-      **dangling** `@ainra/sdk` symlink and the import fails `ERR_MODULE_NOT_FOUND`. Set it to `"@ainra/sdk": "^0.2.0"`
-      at publish time (verified: with `^0.2.0`, a fresh `npm install @ainra/sdk @ainra/middleware` resolves clean and
-      the gate quickstart passes). Do the same rewrite for any future package that depends on a sibling via `file:`.
+      **dangling** `@ainra/sdk` symlink and the import fails `ERR_MODULE_NOT_FOUND`. Rewrite it to the CURRENT
+      SDK version at publish time — never a literal, which is how this line came to say `^0.2.0` three releases
+      after 0.2.0: `npm --prefix packages/middleware pkg set dependencies.@ainra/sdk="^$(node -p "require('./packages/sdk-ts/package.json').version")"`,
+      which is exactly what `.github/workflows/publish.yml` runs. Then put `file:../sdk-ts` back so the checkout
+      keeps building. Do the same rewrite for any future package that depends on a sibling via `file:`.
 - [ ] **`@ainra/mcp` — publish only if a standalone runtime is intended.** As shipped it is *operated from a checkout*
       (`docs/quickstarts/mcp.md`: `node packages/mcp/src/server.mjs` after `make sdk-build`): `src/tools.mjs` resolves
       its sibling SDK build, `docs/reasons.json`, and the `ainra` CLI via repo-relative paths, so a bare

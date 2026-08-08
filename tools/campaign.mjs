@@ -426,6 +426,21 @@ function cmdStatus() {
   console.log(`    14-day / 3-region soak  ${board.soakRegions ? `${board.soakRegions} region-run(s) collected` : "not started"} — the clock starts on genesis day`);
   console.log(`    witness candidacies   ${show(w)}   witnesses/candidates.json`);
 
+  // The public surface is a row too. Everything above is read from registries and trackers; this is read from the
+  // deployed site, because M27 established that the two can disagree for months without anything noticing. It
+  // reports the last walk THIS machine did — never CI's, which it cannot see, and never a guess. No walk, no claim.
+  {
+    const last = readJSON(ROOT + "build/stranger-last.json", null);
+    if (!last) console.log(`\n  PUBLIC SURFACE   never walked from this machine — \`make stranger\``);
+    else {
+      const mins = Math.round((Date.now() - Date.parse(last.checked_at)) / 60000);
+      const when = mins < 60 ? `${mins} min ago` : mins < 2880 ? `${Math.round(mins / 60)} h ago` : `${Math.round(mins / 1440)} days ago`;
+      const n = (last.site_failures?.length || 0) + (last.record_failures?.length || 0);
+      console.log(`\n  PUBLIC SURFACE   checked ${when} → ${last.verdict}${n ? `   (${n} problem${n === 1 ? "" : "s"})` : ""}`);
+      console.log(`    ${last.base}   ${last.journeys_run}/${last.journeys_total} journeys · daily in CI (.github/workflows/stranger.yml)`);
+    }
+  }
+
   console.log(`\n  GATES   bars, not deadlines`);
   for (const r of gateRows())
     console.log(`    ${r.id}  ${(r.n === null ? "—" : `${r.n}/${r.threshold}`).padEnd(7)} ${r.name.replace(/ —.*/, "").padEnd(34)} ${r.state}`);

@@ -1,0 +1,72 @@
+# SPDX-License-Identifier: Apache-2.0 OR MIT
+#
+# The stranger journeys, replayed daily against the DEPLOYED site.
+#
+# Every other workflow in this repo checks the source. This one checks what a visitor actually meets — because the
+# two are different things, and M27 found eleven places where they had quietly diverged: a 404 whose escape links
+# were dead, two pages publishing two different networks, an agent map naming the wrong release, an install step
+# pointing at a download that did not contain what the sentence promised. None of those were a failing test. All of
+# them were live, on the real URL, while the board was green.
+#
+# It needs no secrets and touches nothing: it reads public URLs the way anyone can.
+name: stranger
+
+on:
+  schedule:
+    - cron: "17 6 * * *" # daily, off the hour — a surface nobody walks is a surface nobody knows the state of
+  workflow_dispatch:
+    inputs:
+      base:
+        description: "Site to walk (defaults to production)"
+        required: false
+        default: "https://ainra.vercel.app"
+
+permissions:
+  contents: read
+
+jobs:
+  walk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "22" }
+
+      # The negative control runs FIRST and in the same job as the real walk. A monitor that cannot fail is not a
+      # monitor, and the only way to know this one still can is to show it failing on demand, every run, right next
+      # to the run whose green we intend to believe.
+      - name: negative control — a deliberately broken surface must NOT pass
+        run: |
+          mkdir -p /tmp/broken && printf '<!doctype html><title>x</title><a href="/gone.html">gone</a>' > /tmp/broken/index.html
+          (cd /tmp/broken && python3 -m http.server 8095 --bind 127.0.0.1 &) ; sleep 2
+          if node tools/stranger-journeys.mjs --base http://127.0.0.1:8095 --timeout 5000 > /tmp/nc.txt 2>&1; then
+            echo "::error::the stranger check PASSED a deliberately broken site — the monitor is broken, not the site"
+            cat /tmp/nc.txt; exit 1
+          fi
+          echo "negative control OK — a broken surface is reported as:"; grep VERDICT /tmp/nc.txt
+
+      - name: walk production as a stranger
+        id: walk
+        run: |
+          BASE="${{ github.event.inputs.base || 'https://ainra.vercel.app' }}"
+          set +e
+          node tools/stranger-journeys.mjs --base "$BASE" | tee /tmp/walk.txt
+          echo "code=$?" >> "$GITHUB_OUTPUT"
+          set -e
+          grep VERDICT /tmp/walk.txt >> "$GITHUB_STEP_SUMMARY" || true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: stranger-walk
+          path: build/stranger-last.json
+          if-no-files-found: warn
+
+      # Fail the run on anything that is not ALL UP, INCLUDING "INCOMPLETE" — a walk that could not finish tells us
+      # nothing, and a monitor that reports nothing as success is worse than no monitor.
+      - name: verdict
+        run: |
+          V=$(node -e "console.log(require('./build/stranger-last.json').verdict)")
+          echo "verdict: $V"
+          [ "$V" = "ALL UP" ] || { echo "::error::stranger walk verdict: $V"; exit 1; }

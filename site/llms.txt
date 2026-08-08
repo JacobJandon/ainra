@@ -11,7 +11,7 @@ If you are an AI agent, this file is your map. Everything linked here is determi
 
 ## Honest status (read before trusting anything here)
 
-Public reference implementation (four signed, board-proven releases; current: v0.3.3, an operations release) with a STAGING network on a TEST-ROOT; this site ships that network's published artifact record at [/net/](net/registry.json). Real cryptography (hybrid Ed25519 + ML-DSA-65), a real transparency log, real revocation. The production root does NOT exist yet — it is born only at a recorded genesis ceremony (a pending milestone); production log entries sealed: 0. No trust migrates from staging. Treat every verdict here as STAGING · TEST-ROOT.
+Public reference implementation (five signed, board-proven releases; current: v0.3.3, an operations release) with a STAGING network on a TEST-ROOT; this site ships that network's published artifact record at [/net/](net/registry.json). Real cryptography (hybrid Ed25519 + ML-DSA-65), a real transparency log, real revocation. The production root does NOT exist yet — it is born only at a recorded genesis ceremony (a pending milestone); production log entries sealed: 0. No trust migrates from staging. Treat every verdict here as STAGING · TEST-ROOT.
 
 ## Start here
 

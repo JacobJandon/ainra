@@ -603,6 +603,34 @@ nav .nav-links a[aria-current="page"],nav .ndocs[aria-current="page"]{text-decor
 
 <div class="wrap"><div class="life-note rv">SIMPLE RULES → COMPLEX SYSTEMS</div></div>
 
+<section id="integrate" class="rv">
+  <div class="wrap">
+    <div class="sec-head" style="text-align:center;max-width:700px;margin:0 auto">
+      <span class="eyebrow">Integrate · onboard</span>
+      <h2>One line for your agent. A few for your code.</h2>
+      <p class="lede" style="margin-top:10px">No account, no calls to us — signed facts, checked locally. Nothing to install? <a href="verify.html#try">Run the verifier in this browser</a>.</p>
+    </div>
+    <div class="install">
+      <div class="itabs" role="tablist" aria-label="Onboarding method">
+        <button class="itab on" data-m="skill" role="tab" aria-selected="true"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M7 10l3 2.5-3 2.5M12.5 15h4.5" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>Skill install</button>
+        <button class="itab" data-m="mcp" role="tab" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 2.5v5M15 2.5v5M7 7.5h10v3a5 5 0 0 1-10 0v-3ZM12 15.5v6" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>MCP</button>
+        <button class="itab" data-m="prompt" role="tab" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5h16v9H9.5L4 19V5.5Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M8 9.5h8M8 12h5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>Prompt</button>
+        <button class="itab" data-m="http" role="tab" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M3.5 12h17M12 3.5c3 2.7 3 14.3 0 17M12 3.5c-3 2.7-3 14.3 0 17" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>HTTP</button>
+      </div>
+      <div class="ipanel">
+        <p class="idesc" id="i-desc">One command. Your coding assistant gains AINRA's skills — verify, issue, present, renew, revoke.</p>
+        <div class="iblock"><span class="icap" id="i-cap">terminal</span><button class="icopy" id="i-copy" type="button">COPY</button><pre id="i-code">npx skills add https://ainra.vercel.app/.well-known/skills/index.json</pre></div>
+      </div>
+    </div>
+    <div class="agent-strip" id="agents" data-agent-door="llms.txt skills.md net/registry.json .well-known/skills/index.json">
+      <button class="agent-cta" id="agentTest" type="button" aria-label="Are you an agent? Press to run the self-test — verifies a live and a revoked passport from the published record in this tab">&gt;_ ARE YOU AN AGENT? — PRESS TO SELF-TEST<span class="blink" aria-hidden="true">▮</span></button>
+      <span class="a-hint">your map: <a href="llms.txt">/llms.txt</a> · <a href="skills.md">/skills.md</a> · <a href="net/registry.json">/net/</a> — or call <code>window.ainra.selfTest()</code> · <a href="https://github.com/JacobJandon/ainra/tree/main/examples/verify-in-browser">run it with nothing installed ↗</a></span>
+    </div>
+    <pre class="a-out" id="agentOut" hidden aria-live="polite"></pre>
+    <p style="text-align:center;margin-top:20px;font-size:13px;color:var(--muted)"><a href="get.html" style="color:var(--green);font-weight:600">Get a passport →</a></p>
+  </div>
+</section>
+
 <section id="root" class="rv">
   <div class="wrap">
     <div class="sec-head" style="max-width:760px;margin:0 auto 26px;text-align:center">
@@ -681,38 +709,6 @@ nav .nav-links a[aria-current="page"],nav .ndocs[aria-current="page"]{text-decor
     <p class="field-note"><b>Accredit · anchor · revoke · log</b> — the root does four jobs and nothing else. It returns facts, never scores; every check runs on the verifier's own machine, and the decision stays theirs.</p>
   </div>
 </section>
-<section id="integrate" class="rv">
-  <div class="wrap">
-    <div class="sec-head" style="text-align:center;max-width:700px;margin:0 auto">
-      <span class="eyebrow">Integrate · onboard</span>
-      <h2>One line for your agent. A few for your code.</h2>
-      <p class="lede" style="margin-top:10px">No account, no calls to us — signed facts, checked locally. Nothing to install? <a href="verify.html#try">Run the verifier in this browser</a>.</p>
-    </div>
-    <div class="install">
-      <div class="itabs" role="tablist" aria-label="Onboarding method">
-        <button class="itab on" data-m="skill" role="tab" aria-selected="true"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M7 10l3 2.5-3 2.5M12.5 15h4.5" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>Skill install</button>
-        <button class="itab" data-m="mcp" role="tab" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 2.5v5M15 2.5v5M7 7.5h10v3a5 5 0 0 1-10 0v-3ZM12 15.5v6" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>MCP</button>
-        <button class="itab" data-m="prompt" role="tab" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5h16v9H9.5L4 19V5.5Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M8 9.5h8M8 12h5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>Prompt</button>
-        <button class="itab" data-m="http" role="tab" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M3.5 12h17M12 3.5c3 2.7 3 14.3 0 17M12 3.5c-3 2.7-3 14.3 0 17" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>HTTP</button>
-      </div>
-      <div class="ipanel">
-        <p class="idesc" id="i-desc">One command. Your coding assistant gains AINRA's skills — verify, issue, present, renew, revoke.</p>
-        <div class="iblock"><span class="icap" id="i-cap">terminal</span><button class="icopy" id="i-copy" type="button">COPY</button><pre id="i-code">npx skills add https://ainra.vercel.app/.well-known/skills/index.json</pre></div>
-      </div>
-    </div>
-    <div class="agent-strip" id="agents" data-agent-door="llms.txt skills.md net/registry.json .well-known/skills/index.json">
-      <button class="agent-cta" id="agentTest" type="button" aria-label="Are you an agent? Press to run the self-test — verifies a live and a revoked passport from the published record in this tab">&gt;_ ARE YOU AN AGENT? — PRESS TO SELF-TEST<span class="blink" aria-hidden="true">▮</span></button>
-      <span class="a-hint">your map: <a href="llms.txt">/llms.txt</a> · <a href="skills.md">/skills.md</a> · <a href="net/registry.json">/net/</a> — or call <code>window.ainra.selfTest()</code> · <a href="https://github.com/JacobJandon/ainra/tree/main/examples/verify-in-browser">run it with nothing installed ↗</a></span>
-    </div>
-    <pre class="a-out" id="agentOut" hidden aria-live="polite"></pre>
-    <p style="text-align:center;margin-top:20px;font-size:13px;color:var(--muted)"><a href="get.html" style="color:var(--green);font-weight:600">Get a passport →</a></p>
-  </div>
-</section>
-
-
-
-
-
 <section id="why" class="rv">
   <div class="wrap">
     <div class="sec-head" style="text-align:center;max-width:780px;margin:0 auto">

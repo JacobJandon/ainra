@@ -121,7 +121,7 @@ async function j3() {
       for (const d of html.matchAll(/["'`]([^"'`]*\/registry\.json)["'`]/g)) contracts.add(d[1]);
     } catch { /* J1 already recorded the page failure */ }
   }
-  // Compare the DIRECTORY each surface reads, not how it happens to spell it: "/net" from a meta tag and
+  // Compare the DIRECTORY each surface reads, not how it happens to spell it: "/net" declared in the head and
   // "net/registry.json" from a script are the same record. What must never differ is which record.
   const norm = (c) => "/" + c.replace(/\/registry\.json$/, "").replace(/^\.?\/*/, "").replace(/\/+$/, "");
   const roots = new Set([...contracts].map(norm));

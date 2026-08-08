@@ -70,6 +70,16 @@ if (existsSync(idx)) {
   } catch (e) { bad(`skills/index.json: invalid JSON (${e.message})`); }
 }
 
+// M27 — a share card that points somewhere else. foundation.html declared canonical=/foundation.html while its
+// og:url said /status.html, so every share of the page that exists to state what is true resolved to a different
+// page. Nothing checked the two against each other, because each was individually well-formed. They must agree.
+for (const page of pages) {
+  const html = readFileSync(join(SITE, page), "utf8");
+  const can = html.match(/<link rel="canonical" href="([^"]+)"/)?.[1];
+  const og = html.match(/<meta property="og:url" content="([^"]+)"/)?.[1];
+  if (can && og && can !== og) bad(`${page}: canonical says ${can} but og:url says ${og} — a share of this page resolves elsewhere`);
+}
+
 console.log(fail === 0
   ? `✓ site link-check clean: ${pages.length} pages + agent surface (llms.txt, skills index) — all links resolve, no dupes, no external requests`
   : `\n${fail} link/structure problem(s) — build fails`);

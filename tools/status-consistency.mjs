@@ -6,7 +6,7 @@
 //         the DoD doc being updated in the same change.
 //   (L3)  the counts ROADMAP.md publishes to the world must equal the counts the registries hold, and campaign/'s
 //         generated tables must match campaign/gates.json (`node tools/campaign.mjs check`).
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
@@ -69,9 +69,25 @@ try {
       if (!cur) fail(`${rel}: no "current: vX.Y.Z" statement — the agent map must name the release it describes`);
       else if (cur[1] !== tags[0]) fail(`${rel}: says current: ${cur[1]}, but the newest tag is ${tags[0]}`);
       else pass(`${rel} names the current release — ${cur[1]}`);
-      const cnt = txt.match(/\((one|two|three|four|five|six) signed/i);
-      if (cnt && cnt[1].toLowerCase() !== words[tags.length])
-        fail(`${rel}: says "${cnt[1]} signed" releases, but ${tags.length} tag(s) exist (${tags.join(", ")})`);
+      // Every release-count claim ANYWHERE the site publishes prose, not just this file. The first version of this
+      // check looked only at llms.txt and only for a parenthesised "(two signed" — so the identical stale sentence
+      // in foundation.html's description and share card ("a reference CLI, two signed releases") walked straight
+      // past it, on the one page whose whole job is to state what exists today. Checking one instance of a claim
+      // does not check the claim.
+      const claim = /\b(one|two|three|four|five|six|seven|eight|nine)\s+signed(?:,\s*board-proven)?\s+releases?\b/gi;
+      const surfaces = readdirSync(ROOT + "site")
+        .filter((f) => /\.(html|txt|md)$/i.test(f))
+        .map((f) => "site/" + f);
+      let claims = 0;
+      for (const f of surfaces) {
+        const body = readFileSync(ROOT + f, "utf8");
+        for (const m of body.matchAll(claim)) {
+          claims++;
+          if (m[1].toLowerCase() !== words[tags.length])
+            fail(`${f}: says "${m[0]}", but ${tags.length} tag(s) exist (${tags.join(", ")})`);
+        }
+      }
+      if (claims) pass(`${claims} release-count claim(s) across site/ agree with the ${tags.length} real tags`);
     }
   }
 }

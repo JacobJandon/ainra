@@ -1,12 +1,17 @@
 <!-- SPDX-License-Identifier: Apache-2.0 OR MIT -->
 # Verifier kit — troubleshooting
 
+> **`@ainra/sdk` is not published to a registry yet.** The published-SDK route below will fail with
+> `E404` until it is. Use the in-repo route (`git clone` + `make verifier-kit-smoke`), which needs no
+> registry at all. Publishing is prepared and parked on the maintainer's credentials — see
+> [docs/PLAN-M26.md](../../docs/PLAN-M26.md) § PARKED.
+
 The ten failure modes strangers actually hit, and the fix. Every check here **fails closed**: if something is wrong
 the kit exits nonzero and writes no attestation — that is by design, not a bug.
 
 ### 1. `Cannot find package '@ainra/sdk'`
 The kit's only dependency isn't installed. Run `npm install` inside `kits/verifier/`. As an outsider, first set
-`"@ainra/sdk": "^0.1.0"` in `kits/verifier/package.json` (inside this repo it points at the local build, which you
+`"@ainra/sdk": "^0.3.1"` in `kits/verifier/package.json` (inside this repo it points at the local build, which you
 won't have). If you cloned the whole repo, run `make sdk-build` once at the root first.
 
 ### 2. `the directory is not trust-anchored by the given roots`

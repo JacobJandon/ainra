@@ -1,6 +1,11 @@
 <!-- SPDX-License-Identifier: Apache-2.0 OR MIT -->
 # Become external verifier #N — 10-minute quickstart
 
+> **`@ainra/sdk` is not published to a registry yet.** The published-SDK route below will fail with
+> `E404` until it is. Use the in-repo route (`git clone` + `make verifier-kit-smoke`), which needs no
+> registry at all. Publishing is prepared and parked on the maintainer's credentials — see
+> [docs/PLAN-M26.md](../../docs/PLAN-M26.md) § PARKED.
+
 You will independently confirm that AINRA's core promise holds — a genuine passport verifies with the **root offline**,
 a revoked one is rejected, a forged all-clear can't un-revoke it — and then verify a **fresh challenge** only you were
 given, proving you *actually ran* a verifier. You send back one signed file. **No data leaves your machine**; you talk
@@ -9,7 +14,7 @@ to no one but the maintainer who hands you a challenge.
 ## 0. Prerequisites (2 min)
 - **Node 18+** (built-in `crypto`, `zlib` — nothing else).
 - The **`@ainra/sdk`** package (the only dependency). Inside this repo it's wired to the local build; as an outsider,
-  set `"@ainra/sdk": "^0.1.0"` in `kits/verifier/package.json` and `npm install`.
+  set `"@ainra/sdk": "^0.3.1"` in `kits/verifier/package.json` and `npm install`.
 
 ## 1. Get a challenge from the maintainer (1 min)
 Ask the AINRA maintainers to **mint you a challenge**. They send you a folder — call it `challenge/` — containing

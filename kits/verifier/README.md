@@ -1,6 +1,11 @@
 <!-- SPDX-License-Identifier: Apache-2.0 OR MIT -->
 # AINRA External Verifier Kit
 
+> **`@ainra/sdk` is not published to a registry yet.** The published-SDK route below will fail with
+> `E404` until it is. Use the in-repo route (`git clone` + `make verifier-kit-smoke`), which needs no
+> registry at all. Publishing is prepared and parked on the maintainer's credentials — see
+> [docs/PLAN-M26.md](../../docs/PLAN-M26.md) § PARKED.
+
 Become **independent verifier #N**. In under 10 minutes, on your own machine, you prove — using **only the published
 `@ainra/sdk`** — that AINRA's core promise holds: a genuine agent passport verifies with the **root offline**, a
 revoked one is rejected, and a *forged* all-clear status can't un-revoke it. Then you verify a **fresh challenge
@@ -79,7 +84,7 @@ The bundled `package.json` uses a local path dependency so the kit runs inside t
 with the published package and reinstall:
 
 ```json
-"dependencies": { "@ainra/sdk": "^0.1.0" }
+"dependencies": { "@ainra/sdk": "^0.3.1" }
 ```
 
 ## What the three sample checks mean

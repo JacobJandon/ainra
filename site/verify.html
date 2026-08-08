@@ -942,7 +942,7 @@ async function verify(){
   }
   const ok=v.verdict==="valid";
   $("#big").textContent=ok?"VALID":"INVALID"; $("#big").className="big "+(ok?"ok":"no");
-  $("#reason").innerHTML=ok?"all nine checks passed — genuine, in-window, in-scope, logged, not revoked":
+  $("#reason").innerHTML=ok?`all ${STEP_LABELS.length} checks passed — genuine, in-window, in-scope, logged, not revoked`:
     `failed at <b>${v.reason}</b> — ${REASONS[v.reason]||""}`;
   const failStep = ok?99:(REASON_STEP[v.reason]??6);
   $("#steps").innerHTML=STEP_LABELS.map(([id,label],i)=>{
@@ -952,7 +952,7 @@ async function verify(){
   }).join("");
   const provRoot = (pasted ? (wire.presentation.checkpoint&&wire.presentation.checkpoint.root) : rec.checkpoint_root)||"";
   const evLine = v.event ? `<div class="ev">${escapeHtml(JSON.stringify(v.event))}</div>` : "";
-  $("#prov").innerHTML = `verifier <b>${ENGINE.label}</b> · 9 checks · verdict computed in this tab · checkpoint root <b>${provRoot.slice(0,20)}…</b> · ${pasted?"your pasted bundle":tamper.size?`forgery applied: ${[...tamper].join(", ")}`:"unmodified passport"}`
+  $("#prov").innerHTML = `verifier <b>${ENGINE.label}</b> · ${STEP_LABELS.length} checks · verdict computed in this tab · checkpoint root <b>${provRoot.slice(0,20)}…</b> · ${pasted?"your pasted bundle":tamper.size?`forgery applied: ${[...tamper].join(", ")}`:"unmodified passport"}`
     + evLine + (ENGINE.note?`<div class="degraded">${ENGINE.note}</div>`:"");
   $("#resetBtn").hidden = tamper.size===0;
 }
@@ -994,7 +994,7 @@ async function boot(){
   if(!$("#demo")) return;
   ENGINE = await loadEngine();
   if(!ENGINE){ showLoadError("Could not load the in-browser verifier."); return; }
-  try{ REG=await (await fetch("data/registry.json",{cache:"no-store"})).json(); }
+  try{ REG=await (await fetch("net/registry.json",{cache:"no-store"})).json(); }
   catch(e){ showLoadError("Could not load the demo data (data/registry.json). Serve this page over http (e.g. `python3 -m http.server` in site/)."); return; }
   NOW=REG.generated_window?.verified_at ?? 0;
   for(const R of REG.registrars) for(const e of R.records) ROWS.push({rec:e.record, R});

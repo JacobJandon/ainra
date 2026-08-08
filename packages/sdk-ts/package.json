@@ -19,7 +19,7 @@
     "@noble/post-quantum": "^0.2.0"
   },
   "devDependencies": {
-    "@types/node": "^26.1.1",
+    "@types/node": "^26.1.2",
     "esbuild": "^0.28.1",
     "fflate": "^0.8.2",
     "typescript": "^5.6.0"

@@ -156,12 +156,27 @@ function cmdAdd() {
   if (!KINDS.includes(kind)) die(`kind must be one of: ${KINDS.join(" | ")}`);
   if (!id || !/^[a-z0-9][a-z0-9-]*$/.test(id)) die("id must be kebab-case, e.g. `a-lastname` or `uni-crypto-group`");
   const t = requireTracker();
-  if (t.people.some((p) => p.id === id)) die(`id "${id}" is already tracked`);
-  t.people.push({ id, kind, name: arg("name", ""), org: arg("org", ""), contact: arg("contact", ""), why: arg("why", ""),
-    sent: false, nudged: false, reply: null, interview_done: false, dropped: false });
+  const why = arg("why", "");
+  // A cold ask with no reason-for-them is the ask that fails, and `draft` refuses to write one without it. So
+  // this refuses to record one without it either, rather than storing a candidate that can never be drafted.
+  if (!why) die(`--why is required: one sentence on why THIS person, in your words.\n` +
+                `  e.g. node tools/campaign.mjs add ${kind} ${id} --name '…' --why 'runs the X conformance suite'`);
+  // IDEMPOTENT BY ID: pasting a batch twice must update, not duplicate and not abort half way through.
+  const existing = t.people.find((p) => p.id === id);
+  if (existing) {
+    if (existing.kind !== kind) die(`id "${id}" is already tracked as ${existing.kind}; ids are unique across kinds`);
+    Object.assign(existing, {
+      name: arg("name", existing.name), org: arg("org", existing.org),
+      contact: arg("contact", existing.contact), why,
+    });
+    writeJSON(TRACKER, t);
+    console.log(`updated ${kind}: ${id}  — "${why}"`);
+    return;
+  }
+  t.people.push({ id, kind, name: arg("name", ""), org: arg("org", ""), contact: arg("contact", ""), why,
+    sent: false, nudged: false, starred: false, reply: null, interview_done: false, dropped: false });
   writeJSON(TRACKER, t);
-  console.log(`marked ${kind}: ${id}${arg("why", "") ? `  — "${arg("why", "")}"` : ""}`);
-  if (!arg("why", "")) console.log("  note: --why is the personalization sentence. A cold ask without it converts badly.");
+  console.log(`marked ${kind}: ${id}  — "${why}"`);
 }
 
 function flag(field, extra = {}) {
@@ -172,6 +187,61 @@ function flag(field, extra = {}) {
   Object.assign(p, extra);
   writeJSON(TRACKER, t);
   return p;
+}
+
+// M27 — mark today's batch. campaign-status floats starred-but-unsent to the top, so the day's list is the
+// first thing on screen instead of something to re-derive each morning.
+function cmdStar() {
+  const t = requireTracker(), id = process.argv[3];
+  if (!id) die("which candidate? pass the id");
+  const p = findPerson(t, id);
+  p.starred = !p.starred;
+  writeJSON(TRACKER, t);
+  console.log(`${p.starred ? "starred" : "unstarred"} ${p.id} (${p.kind})${p.sent ? " — already sent" : ""}`);
+}
+
+// M27 — merge the stored --why into the right template and write a ready-to-send file into the gitignored
+// sendbox. It INVENTS NOTHING: every word is either the committed template or the operator's own sentence.
+const SENDBOX = ROOT + "campaign/sendbox";
+function cmdDraft() {
+  const t = requireTracker(), id = process.argv[3];
+  if (!id) die("which candidate? pass the id");
+  const p = findPerson(t, id);
+  if (!p.why) die(`"${p.id}" has no --why. A draft without a reason-for-them is a cold ask; add one first:\n` +
+                  `  node tools/campaign.mjs add ${p.kind} ${p.id} --why '…'`);
+
+  const SECTION = { verifier: "1 · Verifier ask", interview: "2 · Interview ask",
+                    custodian: "3 · Custodian ask", witness: "4 · Witness ask" };
+  const tpl = readFileSync(ROOT + "campaign/TEMPLATES.md", "utf8");
+  const head = [...tpl.matchAll(/^## (.+)$/gm)].find((m) => m[1].startsWith(SECTION[p.kind].split(" · ")[0]));
+  if (!head) die(`no template section for kind "${p.kind}" in campaign/TEMPLATES.md`);
+  const start = head.index + head[0].length;
+  const nextIdx = tpl.indexOf("\n## ", start);
+  const body = tpl.slice(start, nextIdx === -1 ? undefined : nextIdx);
+
+  const subject = (body.match(/\*\*Subject:\*\*\s*(.+)/) || [, "(no subject line in template)"])[1].trim();
+  // the quoted block is the letter; strip the leading "> " and drop the template's own placeholder line
+  const letter = body.split("\n").filter((l) => l.startsWith(">")).map((l) => l.replace(/^>\s?/, ""))
+    .filter((l) => !/^\*<.*>\*$/.test(l.trim()) || /sign-off/.test(l)).join("\n").trim();
+
+  mkdirSync(SENDBOX, { recursive: true });
+  const out = `${SENDBOX}/${p.kind}-${p.id}.txt`;
+  writeFileSync(out,
+`To:      ${p.name || "<name>"}${p.org ? ` (${p.org})` : ""}${p.contact ? ` <${p.contact}>` : ""}
+Subject: ${subject}
+
+${p.why}
+
+${letter}
+
+--
+Draft for ${p.id} (${p.kind}). The first paragraph is YOUR sentence, stored with the candidate; everything below
+it is campaign/TEMPLATES.md § ${SECTION[p.kind]}, unedited. Read it before sending — nothing here was invented.
+${p.kind === "verifier" ? "Attach: the whole outreach/ready/verifier-NN/ folder (challenge + one-pager). NEVER the answer key.\n" : ""}`);
+  console.log(`draft → ${out.replace(ROOT, "")}`);
+  console.log(`  your sentence: "${p.why}"`);
+  console.log(`  template:      campaign/TEMPLATES.md § ${SECTION[p.kind]}`);
+  console.log(`  the sendbox is gitignored — people never enter this repository.`);
 }
 
 function cmdSend() {
@@ -370,6 +440,16 @@ function cmdStatus() {
       const extra = k === "interview" ? ` · done ${n((p) => p.kind === k && p.interview_done)}` : "";
       console.log(`    ${k.padEnd(10)} marked ${String(marked).padStart(3)} · sent ${String(sent).padStart(3)} · yes ${yes} · no ${no}${extra}`);
     }
+    // M27: today's batch first. Starred-but-unsent is the only list that is about to become action, so it goes
+    // above the follow-up queue rather than being re-derived by eye every morning.
+    const starred = people((p) => p.starred && !p.sent && !p.dropped);
+    if (starred.length) {
+      console.log(`\n  STARRED · NOT YET SENT   today's batch`);
+      for (const p of starred) {
+        const has = existsSync(`${SENDBOX}/${p.kind}-${p.id}.txt`);
+        console.log(`    ${p.id.padEnd(26)} ${p.kind.padEnd(10)} ${has ? "draft ready" : "no draft yet → node tools/campaign.mjs draft " + p.id}`);
+      }
+    }
     const due = people((p) => p.sent && !p.nudged && !p.reply);
     console.log(`\n  FOLLOW-UP QUEUE   one nudge each, one sentence, then stop`);
     if (!due.length) console.log(`    empty.`);
@@ -401,6 +481,7 @@ function cmdStatus() {
 const cmd = process.argv[2] || "status";
 ({
   status: cmdStatus, init: cmdInit, step: cmdStep, add: cmdAdd, send: cmdSend, nudge: cmdNudge, reply: cmdReply,
+  star: cmdStar, draft: cmdDraft,
   interview: cmdInterview, drop: cmdDrop, gates: cmdGates, record: cmdRecord, check: cmdCheck,
   render: () => renderDocs(has("check")),
-}[cmd] || (() => die(`unknown command "${cmd}". Try: status | init | step | add | send | nudge | reply | interview | drop | gates | record | render | check`)))();
+}[cmd] || (() => die(`unknown command "${cmd}". Try: status | init | step | add | draft | star | send | nudge | reply | interview | drop | gates | record | render | check`)))();

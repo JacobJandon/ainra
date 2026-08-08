@@ -158,8 +158,17 @@ A tag is never moved here, so v0.3.1 cannot absorb the bump. The bump commit nee
 
 ```sh
 cd ~/Desktop/Solvatron/ainra
-git tag -s v0.3.2 -m "AINRA v0.3.2 — package metadata release (0.3.1 → 0.3.2); no source change"   # maintainer's button
-git push origin v0.3.2
+# Bump FIRST, then tag. Tagging alone does not clear the gate: publish-preflight reads the version OUT OF the
+# packages (0.3.1) and diffs the tree against THAT tag (v0.3.1) — whose tree still holds 0.3.0. So a v0.3.2 tag
+# on today's tree leaves it comparing 0.3.1 against v0.3.1 and it blocks exactly as before. Verified by tracing
+# the gate in M27; the earlier two-line version of this paste would not have worked.
+for f in packages/sdk-ts packages/middleware packages/mcp apps/cli-node; do
+  node -e 'const fs=require("fs"),p=process.argv[1]+"/package.json";const j=JSON.parse(fs.readFileSync(p));j.version="0.3.2";fs.writeFileSync(p,JSON.stringify(j,null,2)+"\n")' "$f"
+done
+sed -i 's/^version = "0.3.1"/version = "0.3.2"/' packages/sdk-py/pyproject.toml
+git commit -am "packages: 0.3.1 → 0.3.2 (metadata release; no source change)"
+git tag -s v0.3.2 -m "AINRA v0.3.2 — package metadata release; no source change"   # maintainer's button
+git push origin main v0.3.2
 make publish-preflight                      # must print READY with "tag matches tree"
 gh workflow run publish.yml -f target=dry-run   # proves the path; publishes nothing
 gh workflow run publish.yml -f target=npm-sdk

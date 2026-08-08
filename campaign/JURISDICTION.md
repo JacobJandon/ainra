@@ -96,7 +96,9 @@ If the answer is *yes*, name the thing. One concrete blocked item is enough to j
 ## Before you file — verify these yourself
 
 Every factual premise above came from a strategy briefing, **not** from a primary source, and none of it is
-verified in this repository. Confirm each on the issuing body's own pages before it drives a filing:
+verified in this repository. **[`JURISDICTION-CHECKLIST.md`](JURISDICTION-CHECKLIST.md) is these five turned into
+a one-hour kit** — each with the kind of primary source that settles it, the exact question to answer, and a box.
+Confirm each on the issuing body's own pages before it drives a filing:
 
 - [ ] the residency/eligibility rule for the innovation grants you intend to apply for
 - [ ] whether the digital-identity certification framework has any standing route for a non-human-identity body,

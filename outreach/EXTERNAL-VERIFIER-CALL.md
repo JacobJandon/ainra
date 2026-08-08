@@ -6,7 +6,8 @@ signed file. That's it.
 
 ## What you'd do
 1. We mint you a **challenge** (a small folder of fresh artifacts) and send it over. One challenge per person.
-2. You run one command (`make verify-as-external CHALLENGE=<folder>`) using only the published `@ainra/sdk`.
+2. You run one command (`make verify-as-external CHALLENGE=<folder>`) from a clone of the repo; it builds the
+   in-repo `@ainra/sdk`, the kit's only AINRA dependency. (`@ainra/sdk` is not published to a registry yet.)
 3. It verifies — with the **root offline** — that a genuine passport is valid, a revoked one is rejected, a forged
    all-clear can't un-revoke it, and that your fresh challenge bundles get the right verdicts.
 4. You send back `verifier-attestation.json`. **Nothing else leaves your machine** (the kit makes no network calls;
@@ -19,7 +20,7 @@ That a party holding your key **actually performed AINRA verification** on input
 independent confirmation the system does what it claims, root-dark. Stated precisely so no one overstates it: it does
 **not** prove you ran our exact binary (a conformant reimplementation would also pass), and it isn't a proof of
 personhood. Your standing as a *distinct* verifier comes from us issuing you your own challenge, out of band. (This is
-the honest scope from `DECISIONS.md` D-024 — we won't claim more from your work than it shows.)
+the honest scope from `docs/DECISIONS.md` D-024 — we won't claim more from your work than it shows.)
 
 ## Building your own verifier?
 If you've written (or want to write) your own AINRA verifier, the same afternoon gets you a **conformance

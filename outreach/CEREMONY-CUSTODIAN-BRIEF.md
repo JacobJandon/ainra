@@ -17,12 +17,16 @@ institution**.
 ## Why the roster is chosen for diversity
 Nine seats across **≥5 jurisdictions** and different kinds of institutions — so that no government, company, or single
 legal regime can compel a quorum. That diversity *is* the security property; it's why we care who holds a seat, not
-just that seats are filled. A **standby quorum** exists so the root survives custodians becoming unreachable.
+just that seats are filled. A **standby quorum** is part of the plan — at least two standby custodians, briefed on
+the substitution procedure — so the root survives custodians becoming unreachable. It is an open item on the
+genesis runbook, not something already in place.
 
 ## What makes it trustworthy (and checkable by outsiders)
-Everything but your secret share is public: the ceremony is recorded, the transcript is published, and anyone can
-recompute its hash from the published bytes (`make verify-transcript`) and confirm it matches the recording. You are
-trusting the *process*, not us — and so is everyone else.
+The ceremony has not been held yet: today's root is operator-run, and the site says so. When it is held, everything
+but your secret share is public — the ceremony recorded, the transcript published, and anyone can recompute its hash
+from the published bytes (`make verify-transcript TRANSCRIPT=<the published transcript>
+SHA256=<its published digest>`) and confirm it
+matches the recording. You are trusting the *process*, not us — and so is everyone else.
 
 ## Cost to you
 One recorded session + rehearsals, fresh hardware we help arrange, and being reachable long-term. In return you are one

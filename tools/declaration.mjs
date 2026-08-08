@@ -96,13 +96,27 @@ function soak() {
   let maxDays = 0, worstP95 = 0, ok = 0;
   for (const r of regions) {
     try {
+      // Read the shape kits/soak/soak.mjs ACTUALLY writes. It never emitted `days`, `p95_seconds` or `signature`
+      // at the top level — it writes {body:{wall_start,wall_end,slo:{measured_p95_sec}},sig_ed25519_b64} — so this
+      // loop silently skipped every real report and the declaration would have reported "0/3 regions passed" after
+      // three genuine 14-day soaks. Nothing caught it because no soak report had ever been fed to this consumer:
+      // the only path that produces one is a 14-day run, and the smoke test never handed its output over.
       const rep = jparse(`${dir}/${r}/soak-report.json`);
-      if (rep.days >= SOAK_DAYS && rep.p95_seconds <= SOAK_P95_MAX && rep.signature) { ok++; maxDays = Math.max(maxDays, rep.days); worstP95 = Math.max(worstP95, rep.p95_seconds); }
+      const b = rep.body ?? rep;
+      const days = b.wall_start && b.wall_end
+        ? (Date.parse(b.wall_end) - Date.parse(b.wall_start)) / 86400000
+        : Number(b.days ?? NaN);                       // tolerate a hand-written report that states days directly
+      const p95 = Number(b.slo?.measured_p95_sec ?? b.p95_seconds ?? NaN);
+      const signed = Boolean(rep.sig_ed25519_b64 || rep.signature);
+      const sloPass = b.slo ? b.slo.pass !== false : true;
+      if (Number.isFinite(days) && days >= SOAK_DAYS && Number.isFinite(p95) && p95 <= SOAK_P95_MAX && signed && sloPass) {
+        ok++; maxDays = Math.max(maxDays, days); worstP95 = Math.max(worstP95, p95);
+      }
     } catch { /* skip */ }
   }
   const enough = ok >= SOAK_REGIONS;
   return (_soak = enough
-    ? { days: { value: String(maxDays) }, regions: { value: String(ok) }, p95: { value: String(worstP95) } }
+    ? { days: { value: String(Math.floor(maxDays)) }, regions: { value: String(ok) }, p95: { value: String(worstP95) } }
     : { days: { missing: `${ok}/${SOAK_REGIONS} regions passed a ≥${SOAK_DAYS}d soak` }, regions: { missing: `${ok} passing region(s); need ≥${SOAK_REGIONS}` }, p95: { missing: "soak incomplete" } });
 }
 function require_board() {

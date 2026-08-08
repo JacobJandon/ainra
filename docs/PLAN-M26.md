@@ -135,6 +135,14 @@ would have caught a functional regression in either direction, and it now runs o
 Publishing did not happen this session, and it is blocked on two things that are the maintainer's to do. Neither
 is a defect; both are gates behaving correctly.
 
+> **Superseded — see [`PUBLISHING.md`](PUBLISHING.md).** Blocker 2 below was cleared in L4 (v0.3.3), and the
+> reasoning in Blocker 1 was **half wrong** in a way that cost two milestones of parked publishing: provenance and
+> trusted publishing are different features. A publish from a laptop cannot be attested; a *token* publish from
+> the workflow is attested perfectly well, because the runner has an OIDC identity regardless of how the publish
+> authenticated. That matters because npm has no "pending publisher" — a package that does not exist yet **cannot**
+> be published by OIDC — so waiting for a trusted-publisher binding on npm was waiting for something impossible.
+> The text below is kept as written, because a corrected record of what we believed is worth more than a tidy one.
+
 **Blocker 1 — trusted-publisher binding (one-time, two web UIs, ~5 min).** The maintainer chose OIDC trusted
 publishing over pasted tokens, which is the right call: provenance **cannot** be retrofitted onto a version that
 is already public, so a local token publish would permanently forfeit attestation on these packages.

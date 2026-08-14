@@ -161,28 +161,43 @@ function cmdAdd() {
   // this refuses to record one without it either, rather than storing a candidate that can never be drafted.
   if (!why) die(`--why is required: one sentence on why THIS person, in your words.\n` +
                 `  e.g. node tools/campaign.mjs add ${kind} ${id} --name '…' --why 'runs the X conformance suite'`);
+  // L5: EVERY claim about a person cites a public page that actually names them. Research about people is where
+  // a confident fabrication does the most damage — the jurisdiction pass invented verbatim quotes from primary
+  // sources, and that was only about fees. So the citation is not a convention here, it is a required field: a
+  // candidate cannot be recorded at all without the URL a human can open to check the claim.
+  const evidence = arg("evidence", "");
+  if (!evidence) die(`--evidence is required: the public URL that NAMES this person and shows the claim.\n` +
+                     `  anything you cannot cite is dropped, not softened.`);
+  if (!/^https?:\/\//.test(evidence)) die(`--evidence must be a fetchable http(s) URL, got: ${evidence}`);
   // IDEMPOTENT BY ID: pasting a batch twice must update, not duplicate and not abort half way through.
   const existing = t.people.find((p) => p.id === id);
   if (existing) {
     if (existing.kind !== kind) die(`id "${id}" is already tracked as ${existing.kind}; ids are unique across kinds`);
     Object.assign(existing, {
       name: arg("name", existing.name), org: arg("org", existing.org),
-      contact: arg("contact", existing.contact), why,
+      contact: arg("contact", existing.contact), why, evidence,
+      role: arg("role", existing.role || ""), template: arg("template", existing.template || ""),
+      // Re-adding never silently re-approves. An approved candidate that gets new evidence goes back to proposed.
+      status: existing.status === "approved" && existing.evidence === evidence ? "approved" : "proposed",
     });
     writeJSON(TRACKER, t);
     console.log(`updated ${kind}: ${id}  — "${why}"`);
     return;
   }
   t.people.push({ id, kind, name: arg("name", ""), org: arg("org", ""), contact: arg("contact", ""), why,
+    evidence, role: arg("role", ""), template: arg("template", ""), status: "proposed",
     sent: false, nudged: false, starred: false, reply: null, interview_done: false, dropped: false });
   writeJSON(TRACKER, t);
-  console.log(`marked ${kind}: ${id}  — "${why}"`);
+  console.log(`proposed ${kind}: ${id}  — "${why}"`);
 }
 
 function flag(field, extra = {}) {
   const t = requireTracker(), id = process.argv[3];
   if (!id) die("which candidate? pass the id");
   const p = findPerson(t, id);
+  // `dropped` is the ONE mutation a proposed candidate accepts — declining is not an action taken ON someone,
+  // it is the absence of one, and requiring approval before you may drop would be exactly backwards.
+  if (field !== "dropped") requireApproved(p, `mark ${field} for`);
   p[field] = true;
   Object.assign(p, extra);
   writeJSON(TRACKER, t);
@@ -195,6 +210,7 @@ function cmdStar() {
   const t = requireTracker(), id = process.argv[3];
   if (!id) die("which candidate? pass the id");
   const p = findPerson(t, id);
+  requireApproved(p, "star");
   p.starred = !p.starred;
   writeJSON(TRACKER, t);
   console.log(`${p.starred ? "starred" : "unstarred"} ${p.id} (${p.kind})${p.sent ? " — already sent" : ""}`);
@@ -207,6 +223,7 @@ function cmdDraft() {
   const t = requireTracker(), id = process.argv[3];
   if (!id) die("which candidate? pass the id");
   const p = findPerson(t, id);
+  requireApproved(p, "draft");
   if (!p.why) die(`"${p.id}" has no --why. A draft without a reason-for-them is a cold ask; add one first:\n` +
                   `  node tools/campaign.mjs add ${p.kind} ${p.id} --why '…'`);
 
@@ -492,11 +509,37 @@ function cmdStatus() {
   console.log(`  and your local tracker. Nothing on this line was asserted by hand.\n`);
 }
 
+
+// ── L5: proposed → approved is a HUMAN act, and it gates everything downstream ───────────────────────────────
+// Research proposes; a person disposes. A candidate arrives as `proposed` and nothing may be drafted, starred or
+// sent for them until the maintainer has looked at the evidence URL and said yes. This is not ceremony: the whole
+// risk of researching real people is that a confident machine writes a plausible sentence about someone who never
+// said it, and the only reliable check is a human opening the link. So the gate is on the tool, not in a doc.
+function cmdApprove() {
+  const t = requireTracker(), id = process.argv[3];
+  if (!id) die("which candidate? pass the id — or `approve --all-verifier` etc. is deliberately NOT offered:\n" +
+               "  approving in bulk is the same as not approving.");
+  const p = findPerson(t, id);
+  if (!p.evidence) die(`"${id}" has no evidence URL — it predates the citation rule. Re-add it with --evidence.`);
+  p.status = "approved";
+  writeJSON(TRACKER, t);
+  console.log(`approved ${p.kind}: ${id}\n  evidence: ${p.evidence}`);
+}
+
+// Everything that acts on a person refuses while they are merely proposed.
+function requireApproved(p, verb) {
+  if (p.status && p.status !== "approved")
+    die(`"${p.id}" is ${p.status}, not approved — nothing happens to a candidate before a human approves them.\n` +
+        `  open the evidence first:  ${p.evidence || "(none recorded)"}\n` +
+        `  then:                     node tools/campaign.mjs approve ${p.id}\n` +
+        `  refusing to ${verb}.`);
+}
+
 // ── dispatch ─────────────────────────────────────────────────────────────────────────────────────────────────────
 const cmd = process.argv[2] || "status";
 ({
   status: cmdStatus, init: cmdInit, step: cmdStep, add: cmdAdd, send: cmdSend, nudge: cmdNudge, reply: cmdReply,
-  star: cmdStar, draft: cmdDraft,
+  star: cmdStar, draft: cmdDraft, approve: cmdApprove,
   interview: cmdInterview, drop: cmdDrop, gates: cmdGates, record: cmdRecord, check: cmdCheck,
   render: () => renderDocs(has("check")),
-}[cmd] || (() => die(`unknown command "${cmd}". Try: status | init | step | add | draft | star | send | nudge | reply | interview | drop | gates | record | render | check`)))();
+}[cmd] || (() => die(`unknown command "${cmd}". Try: status | init | step | add | approve | draft | star | send | nudge | reply | interview | drop | gates | record | render | check`)))();

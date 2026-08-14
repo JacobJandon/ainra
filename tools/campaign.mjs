@@ -467,11 +467,23 @@ function cmdStatus() {
     console.log(`    no local tracker — nothing recorded. \`make campaign-init\` creates it (gitignored).`);
   } else {
     for (const k of KINDS) {
-      const marked = n((p) => p.kind === k), sent = n((p) => p.kind === k && p.sent);
+      // `proposed` is shown FIRST and separately from `approved`. Research can fill a list overnight; only a
+      // human moves someone out of proposed, so collapsing the two into one "marked" number would let a pile of
+      // machine-generated candidates read exactly like a reviewed list — which is the one number that must never
+      // be able to lie here.
+      const prop = n((p) => p.kind === k && p.status === "proposed" && !p.dropped);
+      const appr = n((p) => p.kind === k && p.status === "approved" && !p.dropped);
+      const legacy = n((p) => p.kind === k && !p.status && !p.dropped);
+      const sent = n((p) => p.kind === k && p.sent);
       const yes = n((p) => p.kind === k && p.reply === "yes"), no = n((p) => p.kind === k && p.reply === "no");
       const extra = k === "interview" ? ` · done ${n((p) => p.kind === k && p.interview_done)}` : "";
-      console.log(`    ${k.padEnd(10)} marked ${String(marked).padStart(3)} · sent ${String(sent).padStart(3)} · yes ${yes} · no ${no}${extra}`);
+      const pre = legacy ? ` · pre-citation ${legacy}` : "";
+      console.log(`    ${k.padEnd(10)} proposed ${String(prop).padStart(3)} · approved ${String(appr).padStart(3)}` +
+                  ` · sent ${String(sent).padStart(3)} · yes ${yes} · no ${no}${extra}${pre}`);
     }
+    const awaiting = n((p) => p.status === "proposed" && !p.dropped);
+    if (awaiting) console.log(`\n    ${awaiting} candidate(s) awaiting YOUR approval — nothing can be drafted or sent for them.` +
+                              `\n    each one: node tools/campaign.mjs approve <id>   (it prints the evidence URL — approving is looking)`);
     // M27: today's batch first. Starred-but-unsent is the only list that is about to become action, so it goes
     // above the follow-up queue rather than being re-derived by eye every morning.
     const starred = people((p) => p.starred && !p.sent && !p.dropped);

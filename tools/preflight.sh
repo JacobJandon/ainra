@@ -70,6 +70,7 @@ run "witness quorum"     "fork refused over HTTP"       bash tools/drill-network
 run "one decode path"    "no duplicate bytes→core parser" node tools/one-decode-path.mjs
 run "lockfile sync"      "lockfiles state their package version" node tools/lockfile-sync.mjs
 run "soak ingest"        "declaration reads what the soak writes" node tools/soak-ingest-check.mjs
+run "no names in git"    "D-036: candidates stay out of the repo" node tools/names-check.mjs
 run "cross-impl interop" "fresh sigs verify in TS + PY"   make interop
 if command -v wasm-bindgen >/dev/null 2>&1 && node tools/wasm-differential.mjs --probe >/dev/null 2>&1; then
   run "browser verifier"   "745 vectors agree in-browser"  make wasm-diff

@@ -53,8 +53,18 @@ let files = [];
 try { files = execFileSync("git", ["ls-files"], { cwd: ROOT, encoding: "utf8" }).split("\n").map((f) => f.trim()).filter(Boolean); }
 catch { console.log("NAMES-CHECK SKIPPED: not a git checkout."); process.exit(0); }
 
+// The ONE exemption, and it is the same one S7 makes for the same reason. A CITATION INVENTORY exists to name
+// third parties accurately and link to the primary source for each — naming an RFC's authors while citing that
+// RFC is the opposite of leaking a candidate. This fired on its first real run against docs/LANDSCAPE.md, which
+// cites RFC 9421 and lists its authors; one of them is independently a candidate.
+//
+// It is NOT a silent skip. A candidate appearing in an inventory is reported as a NOTICE, because it is worth
+// knowing — it means that person is already publicly cited in this project's own published analysis, which
+// changes how an approach to them reads. What it must never do is let someone quietly ADD a candidate's name to
+// an inventory to dodge the gate, so the notice names the file and the id every time.
+const CITATION_INVENTORIES = new Set(["THIRD-PARTY.md", "docs/LANDSCAPE.md"]);
 const BIN = /\.(png|jpg|jpeg|gif|webp|ico|zip|gz|tgz|wasm|pdf|woff2?|ttf|otf|mp4|bin)$/i;
-let hits = 0, scanned = 0;
+let hits = 0, scanned = 0, notices = 0;
 for (const f of files) {
   if (BIN.test(f)) continue;
   let body;
@@ -65,6 +75,11 @@ for (const f of files) {
     const at = lower.indexOf(nd.v.toLowerCase());
     if (at === -1) continue;
     const line = body.slice(0, at).split("\n").length;
+    if (CITATION_INVENTORIES.has(f)) {
+      console.log(`  · notice — ${f}:${line} cites tracked candidate "${nd.id}" as a third party (citation inventory, allowed)`);
+      notices++;
+      continue;
+    }
     // File, line, id and length — never the name itself.
     console.error(`  ✗ ${f}:${line} contains the ${nd.field} of tracked candidate "${nd.id}" (${nd.v.length} chars)`);
     hits++;
@@ -77,4 +92,5 @@ if (hits) {
   console.error("and publish the COUNT instead. Do not commit until this is zero.");
   process.exit(1);
 }
-console.log(`NAMES-CHECK OK: ${needles.length} tracked name(s) checked against ${scanned} git-tracked file(s) — none present.`);
+console.log(`NAMES-CHECK OK: ${needles.length} tracked name(s) checked against ${scanned} git-tracked file(s) — none leaked` +
+            `${notices ? `; ${notices} cited in a citation inventory (see notices above)` : ""}.`);

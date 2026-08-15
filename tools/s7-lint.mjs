@@ -125,7 +125,28 @@ function* walkProse(dir) {
     else if (PROSE_EXT.has(path.extname(e.name))) yield full;
   }
 }
-for (const dir of PROSE_DIRS) for (const f of walkProse(path.join(ROOT, dir))) scanProse(path.relative(ROOT, f), fs.readFileSync(f, "utf8"));
+// S7 is about what this project PUBLISHES. The prose walk reads the filesystem, not the git index, so it also
+// sees working files that are gitignored by design — campaign/sendbox/ (personalised drafts) and campaign/notes/
+// (per-person notes). Those contain real people and their real employers, deliberately, and they never reach a
+// reader outside this machine. It fired on exactly that: a draft addressed to a person whose employer is on the
+// foil list. Failing the board for the contents of a local draft would train the operator to run S7 with a
+// mental asterisk, which is how a neutrality gate stops meaning anything.
+//
+// So: gitignored paths are skipped, and only for the PROSE pass. The fixture pass, the commit-message pass, and
+// every tracked file are untouched — a brand in anything that ships still fails exactly as before.
+const ignored = (() => {
+  try {
+    const all = PROSE_DIRS.flatMap((d) => [...walkProse(path.join(ROOT, d))]).map((f) => path.relative(ROOT, f));
+    if (!all.length) return new Set();
+    const out = execSync("git check-ignore --stdin || true", { cwd: ROOT, input: all.join("\n"), encoding: "utf8" });
+    return new Set(out.split("\n").map((l) => l.trim()).filter(Boolean));
+  } catch { return new Set(); }
+})();
+for (const dir of PROSE_DIRS) for (const f of walkProse(path.join(ROOT, dir))) {
+  const rel = path.relative(ROOT, f);
+  if (ignored.has(rel)) continue;
+  scanProse(rel, fs.readFileSync(f, "utf8"));
+}
 for (const f of PROSE_FILES) { const full = path.join(ROOT, f); if (fs.existsSync(full)) scanProse(f, fs.readFileSync(full, "utf8")); }
 try {
   scanProse("<commit-messages>", execSync("git log --format=%B", { cwd: ROOT, encoding: "utf8" }));

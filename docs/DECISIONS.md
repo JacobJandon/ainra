@@ -671,3 +671,52 @@ comparing against that is the real defence, and it is witness work, not a file c
 the same thing as the split-view guarantee itself: witnesses, of which there are currently zero.
 
 *Status:* NEW. Local guard shipped; the witness-anchored version is the follow-on and is gated on R6.
+
+## D-046 — L5/R7: a registrar's compliance is measured from outside, by something holding none of its credentials
+
+*Problem:* the accreditation obligations in the standard — logged before valid, revocation inside the SLO, a status
+history that only moves forward — were all things a registrar would **report**. That is the arrangement every
+comparable regime started with and every one of them had to abandon. The CA controls were annual, point-in-time
+audits; the mis-issuance that mattered was found by people reading transparency logs, which is why public logging
+became mandatory and the audit stopped being the measurement. One level up, CT logs are themselves **disqualified** on
+externally measured grounds — inconsistent tree heads, exceeded merge delay, uptime — measured by monitors the log
+operator neither controls nor sees coming. The useful signal was never the report.
+
+*Decision:* accreditation compliance is measured **adversarially**, by a probe that holds nothing the registrar issued
+it, mints through the ordinary public door under an unmarked name, and reaches every verdict through a root-dark
+verifier at the strictest policy (F1 freshness, currency mode on). Nine checks; latency wall-clock measured; failing
+closed. The term is written in [PROBES.md](PROBES.md) and the instrument is `kits/probe/probe.mjs`, gated by
+`make probe-drill`.
+
+*The load-bearing check is P0.* Before measuring anything, the probe sends an **unauthenticated write** and requires a
+refusal. If the write succeeds the run is **void, not failing** — an operator measuring itself with its own token has
+produced a self-report, and scoring it would launder a self-report as an external measurement. This is the check that
+makes the other eight mean something, and it caught a real open write door on its first run (the drill's token env var
+was spelled wrong, so the registrar was in its writes-open local-dev default).
+
+*Why this is possible here at all:* structure, not virtue. Issuance is logged before valid, revocation is a published
+signed status list plus a fresh head, and the directory is root-signed — so an outsider can reach a verdict about a
+registrar **without its cooperation**. Building the instrument now is the cheapest it will ever be: there is one
+staging registrar and no incumbents to negotiate with.
+
+*Negative control, and why it is the deliverable:* four dishonest registrars
+(`kits/probe/dishonest-registrar.mjs`), each breaking exactly one invariant, each required to fail the **named**
+check — `open-write-door` → INVALID-RUN via P0, `drop-log` → P2a, `suppress-revocation` → P3, `rewind-seq` → P5. The
+hard case is `suppress-revocation`, which **forges nothing**: every byte it serves was signed by the real registrar,
+it simply keeps serving a genuine older snapshot. There is no broken signature to notice — the same shape as soft-fail
+revocation everywhere it has shipped — and it is caught only because the probe measures what an outsider can see
+rather than what the registrar accepted.
+
+*Two corrections the drill forced, recorded because both were ours:* the first `rewind-seq` sabotage subtracted a
+constant from every answer, and the probe **passed** it — correctly, since a constant offset is a relabelling that
+preserves monotonicity, which is the entire claim; the control was wrong, not the check, and it now rewinds relative
+to what it has already served. And the "delete the inclusion proof" check asserted something that **cannot be false**
+in a single-leaf tree, where a correct proof is legitimately empty; it now skips itself with a printed reason,
+recorded as `pass: null` and excluded from the verdict, never as a pass.
+
+*Honest scope:* one unmarked lineage, one moment, one vantage point. It proves the invariants held, not that they
+always hold. A registrar that could identify the probe could special-case it, which is why indistinguishability and an
+unannounced schedule are terms rather than implementation details. Nothing binds a registrar yet — there is no entity
+to hold the agreement — so PROBES.md is a proposed term and says so.
+
+*Status:* NEW. Instrument shipped and negative-controlled; the term awaits an entity and a second registrar.

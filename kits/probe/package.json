@@ -1,0 +1,15 @@
+{
+  "name": "ainra-compliance-probe",
+  "version": "0.3.2",
+  "private": true,
+  "type": "module",
+  "description": "Measure a registrar's accreditation invariants adversarially, from outside, holding nothing the registrar issued: the write door is shut to the probe, the lineage is unmarked, and every verdict comes from a root-dark @ainra/sdk verifier at the strictest policy. Ships with a dishonest registrar to prove the probe can observe failure.",
+  "license": "Apache-2.0 OR MIT",
+  "bin": {
+    "ainra-probe": "probe.mjs"
+  },
+  "dependencies": {
+    "@ainra/sdk": "file:../../packages/sdk-ts"
+  },
+  "comment": "Compliance measured by self-report is compliance until the day it isn't. This kit reads the registrar the way a monitor reads a log — from the outside, with no cooperation required."
+}

@@ -252,7 +252,13 @@ Chrome does not ask. It **mandates that every log accept its Merge Delay Monitor
 probes, and measures availability from its own infrastructure over a 90-day rolling window, taking the *minimum*
 across endpoints.
 
-**AINRA has no probe-injection hook.** With two registrars, building one now costs almost nothing. See **R7**.
+~~**AINRA has no probe-injection hook.**~~ **Built — D-046, [`PROBES.md`](PROBES.md), `make probe-drill`.** Nine
+checks measured from outside by a probe holding nothing the registrar issued it, minting under an unmarked name,
+proven against four dishonest registrars. Chrome's version of this is availability plus merge delay; ours goes further
+because our evidence goes further — inclusion is recomputed at a claimed position, a flipped claims byte is refused, a
+revocation is timed as an outsider sees it, and a pre-revocation snapshot is refused after the fact. The check that
+matters most is the one Chrome does not need: **the probe proves the write door is shut to it before it measures
+anything**, and voids its own run if it isn't.
 
 ---
 
@@ -322,7 +328,7 @@ Nothing below is implemented in this pass. Each names what it protects against a
 | ~~**R4**~~ | **DONE — [`genesis-day/ROLLBACK.md`](genesis-day/ROLLBACK.md).** The decisions that must be numbered and named before a roll is scheduled, with the numbers left blank on purpose because filling them is a governance act. States plainly that we roll blind by charter, lists what we *can* measure instead, and concludes a root roll cannot be scheduled before witnesses exist. | Rolling blind into a 5%-breakage cliff | **Written** |
 | ~~**R5**~~ | **DONE — D-045.** `log.highwater` records the largest tree size ever reached; a rebuilt tree below it is refused and the daemon declines to start. Proven: truncating the log to 4 leaves against a mark of 7 refused startup. Honest limit recorded — a whole-directory restore rolls the mark back too; the witness-anchored version is gated on R6. | An outage becoming a consistency violation | **Shipped** |
 | **R6** | **Recruit witnesses, or stop describing detection as a control.** Currently honest (site says RECRUITING) — keep it that way until N≥3 operate. | Claiming a control with zero operators | Already row one of the campaign |
-| **R7** | **Build the probe-injection hook now**, while there are two registrars: require every accredited registrar to accept a monitoring identity, so compliance is measured adversarially rather than self-reported. | Asking participants whether they are compliant | Protocol addition — cheapest today, never cheaper |
+| ~~**R7**~~ | **DONE — D-046 + [`PROBES.md`](PROBES.md) + `kits/probe/`.** Nine adversarial checks, no credential held (P0 voids the run if the write door answers), unmarked lineage, root-dark verifier at F1 + currency, wall-clock revocation latency. Negative-controlled against four dishonest registrars, each required to fail the *named* check. Term is proposed, not binding — there is no entity to bind anyone to. | Asking participants whether they are compliant | **Shipped** |
 
 ---
 

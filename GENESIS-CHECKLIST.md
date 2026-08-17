@@ -85,6 +85,8 @@ Nothing here is faked. A step is ✅ only when its artifact exists and independe
 | Outsider forks the root from public artifacts | ✅ (machinery) / ⏳ (3rd-party infra) | `make repro` / `make verify-mirror`; a 3rd-party rebuild |
 | ≥3 external verifiers | ⏳ | step 3 — three passing `verifier-attestation.json`, distinct keys |
 | Recorded ceremony + 14-day soak | ⏳ | steps 2 + 5 — recording + transcript; regional soak-reports |
+| Registrar compliance measured from outside, not reported | ✅ (instrument) / ⏳ (a second registrar to point it at) | `make probe-drill` — honest registrar COMPLIANT, four dishonest ones caught ([D-046](docs/DECISIONS.md), [docs/PROBES.md](docs/PROBES.md)) |
+| Incident disclosure is a deadline, not a judgement | ✅ (written) / ⏳ (an entity to bind anyone) | [docs/DISCLOSURE.md](docs/DISCLOSURE.md) — 72 h, no severity threshold, binds the root first |
 
 ## The one-line honest summary
 **Engineering: done. Machinery for the external events: done and smoke-proven. The events themselves: pending, and

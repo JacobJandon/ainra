@@ -57,6 +57,9 @@ Nothing here is faked. A step is ✅ only when its artifact exists and independe
   network; an injected fork is refused by their quorum, not by us.
 - **Proof:** a signed quorum certificate for the honest head + a refused fork, verifiable against the published
   witness roster (`kits/witness/`).
+- **Also gates something later:** witness cosignatures are the only evidence available to us that a *new* root is
+  being honoured — the charter forbids the telemetry that would tell us directly. So a root roll cannot be
+  scheduled before this row is ✅ ([`docs/genesis-day/ROLLBACK.md`](docs/genesis-day/ROLLBACK.md)).
 
 ### 5. Run the 14-day / 3-region soak (⏳ real-world)
 - [ ] `kits/soak/` running from ≥3 regions against the live registrar/mirrors for 14 days; revocation **p95 < 60 s**.

@@ -32,6 +32,13 @@ project.
 
 - [ ] **External-verifier attestation count stated** — `make genesis-status` → the "external verifiers" number, read aloud honestly. **Target ≥3, but genesis does NOT require it:** if fewer, that row stays ⏳ past genesis and the founding declaration simply waits for it. Say this explicitly; do not let a low count trigger any shortcut.
 
+## Read aloud, but not a box
+
+Genesis mints the first root; it does not roll one. **[`ROLLBACK.md`](ROLLBACK.md)** is read aloud at T−1d anyway,
+because it states the one thing genesis determines forever: we will never be able to measure how many verifiers hold
+a given root, so every future roll depends on reversibility that has to be designed before it is needed — and on
+witnesses, which is why the witness rows above outlive this ceremony.
+
 ---
 
 **Decision.** All non-informational boxes GO → the Coordinator declares **GO** on camera and proceeds to T0. Any NO

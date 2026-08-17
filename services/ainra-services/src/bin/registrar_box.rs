@@ -139,6 +139,16 @@ fn is_demo_specimen(rb: &RegistrarBox, sub: &str) -> bool {
         .unwrap_or(false)
 }
 
+/// Persist after every mutation. Without this the reload added above would have nothing to reload: `save()` writes
+/// `registrar.json` (shareable snapshot) plus `registrar.secret` (0600, the reload seed). A failure to persist is
+/// logged, never fatal — the in-memory network keeps serving; but it must be VISIBLE, because a silent persist
+/// failure is how you get a daemon that looks healthy and loses everything on the next restart.
+fn persist(rb: &RegistrarBox, id: &str) {
+    if let Err(e) = rb.save() {
+        eprintln!("registrar-box '{id}': WARNING — state not persisted: {e:?}");
+    }
+}
+
 fn main() {
     let addr = std::env::args()
         .nth(1)
@@ -159,16 +169,39 @@ fn main() {
         seed = seed.wrapping_mul(0x0000_0100_0000_01b3);
     }
     let mut rng = ChaCha20Rng::seed_from_u64(seed);
-    let rb = RegistrarBox::create(
-        std::path::Path::new(&dir),
-        &id,
-        4096,
-        NBF - 3600,
-        NBF,
-        EXP,
-        &mut rng,
-    )
-    .expect("create registrar-box");
+    // RELOAD BEFORE CREATE. This binary used to call `create` unconditionally, which meant the daemon started with
+    // an EMPTY set of issued records on every single start — for the whole life of the systemd stage. The keys are
+    // derived deterministically from the id above, so `/accreditation` always matched the published directory and
+    // every health probe passed; only `/present` knew, and it answered `unknown subject` for passports the
+    // published record listed. `RegistrarBox::{save,load}` were fully implemented — the 0600 secret, the snapshot,
+    // the delta replay — and nothing ever called them. Implemented-but-unreachable, the same shape as a soak report
+    // no consumer could read.
+    //
+    // Fail LOUDLY, never silently: if a snapshot exists but will not load, that is corruption or a missing secret,
+    // and quietly re-creating an empty registrar over it is how you lose a network and publish a record you cannot
+    // honour. Only an absent snapshot means "new registrar".
+    let data_dir = std::path::Path::new(&dir);
+    let snapshot = data_dir.join("registrar.json");
+    let rb = if snapshot.exists() {
+        match RegistrarBox::load(data_dir) {
+            Ok(rb) => {
+                eprintln!("registrar-box '{id}' RELOADED from {dir}");
+                rb
+            }
+            Err(e) => {
+                eprintln!("registrar-box '{id}': {snapshot:?} exists but will not load: {e:?}");
+                eprintln!("refusing to start an empty registrar over existing state — fix or move the snapshot.");
+                std::process::exit(2);
+            }
+        }
+    } else {
+        // `create_seeded`, NOT `create`. `create` takes an rng and records no seed, so `save()` writes
+        // `"seed": 0` and `load()` refuses the snapshot outright — "created by the daemon, not the CLI". The
+        // daemon was already deriving exactly the right seed and then throwing it away into an rng, which is why
+        // its state was structurally unreloadable no matter how often it was saved.
+        RegistrarBox::create_seeded(data_dir, &id, 4096, seed, NBF - 3600, NBF, EXP)
+            .expect("create registrar-box")
+    };
     let issue_token = std::env::var("AINRA_STAGE_ISSUE_TOKEN")
         .ok()
         .filter(|t| !t.is_empty());
@@ -233,7 +266,10 @@ fn main() {
                     Ok(spec) => {
                         let State { rb, rng, .. } = &mut *st;
                         match rb.issue(&spec, &[], rng) {
-                            Ok(rec) => ok(&rec),
+                            Ok(rec) => {
+                                persist(rb, &id);
+                                ok(&rec)
+                            }
                             Err(e) => (400, json!({ "error": e.to_string() }).to_string()),
                         }
                     }
@@ -275,7 +311,10 @@ fn main() {
                 let State { rb, rng, .. } = &mut *st;
                 let spec = demo_spec(rng, operator, lineage);
                 match rb.issue(&spec, &[], rng) {
-                    Ok(rec) => ok(&rec),
+                    Ok(rec) => {
+                        persist(rb, &id);
+                        ok(&rec)
+                    }
                     Err(e) => (400, json!({ "error": e.to_string() }).to_string()),
                 }
             }
@@ -309,7 +348,10 @@ fn main() {
                     .and_then(|x| x.as_u64())
                     .unwrap_or(NBF + 10 * 24 * 60 * 60);
                 match st.rb.revoke(&sub, now) {
-                    Ok(_) => (200, json!({ "revoked": sub, "now": now }).to_string()),
+                    Ok(_) => {
+                        persist(&st.rb, &id);
+                        (200, json!({ "revoked": sub, "now": now }).to_string())
+                    }
                     Err(e) => (400, json!({ "error": e.to_string() }).to_string()),
                 }
             }

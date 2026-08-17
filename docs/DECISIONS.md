@@ -633,3 +633,41 @@ class of gap this project keeps finding; here the gate found it within a minute 
 
 *Status:* NEW. Not yet exercised operationally — no registrar carries a cutoff today, and setting one is a root
 decision under the charter's due-process and appeal requirements.
+
+## D-045 — L5/R5: a transparency log may never come back shorter than it has already been
+
+*Problem:* the persistence added alongside D-044 gave the staging registrar something it never had — state that
+survives a restart. It also created the hazard that state implies. A log rebuilt from a restored `entries.log` can
+come back **shorter** than it has already been, and a shorter tree cannot prove the checkpoints the world already
+holds. That is not recovery; it is equivocation with a sympathetic cause.
+
+*The arrow.* A Certificate Transparency log did exactly this: an instance auto-restored from a stale backup during
+a cloud outage and published a Signed Tree Head inconsistent with its own earlier ones. Nine monitors saw the
+inconsistent head, and disqualification was proposed. The lesson is that **the cause being disaster recovery does
+not make the effect benign** — the ecosystem judged the split view, not the intent. A separate log was disqualified
+for presenting "two conflicting views of the Merkle Tree" caused by nothing worse than reusing a key between
+production and test.
+
+*Decision:* the largest size the log has ever reached is recorded beside it in `log.highwater`, monotonically, on
+every `save()`. On `load()`, a rebuilt tree smaller than that mark is **refused** — the registrar declines to start
+rather than serve a tree that contradicts published checkpoints. `Restart=always` then retries, so the unit sits
+visibly `activating` instead of quietly serving a split view; a human has to look, which is the intended outcome.
+
+*Proven, not claimed.* Mint through the door → mark reaches 7 → truncate `entries.log` to 4 leaves → restart:
+
+```
+went BACKWARDS: rebuilt tree size 4 is below the recorded high-water mark 7 — this state is older than
+checkpoints already published. Restore the newer log or start a new registrar; serving a shorter tree is
+a split view, not a recovery.
+```
+
+The unit refused to come up. Restoring the newer log returned it to `RELOADED` and `active`.
+
+*The honest limit, stated rather than implied.* The mark lives beside the log, so restoring the **whole directory**
+from one old backup rolls the mark back with it and this guard will not fire. It catches the case that actually
+happened to someone — the log file replaced or truncated while the rest of the state stands — and nothing more.
+The only authority that cannot be rolled back locally is a checkpoint a **witness** has already cosigned;
+comparing against that is the real defence, and it is witness work, not a file check. It is therefore blocked on
+the same thing as the split-view guarantee itself: witnesses, of which there are currently zero.
+
+*Status:* NEW. Local guard shipped; the witness-anchored version is the follow-on and is gated on R6.

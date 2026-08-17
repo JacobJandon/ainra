@@ -484,6 +484,31 @@ impl RegistrarBox {
                 claimed_seq
             )));
         }
+
+        // FORWARD-ONLY RESTORE (D-045). The log must never come back shorter than it has already been. This is the
+        // CT lesson stated as a refusal: an instance that restored from a stale backup published a tree head
+        // inconsistent with its own earlier ones, and the fact that the cause was disaster recovery did not make a
+        // split view acceptable. A shorter tree means checkpoints the world already holds can no longer be proven.
+        //
+        // HONEST LIMIT, stated rather than implied: the mark lives beside the log, so restoring the WHOLE directory
+        // from one old backup rolls the mark back with it and this guard will not fire. It catches the case that
+        // actually happened to someone — the log file replaced or truncated while the rest of the state stands —
+        // and nothing more. The only authority that cannot be rolled back locally is a checkpoint a witness has
+        // already cosigned; comparing against that is the real defence and is witness work, not a file check.
+        let hw = std::fs::read_to_string(dir.join("log.highwater"))
+            .ok()
+            .and_then(|t| t.trim().parse::<u64>().ok())
+            .unwrap_or(0);
+        if me.log.size() < hw {
+            return Err(IssueError::Malformed(format!(
+                "refusing to load a log that went BACKWARDS: rebuilt tree size {} is below the recorded high-water \
+                 mark {} — this state is older than checkpoints already published. Restore the newer log or start \
+                 a new registrar; serving a shorter tree is a split view, not a recovery.",
+                me.log.size(),
+                hw
+            )));
+        }
+
         Ok(me)
     }
 
@@ -1121,6 +1146,21 @@ impl RegistrarBox {
             std::fs::set_permissions(&secret_path, std::fs::Permissions::from_mode(0o600))
                 .map_err(|e| IssueError::Io(e.to_string()))?;
         }
+
+        // FORWARD-ONLY HIGH-WATER MARK (D-045). A transparency log that comes back SHORTER than it has already
+        // been is not recovering, it is equivocating: the tree it now signs contradicts checkpoints the world has
+        // already seen. A CT log did exactly this — an instance auto-restored from a stale backup during a cloud
+        // outage and published a tree head inconsistent with its own earlier ones — and it was proposed for
+        // disqualification, because the cause (disaster recovery) does not make the effect (a split view) benign.
+        //
+        // So the largest size this log has ever reached is recorded beside it, and only ever increases.
+        let hw_path = self.dir.join("log.highwater");
+        let prev_hw = std::fs::read_to_string(&hw_path)
+            .ok()
+            .and_then(|t| t.trim().parse::<u64>().ok())
+            .unwrap_or(0);
+        let hw = prev_hw.max(self.log.size());
+        std::fs::write(&hw_path, hw.to_string()).map_err(|e| IssueError::Io(e.to_string()))?;
         Ok(())
     }
 }

@@ -77,9 +77,29 @@ install)
   systemctl --user enable --now ainra-stage-watchdog.timer >/dev/null 2>&1 || true
   sleep 2
 
-  # 5. the network needs SEEDING once — the daemons serve state, they do not invent it. Idempotent: if the
-  #    contract already lists registrars, we leave the existing network alone rather than double-issuing.
-  if ! curl -s -m 5 "http://127.0.0.1:$ART_PORT/index.json" 2>/dev/null | grep -q registrars; then
+  # 5. the network needs SEEDING once — the daemons serve state, they do not invent it. Idempotent, but the
+  #    idempotence must ask the RIGHT WITNESS, and the first version asked the wrong one.
+  #
+  #    It asked the ARTIFACT SERVER whether index.json mentions registrars. That file is served from disk and
+  #    survives everything, so once it existed the guard said "already seeded" forever. The state that can actually
+  #    be LOST is the registrar's — and when it was, the guard still reported seeded, the artifact server went on
+  #    publishing a record listing passports, and the registrar answered `unknown subject` for every one of them.
+  #    The documented repair command could never repair it, because it believed the network was fine.
+  #
+  #    So ask the registrar the only question that matters: can you still present something you claim to have
+  #    issued? If it cannot, the network is empty regardless of what the published files say, and it gets seeded.
+  seeded=0
+  probe_sub=$(curl -s -m 5 "http://127.0.0.1:$ART_PORT/registry.json" 2>/dev/null \
+    | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const r=JSON.parse(s);for(const R of r.registrars||[])for(const e of R.records||[]){const x=e.record?.sub||e.sub;if(x){console.log(x);process.exit(0)}}}catch{}})' 2>/dev/null)
+  if [ -n "$probe_sub" ]; then
+    if curl -s -m 5 "http://127.0.0.1:${REG1_ADDR##*:}/present?sub=$(node -e 'process.stdout.write(encodeURIComponent(process.argv[1]))' "$probe_sub")&now=1776729600" 2>/dev/null | grep -q '"presentation"'; then
+      seeded=1
+    else
+      echo "!! the published record lists $probe_sub but the registrar cannot present it —"
+      echo "!! the registrar has lost its state while the published files survived. RESEEDING."
+    fi
+  fi
+  if [ "$seeded" -eq 0 ]; then
     echo "== seeding the network once (issue / delegate / revoke / renew / accredit / publish) =="
     bash tools/stage.sh up >/dev/null 2>&1 || echo "!! seed via stage.sh reported an error — check 'make stage-health'"
   fi

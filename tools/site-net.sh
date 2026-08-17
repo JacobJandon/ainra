@@ -42,6 +42,27 @@ if [ "$MODE" = "check" ]; then
   for f in $FILES; do
     if ! cmp -s "$TMP/$f" "$DEST/$f"; then echo "site-net: DRIFT — site/net/$f differs from what $SRC serves now"; drift=1; fi
   done
+  # The byte-comparison above proves the published copy matches what the ARTIFACT SERVER serves. It does NOT prove
+  # the REGISTRAR can still present the passports that record describes — and those are different machines with
+  # different state. This gate said "byte-identical" for days while the registrar had regressed behind the record
+  # after a restart and answered `unknown subject` for a passport the record listed. The artifact server serves
+  # files from disk; the registrar serves from its own reloaded state. A record nobody can honour is not a record.
+  reg_drift=0
+  first_sub=$(curl -s -m 10 "$SRC/registry.json" 2>/dev/null \
+    | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const r=JSON.parse(s);for(const R of r.registrars||[])for(const e of R.records||[]){const x=e.record?.sub||e.sub;if(x){console.log(x);process.exit(0)}}}catch{}})' 2>/dev/null)
+  if [ -n "$first_sub" ]; then
+    REG_URL="${AINRA_REG:-http://127.0.0.1:4907}"
+    body=$(curl -s -m 10 "$REG_URL/present?sub=$(node -e 'process.stdout.write(encodeURIComponent(process.argv[1]))' "$first_sub")&now=1776729600" 2>/dev/null)
+    case "$body" in
+      *'"presentation"'*) echo "site-net: registrar can present a sampled subject from the record" ;;
+      *) echo "site-net: DRIFT — the record lists a subject the registrar cannot present:"
+         echo "site-net:   subject : $first_sub"
+         echo "site-net:   answer  : $(printf '%s' "$body" | head -c 120)"
+         echo "site-net: the registrar has regressed behind the published record (restart without its state?)."
+         reg_drift=1 ;;
+    esac
+  fi
+  if [ "$drift" -eq 0 ] && [ "$reg_drift" -ne 0 ]; then exit 1; fi
   if [ "$drift" -eq 0 ]; then
     echo "site-net OK: the published record is byte-identical to the running network ($(echo $FILES | wc -w) files)"
   else

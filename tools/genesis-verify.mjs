@@ -22,7 +22,18 @@ const main = async () => {
   if (!verifier) { console.log("  ✗ the published directory is NOT signed by the published roots"); process.exit(1); }
   console.log("  ✓ directory is dual-root-signed by the published genesis root");
 
-  const bundle = await j(`${REG}/present?sub=${encodeURIComponent(SUB)}&now=${NOW}`);
+  // A FETCH failure is not a VERIFICATION verdict, and conflating the two is how this target spent days reporting
+  // "INVALID:schema_violation" for a passport that simply did not exist on the running registrar. The verifier was
+  // being handed {"error":"unknown subject"} and dutifully rejecting it as malformed — a true statement about the
+  // bytes and a completely misleading statement about the network. Separate the two before verifying anything.
+  const bundle = await j(`${REG}/present?sub=${encodeURIComponent(SUB)}&now=${NOW}`).catch((e) => ({ error: String(e) }));
+  if (!bundle || bundle.error || !bundle.presentation) {
+    console.log(`  ✗ ${SUB} could NOT BE FETCHED from the registrar: ${bundle?.error ?? "no presentation in response"}`);
+    console.log(`     This is a NETWORK/STATE problem, not a cryptographic one — the registrar does not have this`);
+    console.log(`     subject. If the published record lists it, the registrar has regressed behind the record.`);
+    console.log(`     Check: curl ${ART}/registry.json | grep sub    ·    make stage-health`);
+    process.exit(1);
+  }
   const v = verifier.verify(bundle, NOW);
   const ok = v.verdict === "valid";
   console.log(`  ${ok ? "✓" : "✗"} ${SUB} verifies ROOT-DARK → ${v.verdict.toUpperCase()}${v.reason ? ":" + v.reason : ""}`);

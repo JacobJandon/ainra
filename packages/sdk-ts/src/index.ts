@@ -40,6 +40,7 @@ export type Reason =
   | "name_malformed"
   | "ceiling_exceeded"
   | "unknown_registrar"
+  | "registrar_distrusted"
   | "schema_violation";
 
 export type Verdict = { verdict: "valid" } | { verdict: "invalid"; reason: Reason };
@@ -328,6 +329,10 @@ function checkMandatePath(path: MandateNode[], revoked: Set<string>): void {
 export interface RegistrarInfo {
   issuerKey: HybridPublic;
   logRootKey: Uint8Array;
+  /** D-044 graduated-distrust cutoff. `undefined` = fully trusted; a number = refuse this registrar's credentials
+   *  logged at leaf index >= it, while everything earlier keeps verifying. Keyed on log position, never on a date,
+   *  so a backdated credential cannot slip under it. */
+  distrustFromLeaf?: number;
   /** The registrar's status-list-signing hybrid key (from the directory). The GA {@link Verifier} authenticates a
    *  presented status list against this before trusting a single bit — so a presenter cannot forge an all-clear
    *  status to bypass revocation (D-020). Absent when anchors are hand-built (raw `runVector` conformance path). */
@@ -681,6 +686,11 @@ function verifyInner(pres: Presentation, anchors: TrustAnchors): void {
   if (!verifyInclusion(claimedLeaf, pres.leafIndex, pres.checkpoint.size, pres.inclusionProof, pres.checkpoint.root)) {
     throw new Reject("not_logged");
   }
+  // D-044 graduated distrust — AFTER inclusion, and the order is load-bearing. `leafIndex` is only a proven fact
+  // once inclusion has shown the leaf really sits there; testing the cutoff earlier would let a presenter claim a
+  // low index to slip under it. Mirrors verify.rs exactly.
+  if (reg.distrustFromLeaf !== undefined && pres.leafIndex >= reg.distrustFromLeaf)
+    throw new Reject("registrar_distrusted");
   for (let i = 0; i < p.act_chain.length; i++) {
     const hop = p.act_chain[i];
     const anchored = dec(hop.log_leaf, "not_logged");
@@ -689,6 +699,8 @@ function verifyInner(pres: Presentation, anchors: TrustAnchors): void {
     const hp = pres.hopProofs[i];
     if (!verifyInclusion(anchored, hp.leafIndex, pres.checkpoint.size, hp.proof, pres.checkpoint.root))
       throw new Reject("not_logged");
+    if (reg.distrustFromLeaf !== undefined && hp.leafIndex >= reg.distrustFromLeaf)
+      throw new Reject("registrar_distrusted");
   }
 }
 
@@ -723,7 +735,7 @@ interface WireCheckpointSig {
 export interface WireVector {
   name: string;
   expect: { verdict: string; reason?: string };
-  anchors: Record<string, { issuer_key: WireKey; log_root_key: string }>;
+  anchors: Record<string, { issuer_key: WireKey; log_root_key: string; distrust_from_leaf?: number }>;
   presentation: {
     claims: string;
     issuer_sig: WireKey;
@@ -811,6 +823,10 @@ export function runVector(v: WireVector): Verdict {
       anchors[id] = {
         issuerKey: { ed25519: dec(r.issuer_key.ed25519), mldsa65: dec(r.issuer_key.mldsa65) },
         logRootKey: dec(r.log_root_key),
+        // D-044: wire is snake_case, the TS surface is camelCase. Forgetting this mapping is precisely how an
+        // implementation silently returns VALID where the reference returns registrar_distrusted — which is what
+        // `make diff` caught on the first run of these vectors.
+        distrustFromLeaf: r.distrust_from_leaf ?? undefined,
       };
     }
     // Canonicalise the trusted revoked-delegate fingerprints so the byte-set comparison against
@@ -1116,6 +1132,8 @@ export function runDeltaVector(v: WireDeltaVector): { accept: boolean; reason?: 
 
 // ── Signed registrar directory (mirror ainra-core::directory) ───────────────────────────────────────────────────
 export interface WireDirectoryEntry {
+  /** D-044 graduated-distrust cutoff, absent when the registrar is fully trusted. */
+  distrust_from_leaf?: number;
   registrar: string;
   issuer_ed25519: string;
   issuer_mldsa65: string;
@@ -1190,7 +1208,11 @@ export function verifyDirectory(d: WireDirectory, rootEd25519: Uint8Array, rootS
     const lr = strictB64u(e.log_root_slh);
     if (ed === null || ml === null || lr === null) return null;
     if (ed.length !== 32) return null;
-    const info: RegistrarInfo = { issuerKey: { ed25519: ed, mldsa65: ml }, logRootKey: lr };
+    const info: RegistrarInfo = {
+      issuerKey: { ed25519: ed, mldsa65: ml },
+      logRootKey: lr,
+      distrustFromLeaf: typeof e.distrust_from_leaf === "number" ? e.distrust_from_leaf : undefined,
+    };
     // Status-signing key (D-020) — extracted opportunistically. It does NOT participate in the directory-accept
     // decision (Rust `Directory::accredit` ignores these fields entirely, so phase-E accept/reject stays byte-parity);
     // a status key is set ONLY when both halves decode to a well-formed key AND a non-empty URI binds it. Anything

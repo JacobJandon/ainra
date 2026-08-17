@@ -88,6 +88,8 @@ impl Genesis {
                 status_ed25519: b64::encode(&sp.ed25519),
                 status_mldsa65: b64::encode(&sp.mldsa65),
                 status_uri: format!("status://{id}/1"),
+                // Accreditation at genesis is unconditional; a cutoff is added later, by root decision.
+                distrust_from_leaf: None,
             });
             registrars.push(RegistrarKeys {
                 id: id.to_string(),

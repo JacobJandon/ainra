@@ -55,6 +55,7 @@ fn main() {
                 .expect("status ml")
                 .to_string(),
             status_uri: acc["status_uri"].as_str().unwrap_or("").to_string(),
+            distrust_from_leaf: None,
         });
     }
     if entries.is_empty() {

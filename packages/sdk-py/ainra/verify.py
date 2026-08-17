@@ -328,6 +328,12 @@ def _verify(anchors: dict, presentation: dict, now: int) -> Verdict:
     proof = _decode_proof(presentation.get("inclusion_proof"))
     if proof is None or root_from_inclusion(leaf, presentation.get("leaf_index"), size, proof) != cp_root:
         return invalid(R.NOT_LOGGED, **ident())
+    # D-044 graduated distrust — AFTER inclusion, and the order is load-bearing. ``leaf_index`` is only a proven
+    # fact once inclusion has shown the leaf really sits there; testing the cutoff earlier would let a presenter
+    # claim a low index to slip under it. Mirrors verify.rs and sdk-ts exactly.
+    cutoff = anchor.get("distrust_from_leaf")
+    if cutoff is not None and int(presentation.get("leaf_index") or 0) >= int(cutoff):
+        return invalid(R.REGISTRAR_DISTRUSTED, **ident())
     # Each delegation hop must also prove inclusion under the same checkpoint.
     hop_proofs = presentation.get("hop_proofs") or []
     if len(hop_proofs) != n_hops:
@@ -340,6 +346,8 @@ def _verify(anchors: dict, presentation: dict, now: int) -> Verdict:
         hp_proof = _decode_proof(hp.get("proof"))
         if hp_proof is None or root_from_inclusion(h_leaf, hp.get("leaf_index"), size, hp_proof) != cp_root:
             return invalid(R.NOT_LOGGED, **ident())
+        if cutoff is not None and int(hp.get("leaf_index") or 0) >= int(cutoff):
+            return invalid(R.REGISTRAR_DISTRUSTED, **ident())
 
     return valid(**ident())
 

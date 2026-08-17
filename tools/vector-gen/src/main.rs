@@ -521,6 +521,7 @@ fn wire_valid(name: &str, description: &str, built: &Built) -> Vector {
         WireRegistrar {
             issuer_key: wire_key(&built.issuer_pub),
             log_root_key: b64::encode(&built.root_pub),
+            distrust_from_leaf: None,
         },
     );
     let now = built.nbf + (built.exp - built.nbf) / 2;
@@ -912,6 +913,7 @@ fn generate() -> Vec<Vector> {
         let stranger = WireRegistrar {
             issuer_key: v.anchors.values().next().unwrap().issuer_key.clone(),
             log_root_key: v.anchors.values().next().unwrap().log_root_key.clone(),
+            distrust_from_leaf: None,
         };
         v.anchors.clear();
         v.anchors.insert("registrar-99".to_string(), stranger);
@@ -1114,6 +1116,35 @@ fn generate() -> Vec<Vector> {
             Reason::NotLogged,
             "log.leaf references a real in-tree leaf that is not this credential's body",
         ));
+    }
+    // D-044 graduated distrust. TWO cases, and the second is what makes the first mean anything: a cutoff ABOVE
+    // the credential's leaf must leave it VALID. Without that positive control, "graduated" would be indis-
+    // tinguishable from "removed", which is the whole distinction the feature exists to draw.
+    for i in 0..per {
+        let b = build(&valid_params(2100 + i));
+        let mut v = wire_valid(&format!("registrar-distrusted-{:04}", i), "", &b);
+        let cut = v.presentation.leaf_index;
+        for r in v.anchors.values_mut() {
+            r.distrust_from_leaf = Some(cut);
+        }
+        out.push(invalid(
+            v,
+            Reason::RegistrarDistrusted,
+            "credential logged at/after the registrar's distrust cutoff",
+        ));
+    }
+    for i in 0..per {
+        let b = build(&valid_params(2200 + i));
+        let mut v = wire_valid(
+            &format!("distrust-below-cutoff-{:04}", i),
+            "cutoff sits above this credential's leaf — graduated distrust must not invalidate earlier work",
+            &b,
+        );
+        let cut = v.presentation.leaf_index + 1;
+        for r in v.anchors.values_mut() {
+            r.distrust_from_leaf = Some(cut);
+        }
+        out.push(v);
     }
     for i in 0..per {
         let b = build(&valid_params(1400 + i));
@@ -1584,6 +1615,7 @@ fn dir_entry(id: &str, rng: &mut ChaCha20Rng) -> ainra_core::directory::Director
         status_ed25519: b64::encode(&status.ed25519),
         status_mldsa65: b64::encode(&status.mldsa65),
         status_uri: format!("status://{id}/1"),
+        distrust_from_leaf: None,
     }
 }
 

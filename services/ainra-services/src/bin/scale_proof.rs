@@ -131,6 +131,7 @@ fn device_verification() {
         RegistrarInfo {
             issuer_key: issuer.public(),
             log_root_key: root.public(),
+            distrust_from_leaf: None,
         },
     );
     let anchors = TrustAnchors { registrars };

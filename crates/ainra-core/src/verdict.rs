@@ -44,6 +44,10 @@ impl Verdict {
 #[serde(rename_all = "snake_case")]
 #[non_exhaustive]
 pub enum Reason {
+    /// The issuing registrar is under graduated distrust and this credential was logged at or after the cutoff
+    /// (D-044). Not the same as [`Reason::UnknownRegistrar`]: the registrar IS accredited and its earlier
+    /// credentials still verify — only the ones it logged from the cutoff onward are refused.
+    RegistrarDistrusted,
     /// A required signature failed to verify.
     SigInvalid,
     /// A mandated signature (Ed25519 or ML-DSA-65) was absent — hybrid means hybrid (brief §0).
@@ -80,6 +84,7 @@ impl Reason {
     /// The exact frozen wire string (matches the CC0 vectors).
     pub const fn as_str(self) -> &'static str {
         match self {
+            Reason::RegistrarDistrusted => "registrar_distrusted",
             Reason::SigInvalid => "sig_invalid",
             Reason::AlgDowngrade => "alg_downgrade",
             Reason::Expired => "expired",
@@ -110,7 +115,8 @@ mod tests {
     use super::*;
 
     // The 15 frozen strings, in enum order. If this list changes, vectors break — that is the point.
-    const ALL: [(Reason, &str); 15] = [
+    const ALL: [(Reason, &str); 16] = [
+        (Reason::RegistrarDistrusted, "registrar_distrusted"),
         (Reason::SigInvalid, "sig_invalid"),
         (Reason::AlgDowngrade, "alg_downgrade"),
         (Reason::Expired, "expired"),

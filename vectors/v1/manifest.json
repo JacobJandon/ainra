@@ -10,14 +10,15 @@
     "name_malformed": 24,
     "not_logged": 75,
     "not_yet_valid": 30,
+    "registrar_distrusted": 24,
     "revoked": 24,
     "schema_violation": 55,
     "sig_invalid": 48,
     "stale_status": 24,
     "unknown_registrar": 24,
-    "valid": 211
+    "valid": 235
   },
-  "count": 745,
+  "count": 793,
   "note": "CC0 conformance vectors. Each is a real signed credential + expected verdict. Regenerate with `make vectors`.",
   "version": "v1"
 }

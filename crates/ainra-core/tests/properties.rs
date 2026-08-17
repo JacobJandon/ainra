@@ -65,6 +65,7 @@ fn build_valid(seed: u64, nbf: u64, exp: u64, caps: &[&str]) -> ValidCred {
         verify::RegistrarInfo {
             issuer_key: issuer.public(),
             log_root_key: root.public(),
+            distrust_from_leaf: None,
         },
     );
     ValidCred {

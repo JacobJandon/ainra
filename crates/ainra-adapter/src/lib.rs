@@ -34,6 +34,10 @@ pub struct WireSig {
 pub struct WireRegistrar {
     pub issuer_key: WireKey,
     pub log_root_key: String,
+    /// D-044 graduated-distrust cutoff. Absent = fully trusted, so every existing vector and directory decodes
+    /// unchanged; present = refuse this registrar's credentials logged at leaf index >= n.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub distrust_from_leaf: Option<u64>,
 }
 #[derive(Serialize, Deserialize, Clone)]
 pub struct WireCheckpoint {
@@ -184,6 +188,7 @@ pub fn anchors_from_json(v: &serde_json::Value) -> verify::TrustAnchors {
                     mldsa65: ml,
                 },
                 log_root_key: root,
+                distrust_from_leaf: w.distrust_from_leaf,
             },
         );
     }
@@ -327,6 +332,7 @@ pub fn run(v: &Vector) -> Verdict {
                     mldsa65: ml,
                 },
                 log_root_key: root,
+                distrust_from_leaf: r.distrust_from_leaf,
             },
         );
     }
@@ -499,6 +505,7 @@ pub fn anchors_from_export_json(reg: &serde_json::Value) -> verify::TrustAnchors
                 mldsa65,
             },
             log_root_key,
+            distrust_from_leaf: acc["distrust_from_leaf"].as_u64(),
         },
     );
     verify::TrustAnchors { registrars }

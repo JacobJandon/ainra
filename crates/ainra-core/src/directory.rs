@@ -42,6 +42,19 @@ pub struct DirectoryEntry {
     /// base64url(ML-DSA-65 status-signing public key, 1952 B) — the hybrid partner of `status_ed25519`.
     #[serde(default)]
     pub status_mldsa65: String,
+    /// **Graduated distrust cutoff (D-044).** Absent = fully trusted. Present = refuse credentials this registrar
+    /// logged at leaf index `>= n`, while everything before `n` keeps verifying — so a registrar can be unwound
+    /// without invalidating the work of everyone who relied on it.
+    ///
+    /// `skip_serializing_if` is LOAD-BEARING, not tidiness. `signing_bytes()` canonicalizes this struct, so a
+    /// field that serialized as `null` when unset would change the signed bytes of every directory already in
+    /// existence and break its dual-root signature. Omitted-when-absent keeps old directories byte-identical, so
+    /// this is a pure addition: only a directory that actually sets a cutoff carries the field at all.
+    ///
+    /// It lives INSIDE the signed body on purpose — only the root can set a cutoff, and it is published in the
+    /// directory where anyone can see it, which is what makes it appealable rather than silent.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub distrust_from_leaf: Option<u64>,
     /// The registrar's status-list URI (the status signature is bound to it).
     pub status_uri: String,
 }
@@ -154,6 +167,7 @@ impl Directory {
                         mldsa65: ml,
                     },
                     log_root_key: log_root,
+                    distrust_from_leaf: e.distrust_from_leaf,
                 },
             );
         }
@@ -221,6 +235,7 @@ mod tests {
             status_ed25519: String::new(),
             status_mldsa65: String::new(),
             status_uri: alloc::format!("status://{id}/1"),
+            distrust_from_leaf: None,
         }
     }
 

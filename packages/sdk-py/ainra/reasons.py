@@ -23,6 +23,8 @@ STALE_STATUS = "stale_status"
 REVOKED = "revoked"
 MANDATE_REVOKED = "mandate_revoked"
 NOT_LOGGED = "not_logged"
+#: D-044 — the registrar is accredited, but this credential was logged at/after its distrust cutoff.
+REGISTRAR_DISTRUSTED = "registrar_distrusted"
 CHECKPOINT_INVALID = "checkpoint_invalid"
 
 # The closed set, in verify order (mirrors docs/reasons.json).

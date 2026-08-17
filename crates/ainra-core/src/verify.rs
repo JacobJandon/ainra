@@ -35,6 +35,16 @@ pub struct RegistrarInfo {
     pub issuer_key: crypto::HybridPublic,
     /// SLH-DSA public key that signs this registrar's log checkpoints.
     pub log_root_key: Vec<u8>,
+    /// **Graduated distrust cutoff (D-044).** `None` = fully trusted. `Some(n)` = refuse any credential whose
+    /// transparency-log leaf index is `>= n` in this registrar's shard, while everything it logged before `n`
+    /// keeps verifying.
+    ///
+    /// Keyed on the LOG POSITION, not on the credential's own `nbf`. The Web PKI keyed its graduated distrusts on
+    /// `notBefore` and a CA was caught backdating certificates to slip under the cutoff — the root program's only
+    /// remedy was a policy threat to remove it entirely. A log index cannot be backdated: the log is append-only
+    /// and witnessed, so a registrar cannot move an entry earlier than it was written. This is the same control
+    /// the Web PKI needed, made unforgeable by machinery it did not have.
+    pub distrust_from_leaf: Option<u64>,
 }
 
 /// The set of accredited registrars, keyed by registrar id (`registrar-01`, …).
@@ -196,6 +206,15 @@ fn verify_inner(pres: &Presentation, anchors: &TrustAnchors) -> core::result::Re
         &pres.checkpoint,
         &pres.inclusion_proof,
     )?;
+    // Graduated distrust (D-044) — checked HERE, and the position is load-bearing. `leaf_index` is only a proven
+    // fact once `verify_logged` has shown the leaf really sits at that index in the committed tree. Testing the
+    // cutoff any earlier would let a presenter claim a low index to slip under it, which is the same class of
+    // evasion as backdating and would hand the attacker the control.
+    if let Some(cut) = reg.distrust_from_leaf {
+        if pres.leaf_index >= cut {
+            return Err(Reason::RegistrarDistrusted);
+        }
+    }
     for (hop, hp) in p.act_chain.iter().zip(pres.hop_proofs.iter()) {
         let anchored: [u8; 32] = b64::decode_array(&hop.log_leaf).map_err(|_| Reason::NotLogged)?;
         let recomputed = chain::hop_leaf(hop).map_err(|_| Reason::NotLogged)?;
@@ -203,6 +222,13 @@ fn verify_inner(pres: &Presentation, anchors: &TrustAnchors) -> core::result::Re
             return Err(Reason::NotLogged); // the anchored leaf is not THIS hop's canonical bytes
         }
         checkpoint::verify_logged(&anchored, hp.leaf_index, &pres.checkpoint, &hp.proof)?;
+        // Same cutoff, same reason: a hop is logged in this registrar's shard, so a distrusted registrar must not
+        // be able to keep minting delegations after the cutoff just because the passport predates it.
+        if let Some(cut) = reg.distrust_from_leaf {
+            if hp.leaf_index >= cut {
+                return Err(Reason::RegistrarDistrusted);
+            }
+        }
     }
 
     Ok(())
@@ -299,6 +325,7 @@ mod tests {
             RegistrarInfo {
                 issuer_key: issuer.public(),
                 log_root_key: root.public(),
+                distrust_from_leaf: None,
             },
         );
 
@@ -437,6 +464,7 @@ mod tests {
             RegistrarInfo {
                 issuer_key: issuer.public(),
                 log_root_key: root.public(),
+                distrust_from_leaf: None,
             },
         );
         let anchors = TrustAnchors { registrars };
@@ -625,6 +653,64 @@ mod tests {
         );
     }
 
+    /// D-044 graduated distrust. Three assertions, and the third is the one that matters.
+    ///
+    /// The Web PKI keyed its graduated distrusts on the certificate's own `notBefore`, and a CA was caught
+    /// BACKDATING certificates to slip under the cutoff — leaving the root program with nothing but a threat to
+    /// remove it outright. We key on the transparency-log leaf index instead, which the registrar cannot move
+    /// backwards because the log is append-only and witnessed. So the evasion that beat them is not available
+    /// here, and the third assertion is what proves it: a credential can lie about `nbf` all it likes and the
+    /// cutoff still bites, because the cutoff never looks at `nbf`.
+    #[test]
+    fn graduated_distrust_is_keyed_on_log_position_not_nbf() {
+        let f = build();
+
+        // (1) No cutoff → unchanged. A pure addition must not alter any existing verdict.
+        assert_eq!(verify(&f.present(), &f.anchors), Verdict::Valid);
+
+        let leaf = f.present().leaf_index;
+
+        // (2) Cutoff ABOVE this credential's leaf → still valid. This is the whole point of *graduated* distrust:
+        //     unwinding a registrar must not invalidate the work of everyone who relied on it beforehand.
+        let mut before = f.anchors.clone();
+        before
+            .registrars
+            .get_mut("registrar-01")
+            .unwrap()
+            .distrust_from_leaf = Some(leaf + 1);
+        assert_eq!(verify(&f.present(), &before), Verdict::Valid);
+
+        // (3) Cutoff AT this credential's leaf → refused, and refused for its own reason (never a generic
+        //     unknown_registrar: the registrar IS accredited, only its later work is repudiated).
+        let mut at = f.anchors.clone();
+        at.registrars
+            .get_mut("registrar-01")
+            .unwrap()
+            .distrust_from_leaf = Some(leaf);
+        assert_eq!(
+            verify(&f.present(), &at),
+            Verdict::invalid(Reason::RegistrarDistrusted)
+        );
+
+        // (4) The cutoff is NOT time-based. Moving the verifier's clock inside the validity window does not move
+        //     the credential relative to the cutoff — the comparison is `leaf_index` against `leaf_index`, and no
+        //     timestamp participates in it.
+        //
+        //     This is what closes the evasion that beat the Web PKI. There, the cutoff was the certificate's own
+        //     `notBefore`, and a CA backdated certificates to slip underneath it. Here the cutoff cannot be
+        //     reached by any date a registrar writes into a credential, because the check never reads one. That
+        //     property is structural — it is visible in the two lines that implement it, not something a test can
+        //     establish by itself — and this assertion pins the observable half: the verdict does not move when
+        //     the clock does.
+        let mut other_clock = f.present();
+        other_clock.now = 1_500;
+        assert_eq!(
+            verify(&other_clock, &at),
+            Verdict::invalid(Reason::RegistrarDistrusted),
+            "a log-position cutoff must not depend on the clock"
+        );
+    }
+
     #[test]
     fn logged_leaf_must_bind_to_claims() {
         // A validly-signed credential whose `log.leaf` references a REAL in-tree leaf that is NOT its own body must
@@ -678,6 +764,7 @@ mod tests {
             RegistrarInfo {
                 issuer_key: issuer.public(),
                 log_root_key: root.public(),
+                distrust_from_leaf: None,
             },
         );
         let anchors = TrustAnchors { registrars };

@@ -579,3 +579,57 @@ it stood into `gates.json`'s history, and regenerates the public table — so a 
 a quiet one. `campaign-status`
 reads the genesis board, `evidence/verifier/`, and `witnesses/candidates.json`; it writes to none of them, so no
 command in the campaign can move a Definition-of-Done row. An unreadable source prints `—`, never `0`.
+
+## D-044 — L5: graduated distrust of a registrar, keyed on log position rather than on a date
+
+*Problem:* an accreditation was binary. A registrar was in the dual-root-signed directory or removed from it, with
+no state in between — no suspended, no conformance-failing, no "we no longer stand behind what it issued from
+Tuesday onward". That is the mechanism by which a registry becomes decorative, and it has a well-documented
+endgame: a participant grows large enough that removing it breaks more than it fixes. The EU agency post-mortem of
+the 2011 root compromise named it outright — participants of that size are *"too large to fail"* — and unwinding
+one large certificate authority took **nineteen months** of graduated, date-keyed distrust staged across browser
+releases, precisely because instant removal was not executable.
+
+*Alternatives considered.* **(a) Keep it binary** and rely on removal — rejected: it makes every distrust decision
+maximally expensive, which in practice means it is deferred. **(b) Copy the `Recommended: Y/N` registry column**
+proposed (and never adopted) during the identifier-spec objections — rejected: the charter says the root *records
+facts, never judgment*, and a recommendation is a judgment. **(c) Key the cutoff on the credential's own `nbf`**,
+the way the web PKI did — rejected, and this is the interesting one.
+
+*Decision:* an optional `distrust_from_leaf` on the directory entry. Absent means fully trusted. Present means
+**refuse any credential this registrar logged at transparency-log leaf index ≥ n, while everything it logged before
+n keeps verifying.** New verdict reason `registrar_distrusted`, distinct from `unknown_registrar` because the
+registrar *is* accredited — only its later work is repudiated.
+
+*Why the log position and not a date.* The web PKI keyed its graduated distrusts on the certificate's own
+`notBefore`, and a CA was caught **backdating certificates to slip under the cutoff**; the root program's only
+remaining remedy was a published threat to remove it entirely if it happened again. A log index cannot be
+backdated. The log is append-only and witness-cosigned, so a registrar cannot move an entry earlier than it was
+written. This is the same control the web PKI needed, made unforgeable by machinery it did not have at the time.
+
+*Where the check sits, and why the order is load-bearing.* The cutoff is tested **after** inclusion has been
+proven, never before. `leaf_index` is only a fact once the inclusion proof shows the leaf really sits there;
+testing the cutoff earlier would let a presenter claim a low index and hand the attacker the control. All three
+implementations enforce it at that point, for the credential **and** for every delegation hop — otherwise a
+distrusted registrar could keep minting delegations after the cutoff under a passport that predates it.
+
+*Backward compatibility is mechanical, not asserted.* `signing_bytes()` canonicalises the directory struct, so a
+field serialising as `null` when unset would have changed the signed bytes of every directory already in existence
+and broken its dual-root signature. `skip_serializing_if` keeps absent absent, and `make genesis-verify` confirms
+the published directory still verifies dual-root-signed byte-for-byte.
+
+*The cutoff lives inside the signed body on purpose.* Only the root can set one, and it is published where anyone
+can read it — which is what makes it appealable rather than silent, per the Death rule.
+
+*Proven, not claimed.* Two conformance-vector families, 48 vectors, regenerated deterministically: 24 that must be
+refused, and 24 with the cutoff one index **above** the credential that must still be **valid**. The second family
+is what makes the first mean anything — without it, "graduated" would be indistinguishable from "removed". The
+four-way differential agrees 793/793 (core ↔ sdk-ts ↔ node CLI ↔ py).
+
+*And the differential earned its keep on the first run.* It caught sdk-ts returning `valid` where the core returned
+`registrar_distrusted`, because the wire field is snake_case and the TypeScript surface is camelCase and the
+conversion did not map it. A capability implemented in the reference and silently missing from an SDK is exactly the
+class of gap this project keeps finding; here the gate found it within a minute of the vectors existing.
+
+*Status:* NEW. Not yet exercised operationally — no registrar carries a cutoff today, and setting one is a root
+decision under the charter's due-process and appeal requirements.

@@ -81,27 +81,48 @@ One vendor ships **100%** of revocations in ~300 kB/day; another ships a curated
 **AINRA: immune.** The status list is a complete per-registrar bitmap. Nothing selects which revocations are
 distributed, so nothing can select wrongly.
 
-### ⚠ The arrow still pointed at us: validity length as the *primary* control
+### ⚠ CORRECTED — validity length, and the rung that is missing underneath it
 
-This is the strongest finding in the whole corpus, and the one place AINRA is carrying the old number.
+**My first pass had this wrong, and the correction is worth more than the recommendation was.**
 
-After twenty years the standards body wrote down that revocation cannot be made reliable, and re-architected
-around expiry ([cabforum, 11 Apr 2025](https://cabforum.org/2025/04/11/ballot-sc081v3-introduce-schedule-of-reducing-validity-and-data-reuse-periods/)):
+After twenty years the standards body wrote down that revocation cannot be made reliable, and re-architected around
+expiry ([cabforum, 11 Apr 2025](https://cabforum.org/2025/04/11/ballot-sc081v3-introduce-schedule-of-reducing-validity-and-data-reuse-periods/)):
 
-> *"Certificate status services are unreliable also due to the need for action to be taken by multiple parties in
-> order for those statuses to be effective… Both real-time access to certificate status services and the
-> correctness/completeness of the information provided by those certificate status services are unreliable to some
-> degree. **Certificate validity periods, and their enforcement by relying parties, are incredibly reliable.**"*
+> *"Certificate status services are unreliable also due to **the need for action to be taken by multiple parties**
+> in order for those statuses to be effective… **Certificate validity periods, and their enforcement by relying
+> parties, are incredibly reliable.**"*
 
-Maximum validity is dropping **398 → 47 days** between March 2026 and March 2029.
+Maximum validity is dropping **398 → 47 days** by 2029. AINRA's default is **366 days**
+([`consts.rs:16`](../crates/ainra-core/src/consts.rs)). I flagged that as the pre-conclusion web number.
 
-**AINRA's default is 366 days** —
-[`consts.rs:16`](../crates/ainra-core/src/consts.rs): `PASSPORT_VALIDITY_DEFAULT_SECS = 366 * 24 * 60 * 60`.
+**It is not.** It is ADR-017, a deliberate inversion made in full knowledge of the web-PKI trade, and its stated
+reason is correct:
 
-Our revocation is far better than the one that failed — fail-closed, offline, sub-minute in drills. But the lesson
-is not "have good revocation"; it is that **expiry needs no one to act, and revocation needs everyone to act.**
-366 days is the *pre-conclusion* web number, and an autonomous agent is a shorter-lived thing than a web server.
-See recommendation **R1**.
+> *"Why long validity is affordable here: revocation **fails closed in <60 s**… the opposite of Web PKI, whose
+> shrinking certificates compensate for revocation that fails open. Short certs are what you need when revocation
+> doesn't work; ours does."*
+
+The forum's argument turns on *"action to be taken by multiple parties"*. In the web PKI, suppressing status
+yielded **valid** — so an attacker who blocked the check won. In AINRA, suppressing status yields **invalid**,
+because freshness is bounded and fails closed. The adversary cannot benefit from silence. **The inversion is
+sound, and it is earned by code, not asserted.**
+
+**But it is only half the ladder.** ADR-017's ladder is: identity eternal → passport 366 d → delegate ≤92 d →
+**instance credentials minutes–hours** → freshness seconds. Revocation answers **detected** compromise, and AINRA's
+answer there is excellent. The instance-credential rung was the answer to **undetected** compromise — a stolen key
+nobody has noticed, where there is nothing to revoke because nobody knows.
+
+`INSTANCE_CRED_DEFAULT_SECS = 1 hour` is declared in `consts.rs` and **used nowhere in the codebase**. Its own
+comment says so: *"RESERVED: the instance-credential layer… is future work."*
+
+So today the passport is **both** the identity document and the runtime credential — the one role ADR-017 argues a
+long-lived credential should not play. The undetected-compromise window is therefore **366 days, not one hour**,
+and the top rung is load-bearing in a way the decision record did not intend.
+
+**The fix is not to shorten the passport.** That would trade away a sound design to patch a missing layer. The fix
+is R1 below: build the bottom rung, or say plainly that the passport is currently the runtime credential and size
+it for that job. What must not happen is the ladder continuing to be cited as a defence while one rung of it does
+not exist.
 
 ---
 
@@ -295,7 +316,7 @@ Nothing below is implemented in this pass. Each names what it protects against a
 
 | | Recommendation | Protects against | Cost |
 |---|---|---|---|
-| **R1** | **Cut the default passport validity.** 366 days is the pre-conclusion web number. Pick a ceiling justified against the measured revocation SLA, and publish both numbers together — as ETSI does, where a 24-hour revocation deadline makes revocation pointless below 24-hour validity. | The one control that needs nobody to act | Constant + fixtures + 745 vectors re-pinned; a decision record. **Not a tail-end edit.** |
+| **R1** | **Build the instance-credential rung, or stop citing it.** ADR-017 makes a 366-day passport safe *because* a running copy holds a minutes-to-hours credential. That rung is declared and unimplemented, so the passport is currently the runtime credential too. Either implement it, or amend ADR-017 to say the passport plays both roles and re-derive its lifetime for that. | Undetected key compromise — the case revocation cannot help, because nobody knows to revoke | New credential layer, or an ADR amendment. **Do not "fix" this by shortening the passport** — that trades away a sound design to patch a missing layer. |
 | **R2** | **Graduated, date-keyed distrust of a registrar.** Add a signed accreditation state carrying "distrust credentials issued after T". | A registrar too large to remove; a registry with no state between listed and gone | Signed-artifact shape change + migration; D-0xx |
 | **R3** | **A mechanical disclosure deadline in the accreditation terms** — public report within N hours, no severity threshold, *"regardless of perceived impact"*. | The failure mode that actually killed two CAs: concealment | Governance text; no code |
 | **R4** | **Since we cannot measure trust-anchor deployment (charter), over-engineer reversibility.** Before any root roll: publish a quantitative rollback threshold in advance, keep the old anchor live until the new one is proven, revoke only a full quarter later. | Rolling blind into a 5%-breakage cliff | Ceremony runbook + a published threshold |
@@ -317,5 +338,7 @@ The open items are mostly **governance, not engineering** — witnesses, registr
 a rollback threshold. That is the right shape for a project whose engineering is finished and whose remaining risk
 is entirely in the world.
 
-The exception is **R1**, which is engineering, and which says the industry that invented this problem concluded
-the opposite of what our default currently encodes.
+The exception is **R1**, and it is the one this audit got wrong on the first pass. The industry that invented this
+problem did conclude the opposite of what our default encodes — but we inverted it deliberately, and the inversion
+is sound because our revocation fails closed where theirs failed open. What is not sound is citing a five-rung
+ladder while one rung is declared and unbuilt. Finding that was worth more than the recommendation I started with.

@@ -318,7 +318,10 @@ passes would inflate the score.
 
 ## Recommendations, in priority order
 
-Nothing below is implemented in this pass. Each names what it protects against and what it costs.
+Written as an unimplemented list; **five of the seven are now done** and struck through where they are, each
+with the decision or file that closed it. The two that remain are the two that were never code: **R1** is a
+design question with a real answer either way, and **R6** is people. Each row still names what it protects
+against and what it cost.
 
 | | Recommendation | Protects against | Cost |
 |---|---|---|---|
@@ -340,9 +343,27 @@ soft-fail is a `MUST` in code with no flag to relax it. The format fragmentation
 a fifth specification was avoided by holding one. Test and production keys are separated by type, not by
 convention.
 
-The open items are mostly **governance, not engineering** — witnesses, registrar standing, disclosure deadlines,
+The open items were mostly **governance, not engineering** — witnesses, registrar standing, disclosure deadlines,
 a rollback threshold. That is the right shape for a project whose engineering is finished and whose remaining risk
 is entirely in the world.
+
+## What settling them actually cost
+
+Four of the five closed rows took a day, which is the real argument for doing this early: the arrows are documented,
+the fixes are small when nothing is deployed on top of them, and every one of them would be a migration later.
+D-044 was 48 vectors across four implementations. D-045 was one file and one refusal. D-046 was a kit and four
+dishonest registrars. The two documents were an afternoon each and they are worth as much as the code, because the
+failures they address are conduct failures.
+
+The pattern worth carrying forward is not any single arrow. It is that **each of these was found by asking what the
+people who went first were forced to admit afterwards**, and every one of those admissions is public. Reading them
+was cheaper than earning them.
+
+One more, from this pass rather than from the record: **when you write a check, name the witness and ask whether it
+could observe the failure.** The probe's own controls caught two of my checks asserting things that could not have
+been false — a constant offset called a rewind, and a deleted inclusion proof in a tree with one leaf. Both would
+have shipped as green. A check that has never been shown failing is decoration, and the only way to know which kind
+you have is to build the dishonest version and point the check at it.
 
 The exception is **R1**, and it is the one this audit got wrong on the first pass. The industry that invented this
 problem did conclude the opposite of what our default encodes — but we inverted it deliberately, and the inversion

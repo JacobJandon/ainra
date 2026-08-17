@@ -27,7 +27,8 @@ const main = async () => {
   // being handed {"error":"unknown subject"} and dutifully rejecting it as malformed — a true statement about the
   // bytes and a completely misleading statement about the network. Separate the two before verifying anything.
   const bundle = await j(`${REG}/present?sub=${encodeURIComponent(SUB)}&now=${NOW}`).catch((e) => ({ error: String(e) }));
-  if (!bundle || bundle.error || !bundle.presentation) {
+  // `/present` returns the presentation FLAT — claims/checkpoint/issuer_sig at top level, never wrapped.
+  if (!bundle || bundle.error || !bundle.claims) {
     console.log(`  ✗ ${SUB} could NOT BE FETCHED from the registrar: ${bundle?.error ?? "no presentation in response"}`);
     console.log(`     This is a NETWORK/STATE problem, not a cryptographic one — the registrar does not have this`);
     console.log(`     subject. If the published record lists it, the registrar has regressed behind the record.`);

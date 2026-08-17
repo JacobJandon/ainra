@@ -168,7 +168,7 @@ fn main() {
         seed ^= u64::from(b);
         seed = seed.wrapping_mul(0x0000_0100_0000_01b3);
     }
-    let mut rng = ChaCha20Rng::seed_from_u64(seed);
+    let rng = ChaCha20Rng::seed_from_u64(seed);
     // RELOAD BEFORE CREATE. This binary used to call `create` unconditionally, which meant the daemon started with
     // an EMPTY set of issued records on every single start — for the whole life of the systemd stage. The keys are
     // derived deterministically from the id above, so `/accreditation` always matched the published directory and

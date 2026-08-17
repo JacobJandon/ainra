@@ -92,7 +92,7 @@ install)
   probe_sub=$(curl -s -m 5 "http://127.0.0.1:$ART_PORT/registry.json" 2>/dev/null \
     | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const r=JSON.parse(s);for(const R of r.registrars||[])for(const e of R.records||[]){const x=e.record?.sub||e.sub;if(x){console.log(x);process.exit(0)}}}catch{}})' 2>/dev/null)
   if [ -n "$probe_sub" ]; then
-    if curl -s -m 5 "http://127.0.0.1:${REG1_ADDR##*:}/present?sub=$(node -e 'process.stdout.write(encodeURIComponent(process.argv[1]))' "$probe_sub")&now=1776729600" 2>/dev/null | grep -q '"presentation"'; then
+    if curl -s -m 5 "http://127.0.0.1:${REG1_ADDR##*:}/present?sub=$(node -e 'process.stdout.write(encodeURIComponent(process.argv[1]))' "$probe_sub")&now=1776729600" 2>/dev/null | grep -q '"claims"'; then
       seeded=1
     else
       echo "!! the published record lists $probe_sub but the registrar cannot present it —"
@@ -152,8 +152,24 @@ health)
     printf "  %-42s %s\n" "linger (survives logout/reboot)" \
       "$(loginctl show-user "$USER" -p Linger 2>/dev/null | cut -d= -f2 || echo unknown)"
   fi
+  # THE QUESTION THE OTHER PROBES CANNOT ASK. Everything above checks that a process is listening and that the read
+  # contract answers — and all of it passed for the entire life of a stage whose registrars could not present a
+  # single passport the published record listed. Liveness is not usefulness. So ask the network to do the one thing
+  # it exists to do: take a subject out of the published record and present it.
+  probe_sub=$(curl -s -m 5 "http://127.0.0.1:$ART_PORT/registry.json" 2>/dev/null \
+    | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const r=JSON.parse(s);for(const R of r.registrars||[])for(const e of R.records||[]){const x=e.record?.sub||e.sub;if(x){console.log(x);process.exit(0)}}}catch{}})' 2>/dev/null)
+  if [ -n "$probe_sub" ]; then
+    if curl -s -m 8 "http://127.0.0.1:${REG1_ADDR##*:}/present?sub=$(node -e 'process.stdout.write(encodeURIComponent(process.argv[1]))' "$probe_sub")&now=1776729600" 2>/dev/null | grep -q '"claims"'; then
+      printf "  %-42s %s\n" "registrar can present a published subject" "yes"
+    else
+      printf "  %-42s %s\n" "registrar can present a published subject" "NO — record and registrar disagree"
+      echo "     $probe_sub is in the published record but the registrar cannot present it."
+      echo "     The record is unhonourable. Reseed: make stage-install   (it now detects this)"
+      fail=1
+    fi
+  fi
   echo "────────────────────────────────────────────────────────────"
-  if [ "$fail" = "0" ]; then echo "  ALL UP — the network answers its public read contract."
+  if [ "$fail" = "0" ]; then echo "  ALL UP — the network answers its public read contract AND can honour it."
   else echo "  DEGRADED — the site's honest offline states are what a visitor should now see."; fi
   echo "  Availability: runs whenever this machine is on. Binds 127.0.0.1 — not reachable from the internet."
   exit $fail

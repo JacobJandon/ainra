@@ -54,7 +54,7 @@ if [ "$MODE" = "check" ]; then
     REG_URL="${AINRA_REG:-http://127.0.0.1:4907}"
     body=$(curl -s -m 10 "$REG_URL/present?sub=$(node -e 'process.stdout.write(encodeURIComponent(process.argv[1]))' "$first_sub")&now=1776729600" 2>/dev/null)
     case "$body" in
-      *'"presentation"'*) echo "site-net: registrar can present a sampled subject from the record" ;;
+      *'"claims"'*) echo "site-net: registrar can present a sampled subject from the record" ;;
       *) echo "site-net: DRIFT — the record lists a subject the registrar cannot present:"
          echo "site-net:   subject : $first_sub"
          echo "site-net:   answer  : $(printf '%s' "$body" | head -c 120)"

@@ -1,4 +1,6 @@
 [Unit]
+# systemd parses StartLimitIntervalSec in [Unit], not [Service]; it was ignored on every start since M27.
+StartLimitIntervalSec=0
 Description=AINRA staging witness (cosigns log checkpoints)
 Documentation=https://github.com/JacobJandon/ainra/blob/main/deploy/systemd/README.md
 PartOf=ainra-stage.target
@@ -12,7 +14,6 @@ ExecStart=%h/Desktop/Solvatron/ainra/target/release/witnessd ${WIT_ADDR} deploy/
 
 Restart=always
 RestartSec=3
-StartLimitIntervalSec=0
 
 StandardOutput=journal
 StandardError=journal

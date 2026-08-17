@@ -1,4 +1,9 @@
 [Unit]
+# systemd parses StartLimitIntervalSec in [Unit], NOT [Service]. It sat in [Service] since M27 and was
+# logged as "Unknown key 'StartLimitIntervalSec' in section [Service], ignoring" on every single start — so the
+# setting the M27 notes describe as deliberate had never once taken effect. A machine that wakes with a briefly
+# unavailable dependency must converge on running, not land in a permanently failed state only a human notices.
+StartLimitIntervalSec=0
 # One AINRA staging registrar door. Templated: the instance name IS the registrar id, e.g.
 #   systemctl --user start ainra-registrar@registrar-07
 # The address per instance comes from deploy/systemd/env/<id>.env, written by tools/stage-install.sh.
@@ -19,7 +24,6 @@ Restart=always
 RestartSec=3
 # Do not give up after repeated fast failures — a machine that wakes with a briefly-unavailable dependency must
 # still converge on running, not land in a permanently failed state that only a human notices days later.
-StartLimitIntervalSec=0
 
 # Logs go to the journal, which already rotates and is size-capped. Writing our own files under stage/ would
 # grow unbounded and need a logrotate config nobody would remember to install.

@@ -892,7 +892,7 @@ export type PresentationBundle = WireVector["presentation"];
 /** Decode a wire presentation into verify inputs. `now` and `revoked` are supplied by the CALLER (the verifier's
  * own clock + the trusted directory's revoked-delegate set) — a presenter cannot dictate either. Throws `Reject`
  * on a malformed status list (fail closed); other decode errors propagate for the caller's try/catch. */
-function decodePresentation(pr: PresentationBundle, revoked: Set<string>, now: number): Presentation {
+function decodePresentation(pr: PresentationBundle, revoked: Set<string>, now: number, audience: string): Presentation {
   return {
     claims: dec(pr.claims),
     issuerSig: { ed25519: dec(pr.issuer_sig.ed25519), mldsa65: dec(pr.issuer_sig.mldsa65) },
@@ -927,7 +927,7 @@ function decodePresentation(pr: PresentationBundle, revoked: Set<string>, now: n
           },
         }
       : undefined,
-    audience: pr.audience ?? "",
+    audience,
   };
 }
 
@@ -951,7 +951,7 @@ export function runVector(v: WireVector): Verdict {
     // Canonicalise the trusted revoked-delegate fingerprints so the byte-set comparison against
     // `certFingerprintB64` is exact regardless of the wire encoding (review parity fix).
     const revoked = new Set(decodeFingerprints(pr.revoked_delegates ?? []) ?? (pr.revoked_delegates ?? []));
-    return verify(decodePresentation(pr, revoked, pr.now), anchors);
+    return verify(decodePresentation(pr, revoked, pr.now, pr.audience ?? ""), anchors);
   } catch (e) {
     if (e instanceof Reject) return invalid(e.reason);
     throw e;
@@ -1085,14 +1085,19 @@ export class Verifier {
   readonly freshness: FreshnessClass;
   /** Currency mode: require + verify + head-hash-bind the fresh head and enforce a monotonic seq (D-021, M6). */
   readonly currency: boolean;
+  /** This verifier's own audience (ADR-019). An instance credential addressed elsewhere is refused. Empty string
+   *  = this verifier accepts no instance credentials, which is the fail-closed default: a service that has not
+   *  said who it is cannot be the intended recipient of anything. */
+  readonly audience: string;
   /** Per-uri highest fresh-head `seq` this verifier has observed (currency mode). A lower seq is a replay. */
   private readonly seqSeen: Map<string, number> = new Map();
-  private constructor(acc: AccreditedSet, freshness: FreshnessClass, currency: boolean) {
+  private constructor(acc: AccreditedSet, freshness: FreshnessClass, currency: boolean, audience: string) {
     this.anchors = acc.anchors;
     this.revokedDelegates = acc.revokedDelegates;
     this.epoch = acc.epoch;
     this.freshness = freshness;
     this.currency = currency;
+    this.audience = audience;
   }
   /** Verify the dual-root-signed directory and build a Verifier; `null` if the directory is not authentic.
    *  `freshness` sets the verifier's own status-freshness policy (default `"F2"` = 5 min). `currency` (default
@@ -1103,9 +1108,10 @@ export class Verifier {
     rootSlh: Uint8Array,
     freshness: FreshnessClass = "F2",
     currency = false,
+    audience = "",
   ): Verifier | null {
     const acc = verifyDirectory(d, rootEd25519, rootSlh);
-    return acc === null ? null : new Verifier(acc, freshness, currency);
+    return acc === null ? null : new Verifier(acc, freshness, currency, audience);
   }
   /** Convenience: build from a directory + the ceremony's base64url root keys (as published in `roots.json`). */
   static fromDirectoryB64(
@@ -1114,6 +1120,7 @@ export class Verifier {
     rootSlhB64: string,
     freshness: FreshnessClass = "F2",
     currency = false,
+    audience = "",
   ): Verifier | null {
     let ed: Uint8Array, slh: Uint8Array;
     try {
@@ -1122,7 +1129,7 @@ export class Verifier {
     } catch {
       return null;
     }
-    return Verifier.fromDirectory(d, ed, slh, freshness, currency);
+    return Verifier.fromDirectory(d, ed, slh, freshness, currency, audience);
   }
   /** Verify one presentation at the verifier's own `now` (unix seconds). The verifier supplies the clock, the
    * directory's revoked-delegate set, its own freshness policy, and an EMPTY mandate-revocation set; and it
@@ -1149,7 +1156,7 @@ export class Verifier {
       if (this.currency) authenticateCurrency(info, bundle, now, this.seqSeen);
 
       // The status list is now proven to be exactly what the registrar signed; decompress it and run full verify.
-      const pres = decodePresentation(bundle, this.revokedDelegates, now);
+      const pres = decodePresentation(bundle, this.revokedDelegates, now, this.audience);
       // Presenter-controlled fields the verifier MUST override (fail-safe defaults, not the bundle's word):
       //  · mandate revocations — a presenter must not be able to drop a revocation; M5 GA has no dynamic mandate
       //    feed, so the authenticated set is empty (static mandates in the signed passport are still enforced).
@@ -1160,6 +1167,12 @@ export class Verifier {
       //    it exceeds the window — that is the stapled-snapshot model's inherent latency, closed to sub-window by the
       //    (M6) fresh-head binding. Choose F1 for hot revocation paths.
       pres.freshness = this.freshness;
+      //  · AUDIENCE (ADR-019) — supplied as an ARGUMENT to decodePresentation above, never read off the bundle.
+      //    The bundle carries an `audience` field so the CONFORMANCE CORPUS can pin audience cases
+      //    deterministically, and the first version of this class passed that field straight through: a presenter
+      //    could set it to match a stolen credential's `aud` and audience binding would stop nothing. It was first
+      //    fixed by overriding the field after decode — but an override is a line a future edit can drop, so the
+      //    decoder no longer reads the field at all. A field nobody reads cannot be forgotten.
       return verify(pres, this.anchors);
     } catch (e) {
       if (e instanceof Reject) return invalid(e.reason);
@@ -1405,4 +1418,76 @@ export function verdictEvent(
 /** Canonical serialization — fixed key order, compact. MUST byte-match the Rust `ainra verify --event` emitter. */
 export function serializeVerdictEvent(e: VerdictEvent): string {
   return JSON.stringify({ status: e.status, reason: e.reason, name: e.name, number: e.number, tier: e.tier, freshness_age_s: e.freshness_age_s });
+}
+
+// ── ADR-019 helpers: mint an instance credential, and present as a running copy ──────────────────────────────────
+//
+// These are the ergonomics half of the rung. Without them the credential exists in the verifier and nowhere else,
+// and "build the rung" would mean "make it possible to verify something nobody can produce".
+
+/** A hybrid keypair as these helpers take it: the two secret keys plus the two public keys. Signing lives in the
+ *  caller's crypto (node:crypto + a FIPS-204 library) because this SDK is a VERIFIER and holds no signing code —
+ *  the same reason it has no key generation. Pass a `sign` callback and keep your secrets out of this library. */
+export type HybridSigner = (msg: Uint8Array) => Promise<HybridSig> | HybridSig;
+
+/** Mint an instance credential for one running copy.
+ *
+ * `controlSign` MUST be the passport's control key — the key ADR-019 says never enters the container. Run this on
+ * the issuing side (an orchestrator, an init container, a sidecar with a mount the workload cannot read), hand the
+ * result plus the instance SECRET into the container, and hand nothing else.
+ *
+ * `lifetimeSecs` is clamped to the ADR-019 ceiling here as a convenience; the verifier enforces it regardless, so
+ * this clamp is a courtesy to the caller and not the control. */
+export async function mintInstanceCredential(args: {
+  passportClaimsB64: string;
+  instancePublic: HybridPublic;
+  capabilities: string[];
+  audience: string;
+  now: number;
+  lifetimeSecs?: number;
+  iid: string;
+  controlSign: HybridSigner;
+}): Promise<InstanceCredential> {
+  const claims = strictB64u(args.passportClaimsB64);
+  if (!claims) throw new Error("passportClaimsB64 is not canonical base64url");
+  const parsed = JSON.parse(new TextDecoder().decode(claims)) as { sub: string; capabilities: string[] };
+  const life = Math.min(args.lifetimeSecs ?? INSTANCE_CRED_DEFAULT_SECS, INSTANCE_CRED_DEFAULT_SECS);
+  // Narrowing is the caller's job to get right, but minting something the verifier will certainly refuse is a
+  // silent trap, so it is refused here where the error can name the capability.
+  const extra = args.capabilities.filter((c) => !parsed.capabilities.includes(c));
+  if (extra.length) throw new Error(`instance capabilities must narrow: ${extra.join(", ")} not held by the passport`);
+  const ic: InstanceCredential = {
+    sub: parsed.sub,
+    iid: args.iid,
+    ikey: args.instancePublic,
+    nbf: args.now,
+    exp: args.now + life,
+    capabilities: args.capabilities,
+    aud: args.audience,
+    passportLeaf: prelogLeaf(claims),
+    sig: { ed25519: new Uint8Array(), mldsa65: new Uint8Array() },
+  };
+  ic.sig = await args.controlSign(instanceSigningBytes(ic));
+  return ic;
+}
+
+/** Produce the proof-of-possession a running copy sends with each presentation.
+ *
+ * `instanceSign` is the container's own key — the ONLY key material ADR-019 puts in the container. A fresh `nonce`
+ * per presentation is the caller's responsibility: this SDK binds it into the signed bytes so single-use CAN be
+ * enforced, and enforces nothing itself, because a replay cache is state. */
+export async function proveInstancePossession(args: {
+  audience: string;
+  nonce: string;
+  now: number;
+  instanceSign: HybridSigner;
+}): Promise<InstancePop> {
+  const pop: InstancePop = {
+    aud: args.audience,
+    nonce: args.nonce,
+    ts: args.now,
+    sig: { ed25519: new Uint8Array(), mldsa65: new Uint8Array() },
+  };
+  pop.sig = await args.instanceSign(popSigningBytes(pop));
+  return pop;
 }

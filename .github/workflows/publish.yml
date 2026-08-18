@@ -39,6 +39,7 @@ jobs:
   preflight:
     name: preflight — nothing publishes over a red board
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions: { contents: read }
     steps:
       # fetch-depth: 0 is LOAD-BEARING, not a habit. checkout@v4 clones shallow and WITHOUT tags, so the D-040 gate
@@ -76,6 +77,7 @@ jobs:
     needs: preflight
     if: startsWith(inputs.target, 'npm-')
     runs-on: ubuntu-latest          # provenance requires a GitHub-hosted runner
+    timeout-minutes: 20
     permissions:
       contents: read
       id-token: write               # mints the OIDC token that IS the credential
@@ -133,6 +135,7 @@ jobs:
     needs: preflight
     if: inputs.target == 'pypi'
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     environment: pypi               # the publisher binds to this environment name
     permissions:
       contents: read
@@ -152,6 +155,7 @@ jobs:
     needs: preflight
     if: inputs.target == 'dry-run'
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions: { contents: read, id-token: write }
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262   # v4

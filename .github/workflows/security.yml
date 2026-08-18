@@ -12,6 +12,7 @@ jobs:
   audit:
     name: cargo-audit — RustSec advisories against Cargo.lock
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions: { contents: read }
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262   # v4
@@ -33,6 +34,7 @@ jobs:
   trivy:
     name: trivy — vulns + secrets across cargo/npm/pip
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions: { contents: read, security-events: write }
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262   # v4
@@ -50,22 +52,32 @@ jobs:
         with: { sarif_file: trivy.sarif }
 
   miri:
-    name: miri — undefined behaviour in the hand-rolled parsers
+    name: miri — undefined behaviour in the byte-handling code
     runs-on: ubuntu-latest
+    # WITHOUT THIS LINE THE JOB CANNOT FAIL — it can only be killed. This job ran `cargo miri test --lib` over the
+    # whole suite, which never completes (measured: >900s for a 15-minute cap, and the suite is far larger than
+    # that). With no limit set, every run walked into GitHub's 6-hour ceiling and was killed, and GitHub labels
+    # that `cancelled` — which reads like a person cancelled it, not like a broken check. The security workflow
+    # went 40 consecutive runs without once concluding success and nobody noticed, because "cancelled" is not a
+    # colour anyone reads as red. The scoped run below takes ~2 minutes; 20 is generous headroom on a cold runner
+    # and still fails loudly instead of expiring.
+    timeout-minutes: 20
     permissions: { contents: read }
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262   # v4
       - name: nightly + miri
         run: rustup toolchain install nightly --component miri && rustup default nightly
-      # The verify path parses attacker-controlled bytes (CBOR/COSE, base64url, inclusion proofs). Miri catches
-      # UB, out-of-bounds and alignment faults that a passing test suite happily hides.
       - run: cargo +nightly miri setup
-      - run: cargo +nightly miri test -p ainra-core --lib
-        env: { MIRIFLAGS: "-Zmiri-disable-isolation" }
+      # The verify path parses attacker-controlled bytes (CBOR/COSE, base64url, inclusion proofs). Miri catches
+      # UB, out-of-bounds and alignment faults that a passing test suite happily hides. WHICH tests, and why the
+      # expensive ones are excluded, lives in the script — with the measurements — so CI and a developer run the
+      # identical check. `make miri` is the same command.
+      - run: bash tools/miri-parsers.sh
 
   fuzz:
     name: clusterfuzzlite — continuous fuzzing on the parsers
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions: { contents: read, security-events: write }
     strategy:
       fail-fast: false

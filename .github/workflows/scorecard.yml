@@ -12,6 +12,7 @@ jobs:
   analysis:
     name: Scorecard analysis
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       security-events: write   # upload the SARIF result to the security tab
       id-token: write          # publish the result so the badge can resolve it

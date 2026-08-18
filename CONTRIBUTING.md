@@ -39,7 +39,7 @@ Four independent implementations — the Rust core, the TypeScript SDK, the refe
 must agree **byte-for-byte on every vector, on verdict *and* reason**. That agreement is the product; a PR that
 touches verify logic is judged against it first:
 
-1. **`make diff` stays green.** All four columns, the full corpus (`745` passport + `17` delta + `9` directory).
+1. **`make diff` stays green.** All four columns, the full corpus (`793` passport + `17` delta + `9` directory).
    A disagreement is not a "flaky test" — it is either a bug in your change or a real ambiguity in the Standard, and
    both outcomes need writing down before the PR moves.
 2. **Any corpus delta is explained in the PR body.** If your change adds, removes, or alters vectors, say which and

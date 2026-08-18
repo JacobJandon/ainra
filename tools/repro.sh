@@ -5,7 +5,7 @@
 # starts from nothing, this catches not just byte drift but ALSO orphan/planted committed files a fresh build never
 # produces (the M7-review HIGH: an in-place regen would launder such files as "reproducible"). Asserts
 # committed == clean-rebuild-1 == clean-rebuild-2, then writes MANIFEST.sha256 (the canonical content list).
-# Covers the path-independent spec artifacts (CC0 corpus + sample book); NOT the tsc dist — see REPRODUCIBILITY.md.
+# Covers the path-independent spec artifacts (CC0 corpus + sample book); NOT the tsc dist — see ARTIFACTS.md § reproducibility.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 

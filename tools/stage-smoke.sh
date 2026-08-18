@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: Apache-2.0 OR MIT
 # make stage-smoke — end-to-end against the LIVE staging deployment: issue → log → verify via the public artifact
-# contract (in the real SDK) → revoke → propagation, plus the ARTIFACT-CONTRACT header assertions. Real output.
+# contract (in the real SDK) → revoke → propagation, plus the ARTIFACTS.md contract header assertions. Real output.
 set -uo pipefail
 cd "$(dirname "$0")/.."
 REG=127.0.0.1:4907 ; RID=registrar-07 ; ART=http://127.0.0.1:8091 ; NOW=$((1775865600 + 10*24*3600))

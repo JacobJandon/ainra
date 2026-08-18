@@ -274,7 +274,7 @@ A signing tool accepted a log entry that did not reference the artifact (2022, `
 [`verify.rs:188-197`](../crates/ainra-core/src/verify.rs) recomputes the leaf from the credential's own bytes and
 refuses a mismatch — *"the echoed leaf is not this credential's body"* — before checking inclusion, and does the
 same for **every delegation hop**. The unit test names the failure it guards; conformance vector
-`not-logged-binding-0001` runs in the **745-vector corpus across four implementations** on every board. Their
+`not-logged-binding-0001` runs in the **793-vector corpus across four implementations** on every board. Their
 regression tests were added after the second incident; ours exist before the first.
 
 ### The arrow: a core nobody can resolve, and a registry that means nothing
@@ -297,7 +297,7 @@ government profile demoted one data model to *optional*, and stated why: *"Suppo
 attack surfaces"* and *"Relying Parties would need to support multiple verification pathways."*
 
 **AINRA: immune.** One format (ADR-004), with the linked-data alternative rejected explicitly for
-*"canonicalization attack/fragility surface"*. One rulebook, 745 vectors under it.
+*"canonicalization attack/fragility surface"*. One rulebook, 793 vectors under it.
 
 ### Not applicable — and why, rather than claiming a win
 

@@ -12,7 +12,7 @@ secret key components **s2** (`(&w - &cs2).low_bits()`) and **t0** (`Hint::new()
 
 **It is a signing-side leak.** Verification consumes only public inputs — public key, signature, message — so a
 verifier has no secret for the timing to leak. That is the honest scope, and it is written down in
-[`SECURITY-ADVISORIES.md`](../SECURITY-ADVISORIES.md) with the code paths that put us on each side of the line.
+[`SECURITY-ADVISORIES.md`](../../../SECURITY-ADVISORIES.md) with the code paths that put us on each side of the line.
 
 **Scoping is not softening.** The signing side is real and it is ours: registrar issuance, the ceremony delegates,
 and the CLI all sign. The fix was taken in full.
@@ -21,8 +21,8 @@ and the CLI all sign. The fix was taken in full.
 
 The 745 conformance vectors were generated *by* the vulnerable crate, so they cannot adjudicate a change to it.
 Before touching the dependency, NIST's own ML-DSA-65 answers were wired in as
-[`vectors/nist/ml-dsa-65-fips204-kat.json`](../vectors/nist/ml-dsa-65-fips204-kat.json), driven by
-[`crates/ainra-core/tests/fips204_kat.rs`](../crates/ainra-core/tests/fips204_kat.rs):
+[`vectors/nist/ml-dsa-65-fips204-kat.json`](../../../vectors/nist/ml-dsa-65-fips204-kat.json), driven by
+[`crates/ainra-core/tests/fips204_kat.rs`](../../../crates/ainra-core/tests/fips204_kat.rs):
 
 * **keyGen** — a seed expands to the byte-exact public and secret key NIST specifies.
 * **sigGen** — deterministic signing reproduces NIST's signature byte for byte. Not "a valid signature", *the* signature.
@@ -54,7 +54,7 @@ ML-DSA implementations agreeing.
 
 **(b) needed care.** The regenerated corpus came out **byte-identical** — Barrett reduction computes the same
 value the division did — which makes "the vectors still pass" an easy test to pass. That is why (d) exists:
-[`tools/interop-verify.mjs`](../tools/interop-verify.mjs) signs genuinely novel material under a seed the corpus
+[`tools/interop-verify.mjs`](../../../tools/interop-verify.mjs) signs genuinely novel material under a seed the corpus
 has never used and has the other two implementations check it. **No vector was ever regenerated to clear a red.**
 
 ### A dependency removed, decided on evidence
@@ -111,7 +111,7 @@ A red job reads as "the check found something". Two of those three meant "the ch
   of the checks Scorecard scores, so this is both the fix and a point on the thing being fixed.
 * **`cargo-audit` reports everything before it gates.** An informational pass that always succeeds runs first, so
   the whole picture reaches the log; the deny-pass is the gate. One notice can never hide another again.
-* **The rule is written into [`CONTRIBUTING.md`](../CONTRIBUTING.md)** — *a check that has never passed does not
+* **The rule is written into [`CONTRIBUTING.md`](../../../CONTRIBUTING.md)** — *a check that has never passed does not
   exist* — with the interop harness's vacuous comparison as the worked example.
 
 ### The worked example, because it is the sharpest one
@@ -135,7 +135,7 @@ would have caught a functional regression in either direction, and it now runs o
 Publishing did not happen this session, and it is blocked on two things that are the maintainer's to do. Neither
 is a defect; both are gates behaving correctly.
 
-> **Superseded — see [`PUBLISHING.md`](PUBLISHING.md).** Blocker 2 below was cleared in L4 (v0.3.3), and the
+> **Superseded — see [`PUBLISHING.md`](../../PUBLISHING.md).** Blocker 2 below was cleared in L4 (v0.3.3), and the
 > reasoning in Blocker 1 was **half wrong** in a way that cost two milestones of parked publishing: provenance and
 > trusted publishing are different features. A publish from a laptop cannot be attested; a *token* publish from
 > the workflow is attested perfectly well, because the runner has an OIDC identity regardless of how the publish
@@ -199,5 +199,5 @@ them before the packages exist would put a command on a public page that fails f
 
 ## Release
 
-`v0.3.1`, with the full board at the release commit in [`docs/releases/v0.3.1-board.md`](releases/v0.3.1-board.md).
+`v0.3.1`, with the full board at the release commit in [`docs/releases/v0.3.1-board.md`](../../releases/v0.3.1-board.md).
 **Not tagged and not published here** — those are the maintainer's buttons.

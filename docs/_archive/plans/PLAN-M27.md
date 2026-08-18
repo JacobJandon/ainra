@@ -19,7 +19,7 @@ production after deploy**, because pushing is not deploying and a fix that is on
 ## Task 1 · The network stands on its own
 
 `deploy/systemd/` + `tools/stage-install.sh` + `tools/stage-watchdog.sh`, documented in
-[`deploy/systemd/README.md`](../deploy/systemd/README.md). The honest claim, which is deliberately smaller than
+[`deploy/systemd/README.md`](../../../deploy/systemd/README.md). The honest claim, which is deliberately smaller than
 "always on", is:
 
 > **The network runs whenever this machine is powered on. No more than that.**
@@ -91,9 +91,9 @@ the browser's mixed-content rule at ~1.4 s, before the deadline is ever reached.
 
 ## Task 3 · The walk becomes a schedule
 
-A walk done once is an anecdote. [`tools/stranger-journeys.mjs`](../tools/stranger-journeys.mjs) replays five
+A walk done once is an anecdote. [`tools/stranger-journeys.mjs`](../../../tools/stranger-journeys.mjs) replays five
 journeys against the **deployed** site, daily and on demand
-([`.github/workflows/stranger.yml`](../.github/workflows/stranger.yml)), needing no secrets and touching nothing:
+([`.github/workflows/stranger.yml`](../../../.github/workflows/stranger.yml)), needing no secrets and touching nothing:
 
 | Journey | What it refuses to let rot |
 |---|---|

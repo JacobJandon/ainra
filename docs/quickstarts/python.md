@@ -38,7 +38,7 @@ at exp : expired
 
 - **The verifier owns the clock.** `now` is *your* argument; any `now` inside the presentation is ignored, so a
   presenter cannot forward-date past `exp` to dodge expiry (the `at exp → expired` line above).
-- `.verify()` **never raises** — any malformed bundle is a `Verdict(valid=False, reason=…)`, one of the 15 in
+- `.verify()` **never raises** — any malformed bundle is a `Verdict(valid=False, reason=…)`, one of the 16 in
   [`reasons.json`](../reasons.json).
 - `verdict.event()` is the M16 verdict event ([`PRESENTATION.md`](../PRESENTATION.md)): `status`, `reason`, `name`,
   `number` (the permanent version-less AINRA Number), `tier`, `freshness_age_s`.

@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0 OR MIT
 # Publish the static site (site/) to GitHub Pages. INERT until the human enables Pages (repo Settings → Pages →
-# Source: "GitHub Actions") — see docs/PUBLISH-AUDIT.md. Runs `make site` to refresh the derived downloads, then
+# Source: "GitHub Actions") — see docs/_archive/PUBLISH-AUDIT.md. Runs `make site` to refresh the derived downloads, then
 # deploys the site/ directory. No secrets; no external calls beyond installing `zip`.
 name: Deploy site (GitHub Pages)
 on:

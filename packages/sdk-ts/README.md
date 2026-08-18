@@ -53,7 +53,7 @@ vendor in it to remove.
 ## Don't take our word for it
 
 This SDK is one of **four independent implementations** — a Rust core, this one, a Node reference CLI, and a Python
-verifier — which agree on all **745** conformance vectors, verdict *and* reason. The corpus is CC0 and the runner is
+verifier — which agree on all **793** conformance vectors, verdict *and* reason. The corpus is CC0 and the runner is
 language-agnostic, so you can build a fifth and check us:
 
 ```sh

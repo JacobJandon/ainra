@@ -4,7 +4,7 @@
 > **`@ainra/sdk` is not published to a registry yet.** The published-SDK route below will fail with
 > `E404` until it is. Use the in-repo route (`git clone` + `make verifier-kit-smoke`), which needs no
 > registry at all. Publishing is prepared and parked on the maintainer's credentials — see
-> [docs/PLAN-M26.md](../../docs/PLAN-M26.md) § PARKED.
+> [docs/_archive/plans/PLAN-M26.md](../../docs/_archive/plans/PLAN-M26.md) § PARKED.
 
 You will independently confirm that AINRA's core promise holds — a genuine passport verifies with the **root offline**,
 a revoked one is rejected, a forged all-clear can't un-revoke it — and then verify a **fresh challenge** only you were

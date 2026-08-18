@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
-// 3-way differential harness. Exit nonzero unless every implementation agrees.
+// Four-way differential harness (core · sdk-ts · sdk-py · P0). Exit nonzero unless every implementation agrees.
 //
 //   (A) Verdict differential — ainra-core (the recorded verdict in each CC0 vector) vs sdk-ts `runVector`, over the
 //       whole corpus. ainra-core produced those verdicts (its generator self-checks them), so agreement here is a

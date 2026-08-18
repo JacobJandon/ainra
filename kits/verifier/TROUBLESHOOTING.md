@@ -4,7 +4,7 @@
 > **`@ainra/sdk` is not published to a registry yet.** The published-SDK route below will fail with
 > `E404` until it is. Use the in-repo route (`git clone` + `make verifier-kit-smoke`), which needs no
 > registry at all. Publishing is prepared and parked on the maintainer's credentials — see
-> [docs/PLAN-M26.md](../../docs/PLAN-M26.md) § PARKED.
+> [docs/_archive/plans/PLAN-M26.md](../../docs/_archive/plans/PLAN-M26.md) § PARKED.
 
 The ten failure modes strangers actually hit, and the fix. Every check here **fails closed**: if something is wrong
 the kit exits nonzero and writes no attestation — that is by design, not a bug.

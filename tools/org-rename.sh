@@ -22,14 +22,14 @@ APPLY="${2:-}"
 # Hand-authored files only. Everything here is a reference a human wrote and a human would expect to change.
 FILES=(
   README.md ROADMAP.md SECURITY.md RELEASING.md RELEASE-VERIFY.md MAINTAINERS.md skills.md
-  site/llms.txt evidence/README.md campaign/TEMPLATES.md docs/PUBLISH-AUDIT.md docs/ORG-MOVE.md
+  site/llms.txt evidence/README.md campaign/TEMPLATES.md docs/_archive/PUBLISH-AUDIT.md docs/ORG-MOVE.md
   .github/ISSUE_TEMPLATE/config.yml .github/ISSUE_TEMPLATE/verifier_divergence.yml
   packages/sdk-ts/package.json packages/middleware/package.json packages/mcp/package.json
   packages/sdk-py/pyproject.toml packages/sdk-ts/README.md packages/mcp/README.md
   site/_includes/header.html site/_includes/footer.html
   tools/export-site.sh tools/link-check.mjs
 )
-SKIP=(CHANGELOG.md docs/PLAN-L1.md docs/PLAN-L2.md docs/releases)
+SKIP=(CHANGELOG.md docs/_archive/plans/PLAN-L1.md docs/_archive/plans/PLAN-L2.md docs/releases)
 
 echo "owner: $OLD → $NEW"
 echo "mode : $([ "$APPLY" = "--apply" ] && echo APPLY || echo 'DRY RUN (pass --apply to write)')"

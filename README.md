@@ -1,8 +1,8 @@
 <!-- SPDX-License-Identifier: Apache-2.0 OR MIT -->
 # AINRA — the neutral root of AI-agent identity
 
-<!-- ⚙️ BEFORE PUBLISHING: one repo-wide find/replace of `JacobJandon` → your GitHub org/user makes this badge resolve.
-     It appears ONLY here (both spots on the next line). Full steps: docs/PUBLISH-AUDIT.md § "Pre-push checklist". -->
+<!-- The org name appears ONLY here (both spots on the next line); `tools/org-rename.sh` moves it everywhere else.
+     The repository is public and the badge resolves; the historical pre-publication audit is docs/_archive/PUBLISH-AUDIT.md. -->
 [![CI](https://github.com/JacobJandon/ainra/actions/workflows/ci.yml/badge.svg)](https://github.com/JacobJandon/ainra/actions/workflows/ci.yml)
 
 **Live site:** https://ainra.vercel.app/ · **Source & releases:** https://github.com/JacobJandon/ainra · **[Roadmap](ROADMAP.md)** · **[Governance](GOVERNANCE.md)**
@@ -20,8 +20,8 @@ dark**, trusting the **source** — not us.
 [`examples/verify-in-browser/`](examples/verify-in-browser/) is four static files running the JavaScript verifier —
 open it, change one byte of a signature, watch it refuse. the live site's [**Try it**](https://ainra.vercel.app/verify.html#try) panel (`make site SERVE=1` locally) runs
 **`ainra-core` itself**, the Rust verify path compiled to WebAssembly (`make wasm`), so the browser is checking with
-the same code the CLI does — and `make wasm-diff` pushes all 745 vectors through that exact artifact in a headless
-browser, requiring 745/745 on verdict and named reason. Nothing is uploaded and no request leaves the page at
+the same code the CLI does — and `make wasm-diff` pushes the whole corpus through that exact artifact in a headless
+browser, requiring agreement on verdict *and* named reason. Nothing is uploaded and no request leaves the page at
 verification time, either way.
 
 ## Start here — two commands
@@ -37,14 +37,27 @@ agent tools) · the [registrar console](docs/quickstarts/console.md) (`make regi
 [examples](examples/) · and **[`skills.md`](skills.md)** — an agent onboards itself end to end from that one file.
 Every command prints honest labels (`LOCAL TESTBED` / `STAGING · TEST-ROOT`) and names the next step on failure.
 
-This repository is the production-track reference implementation. The **normative spec** is
-[docs/AINRA_Master_Technical_Specification_v1.md](docs/AINRA_Master_Technical_Specification_v1.md) (it wins
-conflicts); the **public standard** is [docs/AINRA_I_The_Standard.md](docs/AINRA_I_The_Standard.md); every deliberate
-deviation is in [docs/DECISIONS.md](docs/DECISIONS.md).
+This repository is the production-track reference implementation.
+
+## What to read
+
+| | |
+|---|---|
+| **[The Standard](docs/AINRA_I_The_Standard.md)** | what AINRA is, in public terms |
+| **[Master Technical Specification](docs/AINRA_Master_Technical_Specification_v1.md)** | normative — **it wins conflicts** |
+| **[DECISIONS.md](docs/DECISIONS.md)** | every deliberate deviation, D-001…D-046, each with its reasoning |
+| **[STATUS.md](docs/STATUS.md)** | component-by-component state, honestly, including what is unbuilt |
+| **[ARTIFACTS.md](docs/ARTIFACTS.md)** | the public artifact contract · mirroring · reproducibility |
+| **[SETTLERS.md](docs/SETTLERS.md)** | the arrows other projects took, and which of them we walked into anyway |
+| **[PROBES.md](docs/PROBES.md)** · **[DISCLOSURE.md](docs/DISCLOSURE.md)** | proposed accreditation terms: compliance measured from outside, and a 72-hour disclosure deadline with no severity threshold |
+| **[HISTORY.md](docs/HISTORY.md)** | how it was built — the milestone ladder in one page, plans archived beneath it |
+
+Everything a machine needs is in **[`skills.md`](skills.md)** — an agent onboards itself end to end from that one
+file.
 
 ## Honest status
 
-<!-- STATUS-LINE -->Engineering ladder M1–M9 complete; M10–M11 make the repository public-ready, public-operational, and the four remaining DoD rows stranger-runnable; M12 bounds credential validity (366 d default, invisible ACME-style renewal with logged continuity — ADR-017); logs sealed by the real root: 0.
+<!-- STATUS-LINE -->Engineering ladder M1–M27 and launch sessions L1–L5 complete; the repository is public with signed releases; the settlers pass closed five of seven arrows (graduated distrust D-044, forward-only log D-045, adversarial compliance probes D-046, a deadlined disclosure term, a rollback threshold); what remains is not code but three real-world events and the people to run them; logs sealed by the real root: 0.
 
 What remains to *ship the prototype* is **not code** — it is three real-world events (a recorded ceremony, ≥3
 independent external verifiers, a 14-day/3-region revocation soak). The machinery to run those **without us in the
@@ -69,16 +82,17 @@ make preflight        # from a cold clone: build+test, differential, genesis-loc
 Expected — a stranger sees this board go all-green in one command:
 
 ```
-AINRA preflight — clone-and-it-works board
+AINRA preflight — clone-and-it-works board          (26 rows; a representative slice)
   [PASS] build + tests          release test suite
-  [PASS] differential           3 impls agree over vectors
+  [PASS] differential           4 impls agree over vectors
   [PASS] genesis-local          whole stack boots on 1 host
   [PASS] verifier kit           execution-bound attestation
   [PASS] ceremony dry-run       witness-reproducible
   [PASS] soak instrument        measured p95, signed report
   [PASS] witness quorum         fork refused over HTTP
-  [PASS] S7 neutrality          no brands / no impersonation
-  [PASS] license headers        SPDX on every source file
+  [PASS] compliance probe       honest passes, 4 dishonest caught
+  [PASS] reason contract        docs name every reason impls return
+  [PASS] browser verifier       the corpus agrees in-browser
   [PASS] status honesty         README == STATUS claim
   [PASS] doc freeze             normative docs unchanged
   [PASS] reproducibility        artifacts rebuild byte-exact
@@ -98,8 +112,10 @@ make drill            # witness QUORUM catches an injected fork (5 witnesses, k=
 make drill-networked  # the same quorum over HTTP — independently-operated witnesses (kits/witness)
 make ceremony-dry-run # rehearse the 5-of-9 ceremony choreography; a witness recomputes the transcript hash
 make soak-smoke       # measure revocation propagation (p50/95/99) into a signed, tamper-evident report
-make repro            # rebuild every published artifact byte-for-byte from source (790 files)
+make repro            # rebuild every published artifact byte-for-byte from source (838 files)
 make verify-mirror MIRROR=<dir>   # any third party byte-verifies a mirror, root dark
+make probe-drill      # measure a registrar from OUTSIDE holding nothing it issued — and catch four dishonest ones
+make miri             # undefined behaviour in the byte-handling code (needs nightly + miri)
 ```
 
 ## Kits — run the external events yourself (`kits/`)
@@ -135,14 +151,14 @@ Deploy is one GitHub Pages workflow the owner enables at publish time (see `site
 ```
                       the STANDARD + CC0 conformance vectors (vectors/)  ── anyone builds against these
                                           │
-  crates/ainra-core  ── the pure verify/issue library (N7: no I/O, no clock) ── the 9-step verify, 15 reasons
+  crates/ainra-core  ── the pure verify/issue library (N7: no I/O, no clock) ── the 9-step verify, 16 reasons
         │  hybrid Ed25519 + ML-DSA-65 (both-or-invalid) · RFC 6962 Merkle · Token Status List
         ▼
   crates/ainra-adapter ── the ONE place external bytes become core verify types, and the canonical verdict event.
         │  Pure, fail-closed. Every Rust consumer goes through it; `make one-decode-path` fails the build if a
         │  second parser appears anywhere else (L5).
         ├──▶ crates/ainra-wasm ── that same path compiled to WebAssembly for the browser. A thin binding: no
-        │      parsing, no network, no clock. `make wasm-diff` = 745/745 in a headless browser.
+        │      parsing, no network, no clock. `make wasm-diff` = the full corpus, in a headless browser.
         ▼
   crates/ainra-ceremony (FROST 5-of-9 + SLH-DSA dual root, signing side, NEVER in verify)
   services/ainra-services (logd · statusd · witnessd + k-of-N quorum · registrar-box)
@@ -155,8 +171,9 @@ Deploy is one GitHub Pages workflow the owner enables at publish time (see `site
   make genesis-local — the whole world on one laptop  ·  make repro / make verify-mirror — reproducible + mirrorable
 ```
 
-The verify path is **RFCs + FIPS + OSI-licensed deps only** — no vendor, no bespoke crypto. Three independent
-implementations (core, sdk-ts, P0) agree on every one of the 745 vectors (`make diff`).
+The verify path is **RFCs + FIPS + OSI-licensed deps only** — no vendor, no bespoke crypto. **Four independent
+implementations** — `ainra-core`, the TypeScript SDK, the Python SDK and the Node CLI (P0) — agree on every one of the
+**793** vectors (`make diff`), and the same core compiled to WebAssembly agrees again in a browser.
 
 **Validity (ADR-017):** the *identity* — the lineage and its AINRA Number — is permanent; the *credential* defaults
 to **366 days** and renews invisibly (ACME-style at T−30 d, overlap issuance, a logged REISSUE whose `prev_leaf`

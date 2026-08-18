@@ -114,7 +114,7 @@ impl core::fmt::Display for Reason {
 mod tests {
     use super::*;
 
-    // The 15 frozen strings, in enum order. If this list changes, vectors break — that is the point.
+    // The 16 frozen strings, in enum order. If this list changes, vectors break — that is the point.
     const ALL: [(Reason, &str); 16] = [
         (Reason::RegistrarDistrusted, "registrar_distrusted"),
         (Reason::SigInvalid, "sig_invalid"),

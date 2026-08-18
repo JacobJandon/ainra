@@ -40,9 +40,9 @@ is caught with named divergences, and the self-attestation round-trips:
 
 ```
 clean adapters (must PASS, full corpus, 0 divergences):
-  ainra-core       passport 745/745  delta 17/17  directory 9/9  divergences=0  → PASS
-  ainra-sdk-ts     passport 745/745  delta 17/17  directory 9/9  divergences=0  → PASS
-  ainra-sdk-py     passport 745/745  delta 17/17  directory 9/9  divergences=0  → PASS
+  ainra-core       passport 793/793  delta 17/17  directory 9/9  divergences=0  → PASS
+  ainra-sdk-ts     passport 793/793  delta 17/17  directory 9/9  divergences=0  → PASS
+  ainra-sdk-py     passport 793/793  delta 17/17  directory 9/9  divergences=0  → PASS
 broken adapter (must FAIL with named divergences):
     ✓ broken adapter correctly FAILED — 66 named divergence(s)
   ✓ conformance OK — runner passes the 3 real impls clean, catches the broken one, attestation round-trips.

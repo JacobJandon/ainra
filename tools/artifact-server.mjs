@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 // The AINRA public artifact server — the CDN-shaped read surface of a staging network. It serves a static
 // directory of public artifacts (directory, checkpoints, status lists, fresh heads, exports) with the exact HTTP
-// behaviour docs/ARTIFACT-CONTRACT.md specifies, so any browser SDK / mirror / verifier can read them at
+// behaviour docs/ARTIFACTS.md § the contract specifies, so any browser SDK / mirror / verifier can read them at
 // planet-scale caching correctness. It holds NO keys, issues nothing, verifies nothing — dumb static transport.
 //
 //   node tools/artifact-server.mjs <root-dir> [port]

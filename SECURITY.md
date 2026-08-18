@@ -103,7 +103,7 @@ exist (`ossf/scorecard-action@v2`), and `clusterfuzzlite` — "continuous fuzzin
   feature, unreachable in our use, and it broke the WebAssembly build).
 * **The pinning vector is the FIPS 204 KAT suite** — NIST's own ML-DSA-65 keyGen / sigGen / sigVer answers
   ([`vectors/nist/ml-dsa-65-fips204-kat.json`](vectors/nist/ml-dsa-65-fips204-kat.json), 15 sigVer cases of which
-  12 are negative). Our own 745 vectors could not adjudicate this: they were generated *by* the vulnerable crate.
+  12 are negative). Our own vectors could not adjudicate this: they were generated *by* the vulnerable crate.
   The KATs are independent of it in both directions, and they now run on every board.
 * `cargo-audit` reports **every** advisory before it gates, so one notice can never hide another again.
 * All **56** GitHub Actions references pinned to commit SHAs.
@@ -111,7 +111,7 @@ exist (`ossf/scorecard-action@v2`), and `clusterfuzzlite` — "continuous fuzzin
   with a worked example of a negative control that passed while testing nothing.
 
 **Not fixed by us:** nothing here was reported by an outside researcher — this was found by reading our own red
-CI honestly. Full workings: [`docs/PLAN-M26.md`](docs/PLAN-M26.md) and
+CI honestly. Full workings: [`docs/_archive/plans/PLAN-M26.md`](docs/_archive/plans/PLAN-M26.md) and
 [`SECURITY-ADVISORIES.md`](SECURITY-ADVISORIES.md).
 
 ## Verifying what you run

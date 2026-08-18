@@ -128,7 +128,7 @@ they actually meet. Trust-anchor state for all 100 shards is ~200 KB, held once.
 
 ## 6 · Distribution: the static read surface (measured + the CDN argument)
 
-The only globally-distributed surface is static files (docs/ARTIFACT-CONTRACT.md). Load-tested here against
+The only globally-distributed surface is static files (docs/ARTIFACTS.md § the contract). Load-tested here against
 the *reference* Node artifact server (`tools/artifact-server.mjs`) — a single process on this laptop, not a
 real CDN or even nginx:
 
@@ -142,7 +142,7 @@ real CDN or even nginx:
 **The CDN argument, honestly [extrapolated].** A single laptop-class node already serves thousands of req/s of these
 objects. But the read surface is *content-addressed static files* — the most cacheable objects on the internet
 (immutable checkpoints/tiles never change; heads carry an ETag so revalidation is a header, not a download). Global
-scale is therefore a **CDN configuration** — two cache rules keyed on path prefix (docs/ARTIFACT-CONTRACT.md) —
+scale is therefore a **CDN configuration** — two cache rules keyed on path prefix (docs/ARTIFACTS.md § the contract) —
 delivered by infrastructure that already serves the web's static assets at planetary scale. It is not a protocol
 problem, and it adds **zero** load to the root or any registrar: the root publishes; edges cache; devices verify
 locally.

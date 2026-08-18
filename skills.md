@@ -29,7 +29,7 @@ Two zero-install routes, and they differ in **which** verifier answers — worth
   real vector. Nothing to build.
 - the site's **Try it** panel (`/verify.html#try`) runs **`ainra-core` itself** — the Rust verify path compiled to WebAssembly. The same
   corpus that gates the Rust build is pushed through that exact artifact in a headless browser and must agree
-  745/745, verdict and named reason (`make wasm-diff`). Pick a specimen or paste your own bundle.
+  the whole corpus, verdict and named reason (`make wasm-diff`). Pick a specimen or paste your own bundle.
 
 Both fail closed, and the differential holds them to identical answers. Use either when you want to show a human
 the verdict rather than describe it.

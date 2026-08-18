@@ -3,12 +3,70 @@
 
 All notable changes to the AINRA reference implementation. Format follows [Keep a Changelog](https://keepachangelog.com/);
 this project versions the **reference implementation + conformance vectors** (the normative spec is versioned in
-`docs/AINRA_Master_Technical_Specification_v1.md`). The engineering milestone ladder is MTS §27 (M1–M11); design
-decisions are `docs/DECISIONS.md` (D-001…). Cut a release with `make release`; verify one per `RELEASING.md`.
+`docs/AINRA_Master_Technical_Specification_v1.md`). The engineering milestone ladder is MTS §27, summarised in
+[`docs/HISTORY.md`](docs/HISTORY.md); design decisions are `docs/DECISIONS.md` (D-001…). Cut a release with `make release`; verify one per `RELEASING.md`.
 
 We **publicly own fixed security bugs** — hiding them would be the opposite of a trust root.
 
 ## [Unreleased]
+
+### The settlers pass — five documented industry failure modes, closed before we walked into them
+
+`docs/SETTLERS.md` audited what comparable efforts were forced to admit publicly, and asked which of those arrows
+this project was still walking toward.
+
+- **D-044 — graduated distrust, keyed on transparency-log position.** Absent = trusted; present = refuse what a
+  registrar logged at index ≥ n, with everything earlier still verifying. The web PKI keyed the equivalent on
+  `notBefore` and a CA backdated certificates to evade it; a log index cannot be backdated. Enforced in all four
+  implementations *after* inclusion is proven, for the credential and every hop. 48 new vectors in two families —
+  `registrar-distrusted-*` and `distrust-below-cutoff-*`, the second being what makes the first mean anything.
+- **D-045 — a log may never come back shorter than it has already been.** `log.highwater` records the largest tree
+  size ever reached and a rebuilt tree below it refuses to start. A CT log once auto-restored from a stale backup
+  during a cloud outage and published a tree head inconsistent with its own earlier ones; that is not recovery, it
+  is equivocation with a sympathetic cause.
+- **D-046 — compliance measured adversarially** (`kits/probe/`, `make probe-drill`). Nine checks run from outside by
+  a probe holding nothing the registrar issued it, minting under an unmarked name, every verdict from a root-dark
+  verifier at the strictest policy. Its load-bearing check is that the **write door is shut to the probe** — if an
+  unauthenticated write succeeds the run is void rather than failing, because an operator measuring itself with its
+  own token has produced a self-report. Negative-controlled against four dishonest registrars, each required to fail
+  the *named* check.
+- **`docs/DISCLOSURE.md`** — a 72-hour public incident report with no severity threshold and no waiting to establish
+  scope. Two landmark CA removals turned on concealment rather than on the technical fault.
+- **`docs/genesis-day/ROLLBACK.md`** — the thresholds that must carry a number and a name before any root roll. We
+  can never measure how many verifiers hold a given root, because the charter forbids the telemetry that would say;
+  so reversibility is over-engineered instead, and a root roll cannot be scheduled before witnesses exist.
+
+### Fixed — checks that reported health they could not observe
+
+- **The `security` workflow had never concluded success**, across 40 consecutive runs. `miri` was pointed at the
+  whole `ainra-core` suite, which cannot complete under an interpreter (measured: >900 s for a 15-minute cap), and
+  the job had no `timeout-minutes` — so every run was killed at GitHub's 6-hour ceiling and labelled `cancelled`,
+  which reads like a person cancelled it rather than like a broken check. Now `tools/miri-parsers.sh` runs the
+  byte-handling code and only that: 10 filters, 26 tests, ~100 s. **Every job in every workflow now has a timeout**
+  (eleven were missing).
+- **`docs/reasons.json` never got D-044's sixteenth reason.** Four implementations and 48 vectors agreed on
+  `registrar_distrusted` while the published contract — the file `tools/verify-60s.mjs` loads at runtime and the
+  quickstarts point readers at — listed fifteen, as did a dozen prose claims. The differential could not catch it:
+  the implementations agreed, and only the prose was wrong. `make reasons-check` now fails the build if the
+  documented reasons and `Reason::ALL` ever diverge again.
+- **The same defect, ten times larger: the vector count.** D-044 added 48 vectors and updated the number in zero
+  places, so forty-odd live surfaces went on claiming **745** — four pages of the deployed site, both SDK READMEs,
+  CONTRIBUTING, RELEASING, the quickstarts, STATUS, and the preflight board's own label. The most checkable claim
+  this project makes was wrong on the front page. `make corpus-check` now holds every stated count to the corpus on
+  disk; where the number is not load-bearing the claim was rewritten so it cannot go stale at all ("the whole
+  corpus"). Historical records — CHANGELOG, releases, DECISIONS, the archived plans — keep their numbers, because
+  rewriting a record to match today falsifies it rather than fixing it.
+- **`MANIFEST.sha256` had been 48 files short since D-044.** It *is* the published artifact set, so a mirror
+  assembled from it would have silently omitted every graduated-distrust vector.
+
+### Docs
+
+- **`docs/HISTORY.md`** — the M1–M27 / L1–L5 ladder in one page; the 24 milestone plans moved to
+  `docs/_archive/plans/` unedited, because a plan rewritten after the fact records nothing.
+- **`docs/ARTIFACTS.md`** — the artifact contract, mirroring and reproducibility merged into the one topic they
+  always were.
+- README gains a *What to read* table and drops several stale numbers (745 → 793 vectors, 3 → 4 implementations,
+  15 → 16 reasons, 790 → 838 artifacts).
 
 ## [0.3.3] — the release that could actually be published
 
@@ -62,7 +120,7 @@ is empty. Everything below is the surface around it: the network that serves the
 describes it. The version moves because the packages needed a tag that *contains* their bump before they could be
 published at all; `publish-preflight` compares bytes, not tag existence, and was correctly refusing.
 
-Full workings: [`docs/PLAN-M27.md`](docs/PLAN-M27.md) · board at the release commit:
+Full workings: [`docs/_archive/plans/PLAN-M27.md`](docs/_archive/plans/PLAN-M27.md) · board at the release commit:
 [`docs/releases/v0.3.2-board.md`](docs/releases/v0.3.2-board.md).
 
 ### Fixed — eleven things the public site told visitors that were not true
@@ -117,7 +175,7 @@ go red.
 ## [0.3.1] — security
 
 Fixes one advisory, end to end, and closes the class of CI failure that hid it. Full workings:
-[`docs/PLAN-M26.md`](docs/PLAN-M26.md) · board at the release commit:
+[`docs/_archive/plans/PLAN-M26.md`](docs/_archive/plans/PLAN-M26.md) · board at the release commit:
 [`docs/releases/v0.3.1-board.md`](docs/releases/v0.3.1-board.md).
 
 ### Security
@@ -160,7 +218,7 @@ custodians, ≥3 external verifiers, and a 14-day 3-region soak. The machinery f
 ### L5 — one decode path in Rust, and a browser surface that uses it
 
 - **`crates/ainra-adapter`** — there is now exactly **one** code path that turns external bytes into core verify
-  types, and every consumer calls it. Mapping the boundary first (`docs/PLAN-L5.md`) found that the second
+  types, and every consumer calls it. Mapping the boundary first (`docs/_archive/plans/PLAN-L5.md`) found that the second
   implementation **already existed**: `anchors_from_export` in the CLI's seed path was a partial trust-anchor
   decoder that **failed open**, substituting an all-zero issuer key for a malformed one, so a corrupt export
   produced a plausible verdict instead of `unknown_registrar`. It is deleted. Blast radius, checked and stated: it
@@ -365,7 +423,7 @@ done. every signature above is real hybrid Ed25519 + ML-DSA-65; strip the ML-DSA
 - Corpus 684 → **737** passport vectors (all three implementations agree 737/737; existing vectors byte-identical);
   release tests 104 → **117**. Decisions: D-027, D-028; spec: MTS ADR-017.
 
-`v0.1.0` is the first tag (the human cuts it as step 3 of the pre-push checklist in `docs/PUBLISH-AUDIT.md`).
+`v0.1.0` is the first tag (the human cuts it as step 3 of the pre-push checklist in `docs/_archive/PUBLISH-AUDIT.md`).
 
 ## [v0.1.0] — the first public release (pending tag)
 

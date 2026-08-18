@@ -13,7 +13,7 @@ names               @ainra/sdk · @ainra/middleware · @ainra/mcp · PyPI ainra 
 
 ## Correcting the note this file replaces
 
-`docs/PLAN-M26.md` § PARKED said that a token publish "would permanently forfeit attestation", and used that to
+`_archive/plans/PLAN-M26.md` § PARKED said that a token publish "would permanently forfeit attestation", and used that to
 block publishing on trusted-publisher setup for both registries. **That is half wrong, and the half that is wrong
 cost two milestones of parked publishing.**
 

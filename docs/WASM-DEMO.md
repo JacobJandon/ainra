@@ -23,13 +23,13 @@ the one the site already serves — the example now uses it.
 
 **This section's blocker is now closed.** The site's **Try it** panel (`/verify.html#try`) runs `ainra-core`
 itself — `crates/ainra-wasm`, a thin `wasm-bindgen` binding over the extracted adapter — and `make wasm-diff`
-pushes all **745** vectors through that exact artifact in a headless browser, requiring agreement with the core on
-verdict *and* named reason. Result: **745/745**. The harness carries its own negative control, so the number means
+pushes all **793** vectors through that exact artifact in a headless browser, requiring agreement with the core on
+verdict *and* named reason. Result: **793/793**. The harness carries its own negative control, so the number means
 something: with `NEGATIVE_CONTROL=1` one bit of one issuer signature is flipped and the run must fail (proven —
-744/745, exit 1). Artifact: **367 KiB** wasm + 9 KiB glue, under a ceiling enforced by `tools/build-wasm.sh`.
+744/793, exit 1). Artifact: **367 KiB** wasm + 9 KiB glue, under a ceiling enforced by `tools/build-wasm.sh`.
 
 The prerequisite below was done in **L5 Task 1** — and mapping it found the second implementation had *already*
-grown, in the CLI's seed path, where it failed open. See [`PLAN-L5.md`](PLAN-L5.md). The extraction landed as
+grown, in the CLI's seed path, where it failed open. See [`_archive/plans/PLAN-L5.md`](_archive/plans/PLAN-L5.md). The extraction landed as
 `crates/ainra-adapter` (the name `ainra-vectors` proposed below was dropped: it now carries the verdict-event
 vocabulary too, so "vectors" would have undersold it), and `tools/one-decode-path.mjs` enforces the single path
 mechanically rather than by convention.

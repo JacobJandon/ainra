@@ -23,7 +23,7 @@ That sentence is the whole claim, and it is deliberately smaller than "always on
   visitors. It makes the network survive logout, reboot and a crashed daemon, on this machine.
 
 Anywhere the site or docs describe availability, that is the wording to use. "Always-on" would require something
-actually always on; see `docs/PLAN-M27.md` § *the always-on question* for the parked options and their costs.
+actually always on; see `docs/_archive/plans/PLAN-M27.md` § *the always-on question* for the parked options and their costs.
 
 ## What is installed
 

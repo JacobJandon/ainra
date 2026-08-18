@@ -13,7 +13,7 @@ Why a fourth brain? If an independent reimplementation, built to the same
 spec + vector reference, reaches the same verdict on every vector, that is
 independent confirmation the standard is unambiguous and the reference is
 correct. If it disagreed, we would have found something. It agrees on
-**745 passport + 17 delta + 9 directory** vectors.
+**793 passport + 17 delta + 9 directory** vectors.
 
 ## Package name
 
@@ -90,7 +90,7 @@ streaming-safe.
 
 ## What it verifies
 
-The frozen nine-step verify, first-failure-wins, mapping to the 15 frozen reasons
+The frozen nine-step verify, first-failure-wins, mapping to the 16 frozen reasons
 (`docs/reasons.json`): AINRA name grammar; canonical JSON (sorted keys, no spaces,
 rejecting floats / non-ASCII keys / integers beyond 2⁵³); the strict base64url
 decode gateway (D-029 — every external decode is a canonical round-trip, fail
@@ -131,12 +131,12 @@ every vector, including the `alg-downgrade-*`, `noncanon-*`, `boundary-*`,
 `renewal-*` classes, plus delta and directory:
 
 ```
-(A) verdict diff  core↔sdk : 745/745 agree
+(A) verdict diff  core↔sdk : 793/793 agree
 (B) canon 3-way  core↔sdk↔P0 : 10/10 byte-identical
 (C) canon reject core↔sdk : 4/4 both refuse
 (D) delta diff   core↔sdk : 17/17 agree
 (E) directory diff core↔sdk : 9/9 agree
-(F) verdict diff  core↔py : 745/745 agree
+(F) verdict diff  core↔py : 793/793 agree
 (F) delta diff   core↔py : 17/17 agree
 (F) directory diff core↔py : 9/9 agree
 
@@ -149,7 +149,7 @@ DIFF OK: all implementations agree (core ↔ sdk ↔ P0 ↔ py)
 cd packages/sdk-py && PYTHONPATH=. python3 -m unittest discover -s tests
 ```
 
-Covers the whole-corpus agreement (all 15 reasons reachable), the ~5-line
+Covers the whole-corpus agreement (all 16 reasons reachable), the ~5-line
 `Verifier` surface (valid / revoked / verifier-owns-the-clock), the ASGI gate
 (allow on VALID, deny 403 fail-closed on missing/revoked), and the strict
 base64url / canonical-JSON gateways. Zero telemetry, no network.

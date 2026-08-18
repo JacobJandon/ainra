@@ -35,7 +35,7 @@ Every surface emits the same event when it reports a verdict. Fields, in this fi
 | Field | Type | Meaning |
 |---|---|---|
 | `status` | `"valid"` \| `"invalid"` | the verdict |
-| `reason` | named reason \| `null` | one of the 15 frozen reasons (see [`reasons.json`](reasons.json)); `null` when valid |
+| `reason` | named reason \| `null` | one of the 16 frozen reasons (see [`reasons.json`](reasons.json)); `null` when valid |
 | `name` | string \| `null` | the full **versioned credential** name (`…@version`) |
 | `number` | string \| `null` | the permanent **AINRA Number** — the version-less DID `did:ainra:reg:op:lineage`; identity is eternal, the credential is not |
 | `tier` | `L0`…`L4` \| `null` | accreditation level (never a score) |

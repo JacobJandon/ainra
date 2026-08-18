@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 // AINRA verify-only SDK — a faithful mirror of ainra-core (independent implementation #2 for the diff-harness).
-// The nine verify steps, their fixed order, and the 15 frozen reason strings match crates/ainra-core/src/verify.rs.
+// The nine verify steps, their fixed order, and the 16 frozen reason strings match crates/ainra-core/src/verify.rs.
 //
 // Validity (ADR-017): the IDENTITY (lineage + AINRA Number) is permanent; the CREDENTIAL defaults to 366 days and
 // renews invisibly (T−30 d reissue, overlap issuance, a logged `prev_leaf` continuity chain). The window check is
@@ -24,7 +24,7 @@ import {
 
 export { canonicalize } from "./canon.js";
 
-// ── Verdicts + the 15 frozen reasons ───────────────────────────────────────────────────────────────────────────
+// ── Verdicts + the 16 frozen reasons ───────────────────────────────────────────────────────────────────────────
 export type Reason =
   | "sig_invalid"
   | "alg_downgrade"

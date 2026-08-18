@@ -78,7 +78,7 @@ Three separate failures made that possible, and all three are fixed:
    never mask a vulnerability again.
 2. **A permanently-red job teaches people to ignore it.** The two long-red security jobs
    (`clusterfuzzlite` had never built; `scorecard` referenced a tag that does not exist) are green, and every
-   security job now carries a negative control proving it *can* pass — see [docs/PLAN-M26.md](docs/PLAN-M26.md).
+   security job now carries a negative control proving it *can* pass — see [docs/_archive/plans/PLAN-M26.md](docs/_archive/plans/PLAN-M26.md).
 3. **We had no ground truth outside our own corpus.** The 745 conformance vectors were generated *by* the
    vulnerable crate, so they could never have adjudicated a change to it. FIPS 204 known-answer tests are now
    wired in as an external oracle.
@@ -87,7 +87,7 @@ Three separate failures made that possible, and all three are fixed:
 
 `ml-dsa` `0.0.4` → **`0.1.1`** across the workspace, proven against evidence that does not originate with the
 crate being replaced. The full proof — KATs, corpus, four-way differential, cross-implementation signing, byte
-reproducibility, clean-clone board — is in [docs/PLAN-M26.md](docs/PLAN-M26.md) and the post-mortem in
+reproducibility, clean-clone board — is in [docs/_archive/plans/PLAN-M26.md](docs/_archive/plans/PLAN-M26.md) and the post-mortem in
 [SECURITY.md](SECURITY.md).
 
 **The wire format is fixed by FIPS 204.** A signature produced under 0.0.4 must still verify under 0.1.1; if any

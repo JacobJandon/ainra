@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!-- SPDX-License-Identifier: Apache-2.0 OR MIT -->
 <!-- AINRAscan — the AINRA agent-identity explorer. Real data from the AINRA pipeline; every verdict is recomputed
-     in YOUR browser by the real @ainra/sdk (the same code that agrees 745/745 in the conformance differential).
+     in YOUR browser by the real @ainra/sdk (the same code that agrees with ainra-core on the whole conformance corpus).
      Independent of the root by construction. Zero telemetry. Self-contained: no CDN, no web fonts, no network
      except fetching the public artifacts it verifies. This build renders the STAGING network on a TEST-ROOT. -->
 <html lang="en" data-network="staging" data-root="test-root">
@@ -311,7 +311,7 @@ function openDetail(row){
         <div class="vtop"><button class="vbtn" id="vgo">▶ Verify in your browser</button><span class="vres" id="vres"></span></div>
         <div class="vsteps" id="vsteps"></div>
       </div>
-      <div class="note">Runs the real <span class="mono">@ainra/sdk</span> (the code that agrees 745/745 in the conformance differential) over the public artifacts, plus an independent RFC&nbsp;6962 inclusion recompute in this page's own JavaScript. Nothing is trusted from the export — the green is one you produce.</div>
+      <div class="note">Runs the real <span class="mono">@ainra/sdk</span> (the code that agrees with ainra-core on the whole conformance corpus) over the public artifacts, plus an independent RFC&nbsp;6962 inclusion recompute in this page's own JavaScript. Nothing is trusted from the export — the green is one you produce.</div>
     </div>
   </div>`;
   $("#dx").onclick = closeDetail; $("#scrim").classList.add("on"); d.classList.add("on");

@@ -18,7 +18,7 @@ gains by fully owning the staging network: nothing about the future production r
 
 ## Read path — static, safe
 
-The public artifact surface is `GET`-only static files (docs/ARTIFACT-CONTRACT.md): no keys, no compute, no state
+The public artifact surface is `GET`-only static files (docs/ARTIFACTS.md § the contract): no keys, no compute, no state
 to corrupt. Serve it read-only, behind a CDN. `X-AINRA-Network: staging` on every response.
 
 ## Write path — the new surface, guarded

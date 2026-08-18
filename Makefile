@@ -1,6 +1,6 @@
 # AINRA — the acceptance bar (MTS §28, brief §8): a stranger clones, runs `make test && make vectors && make diff`,
 # and everything is green in under 10 minutes on a laptop.
-.PHONY: one-decode-path bench-gate all test vectors vectors-check diff cli-check suite-migration-drill ceremony-rehearsal-multi witness-check push-advisory-check changelog-board-check fmt clippy fuzz-smoke bench sdk-build sdk-test ci clean status console samples drill explorer demo scale ceremony testbed wedge-build wedge-test repro mirror verify-mirror check-freeze freeze genesis-local verifier-kit-smoke ceremony-dry-run soak-smoke drill-networked preflight s7 license gitleaks audit verify-as-external verifier-triple-drill soak-verify genesis-status verify-transcript genesis-board-demo release doctor verifier-operator-drill site site-up site-down site-check stage-all stage-all-down explorer-up explorer-down ainrascan stage-up stage-down stage-status stage-smoke demo-walkthrough three-clients genesis-verify config-diff declaration genesis-rehearsal site-demo verify issue-first registrar-console mcp-test skills-replay presentation-diff conformance campaign-status campaign-init campaign-gates campaign-check publish-preflight stage-install stage-uninstall stage-health stranger probe-drill miri site-net site-net-check lockfile-sync soak-ingest outreach-check names-check interop interop-negative
+.PHONY: one-decode-path bench-gate all test vectors vectors-check diff cli-check suite-migration-drill ceremony-rehearsal-multi witness-check push-advisory-check changelog-board-check fmt clippy fuzz-smoke bench sdk-build sdk-test ci clean status console samples drill explorer demo scale ceremony testbed wedge-build wedge-test repro mirror verify-mirror check-freeze freeze genesis-local verifier-kit-smoke ceremony-dry-run soak-smoke drill-networked preflight s7 license gitleaks audit verify-as-external verifier-triple-drill soak-verify genesis-status verify-transcript genesis-board-demo release doctor verifier-operator-drill site site-up site-down site-check stage-all stage-all-down explorer-up explorer-down ainrascan stage-up stage-down stage-status stage-smoke demo-walkthrough three-clients genesis-verify config-diff declaration genesis-rehearsal site-demo verify issue-first registrar-console mcp-test skills-replay presentation-diff conformance campaign-status campaign-init campaign-gates campaign-check publish-preflight stage-install stage-uninstall stage-health stranger probe-drill miri reasons-check corpus-check site-net site-net-check lockfile-sync soak-ingest outreach-check names-check interop interop-negative
 
 all: fmt clippy test vectors diff
 
@@ -108,7 +108,7 @@ sdk-test: sdk-build
 	cd packages/sdk-ts && npm test
 
 # The full local gate mirror of .github/workflows/ci.yml.
-ci: fmt clippy lockfile-sync soak-ingest test vectors diff conformance cli-check suite-migration-drill ceremony-rehearsal-multi witness-check push-advisory-check changelog-board-check sdk-test site site-check
+ci: fmt clippy lockfile-sync soak-ingest reasons-check corpus-check test vectors diff conformance cli-check suite-migration-drill ceremony-rehearsal-multi witness-check push-advisory-check changelog-board-check sdk-test site site-check
 	node tools/s7-lint.mjs
 	node tools/license-check.mjs
 	./tools/fuzz-smoke.sh
@@ -391,7 +391,7 @@ license:
 gitleaks:
 	gitleaks detect --source . --config .gitleaks.toml --no-banner --redact
 
-# M10 — publish-readiness audit: neutral + licensed + zero secrets in history. See docs/PUBLISH-AUDIT.md.
+# M10 — publish-readiness audit: neutral + licensed + zero secrets in history. See docs/_archive/PUBLISH-AUDIT.md.
 audit: s7 license gitleaks
 	@echo "AUDIT OK — neutral, licensed, no secrets in history"
 
@@ -452,6 +452,16 @@ probe-drill:     ## the compliance probe: passes an honest registrar, catches fo
 # The same command CI runs. A check only CI can run is a check nobody reads until it has been broken for 40 runs.
 miri:            ## undefined behaviour in the byte-handling code (needs nightly + miri)
 	bash tools/miri-parsers.sh
+
+# D-044 shipped a 16th reason to four implementations and 48 vectors while every doc went on saying 15. The
+# differential could not catch it: the implementations agreed, and only the prose was wrong.
+reasons-check:   ## the documented refusal reasons must equal what the implementations can return
+	@node tools/reasons-check.mjs
+
+# Same failure, larger blast radius: D-044 added 48 vectors and 40-odd live surfaces went on saying 745 — including
+# four pages of the deployed site. The differential proves the impls agree; it has no opinion about prose.
+corpus-check:    ## every stated vector count must equal the corpus on disk
+	@node tools/corpus-check.mjs
 
 site-net:        ## publish the running network's read contract into site/net/ and stamp when
 	bash tools/site-net.sh publish

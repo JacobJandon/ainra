@@ -69,7 +69,7 @@ bash tools/org-rename.sh ainra-root --apply
 ```
 
 It rewrites the owner in **tracked, hand-authored** files only, then regenerates everything derived and re-runs the
-gates. What it deliberately does *not* touch: `docs/PLAN-L1.md`, `docs/PLAN-L2.md`, `CHANGELOG.md`, and
+gates. What it deliberately does *not* touch: `_archive/plans/PLAN-L1.md`, `_archive/plans/PLAN-L2.md`, `CHANGELOG.md`, and
 `docs/releases/*` — those are **historical records**, and a record that silently rewrites itself is not a record.
 Their old URLs still resolve through the redirect.
 
@@ -78,7 +78,7 @@ Their old URLs still resolve through the redirect.
 **Hand-authored — rewritten by the command:**
 
 `README.md` · `ROADMAP.md` · `SECURITY.md` · `RELEASING.md` · `RELEASE-VERIFY.md` · `MAINTAINERS.md` ·
-`skills.md` · `site/llms.txt` · `evidence/README.md` · `campaign/TEMPLATES.md` · `docs/PUBLISH-AUDIT.md` ·
+`skills.md` · `site/llms.txt` · `evidence/README.md` · `campaign/TEMPLATES.md` · `_archive/PUBLISH-AUDIT.md` ·
 `.github/ISSUE_TEMPLATE/config.yml` · `.github/ISSUE_TEMPLATE/verifier_divergence.yml` ·
 `packages/{sdk-ts,middleware,mcp}/package.json` · `packages/sdk-py/pyproject.toml` ·
 `packages/{sdk-ts,mcp}/README.md` · `site/_includes/{header,footer}.html` · `tools/export-site.sh` ·

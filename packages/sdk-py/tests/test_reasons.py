@@ -4,7 +4,7 @@
 The conformance vectors' recorded ``expect`` is the Rust core's verdict; this
 test asserts the independent Python verifier reproduces it byte-for-byte on every
 passport, delta, and directory vector — the same property the differential
-harness enforces — and that all 15 frozen reasons are exercised.
+harness enforces — and that all 16 frozen reasons are exercised.
 """
 
 from __future__ import annotations

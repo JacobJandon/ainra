@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0 OR MIT
-"""The 15 frozen INVALID reasons (decision D-004), in verify-precedence order.
+"""The 16 frozen INVALID reasons (decision D-004), in verify-precedence order.
 
 These machine strings are frozen: they are the exact tokens the CC0 conformance
 vectors reference, and they must byte-match the Rust core, the TS SDK, and the JS

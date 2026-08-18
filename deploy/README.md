@@ -43,9 +43,9 @@ witnesses on separate operators/infra.
 
 1. Run `ainra/services:staging` on host-A (`registrar-07`) and host-B (`registrar-11`) — distinct keys already
    (the daemon derives them from the id).
-2. Run `ainra/artifacts:staging` on all three, each serving a mirror of the public tree (docs/MIRRORING.md); front
+2. Run `ainra/artifacts:staging` on all three, each serving a mirror of the public tree (docs/ARTIFACTS.md § mirroring); front
    them with one CDN hostname (e.g. `cdn.staging.<your-domain>`) with the two cache rules from
-   docs/ARTIFACT-CONTRACT.md. **You supply the hosts + domain; everything else is here.**
+   docs/ARTIFACTS.md § the contract. **You supply the hosts + domain; everything else is here.**
 3. Publish artifacts from each registrar into its edge's public volume (the `publish` step, on a cron).
 4. TLS: standard ACME (`certbot` / `caddy` / a load-balancer's ACME) — documented, never reinvented in-process.
 5. Witnesses: recruit more via deploy/witness-quickstart.md — each on a *different* operator's infra.

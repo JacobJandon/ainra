@@ -29,7 +29,7 @@ invokes it **once per corpus part**, passing the part's **kind** as the final co
 | `delta` | `{"accept":true}` | `{"accept":false,"reason":"<reason>"}` |
 | `directory` | `{"accept":true,"registrars":<n>}` | `{"accept":false}` |
 
-`<reason>` is one of the 15 frozen reason strings (`docs/reasons.json`). This is the SAME shape every AINRA surface
+`<reason>` is one of the 16 frozen reason strings (`docs/reasons.json`). This is the SAME shape every AINRA surface
 already emits (`docs/PRESENTATION.md`; `ainra._vector_runner` prints exactly `<name>\t<result-json>`), so an existing
 verifier needs only a thin wrapper — see `tools/conformance/adapters/`.
 
@@ -67,9 +67,9 @@ node tools/conformance/run.mjs --impl "<command...>" --name NAME --version VER -
 {
   "report_version": "1", "runner_version": "1", "generated_at": "…Z",
   "implementation": { "name": "…", "version": "…" },
-  "corpus": { "hash": "sha256:…", "parts": {"passport":745,"delta":17,"directory":9}, "total": 771,
+  "corpus": { "hash": "sha256:…", "parts": {"passport":793,"delta":17,"directory":9}, "total": 819,
               "required_minimums": {"passport":500,"delta":15,"directory":9} },
-  "totals": { "checked": 771, "passed": 771, "failed": 0 },
+  "totals": { "checked": 819, "passed": 819, "failed": 0 },
   "guard_failures": [], "result": "pass",
   "divergences": [ { "part": "passport", "vector": "…", "expected": {…}, "got": {…} } ]
 }

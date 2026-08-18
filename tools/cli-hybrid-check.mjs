@@ -10,7 +10,7 @@
 // passport's registrar signature. No network, no fixtures on disk. Exit 1 on any divergence.
 //
 // The core↔SDK differential corpus already proves this at the protocol level (24 `alg-downgrade-*` + `noncanon-*`
-// vectors inside the 745; `make diff`). This is the CLI reaching that same standard.
+// vectors inside the corpus; `make diff`). This is the CLI reaching that same standard.
 //
 //   run:  node tools/cli-hybrid-check.mjs      (or `make cli-check`)
 import { execFileSync } from 'node:child_process';

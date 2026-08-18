@@ -81,7 +81,7 @@ console.log(`\n${bold("AINRA — verify, in one command")}   ${dim("[" + src.lab
 console.log(dim(`source: ${src.net} · root: ${src.root} · verifier: @ainra/sdk (offline, root-dark) · telemetry: none\n`));
 for (const s of src.samples) printOne(src.label, s.rec.sub, s.rec.tier, s.v);
 const bad = src.samples.filter((s) => s.v.verdict !== "valid" && s.v.reason !== "revoked");
-console.log(`\n${dim("named-reason legend (the 15 frozen INVALID reasons):")}`);
+console.log(`\n${dim("named-reason legend (the 16 frozen INVALID reasons):")}`);
 for (const [k, txt] of Object.entries(REASONS)) if (k !== "_note" && k !== "valid") console.log(dim(`  ${k.padEnd(20)} ${txt}`));
 console.log(`\n${dim("cookbook →")} docs/quickstarts/  ${dim("· issue your own →")} make issue-first`);
 if (src.label !== "LOCAL TESTBED") console.log(dim(`honest label: this is a ${src.label} — no trust migrates to a production root, born only at the recorded genesis ceremony.`));

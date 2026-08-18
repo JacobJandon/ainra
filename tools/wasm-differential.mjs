@@ -4,7 +4,7 @@
 //
 // "It runs in your browser" is otherwise a description of a demo. This makes it a claim the corpus can defend:
 // every v1 conformance vector is pushed through the compiled WASM inside a real headless browser, and both the
-// verdict AND the named reason must equal what ainra-core answered. A surface that agrees on 744 of 745 is not a
+// verdict AND the named reason must equal what ainra-core answered. A surface that agrees on all but one vector is not a
 // verifier, so anything short of N/N fails.
 //
 // Deliberately: no test framework, no bundler, no third-party server. A static file server written here (~30 lines)

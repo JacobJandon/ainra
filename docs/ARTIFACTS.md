@@ -133,7 +133,7 @@ against:
 
 | Artifact | Generator | Determinism |
 |---|---|---|
-| `vectors/v1` (793) · `vectors/v1-delta` (17) · `vectors/v1-directory` (9) | `ainra-vector-gen` | seeded `ChaCha20Rng` (fixed seeds; no clock, no OS RNG) |
+| `vectors/v1` (1009) · `vectors/v1-delta` (17) · `vectors/v1-directory` (9) | `ainra-vector-gen` | seeded `ChaCha20Rng` (fixed seeds; no clock, no OS RNG) |
 | `samples/data/*.json` | `ainra-core` example `sample_passport` | seeded `ChaCha20Rng` |
 | `samples/*.svg` · `samples/manifest.json` | `tools/render-samples.mjs` | dates derive from **fixed claim values**, not wall-clock; no `Date.now()`/`Math.random()` |
 
@@ -162,7 +162,7 @@ Given the same source tree + this toolchain, `make repro` on a stranger's laptop
 
 - **The SDK `dist/`** (`packages/sdk-ts/dist`) — a `tsc` build output whose exact bytes depend on the TypeScript
   compiler version. It is verified for **behaviour**, not byte-hash: the four-way differential (`make diff`)
-  proves `dist` agrees with `ainra-core` on all 793 + 17 + 9 vectors. Byte-pinning a compiler output would couple the
+  proves `dist` agrees with `ainra-core` on all 1009 + 17 + 9 vectors. Byte-pinning a compiler output would couple the
   spec corpus to a compiler release; the differential is the stronger, version-independent guarantee.
 - **`docs/BENCHMARKS.md`** — timing-derived (`Instant::now()`), intentionally not an artifact.
 

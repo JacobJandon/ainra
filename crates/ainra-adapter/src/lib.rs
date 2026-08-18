@@ -13,7 +13,7 @@
 //! implementation, that is a stop-and-report signal, not a thing to write.
 
 use ainra_core::verdict::{Reason, Verdict};
-use ainra_core::{b64, checkpoint, crypto, mandate, status, verify};
+use ainra_core::{b64, checkpoint, crypto, instance, mandate, status, verify};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::collections::BTreeMap;
@@ -92,6 +92,37 @@ pub struct WirePresentation {
     /// the existing corpus is byte-unchanged.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub revoked_delegates: Vec<String>,
+    /// ADR-019 / D-047 — the instance rung. Omitted on every pre-M28 vector (same `skip_serializing_if`
+    /// discipline as `revoked_delegates`, and for the same reason: a `null` here would change the canonical bytes
+    /// of 793 existing vectors and break `make repro` for no gain).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub instance: Option<WireInstance>,
+    /// The VERIFIER's audience. A presenter cannot set this; the vector carries it so the corpus can pin
+    /// audience-mismatch cases deterministically.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub audience: String,
+}
+
+/// The instance credential + its proof-of-possession, as they travel.
+#[derive(Serialize, Deserialize, Clone)]
+pub struct WireInstance {
+    pub sub: String,
+    pub iid: String,
+    pub ikey: WireKey,
+    pub nbf: u64,
+    pub exp: u64,
+    pub capabilities: Vec<String>,
+    pub aud: String,
+    pub passport_leaf: String,
+    pub sig: WireSig,
+    pub pop: WirePop,
+}
+#[derive(Serialize, Deserialize, Clone)]
+pub struct WirePop {
+    pub aud: String,
+    pub nonce: String,
+    pub ts: u64,
+    pub sig: WireSig,
 }
 #[derive(Serialize, Deserialize, Clone)]
 pub struct WireExpect {
@@ -214,10 +245,45 @@ struct Decoded {
     freshness: status::Freshness,
     mandate_revocations: mandate::RevocationSet,
     revoked_delegates: std::collections::BTreeSet<[u8; 32]>,
+    instance: Option<(instance::InstanceCredential, instance::InstancePop)>,
 }
 
 fn presentation_parts(p: &WirePresentation) -> D<Decoded> {
     let claims = bad(b64::decode(&p.claims))?;
+    // ADR-019 — decoded HERE and nowhere else. Strict canonical base64url throughout (D-029): a non-canonical
+    // instance field is a decode failure, not a lenient parse, exactly like every other field on this path.
+    let instance = match &p.instance {
+        None => None,
+        Some(w) => {
+            let ic = instance::InstanceCredential {
+                sub: w.sub.clone(),
+                iid: w.iid.clone(),
+                ikey: crypto::HybridPublic {
+                    ed25519: decode32(&w.ikey.ed25519)?,
+                    mldsa65: bad(b64::decode(&w.ikey.mldsa65))?,
+                },
+                nbf: w.nbf,
+                exp: w.exp,
+                capabilities: w.capabilities.clone(),
+                aud: w.aud.clone(),
+                passport_leaf: decode32(&w.passport_leaf)?,
+                sig: crypto::HybridSig {
+                    ed25519: bad(b64::decode(&w.sig.ed25519))?,
+                    mldsa65: bad(b64::decode(&w.sig.mldsa65))?,
+                },
+            };
+            let pop = instance::InstancePop {
+                aud: w.pop.aud.clone(),
+                nonce: w.pop.nonce.clone(),
+                ts: w.pop.ts,
+                sig: crypto::HybridSig {
+                    ed25519: bad(b64::decode(&w.pop.sig.ed25519))?,
+                    mldsa65: bad(b64::decode(&w.pop.sig.mldsa65))?,
+                },
+            };
+            Some((ic, pop))
+        }
+    };
     let issuer_sig = crypto::HybridSig {
         ed25519: bad(b64::decode(&p.issuer_sig.ed25519))?,
         mldsa65: bad(b64::decode(&p.issuer_sig.mldsa65))?,
@@ -277,6 +343,7 @@ fn presentation_parts(p: &WirePresentation) -> D<Decoded> {
         freshness,
         mandate_revocations,
         revoked_delegates,
+        instance,
     })
 }
 
@@ -309,6 +376,8 @@ pub fn verify_wire(p: &WirePresentation, anchors: &verify::TrustAnchors, now: u6
         mandate_proofs: Vec::new(),
         mandate_revocations: d.mandate_revocations,
         revoked_delegates: d.revoked_delegates,
+        instance: d.instance,
+        audience: p.audience.clone(),
     };
     verify::verify(&pres, anchors)
 }

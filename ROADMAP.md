@@ -14,7 +14,7 @@ Counts here are read from the intake registries (`evidence/`, `witnesses/`), not
 | Trust scaffolding | Security policy, contribution + conformance-first rules, governance, and self-verifying intake pipelines | `SECURITY.md` · `CONTRIBUTING.md` · `GOVERNANCE.md` · `evidence/README.md` |
 | **Settlers pass** | Five of seven documented industry failure modes closed before we could walk into them: graduated distrust keyed on log position (**D-044**), a log that may never come back shorter (**D-045**), compliance measured adversarially from outside (**D-046**), a 72-hour disclosure term with no severity threshold, and rollback thresholds agreed before any root roll | [`docs/SETTLERS.md`](docs/SETTLERS.md) · [`docs/PROBES.md`](docs/PROBES.md) · [`docs/DISCLOSURE.md`](docs/DISCLOSURE.md) · [`docs/genesis-day/ROLLBACK.md`](docs/genesis-day/ROLLBACK.md) |
 
-Four independent implementations agree on all **793** conformance vectors — plus the same core compiled to
+Four independent implementations agree on all **1009** conformance vectors — plus the same core compiled to
 WebAssembly, agreeing again in a browser; every artifact rebuilds byte-for-byte from tagged source; a stranger's cold
 clone passes the full 18-row board (`docs/releases/stranger-test-2026-07-31.md`).
 

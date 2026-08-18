@@ -33,7 +33,7 @@ So the page funds **the events, not the author**, and says what is genuinely unc
 > implementation that answers those three questions with signed facts anyone can verify offline, in about five
 > lines, with the root switched off.
 >
-> The engineering is done and public: four independent implementations agree on 793 CC0 conformance vectors, every
+> The engineering is done and public: four independent implementations agree on 1009 CC0 conformance vectors, every
 > artifact rebuilds byte-for-byte from tagged source, and a stranger's cold clone passes an eighteen-row board.
 > **Verification is free forever and always will be — that is in the charter, enforced in code.**
 >

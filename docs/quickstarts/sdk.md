@@ -23,7 +23,7 @@ revoked: {"verdict":"invalid","reason":"revoked"}
 ```
 
 - `Verifier.fromDirectoryB64` returns `null` if the directory isn't anchored by the given roots (fail closed).
-- `verify()` never throws — any malformed input is `{verdict:"invalid", reason:…}` (one of the 16 in [`reasons.json`](../reasons.json)).
+- `verify()` never throws — any malformed input is `{verdict:"invalid", reason:…}` (one of the 20 in [`reasons.json`](../reasons.json)).
 - Build the [verdict event](../PRESENTATION.md) with `verdictEvent(bundle, verdict, now)` when you need `{name, number, tier, freshness_age_s}`.
 
 Next: gate a whole request path with [the middleware](middleware.md).

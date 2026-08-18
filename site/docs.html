@@ -215,7 +215,7 @@ $ make issue-first   <span class="c"># a local registrar + your first issued, ve
 v = Verifier.from_directory(dir, root_ed, root_slh)
 verdict = v.verify(bundle, now)
 <span class="c"># → verdict.valid is True — or verdict.reason</span></pre></div>
-    <div class="note">Four independently written implementations — Rust core, TypeScript SDK, the reference CLI, and Python — agree on <b>793/793</b> conformance vectors, on verdict <i>and</i> reason. A disagreement would be a finding.</div>
+    <div class="note">Four independently written implementations — Rust core, TypeScript SDK, the reference CLI, and Python — agree on <b>1009/1009</b> conformance vectors, on verdict <i>and</i> reason. A disagreement would be a finding.</div>
 
     <h2 id="gate">Gate a route</h2>
     <p>The middleware turns a verdict into an HTTP decision: invalid agents receive <code>403</code> plus an <code>x-ainra-reason</code> header, fail-closed.</p>

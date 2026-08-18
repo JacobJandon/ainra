@@ -25,7 +25,7 @@ use alloc::vec::Vec;
 use crate::name::AinraName;
 use crate::passport::Passport;
 use crate::verdict::{Reason, Verdict};
-use crate::{b64, chain, checkpoint, crypto, mandate, merkle, status};
+use crate::{b64, chain, checkpoint, crypto, instance, mandate, merkle, status};
 
 /// What a verifier knows about one accredited registrar (from the signed directory — the directory itself is not
 /// modeled in M1; callers construct this from trusted config / test fixtures).
@@ -103,6 +103,11 @@ pub struct Presentation<'a> {
     /// [`crate::directory::Directory`]: a checkpoint signed by a revoked delegate is `checkpoint_invalid`. Empty =
     /// no delegate revocations known (the M1–M3 behaviour).
     pub revoked_delegates: alloc::collections::BTreeSet<[u8; 32]>,
+    /// ADR-019 / D-047 — the instance rung. `None` = a passport presented directly, exactly as before this
+    /// milestone; `Some` = a running copy presenting under that passport, which must also satisfy step 10.
+    /// The audience is the VERIFIER's own, never the presenter's word for it.
+    pub instance: Option<(instance::InstanceCredential, instance::InstancePop)>,
+    pub audience: alloc::string::String,
 }
 
 /// Verify one presentation against the trust anchors. Never panics; returns [`Verdict::Valid`] or the first
@@ -229,6 +234,30 @@ fn verify_inner(pres: &Presentation, anchors: &TrustAnchors) -> core::result::Re
                 return Err(Reason::RegistrarDistrusted);
             }
         }
+    }
+
+    // 10. ADR-019 — the instance rung, LAST and deliberately so. Everything above establishes that this passport
+    //     is real, unexpired, in scope, unrevoked and logged; only then is it worth asking whether the presenter is
+    //     entitled to speak for it. The ordering is also what makes `instance-passport-revoked-*` behave the way the
+    //     rung is supposed to: revoking a passport kills every instance under it, and the verdict a verifier sees is
+    //     `revoked` from step 7 — not an instance-layer reason that would point a debugging integrator at the
+    //     container when the problem is the lineage.
+    if let Some((ic, pop)) = &pres.instance {
+        let key = crypto::HybridPublic {
+            ed25519: b64::decode_array(&p.keys[0].ed25519).map_err(|_| Reason::SchemaViolation)?,
+            mldsa65: b64::decode(&p.keys[0].mldsa65).map_err(|_| Reason::SchemaViolation)?,
+        };
+        // `expected_leaf` was recomputed from the presented claims in step 9 — never taken from the wire.
+        instance::verify_instance(
+            ic,
+            pop,
+            &p.sub,
+            &p.capabilities,
+            &expected_leaf,
+            &key,
+            pres.now,
+            &pres.audience,
+        )?;
     }
 
     Ok(())
@@ -361,6 +390,8 @@ mod tests {
                 mandate_proofs: Vec::new(),
                 mandate_revocations: mandate::RevocationSet::default(),
                 revoked_delegates: Default::default(),
+                instance: None,
+                audience: Default::default(),
             }
         }
     }
@@ -489,6 +520,8 @@ mod tests {
                 mandate_proofs: Vec::new(),
                 mandate_revocations: mandate::RevocationSet::default(),
                 revoked_delegates: Default::default(),
+                instance: None,
+                audience: Default::default(),
             };
         let good_keys = alloc::vec![owner.public(), agent.public(), issuer.public()];
         let good_proofs = alloc::vec![
@@ -786,6 +819,8 @@ mod tests {
             mandate_proofs: Vec::new(),
             mandate_revocations: mandate::RevocationSet::default(),
             revoked_delegates: Default::default(),
+            instance: None,
+            audience: Default::default(),
         };
         assert_eq!(verify(&pres, &anchors), Verdict::invalid(Reason::NotLogged));
     }

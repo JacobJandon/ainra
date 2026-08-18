@@ -349,7 +349,139 @@ def _verify(anchors: dict, presentation: dict, now: int) -> Verdict:
         if cutoff is not None and int(hp.get("leaf_index") or 0) >= int(cutoff):
             return invalid(R.REGISTRAR_DISTRUSTED, **ident())
 
+    # 10. ADR-019 / D-047 — the instance rung, LAST and deliberately so. Everything above establishes that this
+    #     passport is real, unexpired, in scope, unrevoked and logged; only then is it worth asking whether the
+    #     presenter may speak for it. The ordering is what makes passport revocation kill every instance under it
+    #     with ``revoked`` from step 7, rather than an instance-layer reason pointing at the container.
+    inst = presentation.get("instance")
+    if inst is not None:
+        bad_inst = _verify_instance(inst, claims, leaf, now, presentation.get("audience") or "")
+        if bad_inst is not None:
+            return invalid(bad_inst, **ident())
+
     return valid(**ident())
+
+
+#: ≤1 h instance-credential ceiling (ADR-019) — mirrors ``ainra_core::consts::INSTANCE_CRED_DEFAULT_SECS``.
+INSTANCE_CRED_DEFAULT_SECS = 60 * 60
+#: PoP timestamp tolerance — mirrors ``ainra_core::instance::POP_MAX_SKEW_SECS``. A FRESHNESS-layer tolerance
+#: (ADR-016), never applied to a validity window: the instance window is compared exactly, like the passport's.
+POP_MAX_SKEW_SECS = 30
+
+
+def _instance_signing_bytes(ic: dict) -> bytes:
+    """Canonical bytes the passport's control key signs.
+
+    Field order mirrors ``InstanceCredential::signing_bytes`` in ainra-core byte-for-byte; the four-way
+    differential is what keeps the three implementations honest about it.
+    """
+    ikey = ic.get("ikey") or {}
+    return canon_bytes(
+        {
+            "aud": ic.get("aud"),
+            "capabilities": ic.get("capabilities"),
+            "exp": ic.get("exp"),
+            "iid": ic.get("iid"),
+            "ikey": {"ed25519": ikey.get("ed25519"), "mldsa65": ikey.get("mldsa65")},
+            "nbf": ic.get("nbf"),
+            "passport_leaf": ic.get("passport_leaf"),
+            "sub": ic.get("sub"),
+        }
+    )
+
+
+def _pop_signing_bytes(pop: dict) -> bytes:
+    """Canonical bytes the INSTANCE key signs."""
+    return canon_bytes({"aud": pop.get("aud"), "nonce": pop.get("nonce"), "ts": pop.get("ts")})
+
+
+def _hybrid_ok(pub_ed, pub_ml, sig, msg: bytes) -> bool:
+    """Both signatures or invalid — the same rule as every other signature in the system."""
+    if pub_ed is None or pub_ml is None or not isinstance(sig, dict):
+        return False
+    sig_ed = b64f(sig.get("ed25519"), 64)
+    sig_ml = b64d(sig.get("mldsa65"))
+    if sig_ed is None or sig_ml is None:
+        return False
+    return ed25519_verify(pub_ed, sig_ed, msg) and mldsa65_verify(pub_ml, sig_ml, msg)
+
+
+def _verify_instance(inst, claims: dict, passport_leaf: bytes, now: int, expected_aud: str):
+    """The instance rung (ADR-019), fixed order, first-failure-wins.
+
+    Returns a reason string, or ``None`` when it verifies. Order: binding -> window -> scope -> credential
+    signature -> proof-of-possession. Binding first, because a credential minted for a different passport must be
+    refused before any of its own claims are weighed; signature before PoP, because a PoP over a credential that
+    was never validly minted proves nothing.
+
+    Single-use of the nonce is NOT enforced here — that is caller state, and this SDK holds none by design.
+    """
+    if not isinstance(inst, dict):
+        return R.SCHEMA_VIOLATION
+    # (0) DECODE, strictly, before anything is weighed. D-029: a non-canonical base64url field is a decode
+    #     failure, not a signature failure — core refuses it at the adapter gateway with ``schema_violation`` and
+    #     the TS SDK does the same at ``decodePresentation``. The first version of this function returned
+    #     ``instance_sig_invalid`` here and the four-way differential caught it: 985/1009, 24 disagreements, all
+    #     ``instance-noncanon``. Decoding first is also what keeps the reason honest — "we could not read it" is a
+    #     different fact from "it was signed by the wrong key".
+    ikey = inst.get("ikey") or {}
+    pop_in = inst.get("pop") or {}
+    sig_in = inst.get("sig") or {}
+    leaf = b64f(inst.get("passport_leaf"), 32)
+    ik_ed = b64f(ikey.get("ed25519"), 32)
+    ik_ml = b64d(ikey.get("mldsa65"))
+    ic_sig_ed = b64f(sig_in.get("ed25519"), 64) if isinstance(sig_in, dict) else None
+    ic_sig_ml = b64d(sig_in.get("mldsa65")) if isinstance(sig_in, dict) else None
+    pop_sig = pop_in.get("sig") or {}
+    pop_ed = b64f(pop_sig.get("ed25519"), 64) if isinstance(pop_sig, dict) else None
+    pop_ml = b64d(pop_sig.get("mldsa65")) if isinstance(pop_sig, dict) else None
+    if any(x is None for x in (leaf, ik_ed, ik_ml, ic_sig_ed, ic_sig_ml, pop_ed, pop_ml)):
+        return R.SCHEMA_VIOLATION
+    # (1) binding — belongs to the passport actually presented and proven logged.
+    if inst.get("sub") != claims.get("sub") or leaf != passport_leaf:
+        return R.INSTANCE_SIG_INVALID
+    # (2) window — exact, no skew, plus the ceiling enforced at VERIFY and not only at issuance.
+    nbf, exp = inst.get("nbf"), inst.get("exp")
+    if not isinstance(nbf, int) or not isinstance(exp, int) or isinstance(nbf, bool) or isinstance(exp, bool):
+        return R.INSTANCE_EXPIRED
+    if exp <= nbf or exp - nbf > INSTANCE_CRED_DEFAULT_SECS:
+        return R.INSTANCE_EXPIRED
+    if now < nbf or now >= exp:
+        return R.INSTANCE_EXPIRED
+    # (3) scope — narrowing only. The intersection rule one rung down from the delegation chain.
+    caps = inst.get("capabilities")
+    passport_caps = claims.get("capabilities") or []
+    if not isinstance(caps, list) or not all(c in passport_caps for c in caps):
+        return R.INSTANCE_SCOPE_EXCEEDS
+    # (4) credential signature under the PASSPORT's control key.
+    pkeys = claims.get("keys") or []
+    if not pkeys:
+        return R.INSTANCE_SIG_INVALID
+    try:
+        msg = _instance_signing_bytes(inst)
+    except CanonError:
+        return R.INSTANCE_SIG_INVALID
+    if not _hybrid_ok(
+        b64f(pkeys[0].get("ed25519"), 32), b64d(pkeys[0].get("mldsa65")), inst.get("sig") or {}, msg
+    ):
+        return R.INSTANCE_SIG_INVALID
+    # (5) proof-of-possession — audience, freshness, then the signature under the INSTANCE key.
+    pop = inst.get("pop") or {}
+    if inst.get("aud") != expected_aud or pop.get("aud") != expected_aud:
+        return R.INSTANCE_POP_INVALID
+    ts = pop.get("ts")
+    if not isinstance(ts, int) or isinstance(ts, bool) or abs(ts - now) > POP_MAX_SKEW_SECS:
+        return R.INSTANCE_POP_INVALID
+    ikey = inst.get("ikey") or {}
+    try:
+        pop_msg = _pop_signing_bytes(pop)
+    except CanonError:
+        return R.INSTANCE_POP_INVALID
+    if not _hybrid_ok(
+        b64f(ikey.get("ed25519"), 32), b64d(ikey.get("mldsa65")), pop.get("sig") or {}, pop_msg
+    ):
+        return R.INSTANCE_POP_INVALID
+    return None
 
 
 def _decode_proof(items: object) -> list[bytes] | None:

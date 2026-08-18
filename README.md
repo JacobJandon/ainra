@@ -151,7 +151,7 @@ Deploy is one GitHub Pages workflow the owner enables at publish time (see `site
 ```
                       the STANDARD + CC0 conformance vectors (vectors/)  ── anyone builds against these
                                           │
-  crates/ainra-core  ── the pure verify/issue library (N7: no I/O, no clock) ── the 9-step verify, 16 reasons
+  crates/ainra-core  ── the pure verify/issue library (N7: no I/O, no clock) ── the 10-step verify, 20 reasons
         │  hybrid Ed25519 + ML-DSA-65 (both-or-invalid) · RFC 6962 Merkle · Token Status List
         ▼
   crates/ainra-adapter ── the ONE place external bytes become core verify types, and the canonical verdict event.
@@ -173,7 +173,7 @@ Deploy is one GitHub Pages workflow the owner enables at publish time (see `site
 
 The verify path is **RFCs + FIPS + OSI-licensed deps only** — no vendor, no bespoke crypto. **Four independent
 implementations** — `ainra-core`, the TypeScript SDK, the Python SDK and the Node CLI (P0) — agree on every one of the
-**793** vectors (`make diff`), and the same core compiled to WebAssembly agrees again in a browser.
+**1009** vectors (`make diff`), and the same core compiled to WebAssembly agrees again in a browser.
 
 **Validity (ADR-017):** the *identity* — the lineage and its AINRA Number — is permanent; the *credential* defaults
 to **366 days** and renews invisibly (ACME-style at T−30 d, overlap issuance, a logged REISSUE whose `prev_leaf`

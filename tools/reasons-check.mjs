@@ -49,7 +49,20 @@ const cmp = (label, a, b, aName, bName) => {
   if (missing.length) fail(`${label}: in ${aName} but not ${bName} — ${missing.join(", ")}`);
   if (extra.length) fail(`${label}: in ${bName} but not ${aName} — ${extra.join(", ")}`);
 };
+// ── 3b · the Python SDK's closed set ─────────────────────────────────────────────────────────────────────────────
+// This comparison was MISSING from the first version of this gate, and the omission cost something real: D-044's
+// `registrar_distrusted` had been defined in reasons.py since that milestone but never added to `ALL`, so the
+// Python SDK's closed set was one short and nothing noticed. A gate that checks three of four implementations is
+// a gate with a blind spot exactly where the next defect will live.
+const py = read("packages/sdk-py/ainra/reasons.py");
+const pyAll = (py.match(/^ALL = \(([\s\S]*?)\)/m)?.[1] ?? "")
+  .split(",").map((x) => x.trim()).filter((x) => x && !x.startsWith("#"))
+  .map((name) => py.match(new RegExp(`^${name} = "([a-z_]+)"`, "m"))?.[1])
+  .filter(Boolean);
+if (pyAll.length === 0) { console.error("reasons-check: could not parse ALL from packages/sdk-py/ainra/reasons.py"); process.exit(2); }
+
 cmp("core ↔ sdk-ts", core, ts, "ainra-core", "sdk-ts");
+cmp("core ↔ sdk-py", core, pyAll, "ainra-core", "sdk-py");
 cmp("core ↔ docs", core, documented, "ainra-core", "docs/reasons.json");
 
 // ── 4 · no doc may state a count that contradicts the list ───────────────────────────────────────────────────────
@@ -72,4 +85,4 @@ if (bad) {
   console.error(`Fix: add the reason to docs/reasons.json with a plain-words gloss, and update any prose count.`);
   process.exit(1);
 }
-console.log(`REASONS-CHECK OK: ${n} refusal reasons, identical in ainra-core, sdk-ts and docs/reasons.json; every documented count agrees.`);
+console.log(`REASONS-CHECK OK: ${n} refusal reasons, identical in ainra-core, sdk-ts, sdk-py and docs/reasons.json; every documented count agrees.`);

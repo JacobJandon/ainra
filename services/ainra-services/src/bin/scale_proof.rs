@@ -152,6 +152,8 @@ fn device_verification() {
         mandate_proofs: vec![],
         mandate_revocations: mandate::RevocationSet::default(),
         revoked_delegates: Default::default(),
+        instance: None,
+        audience: Default::default(),
     };
     assert!(
         verify::verify(&pres, &anchors).is_valid(),

@@ -720,3 +720,55 @@ unannounced schedule are terms rather than implementation details. Nothing binds
 to hold the agreement — so PROBES.md is a proposed term and says so.
 
 *Status:* NEW. Instrument shipped and negative-controlled; the term awaits an entity and a second registrar.
+
+## D-047 — M28 (ADR-019): the fourth rung, so a stolen container is bounded, narrowed and killable
+
+*Problem:* ADR-017's ladder names five rungs and four were built. The fourth — the credential a **running copy**
+carries — was declared in `consts.rs` and read by nothing. What a running copy actually held was the lineage's
+long-lived hybrid private key, written to disk at **mode 644**, beside a passport valid for 366 days; and what it
+presented was a **bearer token**, because no verify step ever asked the presenter to prove it held anything. The
+`cnf` claim existed, was scanned for PII, and was otherwise unread. Full evidence with file:line in
+[`PLAN-M28.md`](PLAN-M28.md).
+
+*Forbidden fix, and why it was forbidden:* shortening the passport. ADR-017 chose a long credential **because**
+revocation fails closed in under 60 seconds — the deliberate inverse of Web PKI's shrinking-certificate answer to
+soft-fail revocation. Shortening it to shrink a stolen key's blast radius would have quietly reversed a decision
+whose reasoning still holds, to paper over a missing layer. The blast radius is this rung's job.
+
+*Decision — ADR-019, eight parts, each with its rejected alternative recorded in `PLAN-M28.md`:* the passport's
+**control key** mints instance credentials and never enters the container (not the registrar — that would put a
+network round trip and instance-level topology the root has no business knowing in the hot path of every container
+start). They are **not logged**, but each binds to the passport's already-logged `prelog_leaf`, so
+logged-before-valid keeps deciding something — you cannot mint an instance credential for a passport that was never
+logged — without turning a container start into a log append. **≤1 hour**, enforced at *verify*, not only at
+issuance. Capabilities **narrow only** (⊆ the passport's). **Hybrid both-or-invalid**, no speed exception: a full
+verify is 402 µs, and a post-quantum hole at the rung closest to the workload to save tens of microseconds would be
+the cheapest possible way to lose what the rest of the system pays for. **Audience binding + proof-of-possession**
+converts the presentation from bearer to holder-bound. Revocation is **expiry**, except that revoking the passport
+kills every live instance — proven by a vector family, not asserted. **Four new reasons**, none reused.
+
+*Why the reasons are new:* `expired` would read as "your passport ran out" when the passport is fine and the
+container merely needs to renew; `sig_invalid` would read as "the registrar's signature is broken". A reason string
+is a diagnostic contract — the same lesson `reasons-check` was built for one commit earlier.
+
+*What it does NOT do, stated in the module doc so nobody has to infer it:* it does not make a compromised container
+harmless. An attacker with live access holds the instance key and acts as the agent until the credential expires. It
+makes that compromise **bounded in time, bounded in scope, and killable from outside** — three things it was not.
+Single-use of the PoP nonce is **not** enforced in core, because a replay cache is state and `ainra-core` is N7; the
+nonce is bound into the signed bytes so a caller can enforce it, and the docs say plainly that a caller who does not
+is exposed to replay inside the timestamp window, against that audience, by someone who already has the bundle.
+
+*Verified:* nine new vector families — 216 vectors — including the acceptance family without which the rejections
+prove nothing, and `instance-passport-revoked-*`, which returns **`revoked`** rather than an instance reason because
+step 10 runs after step 7 and the lineage, not the container, is what failed. Corpus **793 → 1009**; four-way
+differential **1009/1009** (core ↔ sdk-ts ↔ P0 ↔ sdk-py) plus **1009/1009** for the same core compiled to WASM in a
+headless browser.
+
+*Two things the differential caught, both mine:* the Python SDK returned `instance_sig_invalid` where core and TS
+return `schema_violation` for non-canonical base64url — 985/1009, 24 disagreements, all `instance-noncanon`. D-029
+says a non-canonical field is a *decode* failure, so Python now decodes the whole instance layer strictly before
+weighing any of it. And `registrar_distrusted` had been defined in the Python SDK since D-044 but never added to its
+closed `ALL` set; `reasons-check` had compared core ↔ sdk-ts ↔ docs and never looked at Python, which is a gate with
+a blind spot exactly where the next defect lives. It now checks all four.
+
+*Status:* NEW. Verified across all five surfaces; the CLI/middleware/MCP ergonomics are M28 Task 3.

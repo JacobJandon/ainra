@@ -78,6 +78,20 @@ pub enum Reason {
     UnknownRegistrar,
     /// The credential violated the passport schema (missing MUST field or a forbidden field present).
     SchemaViolation,
+
+    // ── ADR-019 / D-047: the instance rung. Four reasons, none reused from above, because an integrator
+    // debugging a rejected instance credential must not be sent to the wrong layer. `expired` would read as
+    // "your passport ran out" when the passport is fine and the container merely needs to renew.
+    /// The instance credential's window is closed or not yet open, or its lifetime exceeds the ADR-019 ceiling.
+    InstanceExpired,
+    /// The instance credential asks for a capability the passport does not hold (narrowing only).
+    InstanceScopeExceeds,
+    /// The instance credential is not validly minted by the presented passport's control key, or is not bound to
+    /// that passport (wrong subject, or a `passport_leaf` that is not this passport's logged leaf).
+    InstanceSigInvalid,
+    /// The proof-of-possession failed: wrong audience, a timestamp outside tolerance, or a signature that does
+    /// not verify under the credential's instance key.
+    InstancePopInvalid,
 }
 
 impl Reason {
@@ -100,6 +114,10 @@ impl Reason {
             Reason::CeilingExceeded => "ceiling_exceeded",
             Reason::UnknownRegistrar => "unknown_registrar",
             Reason::SchemaViolation => "schema_violation",
+            Reason::InstanceExpired => "instance_expired",
+            Reason::InstanceScopeExceeds => "instance_scope_exceeds",
+            Reason::InstanceSigInvalid => "instance_sig_invalid",
+            Reason::InstancePopInvalid => "instance_pop_invalid",
         }
     }
 }
@@ -114,8 +132,8 @@ impl core::fmt::Display for Reason {
 mod tests {
     use super::*;
 
-    // The 16 frozen strings, in enum order. If this list changes, vectors break — that is the point.
-    const ALL: [(Reason, &str); 16] = [
+    // The 20 frozen strings, in enum order. If this list changes, vectors break — that is the point.
+    const ALL: [(Reason, &str); 20] = [
         (Reason::RegistrarDistrusted, "registrar_distrusted"),
         (Reason::SigInvalid, "sig_invalid"),
         (Reason::AlgDowngrade, "alg_downgrade"),
@@ -132,6 +150,10 @@ mod tests {
         (Reason::CeilingExceeded, "ceiling_exceeded"),
         (Reason::UnknownRegistrar, "unknown_registrar"),
         (Reason::SchemaViolation, "schema_violation"),
+        (Reason::InstanceExpired, "instance_expired"),
+        (Reason::InstanceScopeExceeds, "instance_scope_exceeds"),
+        (Reason::InstanceSigInvalid, "instance_sig_invalid"),
+        (Reason::InstancePopInvalid, "instance_pop_invalid"),
     ];
 
     #[test]

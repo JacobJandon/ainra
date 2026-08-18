@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 // AINRA verify-only SDK — a faithful mirror of ainra-core (independent implementation #2 for the diff-harness).
-// The nine verify steps, their fixed order, and the 16 frozen reason strings match crates/ainra-core/src/verify.rs.
+// The nine verify steps, their fixed order, and the 20 frozen reason strings match crates/ainra-core/src/verify.rs.
 //
 // Validity (ADR-017): the IDENTITY (lineage + AINRA Number) is permanent; the CREDENTIAL defaults to 366 days and
 // renews invisibly (T−30 d reissue, overlap issuance, a logged `prev_leaf` continuity chain). The window check is
@@ -24,7 +24,7 @@ import {
 
 export { canonicalize } from "./canon.js";
 
-// ── Verdicts + the 16 frozen reasons ───────────────────────────────────────────────────────────────────────────
+// ── Verdicts + the 20 frozen reasons ───────────────────────────────────────────────────────────────────────────
 export type Reason =
   | "sig_invalid"
   | "alg_downgrade"
@@ -41,7 +41,13 @@ export type Reason =
   | "ceiling_exceeded"
   | "unknown_registrar"
   | "registrar_distrusted"
-  | "schema_violation";
+  | "schema_violation"
+  // ADR-019 / D-047 — the instance rung. Four reasons, none reused: an integrator debugging a rejected running
+  // copy must not be handed `expired`, which reads as "your passport ran out" when the passport is fine.
+  | "instance_expired"
+  | "instance_scope_exceeds"
+  | "instance_sig_invalid"
+  | "instance_pop_invalid";
 
 export type Verdict = { verdict: "valid" } | { verdict: "invalid"; reason: Reason };
 
@@ -168,6 +174,9 @@ interface Passport {
   logLeaf: string;
   act_chain: ActLink[];
   mandates: MandateNode[];
+  /** The passport's hybrid control keys, already schema-gated as non-empty. ADR-019 uses `keys[0]` as the key that
+   *  mints instance credentials — the one that must never enter a container. */
+  keys: { ed25519: string; mldsa65: string }[];
 }
 
 function parseChecked(claims: Uint8Array): Passport {
@@ -261,6 +270,7 @@ function parseChecked(claims: Uint8Array): Passport {
     logLeaf,
     act_chain,
     mandates,
+    keys: keys as { ed25519: string; mldsa65: string }[],
   };
 }
 
@@ -388,6 +398,56 @@ export interface Presentation {
   /** Revoked delegate-cert fingerprints (base64url SHA-256), M4 — from the dual-root-signed directory. A checkpoint
    *  signed by a revoked delegate is `checkpoint_invalid`. Empty = no delegate revocations known (M1–M3 behaviour). */
   revokedDelegates: Set<string>;
+  /** ADR-019 / D-047 — the instance rung. `undefined` = a passport presented directly (pre-M28 behaviour). */
+  instance?: { ic: InstanceCredential; pop: InstancePop };
+  /** The VERIFIER's own audience — never the presenter's word for it. */
+  audience?: string;
+}
+
+/** ADR-019: the credential a RUNNING COPY carries. Minted by the passport's control key, which never enters the
+ *  container; short (≤1 h), narrower than the passport, and holder-bound by {@link InstancePop}. */
+export interface InstanceCredential {
+  sub: string;
+  iid: string;
+  ikey: HybridPublic;
+  nbf: number;
+  exp: number;
+  capabilities: string[];
+  aud: string;
+  passportLeaf: Uint8Array;
+  sig: HybridSig;
+}
+/** The presenter's proof it holds the instance key — what makes the presentation holder-bound, not bearer. */
+export interface InstancePop {
+  aud: string;
+  nonce: string;
+  ts: number;
+  sig: HybridSig;
+}
+
+/** ≤ 1 h instance-credential ceiling (ADR-019) — mirrors `ainra_core::consts::INSTANCE_CRED_DEFAULT_SECS`. */
+export const INSTANCE_CRED_DEFAULT_SECS = 60 * 60;
+/** PoP timestamp tolerance — mirrors `ainra_core::instance::POP_MAX_SKEW_SECS`. A FRESHNESS-layer tolerance
+ *  (ADR-016), never applied to a validity window: the instance window is compared exactly, like the passport's. */
+export const POP_MAX_SKEW_SECS = 30;
+
+/** Canonical bytes the passport's control key signs. Field order mirrors `InstanceCredential::signing_bytes` in
+ *  ainra-core byte-for-byte; the four-way differential is what keeps them honest. */
+export function instanceSigningBytes(ic: InstanceCredential): Uint8Array {
+  return new TextEncoder().encode(canonicalize({
+    aud: ic.aud,
+    capabilities: ic.capabilities,
+    exp: ic.exp,
+    iid: ic.iid,
+    ikey: { ed25519: b64uEncode(ic.ikey.ed25519), mldsa65: b64uEncode(ic.ikey.mldsa65) },
+    nbf: ic.nbf,
+    passport_leaf: b64uEncode(ic.passportLeaf),
+    sub: ic.sub,
+  }));
+}
+/** Canonical bytes the INSTANCE key signs. */
+export function popSigningBytes(pop: InstancePop): Uint8Array {
+  return new TextEncoder().encode(canonicalize({ aud: pop.aud, nonce: pop.nonce, ts: pop.ts }));
 }
 
 const SCOPE_CHECKPOINT = "checkpoint-daily";
@@ -702,6 +762,41 @@ function verifyInner(pres: Presentation, anchors: TrustAnchors): void {
     if (reg.distrustFromLeaf !== undefined && hp.leafIndex >= reg.distrustFromLeaf)
       throw new Reject("registrar_distrusted");
   }
+
+  // 10. ADR-019 — the instance rung, LAST and deliberately so. Everything above establishes the passport is real,
+  //     unexpired, in scope, unrevoked and logged; only then is it worth asking whether the presenter may speak
+  //     for it. The ordering is what makes passport revocation kill every instance with `revoked` from step 7,
+  //     rather than an instance-layer reason that would point a debugging integrator at the container.
+  if (pres.instance) {
+    verifyInstance(pres.instance.ic, pres.instance.pop, p, expectedLeaf, pres.now, pres.audience ?? "");
+  }
+}
+
+/** The instance rung, in a fixed order, first-failure-wins. Mirrors `ainra_core::instance::verify_instance`.
+ *  Single-use of the nonce is NOT enforced here — that is caller state, and the SDK holds none. */
+function verifyInstance(
+  ic: InstanceCredential,
+  pop: InstancePop,
+  p: Passport,
+  passportLeaf: Uint8Array,
+  now: number,
+  expectedAud: string,
+): void {
+  // (1) binding — belongs to the passport actually presented and proven logged.
+  if (ic.sub !== p.sub || !eqBytes(ic.passportLeaf, passportLeaf)) throw new Reject("instance_sig_invalid");
+  // (2) window — exact, no skew, plus the ceiling enforced at VERIFY (not only at issuance).
+  if (ic.exp <= ic.nbf || ic.exp - ic.nbf > INSTANCE_CRED_DEFAULT_SECS) throw new Reject("instance_expired");
+  if (now < ic.nbf || now >= ic.exp) throw new Reject("instance_expired");
+  // (3) scope — narrowing only.
+  if (!ic.capabilities.every((c) => p.capabilities.includes(c))) throw new Reject("instance_scope_exceeds");
+  // (4) credential signature under the PASSPORT's control key.
+  const pkey: HybridPublic = { ed25519: dec(p.keys[0].ed25519, "instance_sig_invalid"), mldsa65: dec(p.keys[0].mldsa65, "instance_sig_invalid") };
+  if (verifyHybrid(pkey, instanceSigningBytes(ic), ic.sig)) throw new Reject("instance_sig_invalid");
+  // (5) proof-of-possession — audience, freshness, then the signature under the INSTANCE key.
+  if (ic.aud !== expectedAud || pop.aud !== expectedAud) throw new Reject("instance_pop_invalid");
+  const delta = pop.ts > now ? pop.ts - now : now - pop.ts;
+  if (delta > POP_MAX_SKEW_SECS) throw new Reject("instance_pop_invalid");
+  if (verifyHybrid(ic.ikey, popSigningBytes(pop), pop.sig)) throw new Reject("instance_pop_invalid");
 }
 
 function prelogLeaf(claims: Uint8Array): Uint8Array {
@@ -763,6 +858,13 @@ export interface WireVector {
     inclusion_proof: string[];
     mandate_revocations: string[];
     revoked_delegates?: string[];
+    /** ADR-019 — absent on every pre-M28 vector, so the existing corpus is byte-unchanged. */
+    instance?: {
+      sub: string; iid: string; ikey: WireKey; nbf: number; exp: number;
+      capabilities: string[]; aud: string; passport_leaf: string; sig: WireKey;
+      pop: { aud: string; nonce: string; ts: number; sig: WireKey };
+    };
+    audience?: string;
   };
 }
 
@@ -809,6 +911,23 @@ function decodePresentation(pr: PresentationBundle, revoked: Set<string>, now: n
     mandateProofs: [],
     mandateRevocations: new Set(pr.mandate_revocations),
     revokedDelegates: revoked,
+    instance: pr.instance
+      ? {
+          ic: {
+            sub: pr.instance.sub, iid: pr.instance.iid,
+            ikey: { ed25519: dec(pr.instance.ikey.ed25519), mldsa65: dec(pr.instance.ikey.mldsa65) },
+            nbf: pr.instance.nbf, exp: pr.instance.exp,
+            capabilities: pr.instance.capabilities, aud: pr.instance.aud,
+            passportLeaf: dec(pr.instance.passport_leaf),
+            sig: { ed25519: dec(pr.instance.sig.ed25519), mldsa65: dec(pr.instance.sig.mldsa65) },
+          },
+          pop: {
+            aud: pr.instance.pop.aud, nonce: pr.instance.pop.nonce, ts: pr.instance.pop.ts,
+            sig: { ed25519: dec(pr.instance.pop.sig.ed25519), mldsa65: dec(pr.instance.pop.sig.mldsa65) },
+          },
+        }
+      : undefined,
+    audience: pr.audience ?? "",
   };
 }
 

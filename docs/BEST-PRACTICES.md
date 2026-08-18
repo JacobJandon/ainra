@@ -19,7 +19,7 @@ prevent.
 | Bug-reporting process | yes | issue templates in `.github/ISSUE_TEMPLATE/` |
 | Vulnerability report process | yes | `SECURITY.md` with a private advisory channel, response times stated |
 | Working build | yes | `make preflight` — eighteen gates from a cold clone |
-| Automated test suite, invoked by one command | yes | `make test`; plus 793 conformance vectors across four implementations |
+| Automated test suite, invoked by one command | yes | `make test`; plus 1009 conformance vectors across four implementations |
 | New functionality adds tests (policy) | yes | `CONTRIBUTING.md` — the conformance-first rule: new behaviour arrives with a vector |
 | Static analysis | yes | CodeQL (Rust + TS + Python), clippy `-D warnings`, `make s7`, `make license` |
 | Dynamic analysis / memory safety | yes | cargo-fuzz targets + ClusterFuzzLite; Miri on the parsing paths; Rust throughout the verify path |

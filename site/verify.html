@@ -854,7 +854,7 @@ nav .nav-links a[aria-current="page"],nav .ndocs[aria-current="page"]{text-decor
 <script type="module">
 // try-it-live. The engine is ainra-core itself — the Rust verify path compiled to WebAssembly (L5) — so "the same
 // code that passes every conformance vector" is literal here rather than a family resemblance. A harness runs the
-// whole corpus through this exact artifact in a headless browser and requires 793/793 agreement with the core.
+// whole corpus through this exact artifact in a headless browser and requires 1009/1009 agreement with the core.
 // If WebAssembly cannot load, the page falls back to the JavaScript mirror and SAYS SO in the provenance line;
 // it never quietly answers with a different implementation than the one it claims.
 let ENGINE = null;
@@ -908,7 +908,7 @@ async function loadEngine(){
   try{
     const s = await import("./vendor/ainra-sdk.js");
     return { kind:"js", label:"@ainra/sdk · JavaScript mirror",
-      note:"WebAssembly did not load here, so this ran the independent JavaScript implementation instead. The differential holds both to the same answers on all 793 vectors — but the Rust core did not run in this tab, and we would rather say that than let you assume it did.",
+      note:"WebAssembly did not load here, so this ran the independent JavaScript implementation instead. The differential holds both to the same answers on all 1009 vectors — but the Rust core did not run in this tab, and we would rather say that than let you assume it did.",
       verify:(pres,anchors,now)=>{ const v=s.runVector({name:"",expect:{},anchors,presentation:pres});
                                    return { verdict:v.verdict, reason:v.reason, event:null }; } };
   }catch(e){ return null; }

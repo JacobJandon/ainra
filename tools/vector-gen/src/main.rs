@@ -49,6 +49,11 @@ struct CredParams {
     status_idx: u64,
     status_len: usize,
     status_revoked: bool,
+    /// ADR-019: a REAL hybrid control key in `keys[0]`, baked into the body BEFORE it is canonicalised and
+    /// logged. It cannot go through `build_mut`'s `mutate` hook — that runs after the leaf is computed (it exists
+    /// for tamper tests), so a key planted there would not be the key that was logged, and every instance vector
+    /// would fail at step 9 with `not_logged`. Which is exactly what happened on the first attempt.
+    control_key: Option<crypto::HybridPublic>,
     chain: Vec<HopSpec>,
     /// Operative mandate path (id, parent) baked into the signed body. Empty = no mandate gate.
     mandates: Vec<(String, Option<String>)>,
@@ -213,7 +218,10 @@ fn build_mut(p: &CredParams, mutate: impl FnOnce(&mut Value)) -> Built {
         "tier": "L1",
         "capabilities": p.capabilities.clone(),
         "scope_ceiling": p.scope_ceiling.clone(),
-        "keys": [ { "ed25519": "AAAA", "mldsa65": "BBBB" } ],
+        "keys": [ match &p.control_key {
+            Some(k) => json!({ "ed25519": b64::encode(&k.ed25519), "mldsa65": b64::encode(&k.mldsa65) }),
+            None => json!({ "ed25519": "AAAA", "mldsa65": "BBBB" }),
+        } ],
         "cnf": { "jkt": "thumb" },
         "status": { "status_list": { "idx": p.status_idx, "uri": format!("status://{}/1", p.registrar) } },
         "act_chain": serde_json::to_value(&act_chain).expect("act_chain")
@@ -555,6 +563,8 @@ fn wire_valid(name: &str, description: &str, built: &Built) -> Vector {
         inclusion_proof: built.proof.iter().map(|h| b64::encode(h)).collect(),
         mandate_revocations: Vec::new(),
         revoked_delegates: Default::default(),
+        instance: None,
+        audience: String::new(),
     };
     Vector {
         name: name.to_string(),
@@ -656,6 +666,7 @@ fn valid_params(i: usize) -> CredParams {
         status_idx: (i % 12) as u64,
         status_len: 16,
         status_revoked: false,
+        control_key: None,
         chain: Vec::new(),
         mandates: Vec::new(),
         // Every 4th credential exercises the ADR-002 delegate checkpoint-signing path (still VALID).
@@ -1146,6 +1157,353 @@ fn generate() -> Vec<Vector> {
         }
         out.push(v);
     }
+
+    // ── ADR-019 / D-047 — the instance rung ──────────────────────────────────────────────────────────────────────
+    // EIGHT families. As with D-044's pair, the rejection families mean nothing without the acceptance family:
+    // `instance-valid-*` proves the rung does not over-refuse, and every other family is that same fixture with
+    // exactly one thing changed, so a failure names the field that caused it.
+    //
+    // WITNESS for this whole block: could these vectors have failed? Yes, and they did while being written — the
+    // first `instance-valid` set came back `instance_pop_invalid` because the PoP was signed at the fixture's `nbf`
+    // while the vector's `now` sits mid-window, which is a true answer to a question the vector was not asking.
+    {
+        const AUD: &str = "https://api.example";
+        // A helper that plants a REAL control key in the passport (the existing corpus uses "AAAA"/"BBBB"
+        // placeholders, which is fine only while nothing verifies against keys[0] — ADR-019 does).
+        fn instance_fixture(
+            seed: usize,
+            caps: &[&str],
+            revoked: bool,
+        ) -> (Built, crypto::HybridKeypair, crypto::HybridKeypair, u64) {
+            let mut rng = ChaCha20Rng::seed_from_u64(0x494E_5354_0000_0000 ^ seed as u64);
+            let ctrl = crypto::HybridKeypair::generate(&mut rng);
+            let inst = crypto::HybridKeypair::generate(&mut rng);
+            let mut p = valid_params(seed);
+            p.status_revoked = revoked;
+            p.capabilities = caps.iter().map(|s| s.to_string()).collect();
+            p.control_key = Some(ctrl.public());
+            let b = build(&p);
+            let now = b.nbf + (b.exp - b.nbf) / 2;
+            (b, ctrl, inst, now)
+        }
+
+        /// Named rather than positional: eleven positional arguments is the same readability trap the repo
+        /// already fixed once for `Decoded`, and one transposed keypair here would silently produce a vector
+        /// that asserts the wrong thing while still looking plausible.
+        struct Mint<'a> {
+            b: &'a Built,
+            inst: &'a crypto::HybridKeypair,
+            caps: &'a [&'a str],
+            nbf: u64,
+            exp: u64,
+            aud: &'a str,
+            pop_aud: &'a str,
+            pop_ts: u64,
+            signer: &'a crypto::HybridKeypair,
+            pop_signer: &'a crypto::HybridKeypair,
+        }
+        fn mint(m: Mint<'_>) -> WireInstance {
+            let Mint {
+                b,
+                inst,
+                caps,
+                nbf,
+                exp,
+                aud,
+                pop_aud,
+                pop_ts,
+                signer,
+                pop_signer,
+            } = m;
+            let leaf = ainra_core::verify::prelog_leaf(&b.claims).expect("prelog leaf");
+            let ik = inst.public();
+            let sub = serde_json::from_slice::<Value>(&b.claims).expect("claims")["sub"]
+                .as_str()
+                .expect("sub")
+                .to_string();
+            let ic = ainra_core::instance::InstanceCredential {
+                sub: sub.clone(),
+                iid: format!("i-{:04x}", nbf % 0xffff),
+                ikey: ik.clone(),
+                nbf,
+                exp,
+                capabilities: caps.iter().map(|s| s.to_string()).collect(),
+                aud: aud.to_string(),
+                passport_leaf: leaf,
+                sig: crypto::HybridSig {
+                    ed25519: Vec::new(),
+                    mldsa65: Vec::new(),
+                },
+            };
+            let sig = signer
+                .sign(&ic.signing_bytes().expect("ic bytes"))
+                .expect("sign ic");
+            let pop = ainra_core::instance::InstancePop {
+                aud: pop_aud.to_string(),
+                nonce: "n-0001".to_string(),
+                ts: pop_ts,
+                sig: crypto::HybridSig {
+                    ed25519: Vec::new(),
+                    mldsa65: Vec::new(),
+                },
+            };
+            let psig = pop_signer
+                .sign(&pop.signing_bytes().expect("pop bytes"))
+                .expect("sign pop");
+            WireInstance {
+                sub,
+                iid: ic.iid.clone(),
+                ikey: wire_key(&ik),
+                nbf,
+                exp,
+                capabilities: ic.capabilities.clone(),
+                aud: aud.to_string(),
+                passport_leaf: b64::encode(&leaf),
+                sig: WireSig {
+                    ed25519: b64::encode(&sig.ed25519),
+                    mldsa65: b64::encode(&sig.mldsa65),
+                },
+                pop: WirePop {
+                    aud: pop_aud.to_string(),
+                    nonce: "n-0001".to_string(),
+                    ts: pop_ts,
+                    sig: WireSig {
+                        ed25519: b64::encode(&psig.ed25519),
+                        mldsa65: b64::encode(&psig.mldsa65),
+                    },
+                },
+            }
+        }
+
+        // (1) ACCEPTANCE — the control that makes every rejection below meaningful.
+        for i in 0..per {
+            let caps = ["read:invoices"];
+            let (b, ctrl, inst, now) = instance_fixture(4100 + i, &caps, false);
+            let mut v = wire_valid(
+            &format!("instance-valid-{:04}", i),
+            "a running copy presenting a short, narrowed, holder-bound credential under its passport",
+            &b,
+        );
+            v.presentation.instance = Some(mint(Mint {
+                b: &b,
+                inst: &inst,
+                caps: &["read:invoices"],
+                nbf: now - 60,
+                exp: now + 600,
+                aud: AUD,
+                pop_aud: AUD,
+                pop_ts: now,
+                signer: &ctrl,
+                pop_signer: &inst,
+            }));
+            v.presentation.audience = AUD.to_string();
+            out.push(v);
+        }
+
+        // (2) EXPIRED — window closed, and the boundary (exp is exclusive).
+        for i in 0..per {
+            let caps = ["read:invoices"];
+            let (b, ctrl, inst, now) = instance_fixture(4200 + i, &caps, false);
+            let mut v = wire_valid(&format!("instance-expired-{:04}", i), "", &b);
+            v.presentation.instance = Some(mint(Mint {
+                b: &b,
+                inst: &inst,
+                caps: &["read:invoices"],
+                nbf: now - 600,
+                exp: now,
+                aud: AUD,
+                pop_aud: AUD,
+                pop_ts: now,
+                signer: &ctrl,
+                pop_signer: &inst,
+            }));
+            v.presentation.audience = AUD.to_string();
+            out.push(invalid(
+                v,
+                Reason::InstanceExpired,
+                "instance window closed — exp is exclusive, so now == exp is expired",
+            ));
+        }
+
+        // (3) LIFETIME CEILING — a validly signed credential whose window exceeds the ADR-019 hour.
+        for i in 0..per {
+            let caps = ["read:invoices"];
+            let (b, ctrl, inst, now) = instance_fixture(4300 + i, &caps, false);
+            let mut v = wire_valid(&format!("instance-too-long-{:04}", i), "", &b);
+            v.presentation.instance = Some(mint(Mint {
+                b: &b,
+                inst: &inst,
+                caps: &["read:invoices"],
+                nbf: now - 60,
+                exp: now + 3600,
+                aud: AUD,
+                pop_aud: AUD,
+                pop_ts: now,
+                signer: &ctrl,
+                pop_signer: &inst,
+            }));
+            v.presentation.audience = AUD.to_string();
+            out.push(invalid(
+                v,
+                Reason::InstanceExpired,
+                "lifetime exceeds the 1 h ceiling — enforced at verify, not only at issuance",
+            ));
+        }
+
+        // (4) SCOPE EXCEEDS — narrowing only; a properly signed widening is still refused.
+        for i in 0..per {
+            let caps = ["read:invoices"];
+            let (b, ctrl, inst, now) = instance_fixture(4400 + i, &caps, false);
+            let mut v = wire_valid(&format!("instance-scope-exceeds-{:04}", i), "", &b);
+            v.presentation.instance = Some(mint(Mint {
+                b: &b,
+                inst: &inst,
+                caps: &["read:invoices", "admin:all"],
+                nbf: now - 60,
+                exp: now + 600,
+                aud: AUD,
+                pop_aud: AUD,
+                pop_ts: now,
+                signer: &ctrl,
+                pop_signer: &inst,
+            }));
+            v.presentation.audience = AUD.to_string();
+            out.push(invalid(
+                v,
+                Reason::InstanceScopeExceeds,
+                "instance asks for a capability its passport does not hold",
+            ));
+        }
+
+        // (5) WRONG SIGNER — a real signature by a key that is not the passport's control key.
+        for i in 0..per {
+            let caps = ["read:invoices"];
+            let (b, _ctrl, inst, now) = instance_fixture(4500 + i, &caps, false);
+            let mut rng = ChaCha20Rng::seed_from_u64(0xBAD5_1611_0000_0000 ^ i as u64);
+            let impostor = crypto::HybridKeypair::generate(&mut rng);
+            let mut v = wire_valid(&format!("instance-wrong-signer-{:04}", i), "", &b);
+            v.presentation.instance = Some(mint(Mint {
+                b: &b,
+                inst: &inst,
+                caps: &["read:invoices"],
+                nbf: now - 60,
+                exp: now + 600,
+                aud: AUD,
+                pop_aud: AUD,
+                pop_ts: now,
+                signer: &impostor,
+                pop_signer: &inst,
+            }));
+            v.presentation.audience = AUD.to_string();
+            out.push(invalid(
+                v,
+                Reason::InstanceSigInvalid,
+                "minted by a key that is not this passport's control key",
+            ));
+        }
+
+        // (6) POP — the check that makes the credential holder-bound rather than bearer. Two shapes: a PoP signed by
+        //     the wrong key, and a PoP for a different audience.
+        for i in 0..per {
+            let caps = ["read:invoices"];
+            let (b, ctrl, inst, now) = instance_fixture(4600 + i, &caps, false);
+            let mut rng = ChaCha20Rng::seed_from_u64(0x5701_1E00_0000_0000u64 ^ i as u64);
+            let thief = crypto::HybridKeypair::generate(&mut rng);
+            let mut v = wire_valid(&format!("instance-pop-wrong-key-{:04}", i), "", &b);
+            v.presentation.instance = Some(mint(Mint {
+                b: &b,
+                inst: &inst,
+                caps: &["read:invoices"],
+                nbf: now - 60,
+                exp: now + 600,
+                aud: AUD,
+                pop_aud: AUD,
+                pop_ts: now,
+                signer: &ctrl,
+                pop_signer: &thief,
+            }));
+            v.presentation.audience = AUD.to_string();
+            out.push(invalid(
+                v,
+                Reason::InstancePopInvalid,
+                "proof-of-possession signed by a key that is not the credential's instance key",
+            ));
+        }
+        for i in 0..per {
+            let caps = ["read:invoices"];
+            let (b, ctrl, inst, now) = instance_fixture(4700 + i, &caps, false);
+            let mut v = wire_valid(&format!("instance-replay-elsewhere-{:04}", i), "", &b);
+            v.presentation.instance = Some(mint(Mint {
+                b: &b,
+                inst: &inst,
+                caps: &["read:invoices"],
+                nbf: now - 60,
+                exp: now + 600,
+                aud: "https://elsewhere.example",
+                pop_aud: "https://elsewhere.example",
+                pop_ts: now,
+                signer: &ctrl,
+                pop_signer: &inst,
+            }));
+            v.presentation.audience = AUD.to_string();
+            out.push(invalid(
+                v,
+                Reason::InstancePopInvalid,
+                "a credential addressed to a different audience, replayed here",
+            ));
+        }
+
+        // (7) THE R1 PAYOFF — revoke the passport, and every instance under it dies. The verdict is `revoked` from
+        //     step 7, NOT an instance reason: the container is fine, the lineage is not, and the reason must say so.
+        for i in 0..per {
+            let caps = ["read:invoices"];
+            let (b, ctrl, inst, now) = instance_fixture(4800 + i, &caps, true);
+            let mut v = wire_valid(&format!("instance-passport-revoked-{:04}", i), "", &b);
+            v.presentation.instance = Some(mint(Mint {
+                b: &b,
+                inst: &inst,
+                caps: &["read:invoices"],
+                nbf: now - 60,
+                exp: now + 600,
+                aud: AUD,
+                pop_aud: AUD,
+                pop_ts: now,
+                signer: &ctrl,
+                pop_signer: &inst,
+            }));
+            v.presentation.audience = AUD.to_string();
+            out.push(invalid(
+                v,
+                Reason::Revoked,
+                "the passport under this instance is revoked — every live instance dies with it",
+            ));
+        }
+
+        // (8) NON-CANONICAL — D-029 discipline reaches this rung too.
+        for i in 0..per {
+            let caps = ["read:invoices"];
+            let (b, ctrl, inst, now) = instance_fixture(4900 + i, &caps, false);
+            let mut v = wire_valid(&format!("instance-noncanon-{:04}", i), "", &b);
+            let mut wi = mint(Mint {
+                b: &b,
+                inst: &inst,
+                caps: &["read:invoices"],
+                nbf: now - 60,
+                exp: now + 600,
+                aud: AUD,
+                pop_aud: AUD,
+                pop_ts: now,
+                signer: &ctrl,
+                pop_signer: &inst,
+            });
+            // a non-canonical base64url tail on the bound leaf: the strict decoder must refuse it outright
+            wi.passport_leaf = format!("{}=", &wi.passport_leaf);
+            v.presentation.instance = Some(wi);
+            v.presentation.audience = AUD.to_string();
+            out.push(invalid(v, Reason::SchemaViolation, "non-canonical base64url in the instance layer — the strict gateway refuses it (D-029)"));
+        }
+    }
+
     for i in 0..per {
         let b = build(&valid_params(1400 + i));
         let mut v = wire_valid(&format!("checkpoint-invalid-{:04}", i), "", &b);

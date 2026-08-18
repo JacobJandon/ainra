@@ -124,6 +124,8 @@ fn verify_against(
         mandate_proofs: vec![],
         mandate_revocations: mandate::RevocationSet::default(),
         revoked_delegates: acc.revoked_delegates,
+        instance: None,
+        audience: Default::default(),
     };
     verify::verify(&pres, &acc.anchors)
 }

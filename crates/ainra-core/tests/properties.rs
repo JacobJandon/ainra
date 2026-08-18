@@ -116,6 +116,8 @@ fn p1_sign_then_verify_is_valid() {
             mandate_proofs: Vec::new(),
             mandate_revocations: mandate::RevocationSet::default(),
             revoked_delegates: Default::default(),
+            instance: None,
+            audience: Default::default(),
         };
         assert_eq!(
             verify::verify(&pres, &c.anchors),

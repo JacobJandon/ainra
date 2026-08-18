@@ -16,7 +16,7 @@ A stranger clones, runs `make test && make vectors && make diff`, all green in <
 | `make test` | `cargo test --release --workspace` — **118 tests** (core unit incl. directory + property + frost + ceremony + registrar + service + networked-quorum regression) | ✅ green |
 | `make vectors` | regenerate **721 passport (incl. 24 ADR-017 boundary + 29 renewal/REISSUE + 8 D-029 non-canonical-encoding) + 24 delegate-revocation + 17 delta + 9 directory** CC0 vectors + self-check | ✅ green |
 | `make vectors-check` | replay ALL three committed corpora back through ainra-core | ✅ green |
-| `make diff` | differential (below) — verdicts **793/793**, canon 10/10 + 4/4, delta 17/17, **directory 9/9** | ✅ green |
+| `make diff` | differential (below) — verdicts **1009/1009**, canon 10/10 + 4/4, delta 17/17, **directory 9/9** | ✅ green |
 | `make ceremony` | **M4** genesis rehearsal: FROST 5-of-9 dual root → signed directory → mint/verify → revoke→`checkpoint_invalid` → rotate→VALID → transcript | ✅ green |
 | `make testbed` | **M5** the wedge: live registrar → `accredit` → 5-line `ainra-verify` → VALID; revoke → INVALID; **+ 4b: forged all-clear status (clear/strip/swap-uri) → INVALID**; verify-latency | ✅ green |
 | `make wedge-test` | **M5+M6** the `@ainra/middleware` gate — **18** fail-closed tests (malformed denied, nothing throws, **the revocation-bypass regression**: forge/DoS/freshness-window, **+ M6 currency-mode**: fresh-head bind + monotonic-seq replay rejected) | ✅ green |
@@ -56,7 +56,7 @@ A stranger clones, runs `make test && make vectors && make diff`, all green in <
 | `directory` | **M4: dual-root-signed registrar directory** — `accredit` (FROST-Ed25519 + SLH-DSA, both-or-invalid, sorted/unique) → `TrustAnchors` + revoked-delegate set | MTS §13, D-019 |
 | `chain` | delegation ∩-narrowing + dual-signed hop verify + hop leaf | MTS §17, D-012 |
 | `mandate` | subtree revocation (static path; dynamic/AP2 still M-later, fail-closed rejected) | MTS §18, D-009/D-013 |
-| `verify` | the 9-step orchestrator → `Verdict`; fixed order, all 16 frozen reasons reachable + **M4: delegate-revocation input** | MTS §8, D-019 |
+| `verify` | the 9-step orchestrator → `Verdict`; fixed order, all 20 frozen reasons reachable + **M4: delegate-revocation input** | MTS §8, D-019 |
 
 **`services/ainra-services`** — thin over `ainra-core`, no novel security logic:
 * **`logd`** (M2) persistent append-only log, delegate-signed checkpoints, inclusion + consistency proofs;
@@ -170,7 +170,7 @@ field is gone, and `certified` refuses k=0. Regressions added; `fork_drill.rs` p
 can't certify. See D-021.
 
 **M7 — reproducible builds + mirrors + docs freeze** (`make repro` / `make verify-mirror` / `make check-freeze`).
-The published spec artifacts (793 + 17 + 9 CC0 vectors + the 3-face sample book, 838 files) are made verifiable by
+The published spec artifacts (1009 + 17 + 9 CC0 vectors + the 3-face sample book, 838 files) are made verifiable by
 anyone, with the **source** as trust root. `make repro` rebuilds the whole set from source into a fresh empty temp
 tree **twice** and asserts **committed == clean-rebuild ×2** byte-identical (deterministic: seeded RNG, no wall-clock),
 then writes `MANIFEST.sha256`. A **mirror** is any host serving that set; `make verify-mirror` recomputes every hash

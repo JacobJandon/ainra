@@ -1,5 +1,5 @@
 {
-  "_note": "The 16 frozen INVALID reasons, in verify order, each in plain words. Single source for the CLI/SDK/MCP/console legends and docs. The strings themselves are frozen (they match crates/ainra-core/src/verify.rs and packages/sdk-ts Reason); only these glosses are editorial. tools/reasons-check.mjs fails the build if this list and ainra-core's Reason::ALL ever diverge.",
+  "_note": "The 20 frozen INVALID reasons, in verify order, each in plain words. Single source for the CLI/SDK/MCP/console legends and docs. The strings themselves are frozen (they match crates/ainra-core/src/verify.rs and packages/sdk-ts Reason); only these glosses are editorial. tools/reasons-check.mjs fails the build if this list and ainra-core's Reason::ALL ever diverge.",
   "valid": "All nine checks passed — genuine, in-window, in-scope, logged, and not revoked.",
   "schema_violation": "Not a well-formed passport, or it carries a forbidden (identity/score/money) field.",
   "name_malformed": "The subject or issuer name doesn't fit the AINRA name grammar.",
@@ -16,5 +16,9 @@
   "mandate_revoked": "A mandate in the signed permission path has been revoked.",
   "not_logged": "The credential can't be proven present in the transparency log (logged-before-valid failed).",
   "registrar_distrusted": "The registrar was distrusted from this point in its log onward — everything it logged before the published cutoff still verifies (D-044).",
-  "checkpoint_invalid": "The log checkpoint isn't signed by a currently-valid delegate."
+  "checkpoint_invalid": "The log checkpoint isn't signed by a currently-valid delegate.",
+  "instance_expired": "The running copy's instance credential is outside its window, or its lifetime exceeds the one-hour ADR-019 ceiling. The passport is fine — the copy needs a fresh credential.",
+  "instance_scope_exceeds": "The instance credential asks for a capability its passport does not hold. A running copy may only narrow, never widen (ADR-019).",
+  "instance_sig_invalid": "The instance credential was not minted by this passport's control key, or is not bound to this passport (wrong subject or wrong logged leaf).",
+  "instance_pop_invalid": "The presenter did not prove it holds the instance key: wrong audience, a timestamp outside tolerance, or a bad proof-of-possession signature."
 }

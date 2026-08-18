@@ -1204,6 +1204,8 @@ pub fn verify_record_offline(
                 mandate_proofs: Vec::new(),
                 mandate_revocations: mandate::RevocationSet::default(),
                 revoked_delegates: Default::default(),
+                instance: None,
+                audience: Default::default(),
             };
             verify::verify(&pres, anchors)
         }

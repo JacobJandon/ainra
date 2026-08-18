@@ -273,6 +273,8 @@ fn build(spec: BuildSpec) -> serde_json::Value {
         mandate_proofs: Vec::new(),
         mandate_revocations: mandate::RevocationSet::default(),
         revoked_delegates: Default::default(),
+        instance: None,
+        audience: Default::default(),
     };
     let verdict = verify::verify(&pres, &anchors);
 

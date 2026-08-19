@@ -421,6 +421,10 @@ function cmdCheck() {
   if (w === 0) {
     if (!statesGap.test(fnd)) fail("site/foundation.html does not state the witness gap while witnesses/candidates.json holds 0 — the split-view guarantee is not in force and the page must say so");
     else if (!statesGap.test(docsPage)) fail("site/docs.html renders the log's properties without noting that witness cosigning is unstaffed");
+    // The FOOTER is generated from site/_includes/, so an edit to the built page is silently overwritten by
+    // `make site`. This check passed while the deployed footer still read "WITNESSES: RECRUITING" — the gate
+    // looked at one place the claim is made and not every place, which is the same defect it exists to prevent.
+    else if (!/WITNESSES: 0/.test(readText(ROOT + "site/_includes/footer.html") ?? "")) fail("site/_includes/footer.html still advertises witnesses without saying there are none — and it is the SOURCE the built pages are generated from");
     else pass(`the public pages state the witness gap, and the registry agrees it is real (${w} operators)`);
   } else if (statesGap.test(fnd)) {
     fail(`witnesses/candidates.json now holds ${w} candidac(ies) but site/foundation.html still says there are none — update the page`);

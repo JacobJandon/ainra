@@ -251,3 +251,83 @@ instance credential must not be handed a reason that describes a different probl
 layer: `expired` reads as "your passport ran out" when the passport is fine and the container simply needs to renew;
 `sig_invalid` reads as "the registrar's signature is broken". A reason string is a diagnostic contract, and this is
 the same lesson `reasons-check` was built for one commit ago.
+
+
+---
+
+## Task 3 · What a running copy carries — in plain language
+
+**Before this milestone the answer was: everything.** The container held the lineage's own private key, and the
+bundle it presented was a bearer token. Now it holds a credential that expires in minutes, is narrower than the
+passport, is bound to a key only that copy has, and dies the moment the passport is revoked.
+
+The whole lifecycle, run on a clean `AINRA_HOME` — captured output, not an illustration:
+
+```
+$ ainra issue ainra:reg-eu-1:acme:billing@1.0.0
+✓ passport issued · ainra:reg-eu-1:acme:billing@1.0.0
+  serial AP-5F80-9A · tier L3 · class A1 · key FP 687A:DD3A:4587:89ED
+
+$ ainra instance issue ainra:reg-eu-1:acme:billing@1.0.0 --aud https://api.example --caps read:invoices --ttl 900
+✓ instance credential issued · i-9cda138a
+  under ainra:reg-eu-1:acme:billing@1.0.0 (AP-5F80-9A) · expires in 900s · capabilities read:invoices
+  audience https://api.example
+  container gets: i-9cda138a.instance.json + i-9cda138a.instance.key (0600). The passport key stays here.
+
+$ ls -l $AINRA_HOME/passports/     # what the container gets, and what it does not
+-rw-------  AP-5F80-9A.agent.key
+-rw-r--r--  AP-5F80-9A.json
+-rw-------  i-9cda138a.instance.json
+-rw-------  i-9cda138a.instance.key
+
+$ ainra instance verify i-9cda138a --aud https://api.example
+✓ VALID · i-9cda138a under ainra:reg-eu-1:acme:billing@1.0.0
+  900s of life left · capabilities read:invoices · audience https://api.example
+  the passport underneath verified first: unrevoked and in-window — revoke it and this dies with it
+  note: this passport format carries no capabilities array, so the ∩ rule is not checked here
+
+$ ainra instance verify i-9cda138a --aud https://elsewhere.example    # a stolen copy, replayed
+✗ INVALID · i-9cda138a
+  instance_pop_invalid (addressed to https://api.example, not https://elsewhere.example)
+
+$ ainra revoke ainra:reg-eu-1:acme:billing@1.0.0 --reason compromise
+✓ revoked · ainra:reg-eu-1:acme:billing@1.0.0 · reason: compromise · log #000003
+  every verifier reading this status list now rejects it — that is the whole switch.
+
+$ ainra instance verify i-9cda138a --aud https://api.example    # the same copy, unchanged
+✗ INVALID · i-9cda138a
+  revoked (the PASSPORT under this copy is revoked — every live instance dies with it)
+```
+
+Four things to read out of that transcript:
+
+1. **The passport key never leaves.** `AP-....agent.key` stays where the mint happened. The container is handed
+   `i-....instance.json` + `i-....instance.key` and nothing else — and all of it is `-rw-------`, which is new:
+   every secret this CLI wrote was `-rw-r--r--` until this milestone, world-readable on a shared host.
+2. **900 seconds, not 366 days.** The ceiling is one hour and it is enforced at *verify*, so a cooperative minter
+   is not the only thing standing between you and a year-long "instance" credential.
+3. **A stolen copy replayed at another service is refused** — `instance_pop_invalid`, naming both audiences.
+4. **Revoking the passport kills the copy**, and reports `revoked` rather than an instance reason: the lineage
+   failed, not the container, and the reason has to send whoever is debugging to the right layer.
+
+### The one honest limitation, printed where it is easiest to miss
+
+The line *"this passport format carries no capabilities array, so the ∩ rule is not checked here"* is printed by
+the CLI **on success**, on purpose. The reference CLI's fmt-2 passport carries a tier and an authority class, not
+a capability list, so narrowing cannot be verified in that path. The core, both SDKs and the browser verifier all
+enforce it, and `instance-scope-exceeds-*` pins it across the corpus — but a command that silently skipped a check
+while printing a tick would be worse than one that names the check it did not run.
+
+### The after-sentence
+
+> **An attacker who reads one running container walks away with that copy's own key and a credential scoped below
+> the passport, valid for the minutes left on its clock, refused by every service it was not addressed to, and dead
+> the moment the passport is revoked — while the lineage's key was never in the container to steal.**
+
+Set against the before-sentence at the top of this file, three things changed and one deliberately did not: the
+blast radius is now **bounded in time** (≤1 h, enforced at verify), **bounded in scope** (⊆ the passport's
+capabilities), and **bound to a holder** (audience + proof-of-possession) — and the passport is still 366 days,
+because ADR-017's reasoning for that never depended on the container being trustworthy.
+
+It still does not make a compromised container harmless. An attacker with live access holds the instance key and
+acts as the agent until the credential expires. That is stated in the module doc, in the ADR, and here.

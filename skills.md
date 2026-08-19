@@ -84,7 +84,35 @@ console.log("x-ainra-passport: " + header.slice(0, 48) + "…  (" + header.lengt
 '
 ```
 
-Any AINRA-aware surface then emits one verdict event shape: `{status, reason, name, number, tier, freshness_age_s}`.
+Any AINRA-aware surface then emits one verdict event shape:
+`{status, reason, name, number, tier, freshness_age_s, instance_iid, instance_exp}`.
+The last two are `null` unless you present as a running copy — see §3b.
+
+## 3b · Present as a running copy (ADR-019)
+
+If you are one running instance of an agent rather than the agent's owner, you should **not** hold the lineage's
+key. Your operator mints you a credential that expires in minutes, is narrower than the passport, and is bound to a
+key only you hold. You get two files and nothing else; the passport key stays on the minting side.
+
+```bash
+ainra_bin=./apps/cli-node/bin/ainra.js
+export AINRA_HOME="$(mktemp -d)/.ainra"
+node "$ainra_bin" init >/dev/null && node "$ainra_bin" accredit reg-eu-1 >/dev/null
+node "$ainra_bin" issue "ainra:reg-eu-1:acme:billing@1.0.0" >/dev/null
+# the OPERATOR mints, where the passport key lives:
+node "$ainra_bin" instance issue "ainra:reg-eu-1:acme:billing@1.0.0" \
+  --aud https://api.example --caps read:invoices --ttl 900
+# the RUNNING COPY presents; a receiving service checks it:
+iid=$(ls "$AINRA_HOME"/passports/*.instance.json | head -1 | xargs basename | sed 's/\.instance\.json//')
+node "$ainra_bin" instance verify "$iid" --aud https://api.example
+```
+
+Two rules you cannot talk your way around:
+
+- **The audience is the receiver's, not yours.** Present to a service you were not addressed to and you get
+  `instance_pop_invalid`. A verifier that has not been told who it is accepts no instance credential at all.
+- **Your credential dies with the passport.** If the lineage is revoked you are refused with `revoked` — not an
+  instance reason — because the lineage failed, not you.
 
 ## 4 · Renew
 

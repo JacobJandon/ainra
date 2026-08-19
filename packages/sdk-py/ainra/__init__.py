@@ -24,12 +24,26 @@ from __future__ import annotations
 from . import reasons
 from .delta import verify_delta, verify_head
 from .directory import verify_directory
+from .instance import (
+    INSTANCE_CRED_DEFAULT_SECS,
+    instance_signing_bytes,
+    mint_instance_credential,
+    pop_signing_bytes,
+    prove_instance_possession,
+)
 from .middleware import AinraGate, ainra_gate
 from .verdict import Verdict
 from .verifier import Verifier
 from .verify import verify
 
 __all__ = [
+    # ADR-019 — the instance rung. Verification is automatic (step 10 of verify()); these are the PRODUCING side,
+    # and they live on opposite sides of the container boundary on purpose.
+    "mint_instance_credential",
+    "prove_instance_possession",
+    "instance_signing_bytes",
+    "pop_signing_bytes",
+    "INSTANCE_CRED_DEFAULT_SECS",
     "Verifier",
     "Verdict",
     "verify",

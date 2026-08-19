@@ -64,3 +64,27 @@ The root's honest status — including what has **not** happened yet — is at
 [ainra.vercel.app](https://ainra.vercel.app/) and in the repository's `ROADMAP.md`.
 
 Licensed Apache-2.0 OR MIT.
+
+## Verify a running copy (ADR-019)
+
+A **passport** identifies the agent. An **instance credential** identifies one *running copy* of it: minted by the
+passport's control key (which never enters the container), narrowed, ≤1 h, and bound to a key only that copy holds.
+Verification is automatic — if the bundle carries an `instance` object, the verifier checks it as step 10.
+
+The only thing you must supply is **your own audience**:
+
+```ts
+const verifier = Verifier.fromDirectoryB64(directory, roots.root_ed25519, roots.root_slh, "F2", false,
+  "https://api.example");           // ← YOUR audience. Never taken from the bundle.
+verifier.verify(bundle, now);        // same call as before; the instance layer is checked when present
+```
+
+The empty-string default is **fail-closed**: a service that has not said who it is accepts no instance credential.
+
+Four reasons are specific to this layer and are never collapsed into `expired` — `instance_expired`,
+`instance_scope_exceeds`, `instance_sig_invalid`, `instance_pop_invalid`. A revoked *passport* still reports
+`revoked`, because the lineage failed rather than the copy.
+
+Minting is the operator's side (`mintInstanceCredential`, `proveInstancePossession`); signing is a callback, so no
+key material enters this library. Full shape: [`docs/PRESENTATION.md`](../../docs/PRESENTATION.md) ·
+runnable: [`examples/instance-deployment.mjs`](../../examples/instance-deployment.mjs).

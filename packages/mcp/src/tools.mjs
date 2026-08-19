@@ -69,20 +69,48 @@ export const TOOLS = [
   {
     name: "ainra_verify",
     title: "Verify an AINRA passport",
-    description: "Run the real @ainra/sdk verifier over a presentation bundle (with its trust anchors) and return the verdict plus the named reason in plain words. Read-only, offline, deterministic — the same code that agrees byte-for-byte in the conformance differential.",
+    description: "Run the real @ainra/sdk verifier over a presentation bundle (with its trust anchors) and return the verdict plus the named reason in plain words. Read-only, offline, deterministic — the same code that agrees byte-for-byte in the conformance differential. If the bundle carries an ADR-019 instance credential (a RUNNING COPY of an agent rather than the agent itself), pass your own `audience`: it is never taken from the bundle, and an empty audience refuses every instance credential.",
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     inputSchema: {
       type: "object",
       properties: {
         anchors: { type: "object", description: "Trust anchors keyed by registrar id (issuer_key + log_root_key), as published in a directory/export." },
         presentation: { type: "object", description: "The presentation bundle to verify." },
+        audience: { type: "string", description: "YOUR audience (ADR-019), e.g. https://api.example. Required to accept an instance credential; a presenter can never supply it. Omit for plain passport bundles." },
       },
       required: ["anchors", "presentation"],
     },
     handler(input) {
-      const v = runVector({ name: "mcp", expect: {}, anchors: input.anchors, presentation: input.presentation });
-      const event = verdictEvent(input.presentation, v, input.presentation?.now ?? 0);
-      return { verdict: v.verdict, reason: v.reason ?? null, explanation: gloss(v), event };
+      // The audience is the CALLER's, exactly as `now` is. It is spliced over whatever the bundle claimed, which
+      // is the same override the TS Verifier and the Python Verifier apply — a presenter naming its own audience
+      // would defeat audience binding entirely.
+      const presentation = { ...input.presentation, audience: input.audience ?? "" };
+      const v = runVector({ name: "mcp", expect: {}, anchors: input.anchors, presentation });
+      const event = verdictEvent(presentation, v, presentation?.now ?? 0);
+      // Report the instance layer DISTINCTLY: an agent reading this must be able to tell "the running copy is not
+      // entitled" from "the lineage is not trusted", because the two have different remedies — renew the copy, or
+      // stop using the passport.
+      const INSTANCE_REASONS = ["instance_expired", "instance_scope_exceeds", "instance_sig_invalid", "instance_pop_invalid"];
+      const inst = presentation.instance ?? null;
+      return {
+        verdict: v.verdict,
+        reason: v.reason ?? null,
+        explanation: gloss(v),
+        event,
+        instance: inst
+          ? {
+              presented: true,
+              iid: inst.iid ?? null,
+              expires: inst.exp ?? null,
+              audience: presentation.audience || null,
+              layer: v.reason && INSTANCE_REASONS.includes(v.reason) ? "instance" : v.verdict === "valid" ? "ok" : "passport",
+              note: v.reason && INSTANCE_REASONS.includes(v.reason)
+                ? "the RUNNING COPY is not entitled — the passport may be fine; mint a fresh instance credential"
+                : v.verdict === "valid" ? null
+                : "the failure is at the passport layer, not the running copy — the lineage itself did not verify",
+            }
+          : { presented: false },
+      };
     },
   },
   {

@@ -22,7 +22,9 @@ test(`ainra_verify ≡ @ainra/sdk over ${sample.length} sampled vectors (byte-id
   for (const f of sample) {
     const vec = JSON.parse(readFileSync(`${VDIR}/${f}`, "utf8"));
     const sdk = runVector(vec);                                            // the reference
-    const mcp = verify({ anchors: vec.anchors, presentation: vec.presentation }); // the wrapper
+    // The caller supplies the audience, exactly as it supplies the clock — `ainra_verify` never takes it off the
+    // bundle (ADR-019). Here the test IS the caller, and the corpus pins the audience a vector was minted for.
+    const mcp = verify({ anchors: vec.anchors, presentation: vec.presentation, audience: vec.presentation.audience ?? "" }); // the wrapper
     assert.equal(norm(mcp), norm(sdk), `MCP disagrees with SDK on ${f}`);  // wrapper fidelity
     assert.equal(norm(mcp), norm(vec.expect), `MCP disagrees with expected on ${f}`); // and both match the frozen expectation
     checked++;

@@ -29,3 +29,14 @@ More: `ainra renew <dir> <sub> --version 1.0.1` (ADR-017, add `--dry-run` to pre
 `ainra events <registry.json>` (the [verdict event](../PRESENTATION.md) per record), `ainra demo` (one-process end
 to end). Every error names the next command to run. Against a **network** registrar you control, the same verbs are
 HTTP endpoints — see the registrar console (`make registrar-console`).
+
+## The instance rung (ADR-019)
+
+```sh
+ainra instance issue <serial> --aud https://api.example --caps read:invoices --ttl 900
+ainra instance verify <iid> --aud https://api.example
+```
+
+`issue` runs where the passport key lives and hands the container two files (both `0600`) — the credential and the
+instance key. `verify` is what a receiving service does: it checks the **passport** first (revocation, then its
+window), then the copy. Revoke the passport and every live copy is refused with `revoked`.

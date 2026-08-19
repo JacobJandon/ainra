@@ -33,3 +33,10 @@ deny : false · reason: revoked
 
 Fail-closed by default: a missing header, a garbage bundle, an unauthenticated status list — all deny. Proven by
 `make wedge-test`.
+
+## A running copy (ADR-019)
+
+Build the verifier with your audience and the gate accepts instance credentials too. Refusals keep their own
+reasons — `instance_expired`, `instance_scope_exceeds`, `instance_sig_invalid`, `instance_pop_invalid` — and a
+revoked passport still reports `revoked`, because the lineage failed rather than the copy. `make instance-gate`
+proves each one.

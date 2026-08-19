@@ -24,13 +24,21 @@ from .verify import verify as _verify
 
 
 class Verifier:
-    def __init__(self, anchors: dict, revoked_delegates: list | None = None) -> None:
+    def __init__(
+        self,
+        anchors: dict,
+        revoked_delegates: list | None = None,
+        audience: str = "",
+    ) -> None:
         self._anchors = dict(anchors or {})
         self._revoked = list(revoked_delegates or [])
+        #: This verifier's OWN audience (ADR-019). Empty string is the fail-closed default: a service that has
+        #: not said who it is cannot be the intended recipient of anything, so it accepts no instance credential.
+        self._audience = str(audience or "")
 
     @classmethod
     def from_directory(
-        cls, directory: dict, root_ed25519: str, root_slh: str
+        cls, directory: dict, root_ed25519: str, root_slh: str, audience: str = ""
     ) -> "Verifier | None":
         """Build a verifier from a directory, only if it is authentically signed.
 
@@ -52,13 +60,20 @@ class Verifier:
                 },
                 "log_root_key": e["log_root_slh"],
             }
-        return cls(anchors, directory.get("revoked_delegates", []))
+        return cls(anchors, directory.get("revoked_delegates", []), audience)
 
     def verify(self, bundle: dict, now: int) -> Verdict:
         """Verify a presentation bundle at caller-supplied ``now``. Fail closed."""
         if not isinstance(bundle, dict):
             return invalid("schema_violation")
-        # The verifier's revoked-delegate set overrides anything in the bundle.
+        # Presenter-controlled fields the verifier MUST override — the bundle's word is never the policy:
         pres = dict(bundle)
+        #  * the revoked-delegate set comes from the trusted directory, not the presenter.
         pres["revoked_delegates"] = self._revoked
+        #  * AUDIENCE (ADR-019). The bundle carries an `audience` field so the conformance corpus can pin
+        #    audience cases deterministically — exactly as it carries `now` — and passing it through would let a
+        #    presenter name its own audience and defeat audience binding entirely. The TS SDK closed this during
+        #    M28; Python did not, because the fix was applied in one of the two places the rule lives. That is the
+        #    defect class M29 Task 2 exists to end, and this is the last instance of it.
+        pres["audience"] = self._audience
         return _verify(self._anchors, pres, now)

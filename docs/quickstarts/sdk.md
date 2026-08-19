@@ -27,3 +27,19 @@ revoked: {"verdict":"invalid","reason":"revoked"}
 - Build the [verdict event](../PRESENTATION.md) with `verdictEvent(bundle, verdict, now)` when you need `{name, number, tier, freshness_age_s}`.
 
 Next: gate a whole request path with [the middleware](middleware.md).
+
+## A running copy, not the agent itself (ADR-019)
+
+If the thing presenting is one *running copy* — a container, a worker — it should not hold the lineage's key. It
+carries an **instance credential**: minted by the passport's control key outside the container, narrowed, ≤1 h,
+bound to a key only that copy holds.
+
+You change exactly one thing: tell the verifier who **you** are.
+
+```js
+const verifier = Verifier.fromDirectoryB64(directory, roots.root_ed25519, roots.root_slh, "F2", false,
+  "https://api.example");           // your audience — never read from the bundle
+verifier.verify(bundle, now);        // unchanged; the instance layer is step 10 when present
+```
+
+Run the whole shape: `node examples/instance-deployment.mjs`.

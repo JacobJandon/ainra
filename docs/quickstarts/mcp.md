@@ -71,3 +71,10 @@ $ make mcp-test
 ✔ safety annotations: read-only vs destructive are marked correctly
 ✔ write tools fail closed without explicit confirm
 ```
+
+## Verifying a running copy (ADR-019)
+
+Pass your own `audience` to `ainra_verify`. It is never taken from the bundle, and omitting it refuses every
+instance credential. The result carries an `instance` object whose `layer` says whether the *copy* or the
+*lineage* failed — different problems, different fixes. Minting is deliberately not a tool: it needs a control
+key, which belongs nowhere an agent can reach.

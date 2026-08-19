@@ -48,3 +48,19 @@ The only outbound calls this server makes are to the `AINRA_TARGET` you set. Not
 design and by inspection — it is a few hundred lines with no dependencies.
 
 Licensed Apache-2.0 OR MIT.
+
+### Verifying a running copy (ADR-019)
+
+`ainra_verify` takes an optional **`audience`** — yours. It is never read from the bundle, and an empty audience
+refuses every instance credential (fail-closed). The result gains an `instance` object that reports the layer
+distinctly:
+
+```json
+{ "verdict": "invalid", "reason": "instance_expired",
+  "instance": { "presented": true, "iid": "i-0794", "expires": 2600, "layer": "instance",
+                "note": "the RUNNING COPY is not entitled — the passport may be fine; mint a fresh instance credential" } }
+```
+
+`layer` is `"instance"`, `"passport"` or `"ok"`, because the remedies differ: renew the copy, or stop trusting the
+lineage. Minting is **not** an MCP tool — it needs a passport's control key, and that key belongs outside any
+agent-reachable surface.

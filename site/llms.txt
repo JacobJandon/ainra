@@ -68,6 +68,19 @@ verifies itself in CI. Full flow + flip conditions: [evidence/README.md](https:/
   Candidate ≠ production.
 - **Custodian interest** — read `outreach/CEREMONY-CUSTODIAN-BRIEF.md`; a conversation, no in-repo personal data.
 
+## Running copies (ADR-019)
+
+An agent has one passport; each RUNNING COPY of it carries a short **instance credential** instead of the
+lineage's key — minted outside the container by the passport's control key, narrowed to fewer capabilities,
+valid ≤1 hour, addressed to one audience, and bound to a key only that copy holds.
+
+- To verify one, supply YOUR audience. It is never read from the presentation; an empty audience refuses every
+  instance credential (fail-closed).
+- Four reasons belong to this layer and never collapse into `expired`: `instance_expired`,
+  `instance_scope_exceeds`, `instance_sig_invalid`, `instance_pop_invalid`.
+- Revoke the passport and every live copy under it is refused with `revoked` — the lineage failed, not the copy.
+- Do it yourself: `/skills.md` §3b, or `node examples/instance-deployment.mjs` in a clone.
+
 ## Constraints (so you can trust this surface)
 
 - Self-contained apart from one embedded video on the landing (§watch, which loads from its host): no CDN, no web fonts, no other third-party requests, zero telemetry.

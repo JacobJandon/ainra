@@ -2,9 +2,14 @@
 //
 // AINRA reference verify/issue core.
 //
-// This crate is THE product (MTS §23): it holds every consensus-critical type and the four verify steps —
+// This crate is THE product (MTS §23): it holds every consensus-critical type and the verify path —
 // canonical encoding, hybrid sign/verify, delegation-chain + mandate evaluation, TSL/freshness, and RFC 6962
 // Merkle inclusion. It performs NO I/O and has NO network dependency (N7 / brief §0): it is a pure library.
+//
+// The passport's nine steps run first; step 10 is the ADR-019 INSTANCE RUNG ([`instance`]), checked only when a
+// presentation carries an instance credential — the short, narrowed, holder-bound credential a RUNNING COPY
+// carries so it need not hold the lineage's key. The ordering is load-bearing: a revoked passport is refused at
+// step 7 with `revoked`, so the reason names the lineage rather than the container.
 //
 // Prime directives encoded here (brief §0): nothing fake (unimplemented paths return a typed error, never a
 // mocked success); both signatures or invalid (`alg_downgrade`); logged-before-valid (no VALID without a Merkle

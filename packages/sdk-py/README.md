@@ -157,3 +157,18 @@ base64url / canonical-JSON gateways. Zero telemetry, no network.
 ## License
 
 Apache-2.0 OR MIT (dual). The conformance vectors are CC0 (`vectors/LICENSE`).
+
+## Verify a running copy (ADR-019)
+
+Same call; supply **your** audience when you build the verifier:
+
+```python
+v = Verifier.from_directory(directory, roots["root_ed25519"], roots["root_slh"],
+                            audience="https://api.example")   # never taken from the bundle
+v.verify(bundle, now)     # the instance layer is checked automatically when present
+```
+
+The default empty audience is fail-closed — a service that has not said who it is accepts no instance credential.
+
+Minting lives on the operator's side and takes a signing callback, so no key material enters this package:
+`mint_instance_credential`, `prove_instance_possession`.

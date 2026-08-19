@@ -70,3 +70,14 @@ OpenSSL `libcrypto` via `ctypes` for SLH-DSA-SHA2-128s, stdlib for SHA-256), **i
 differential exercises the logic, not the primitives. Proven by `make diff` + the `packages/sdk-py` tests.
 
 Next: prove your own implementation with the [conformance runner](conformance.md).
+
+## A running copy (ADR-019)
+
+```python
+v = Verifier.from_directory(directory, roots["root_ed25519"], roots["root_slh"],
+                            audience="https://api.example")
+v.verify(bundle, now)
+```
+
+The empty default is fail-closed: no audience, no instance credential accepted. Minting is
+`mint_instance_credential` with a signing callback, run where the control key lives.

@@ -100,7 +100,12 @@ const CLAIMS = [
     where: ["site/_includes/footer.html", "site/index.html", "site/docs.html", "site/foundation.html",
             "site/get.html", "site/verify.html", "site/plan.html", "site/standard.html", "site/demo.html",
             "site/scan.html", "site/status.html", "site/404.html", "site/foundations.html",
-            "ROADMAP.md", "docs/PLAN-M28.md", "docs/genesis-day/GO-NO-GO.md", "tools/campaign.mjs"],
+            "ROADMAP.md", "docs/PLAN-M28.md", "docs/genesis-day/GO-NO-GO.md", "tools/campaign.mjs",
+            // The live gate matches on this claim's exact wording, so it IS an assertion of it. Registering rather
+            // than exempting is deliberate: when the witness count moves, the live matcher must move with it, and
+            // this is what will say so. It surfaced only once the file was committed — `git ls-files` cannot see
+            // an untracked file, which is the same blind spot the registry's own control ran into.
+            "tools/claims-live.mjs"],
   },
   {
     id: "sdk.version",

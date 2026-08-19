@@ -1,6 +1,6 @@
 # CodeQL — free for public repos, and Rust is supported (build-mode: none). This complements, and does
 # not replace, the differential + conformance corpus: static analysis finds a different class of defect
-# than four implementations agreeing on 745 vectors.
+# than four implementations agreeing on the corpus.
 name: codeql
 on:
   push: { branches: [main] }

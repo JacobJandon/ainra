@@ -151,7 +151,7 @@ jobs:
         run: cd packages/sdk-ts && npm ci && npm audit --audit-level=high
 
   wasm-surface:
-    name: browser verifier (745 vectors through the real artifact)
+    name: browser verifier (whole corpus through the real artifact)
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -175,7 +175,7 @@ jobs:
         run: |
           npm i -D playwright-core@latest
           npx playwright install chromium --only-shell
-      - name: Full corpus through the WASM, in a browser — must be 745/745
+      - name: Full corpus through the WASM, in a browser — must agree on every vector
         env:
           PLAYWRIGHT_DRIVER_PATH: ${{ github.workspace }}/node_modules
         run: node tools/wasm-differential.mjs

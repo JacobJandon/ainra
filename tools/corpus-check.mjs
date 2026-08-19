@@ -50,7 +50,7 @@ const LIVE = [
 // Any 3-4 digit number sitting next to the word "vector", or an N/N agreement pair, is a claim about the corpus.
 const CLAIMS = [
   { re: /\b(\d{3,4})\s*(?:CC0\s+)?(?:passport\s+)?conformance\s+vectors?\b/gi, want: () => real.passport, what: "conformance vectors" },
-  // "793 vectors" with no other qualifier — the plainest form, and the one the README uses.
+  // "N vectors" with no other qualifier — the plainest form, and the one the README uses.
   { re: /\b(\d{3,4})\s+(?:CC0\s+)?vectors?\b/gi, want: () => real.passport, what: "vector count" },
   { re: /\b(\d{3,4})\/(\d{3,4})\b/g, want: () => real.passport, what: "N/N agreement", pair: true },
   // NOT followed by a unit: "passport 366 d" is ADR-017's validity period, not a count of anything.
@@ -66,7 +66,7 @@ for (const f of LIVE) {
   let text;
   try { statSync(join(ROOT, f)); text = readFileSync(join(ROOT, f), "utf8"); } catch { continue; }
   // Strip markdown/HTML emphasis before matching. The first version of this gate required the word "conformance"
-  // adjacent to the number, and the README writes "**793** vectors" — so a negative control that reverted the
+  // adjacent to the number, and the README writes "**N** vectors" — so a negative control that reverted the
   // README to 745 PASSED. The gate could not see the failure in the file that matters most, which is the exact
   // defect it was written to prevent. Normalise first, then match.
   // Emphasis only — NOT underscores: stripping those turned "required_minimums" into "requiredminimums" and

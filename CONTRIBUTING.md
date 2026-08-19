@@ -42,12 +42,24 @@ touches verify logic is judged against it first:
 1. **`make diff` stays green.** All four columns, the full corpus (`1009` passport + `17` delta + `9` directory).
    A disagreement is not a "flaky test" — it is either a bug in your change or a real ambiguity in the Standard, and
    both outcomes need writing down before the PR moves.
-2. **Any corpus delta is explained in the PR body.** If your change adds, removes, or alters vectors, say which and
+2. **A gate that checks one place a claim is made does not check the claim.** Every public fact — a version, a
+   count, a capability — has ONE source of truth, is asserted in N places, and is verified by a gate that scans all
+   N, including **generated output and the sources it is generated from**. `make claims-check` enforces this; the
+   registry is [`docs/CLAIMS.md`](docs/CLAIMS.md).
+
+   This rule is written down because the same defect landed three times: `reasons-check` compared three of four
+   implementations and missed a reason that had been absent from the Python SDK's closed set for a milestone; a
+   witness-gap gate read the built page while the edit that mattered went to the include it is generated from, so
+   it passed while the deployed footer said the opposite; and an RFC-adapter line was corrected in one file and
+   survived in a second. Asserting an existing claim somewhere new **fails the build until you register it** — and
+   registering it is what makes you confirm it is true in the new place.
+
+3. **Any corpus delta is explained in the PR body.** If your change adds, removes, or alters vectors, say which and
    why in plain words: what behaviour is now pinned that was not pinned before. Silent corpus edits are the one
    thing a reviewer will always reject — the corpus is the contract.
-3. **New behaviour arrives with a vector, not just a unit test.** A unit test protects one implementation; a vector
+4. **New behaviour arrives with a vector, not just a unit test.** A unit test protects one implementation; a vector
    protects all four, forever.
-4. **`make conformance` stays green both ways** — the three in-repo verdict implementations pass clean over the same
+5. **`make conformance` stays green both ways** — the three in-repo verdict implementations pass clean over the same
    corpus hash, *and* the deliberately sabotaged adapter is still caught with named divergences. A conformance tool
    that cannot fail is theatre; if your change makes the broken adapter pass, the runner is what broke.
 

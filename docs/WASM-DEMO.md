@@ -26,7 +26,7 @@ itself — `crates/ainra-wasm`, a thin `wasm-bindgen` binding over the extracted
 pushes all **1009** vectors through that exact artifact in a headless browser, requiring agreement with the core on
 verdict *and* named reason. Result: **1009/1009**. The harness carries its own negative control, so the number means
 something: with `NEGATIVE_CONTROL=1` one bit of one issuer signature is flipped and the run must fail (proven —
-744/1009, exit 1). Artifact: **367 KiB** wasm + 9 KiB glue, under a ceiling enforced by `tools/build-wasm.sh`.
+1008/1009, exit 1). Artifact: **367 KiB** wasm + 9 KiB glue, under a ceiling enforced by `tools/build-wasm.sh`.
 
 The prerequisite below was done in **L5 Task 1** — and mapping it found the second implementation had *already*
 grown, in the CLI's seed path, where it failed open. See [`_archive/plans/PLAN-L5.md`](_archive/plans/PLAN-L5.md). The extraction landed as

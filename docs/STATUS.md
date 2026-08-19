@@ -78,13 +78,13 @@ revocations) and self-checks all 12 records against the core verifier; `reverify
 URL-state, the visualized narrowing delegation chain, the 9-step verification trace (each step honestly labelled
 `re-checked` live vs `core-verified` crypto), a revoke workflow (live daemon or over loaded state), verify-at-time.
 
-**Conformance corpora** — `vectors/v1/` **660** passport vectors (every one of the 15 reasons) + `vectors/v1-delta/`
+**Conformance corpora** — `vectors/v1/` **1009** passport vectors (every one of the 20 reasons) + `vectors/v1-delta/`
 **17** delta/fresh-head vectors (every accept/reject reason of the delta codec, incl. seq-0 wrap, descending idx,
 future-dated head). Both replay-gated (`--check` / `--check-delta`) locally AND in hosted CI.
 
 **`packages/sdk-ts`** — independent verify-only mirror; byte-matches canon + all M2/M3 semantics incl.
 `verifyDelta`/`verifyFreshHead` (same fixed order, same reasons, fail-closed on unknown freshness class + canon
-errors). **Differential** (`make diff`): verdicts core↔sdk **660/660**; canon core↔sdk↔P0 10/10; canon-reject 4/4;
+errors). **Differential** (`make diff`): verdicts core↔sdk **1009/1009**; canon core↔sdk↔P0 10/10; canon-reject 4/4;
 **delta core↔sdk 17/17**.
 
 **Scale proof** (`make scale` → `docs/SCALE.md`) — the billion-device question answered with measurements, not
@@ -235,7 +235,7 @@ project** (not `$HOME`), with a strict `.gitignore` (no secrets — the TEST reg
 `target/`, `node_modules/`, `dist/`, run-outputs), dual-license (Apache-2.0 OR MIT) + **CC0** vectors, and 15
 milestone-mapped commits. **Acceptance proven:** a fresh `git clone` runs `make test && make diff && make
 genesis-local` green (re-proven after every kit change). **CI** (`.github/workflows/ci.yml`) runs every gate on push —
-fmt/clippy/test(release)/vectors, the 684/684 differential, wedge, **integration** (drill/testbed/genesis-local),
+fmt/clippy/test(release)/vectors, the 1009/1009 differential, wedge, **integration** (drill/testbed/genesis-local),
 **reproducibility** (repro + verify-mirror tamper), check-freeze, fuzz, S7/license/N7. Four **kits** let outsiders run
 the pending real-world DoD events without us: **`kits/verifier/`** (verify root-dark + reject revoked/forged with only
 `@ainra/sdk`, then verify a **fresh challenge corpus** with secret coin-flip revocations → an **execution-bound**

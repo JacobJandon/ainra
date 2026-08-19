@@ -94,7 +94,7 @@ pub struct WirePresentation {
     pub revoked_delegates: Vec<String>,
     /// ADR-019 / D-047 — the instance rung. Omitted on every pre-M28 vector (same `skip_serializing_if`
     /// discipline as `revoked_delegates`, and for the same reason: a `null` here would change the canonical bytes
-    /// of 793 existing vectors and break `make repro` for no gain).
+    /// of every existing vector and break `make repro` for no gain).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub instance: Option<WireInstance>,
     /// The VERIFIER's audience. A presenter cannot set this; the vector carries it so the corpus can pin
@@ -146,7 +146,7 @@ pub struct Vector {
 // stranger pasted into a browser, where an abort is a dead page rather than a refusal. The fix is **not** a second,
 // lenient decoder for untrusted callers — that is exactly the divergence this crate exists to prevent. It is this
 // one path learning to return a refusable `Reason`, so every caller fails closed identically. The corpus is
-// unaffected: all 745 vectors are well-formed, so no arm below changes its answer, and the differential re-proves
+// unaffected: every vector is well-formed, so no arm below changes its answer, and the differential re-proves
 // that byte-for-byte.
 
 /// One decode step: the value, or the reason these bytes are unusable.

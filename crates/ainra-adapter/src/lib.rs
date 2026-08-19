@@ -621,14 +621,37 @@ pub fn event_json(
     tier: Option<&str>,
     age: Option<i64>,
 ) -> String {
+    event_json_instance(status, reason, name, number, tier, age, None, None)
+}
+
+/// The full event, including the ADR-019 instance fields.
+///
+/// The two instance keys are ALWAYS present — `null` when a passport was presented directly. A variable-shape
+/// event would mean every consumer has to branch, and the whole point of this shape (M16, D-033) is that one
+/// serializer's bytes are every surface's bytes. `instance_iid` is safe to emit: an `iid` is opaque and random by
+/// construction (ADR-019), never a hostname and never a user identifier, so it identifies a process to its own
+/// operator and nobody else.
+#[allow(clippy::too_many_arguments)]
+pub fn event_json_instance(
+    status: &str,
+    reason: Option<&str>,
+    name: Option<&str>,
+    number: Option<&str>,
+    tier: Option<&str>,
+    age: Option<i64>,
+    instance_iid: Option<&str>,
+    instance_exp: Option<u64>,
+) -> String {
     format!(
-        r#"{{"status":{},"reason":{},"name":{},"number":{},"tier":{},"freshness_age_s":{}}}"#,
+        r#"{{"status":{},"reason":{},"name":{},"number":{},"tier":{},"freshness_age_s":{},"instance_iid":{},"instance_exp":{}}}"#,
         serde_json::to_string(status).unwrap_or_else(|_| "\"invalid\"".into()),
         jstr(reason),
         jstr(name),
         jstr(number),
         jstr(tier),
         age.map_or_else(|| "null".to_string(), |v| v.to_string()),
+        jstr(instance_iid),
+        instance_exp.map_or_else(|| "null".to_string(), |v| v.to_string()),
     )
 }
 
@@ -648,7 +671,11 @@ pub fn verdict_event(p: &WirePresentation, verdict: &Verdict, now: u64) -> Strin
     }
     let age = (now as i64 - p.status_issued_at as i64).max(0);
     let reason = verdict.reason().map(reason_str);
-    event_json(
+    let (iid, iexp) = match &p.instance {
+        Some(i) => (Some(i.iid.as_str()), Some(i.exp)),
+        None => (None, None),
+    };
+    event_json_instance(
         if verdict.is_valid() {
             "valid"
         } else {
@@ -659,6 +686,8 @@ pub fn verdict_event(p: &WirePresentation, verdict: &Verdict, now: u64) -> Strin
         number.as_deref(),
         tier.as_deref(),
         Some(age),
+        iid,
+        iexp,
     )
 }
 

@@ -1389,6 +1389,13 @@ export interface VerdictEvent {
   number: string | null;
   tier: string | null;
   freshness_age_s: number | null;
+  /** ADR-019 — the running copy's opaque instance id, or `null` when a passport was presented directly. Always
+   *  present: a variable-shape event would make every consumer branch, and one serializer's bytes being every
+   *  surface's bytes is the entire point of this shape. */
+  instance_iid: string | null;
+  /** ADR-019 — when this copy's credential expires. An operator watching these sees short numbers, and a long one
+   *  is a finding. */
+  instance_exp: number | null;
 }
 /** The permanent AINRA Number: strip `@version` from a name → `did:ainra:reg:op:lineage`. `null` if it doesn't parse. */
 export function numberFromName(sub: string): string | null {
@@ -1397,7 +1404,7 @@ export function numberFromName(sub: string): string | null {
 }
 /** Build the canonical verdict event from a presentation bundle (wire form), its verdict, and the verifier's `now`. */
 export function verdictEvent(
-  pres: { claims?: string; status_issued_at?: number },
+  pres: { claims?: string; status_issued_at?: number; instance?: { iid?: string; exp?: number } },
   verdict: Verdict,
   now: number,
 ): VerdictEvent {
@@ -1413,11 +1420,14 @@ export function verdictEvent(
     }
     if (typeof pres.status_issued_at === "number") age = Math.max(0, Math.trunc(now - pres.status_issued_at));
   } catch { /* undecodable claims → null fields; still a well-formed event */ }
-  return { status: verdict.verdict, reason: verdict.verdict === "valid" ? null : verdict.reason, name, number, tier, freshness_age_s: age };
+  const inst = (pres as { instance?: { iid?: unknown; exp?: unknown } }).instance;
+  const instance_iid = typeof inst?.iid === "string" ? inst.iid : null;
+  const instance_exp = typeof inst?.exp === "number" ? inst.exp : null;
+  return { status: verdict.verdict, reason: verdict.verdict === "valid" ? null : verdict.reason, name, number, tier, freshness_age_s: age, instance_iid, instance_exp };
 }
 /** Canonical serialization — fixed key order, compact. MUST byte-match the Rust `ainra verify --event` emitter. */
 export function serializeVerdictEvent(e: VerdictEvent): string {
-  return JSON.stringify({ status: e.status, reason: e.reason, name: e.name, number: e.number, tier: e.tier, freshness_age_s: e.freshness_age_s });
+  return JSON.stringify({ status: e.status, reason: e.reason, name: e.name, number: e.number, tier: e.tier, freshness_age_s: e.freshness_age_s, instance_iid: e.instance_iid, instance_exp: e.instance_exp });
 }
 
 // ── ADR-019 helpers: mint an instance credential, and present as a running copy ──────────────────────────────────

@@ -82,7 +82,9 @@ function verifyReason(bytes, sig, pub) {
 }
 const verify = (bytes, sig, pub) => verifyReason(bytes, sig, pub) === null;
 
-const save = (p, o) => { fs.mkdirSync(path.dirname(p), { recursive: true }); fs.writeFileSync(p, typeof o === 'string' ? o : JSON.stringify(o, null, 2)); };
+// `mode` matters: without it writeFileSync lands at the umask default (0644 here), which is how M28 measured a
+// world-readable agent key on a shared host. Secrets pass 0o600 explicitly.
+const save = (p, o, mode) => { fs.mkdirSync(path.dirname(p), { recursive: true }); fs.writeFileSync(p, typeof o === 'string' ? o : JSON.stringify(o, null, 2), mode ? { mode } : undefined); if (mode) { try { fs.chmodSync(p, mode); } catch {} } };
 const load = p => JSON.parse(fs.readFileSync(p, 'utf8'));
 const exists = p => fs.existsSync(p);
 const die = m => { console.error('✗ ' + m); process.exit(1); };
@@ -169,11 +171,11 @@ function cmdInit() {
   const root = { id: 'ainra-root-1', type: 'root', alg: k.alg, fmt: k.fmt, pub: k.pub, fp: fingerprint(k.pub), created: now(),
     note: 'single-key root — threshold ceremony pending (v0.2)' };
   save(P('root', 'root.json'), root);
-  save(P('root', 'root.key'), k.priv);
+  save(P('root', 'root.key'), k.priv, 0o600);
   for (const w of ['witness-a', 'witness-b', 'witness-c']) {
     const wk = genKey();
     save(P('witness', w + '.pub'), wk.pub);
-    save(P('witness', w + '.key'), wk.priv);
+    save(P('witness', w + '.key'), wk.priv, 0o600);
   }
   saveStatusList([]);
   logAppend('ROOT-INIT', root.id, { fp: root.fp });
@@ -190,7 +192,7 @@ function cmdAccredit(name) {
     issued: now(), expires: plusDays(365), root_id: root.id };
   const sig = sign(Buffer.from(cjson(cert)), load(P('root', 'root.key')));
   save(P('registrar', name, 'cert.json'), { ...cert, root_sig: sig });
-  save(P('registrar', name, 'registrar.key'), k.priv);
+  save(P('registrar', name, 'registrar.key'), k.priv, 0o600);
   const leaf = logAppend('ACCREDIT', name, { fp: cert.fp });
   console.log(`✓ registrar accredited · ${name} · FP ${cert.fp} · log #${String(leaf.seq).padStart(6,'0')}`);
 }
@@ -217,7 +219,7 @@ function cmdIssue(name, opts) {
   const leaf = logAppend(opts.reissue ? 'REISSUE' : 'ISSUE', name, { serial, tier: passport.tier, class: passport.authority.class, ...(opts.prev_leaf ? { prev_leaf: opts.prev_leaf } : {}) });
   const doc = { ...passport, registrar_sig: sig, registrar_cert: regCert, log: { seq: leaf.seq, hash: leaf.hash } };
   save(P('passports', serial + '.json'), doc);
-  save(P('passports', serial + '.agent.key'), agentKey.priv);
+  save(P('passports', serial + '.agent.key'), agentKey.priv, 0o600);
   console.log(`✓ passport ${opts.reissue ? 'reissued' : 'issued'} · ${name}`);
   console.log(`  serial ${serial} · tier ${passport.tier} · class ${passport.authority.class} · key FP ${passport.key.fp}${opts.prev_leaf ? ' · prev_leaf #' + opts.prev_leaf : ''}`);
   console.log(`  registered in root log #${String(leaf.seq).padStart(6,'0')} · file ${P('passports', serial + '.json')}`);
@@ -345,9 +347,103 @@ usage:
   ainra revoke <name|serial> [--reason r]      append revocation; verifiers reject immediately
   ainra migrate [--dry-run]                    Suite Migration Drill: REISSUE legacy creds to hybrid, prev_leaf continuity
   ainra log verify                             verify the whole hash chain + checkpoint
+  ainra instance issue <serial> --aud <a> [--caps a,b] [--ttl 900]   ADR-019: mint a credential for ONE running copy
+  ainra instance verify <iid> --aud <a>        verify a running copy's credential (what a receiving service does)
   ainra demo                                   run the full lifecycle end to end
 home: ${HOME}  (override with AINRA_HOME)`);
 }
+
+/* ---------- ADR-019: the instance rung (D-047) ----------
+   The passport's key mints a short, narrowed, holder-bound credential for ONE running copy, and never travels
+   with it. `instance issue` runs where the passport key lives; the container gets `<iid>.instance.json` plus
+   `<iid>.instance.key` and nothing else. `instance verify` is what a receiving service does.
+
+   The passport key file is written 0600 as of this milestone — it was 0644, world-readable, which is how the
+   before-state of M28 was measured. Instance material is written 0600 from the start. */
+const CRED_MAX_SECS = 3600;        // ADR-019 ceiling — mirrors ainra_core::consts::INSTANCE_CRED_DEFAULT_SECS
+const POP_MAX_SKEW_SECS = 30;      // mirrors ainra_core::instance::POP_MAX_SKEW_SECS
+
+function icSigningBytes(ic) {      // MUST byte-match InstanceCredential::signing_bytes in ainra-core
+  return Buffer.from(cjson({
+    aud: ic.aud, capabilities: ic.capabilities, exp: ic.exp, iid: ic.iid,
+    ikey: { ed25519: ic.ikey.ed25519, mldsa65: ic.ikey.mldsa65 },
+    nbf: ic.nbf, passport_leaf: ic.passport_leaf, sub: ic.sub,
+  }));
+}
+function popSigningBytes(pop) { return Buffer.from(cjson({ aud: pop.aud, nonce: pop.nonce, ts: pop.ts })); }
+
+function cmdInstanceIssue(ref, opts) {
+  const doc = findPassport(ref || die('usage: ainra instance issue <serial|name> --aud <audience> [--caps a,b] [--ttl 900]'));
+  const aud = opts.aud || die('--aud is required: a credential with no audience can be presented anywhere');
+  const ttl = Math.min(parseInt(opts.ttl || '900', 10), CRED_MAX_SECS);
+  const caps = (opts.caps ? opts.caps.split(',') : []).map(c => c.trim()).filter(Boolean);
+  const keyFile = P('passports', doc.serial + '.agent.key');
+  if (!exists(keyFile)) die(`no control key for ${doc.serial} — this command must run where the passport key lives, never in the container`);
+  const ctrl = load(keyFile);
+  const inst = genKey();
+  const iid = 'i-' + hex(crypto.randomBytes(4));
+  const t = Math.floor(Date.now() / 1000);
+  const ic = {
+    sub: doc.name, iid, ikey: inst.pub, nbf: t, exp: t + ttl,
+    capabilities: caps, aud,
+    passport_leaf: hex(sha256(Buffer.from(cjson({ ...doc, log: undefined })))),
+  };
+  ic.sig = sign(icSigningBytes(ic), ctrl);
+  save(P('passports', iid + '.instance.json'), ic, 0o600);
+  save(P('passports', iid + '.instance.key'), inst.priv, 0o600);
+  console.log(`✓ instance credential issued · ${iid}`);
+  console.log(`  under ${doc.name} (${doc.serial}) · expires in ${ttl}s · capabilities ${caps.length ? caps.join(',') : '(none — narrowest possible)'}`);
+  console.log(`  audience ${aud}`);
+  console.log(`  container gets: ${iid}.instance.json + ${iid}.instance.key (0600). The passport key stays here.`);
+  return ic;
+}
+
+function cmdInstanceVerify(iid, opts) {
+  const f = P('passports', (iid || die('usage: ainra instance verify <iid> --aud <audience>')) + '.instance.json');
+  if (!exists(f)) die(`no instance credential ${iid}`);
+  const ic = load(f);
+  const aud = opts.aud || die('--aud is required: a verifier that has not said who it is is nobody\'s audience');
+  const t = Math.floor(Date.now() / 1000);
+  const fails = [];
+  if (ic.exp <= ic.nbf || ic.exp - ic.nbf > CRED_MAX_SECS) fails.push('instance_expired (lifetime exceeds the 1h ceiling)');
+  else if (t < ic.nbf || t >= ic.exp) fails.push(`instance_expired (window ${ic.nbf}..${ic.exp}, now ${t})`);
+  if (ic.aud !== aud) fails.push(`instance_pop_invalid (addressed to ${ic.aud}, not ${aud})`);
+  const doc = findPassport(ic.sub);
+  // THE PASSPORT FIRST, and its revocation before anything about the container. This mirrors core's step order
+  // (nine steps, then step 10) and it is what makes the closing line below a fact rather than a slogan: an
+  // instance credential under a revoked passport must die, and it must die saying `revoked` — the lineage failed,
+  // not the copy. Written after noticing the line was printed by a command that never checked.
+  const slFile = P('log', 'revocations.json');
+  const sl = exists(slFile) ? load(slFile) : { revoked: [] };
+  if ((sl.revoked || []).includes(doc.serial) || (sl.revoked || []).includes(doc.name)) {
+    console.log(`✗ INVALID · ${iid}`);
+    console.log(`  revoked (the PASSPORT under this copy is revoked — every live instance dies with it)`);
+    process.exit(1);
+  }
+  if (new Date(doc.validity.expires) <= new Date()) {
+    console.log(`✗ INVALID · ${iid}`);
+    console.log(`  expired (the passport's own window closed; the copy's credential cannot outlive it)`);
+    process.exit(1);
+  }
+  const leaf = hex(sha256(Buffer.from(cjson({ ...doc, log: undefined }))));
+  if (ic.passport_leaf !== leaf) fails.push('instance_sig_invalid (not bound to this passport)');
+  // The CLI's fmt-2 passport carries tier + authority class, not a capabilities array, so the ∩ rule cannot be
+  // checked here. Saying so is better than a check that silently passes: the core/SDK path enforces it, and the
+  // conformance corpus pins it (instance-scope-exceeds-*).
+  const held = Array.isArray(doc.capabilities) ? doc.capabilities : null;
+  if (held) {
+    const over = ic.capabilities.filter(c => !held.includes(c));
+    if (over.length) fails.push(`instance_scope_exceeds (${over.join(',')})`);
+  }
+  const okSig = verify(icSigningBytes(ic), ic.sig, doc.key.pub);
+  if (!okSig) fails.push('instance_sig_invalid (not minted by this passport control key)');
+  if (fails.length) { console.log(`✗ INVALID · ${iid}`); fails.forEach(x => console.log(`  ${x}`)); process.exit(1); }
+  console.log(`✓ VALID · ${iid} under ${ic.sub}`);
+  console.log(`  ${ic.exp - t}s of life left · capabilities ${ic.capabilities.length ? ic.capabilities.join(',') : '(none)'} · audience ${ic.aud}`);
+  console.log(`  the passport underneath verified first: unrevoked and in-window — revoke it and this dies with it`);
+  if (!held) console.log(`  note: this passport format carries no capabilities array, so the ∩ rule is not checked here`);
+}
+
 /* ---------- argv ---------- */
 const [,, cmd, ...rest] = process.argv;
 const args = rest.filter(a => !a.startsWith('--'));
@@ -360,6 +456,11 @@ switch (cmd) {
   case 'revoke': cmdRevoke(args[0] || die('usage: ainra revoke <name|serial>'), opts); break;
   case 'migrate': cmdMigrate(args[0], opts); break;
   case 'log': args[0] === 'verify' ? logVerify() : usage(); break;
+  case 'instance':
+    if (args[0] === 'issue') cmdInstanceIssue(args[1], opts);
+    else if (args[0] === 'verify') cmdInstanceVerify(args[1], opts);
+    else usage();
+    break;
   case 'demo': cmdDemo(); break;
   default: usage();
 }

@@ -331,3 +331,58 @@ because ADR-017's reasoning for that never depended on the container being trust
 
 It still does not make a compromised container harmless. An attacker with live access holds the instance key and
 acts as the agent until the credential expires. That is stated in the module doc, in the ADR, and here.
+
+
+---
+
+## Task 4 · R6's friction half (recruitment stays the maintainer's)
+
+### One command
+
+```
+bash kits/witness/be-a-witness.sh --operator "Your Institution" --region EU
+```
+
+builds the daemon, starts it, **proves it actually cosigns by running this repository's own fork drill against it**,
+and prints the exact candidacy JSON to commit — the file the intake CI already probes. Nothing is provisioned, no
+account is created, nothing leaves the machine.
+
+**Measured: 13 s**, end to end, on a machine that already had a Rust toolchain and a warm dependency cache. That
+number is honest only with its scope attached: a genuinely cold machine adds a `rustup` install and a first full
+dependency build, which this measurement does **not** include and which dominates it. What the 13 s does measure is
+the part we control — the six steps a willing stranger used to have to assemble themselves (find the cargo
+invocation, copy a config, learn what belongs in it, work out how to prove it works, work out what to submit) are
+now one.
+
+The script refuses to report success on a daemon that does not cosign: step 3 runs `make drill-networked`, and if
+the quorum cannot certify an honest head and refuse an injected fork, the script exits non-zero.
+
+### The gap, stated in public and gated
+
+With **zero witness operators**, the split-view guarantee is **not in force**. Witness cosignatures are what would
+stop the root showing one history to one party and a different one to another; a quorum of zero certifies nothing.
+Until someone runs one, you are trusting us not to equivocate rather than being able to check — and the
+witness-anchored half of [D-045](DECISIONS.md) has nothing anchoring it.
+
+That is now said where the claims are made, not in a footnote:
+
+- `site/foundation.html` — the witness cell is headed **`0 OPERATORS — GAP`** and says the guarantee is not in
+  force, with the one command next to it.
+- `site/docs.html` — the Standard's log-properties paragraph is followed by a *where that is design and not yet
+  fact* note, because the page rendered it in the present tense.
+- The footer reads `WITNESSES: 0 (SPLIT-VIEW GUARANTEE NOT IN FORCE)`.
+
+**And it is gated from live data.** `node tools/campaign.mjs check` now fails if the public pages stop stating the
+gap while `witnesses/candidates.json` holds zero — *and* fails the other way if a candidacy appears while the pages
+still claim there are none. Negative-controlled in both directions: deleting the sentence goes red, and planting a
+candidate goes red with a different message.
+
+### The intake path, re-verified against a real witness
+
+A real `witnessd` was stood up, `tools/witness-probe.mjs` — the same probe the intake CI runs — was pointed at it,
+and it passed: `/info` answered and published a cosigning key. Then it was **torn down**, and the registry still
+reads `candidates: 0`.
+
+That teardown is not tidiness. **A witness the root operates is not an independent witness and must never be
+counted as one** — the whole value of the control is that it is held by someone who is not us. The probe proved the
+pipe works; it did not, and could not, move a DoD row.

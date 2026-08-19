@@ -86,6 +86,7 @@ const arg = (n, d) => { const i = process.argv.indexOf(`--${n}`); return i >= 0 
 const has = (n) => process.argv.includes(`--${n}`);
 const die = (m) => { console.error(`campaign: ${m}`); process.exit(1); };
 const readJSON = (p, fallback) => { try { return JSON.parse(readFileSync(p, "utf8")); } catch { return fallback; } };
+const readText = (p) => { try { return readFileSync(p, "utf8"); } catch { return null; } };
 const writeJSON = (p, v) => writeFileSync(p, JSON.stringify(v, null, 2) + "\n");
 const bar = "─".repeat(78);
 
@@ -406,6 +407,26 @@ function cmdCheck() {
   else if (claims.witnesses === null) fail("ROADMAP.md no longer states a witness-candidacy count this check can read");
   else if (claims.witnesses !== w) fail(`ROADMAP.md publishes ${claims.witnesses} witness candidacies, witnesses/candidates.json holds ${w}`);
   else pass(`ROADMAP witness-candidacy count matches the registry (${w})`);
+
+  // M28 Task 4b — the PUBLIC pages must state the witness gap while the gap exists. Witness cosigning is what
+  // stops the root showing one history to one party and another to another; with zero operators that guarantee is
+  // not in force, and a site that describes it in the present tense is claiming a control it does not have. This
+  // is the one place where prose drifting back is a correctness problem, not a tidiness one, so it is gated.
+  //
+  // WITNESS (could this check observe a failure?): delete the gap sentence from site/foundation.html and it goes
+  // red; add a real witness to the registry and it goes red the other way, demanding the prose be updated to match.
+  const fnd = readText(ROOT + "site/foundation.html") ?? "";
+  const docsPage = readText(ROOT + "site/docs.html") ?? "";
+  const statesGap = /zero witness operators|0 OPERATORS — GAP|no operators, so the guarantee/i;
+  if (w === 0) {
+    if (!statesGap.test(fnd)) fail("site/foundation.html does not state the witness gap while witnesses/candidates.json holds 0 — the split-view guarantee is not in force and the page must say so");
+    else if (!statesGap.test(docsPage)) fail("site/docs.html renders the log's properties without noting that witness cosigning is unstaffed");
+    else pass(`the public pages state the witness gap, and the registry agrees it is real (${w} operators)`);
+  } else if (statesGap.test(fnd)) {
+    fail(`witnesses/candidates.json now holds ${w} candidac(ies) but site/foundation.html still says there are none — update the page`);
+  } else {
+    pass(`witness candidacies exist (${w}); the gap language is correctly absent`);
+  }
 
   renderDocs(true);
 

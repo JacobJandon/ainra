@@ -706,6 +706,25 @@ fn schema_violation_event() -> String {
 /// `now_secs` is the **caller's** clock and overrides whatever the bundle claims the time is: freshness and expiry
 /// are the receiving side's policy. This never panics and never allocates unboundedly on hostile input.
 pub fn verify_bundle_json(bundle_json: &str, directory_json: &str, now_secs: u64) -> String {
+    // Audience defaults to the fail-closed empty string: a caller that has not said who it is accepts no
+    // instance credential. Callers that CAN name themselves should use `verify_bundle_json_aud`.
+    verify_bundle_json_aud(bundle_json, directory_json, now_secs, "")
+}
+
+/// Verify a presented bundle at the caller's clock AND the caller's audience (ADR-019).
+///
+/// The audience is a PARAMETER, never read from the bundle. It was read from the bundle until the M30 adversarial
+/// review: `WirePresentation.audience` exists so the conformance corpus can pin audience cases deterministically —
+/// exactly as it pins `now` — and `verify_bundle_json` had no audience parameter at all, so the presenter's value
+/// was the only one available. Every embedded Rust verifier and every browser using `ainra-wasm` therefore let a
+/// presenter name its own audience, defeating ADR-019 audience binding. The doc comment on that field even said
+/// "a presenter cannot set this", which was true of the corpus runner and false of this entry point.
+pub fn verify_bundle_json_aud(
+    bundle_json: &str,
+    directory_json: &str,
+    now_secs: u64,
+    audience: &str,
+) -> String {
     let Ok(p) = serde_json::from_str::<WirePresentation>(bundle_json) else {
         return schema_violation_event();
     };
@@ -713,6 +732,9 @@ pub fn verify_bundle_json(bundle_json: &str, directory_json: &str, now_secs: u64
         return schema_violation_event();
     };
     let anchors = anchors_from_json(&dir);
+    // The CALLER's audience replaces whatever the bundle claimed, exactly as `now` does.
+    let mut p = p;
+    p.audience = audience.to_string();
     let verdict = verify_wire(&p, &anchors, now_secs);
     verdict_event(&p, &verdict, now_secs)
 }
@@ -726,4 +748,66 @@ pub fn run_vector_json(vector_json: &str) -> String {
     };
     serde_json::to_string(&run(&v))
         .unwrap_or_else(|_| r#"{"verdict":"invalid","reason":"schema_violation"}"#.to_string())
+}
+
+#[cfg(test)]
+mod audience_tests {
+    //! ADR-019: the audience is the CALLER's, never the bundle's.
+    //!
+    //! WITNESS — could this fail? It did, against the code as it stood. `verify_bundle_json` had no audience
+    //! parameter, so `WirePresentation.audience` (which exists so the corpus can pin audience cases) was the only
+    //! value available and the presenter supplied it. Every embedded Rust verifier and every browser using
+    //! `ainra-wasm` accepted an instance credential addressed to somebody else. Restore
+    //! `audience: p.audience.clone()` and the second assertion below returns "valid".
+    use super::*;
+
+    fn instance_vector() -> serde_json::Value {
+        let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../vectors/v1");
+        let mut names: Vec<_> = std::fs::read_dir(&dir)
+            .expect("vectors/v1")
+            .filter_map(|e| e.ok().map(|e| e.file_name().to_string_lossy().into_owned()))
+            .filter(|n| n.starts_with("instance-valid-"))
+            .collect();
+        names.sort();
+        let raw = std::fs::read_to_string(dir.join(&names[0])).expect("vector");
+        serde_json::from_str(&raw).expect("json")
+    }
+
+    #[test]
+    fn the_caller_supplies_the_audience_not_the_presenter() {
+        let v = instance_vector();
+        let bundle = serde_json::to_string(&v["presentation"]).expect("bundle");
+        // REAL anchors, so verification actually reaches step 10 and the audience is what decides the verdict.
+        // The first version of this test passed empty anchors: every case came back `unknown_registrar`, the
+        // instance rung was never reached, and restoring the defect left the test green. A test that cannot
+        // reach the code it names is not a test.
+        let dir = serde_json::json!({ "anchors": v["anchors"] }).to_string();
+        let claimed = v["presentation"]["audience"]
+            .as_str()
+            .expect("aud")
+            .to_string();
+        let now = v["presentation"]["now"].as_u64().expect("now");
+
+        // (a) the caller declares the audience the credential names → accepted.
+        let ok = verify_bundle_json_aud(&bundle, &dir, now, &claimed);
+        assert!(
+            ok.contains("\"status\":\"valid\""),
+            "the honest case must verify, else the rest proves nothing: {ok}"
+        );
+
+        // (b) the caller declares a DIFFERENT audience → refused, even though the bundle still claims its own.
+        let elsewhere =
+            verify_bundle_json_aud(&bundle, &dir, now, "https://not-this-service.example");
+        assert!(
+            elsewhere.contains("instance_pop_invalid"),
+            "a foreign audience was accepted: {elsewhere}"
+        );
+
+        // (c) no audience declared → the fail-closed default, never "whatever the bundle said".
+        let defaulted = verify_bundle_json(&bundle, &dir, now);
+        assert!(
+            defaulted.contains("instance_pop_invalid"),
+            "the default accepted an instance credential: {defaulted}"
+        );
+    }
 }

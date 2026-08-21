@@ -25,7 +25,28 @@ use wasm_bindgen::prelude::*;
 /// the CLI, the middleware and the MCP server emit, so one log format covers every surface.
 #[wasm_bindgen]
 pub fn verify(bundle_json: &str, directory_json: &str, now_secs: f64) -> String {
+    // No audience declared ⇒ the fail-closed empty string ⇒ no instance credential is accepted. A page that
+    // knows which service it is should call `verify_aud`.
     ainra_adapter::verify_bundle_json(bundle_json, directory_json, clamp_secs(now_secs))
+}
+
+/// Verify at the caller's clock AND the caller's audience (ADR-019).
+///
+/// Before M30 the browser had no way to supply an audience, so `ainra-wasm` took it from the bundle and any page
+/// verifying an instance credential accepted one addressed to somebody else.
+#[wasm_bindgen]
+pub fn verify_aud(
+    bundle_json: &str,
+    directory_json: &str,
+    now_secs: f64,
+    audience: &str,
+) -> String {
+    ainra_adapter::verify_bundle_json_aud(
+        bundle_json,
+        directory_json,
+        clamp_secs(now_secs),
+        audience,
+    )
 }
 
 /// Run one conformance vector exactly as the Rust core does — the entry the corpus harness drives.

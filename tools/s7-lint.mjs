@@ -52,7 +52,13 @@ const patterns = DENY.map((n) => {
 // Narrow, documented allowlist: a denied token that is unmistakably a technical construct, not placeholder DATA
 // impersonating a product. Only `<meta …>` (the HTML tag) so far — a tool that renders HTML (e.g. the genesis board)
 // is not impersonating the company "Meta". Keep this list tiny and specific; never allow a bare brand word.
-const FIXTURE_ALLOW = [{ name: "meta", re: /<meta[\s/>]/i }];
+const FIXTURE_ALLOW = [
+  { name: "meta", re: /<meta[\s/>]/i },
+  // `kits/verifier/sample-artifacts/meta.json` is a committed fixture. Naming a file that exists in this
+  // repository is a technical reference, not a product impersonating a company — the same reasoning as the HTML
+  // tag above. Requires the `.json` extension so a bare brand word is still refused.
+  { name: "meta", re: /meta\.json/ },
+];
 let hits = 0;
 for (const dir of SCAN_DIRS) {
   for (const file of walk(path.join(ROOT, dir))) {

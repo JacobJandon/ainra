@@ -93,9 +93,9 @@ async function runTs(sc) {
       ? Verifier.fromDirectoryB64(directory, roots.root_ed25519, roots.root_slh)
       : Verifier.fromDirectoryB64(directory, roots.root_ed25519, roots.root_slh, "F2", false, aud);
     if (!v) return "ERROR: sample directory did not verify";
-    const base = sample("meta.json").now;
-    const at = base + (sc.clockSkew ?? 0);
-    const b = sc.sampleBundle(sample("bundle-valid.json"), base);
+    const baseNow = sample("meta.json").now;
+    const at = baseNow + (sc.clockSkew ?? 0);
+    const b = sc.sampleBundle(sample("bundle-valid.json"), baseNow);
     const r = v.verify(b, at);
     return r.verdict === "valid" ? "valid" : r.reason;
   }
@@ -113,9 +113,8 @@ function runPy(sc) {
   const aud = sc.audience === null ? null : sc.audience();
   let payload;
   if (sc.viaSample) {
-    const meta = sample("meta.json");
-    payload = { mode: "sample", bundle: sc.sampleBundle(sample("bundle-valid.json"), meta.now),
-                now: meta.now + (sc.clockSkew ?? 0),
+    payload = { mode: "sample", bundle: sc.sampleBundle(sample("bundle-valid.json"), sample("meta.json").now),
+                now: sample("meta.json").now + (sc.clockSkew ?? 0),
                 directory: sample("directory.json"), roots: sample("roots.json"), audience: aud };
   } else {
     const v = sc.vec();

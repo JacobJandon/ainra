@@ -118,9 +118,15 @@ def _verify(anchors: dict, presentation: dict, now: int) -> Verdict:
     if claims.get("vct") != VCT:
         return invalid(R.SCHEMA_VIOLATION)
 
+    # `act_chain` is NOT required. ainra-core declares it `#[serde(default)]` (passport.rs:141) — a root-issued
+    # passport with no delegation may omit it entirely, and Rust and the TS SDK both accept that. This SDK
+    # required it, so it rejected, with `schema_violation`, the very bundle shipped in the external verifier kit
+    # (kits/verifier/sample-artifacts/bundle-valid.json, which has no act_chain). The 1009-vector corpus cannot
+    # catch it: the generator always emits the field, even when empty, so the omitted case is never on the wire.
+    # Found by the M30 policy-parity harness — see docs/POLICY-PARITY.md.
     required = (
         "iss", "sub", "nbf", "exp", "authority", "tier", "capabilities",
-        "scope_ceiling", "keys", "status", "log", "act_chain",
+        "scope_ceiling", "keys", "status", "log",
     )
     for f in required:
         if f not in claims:
@@ -131,7 +137,7 @@ def _verify(anchors: dict, presentation: dict, now: int) -> Verdict:
     authority = claims["authority"]
     caps = claims["capabilities"]
     ceiling = claims["scope_ceiling"]
-    act_chain = claims["act_chain"]
+    act_chain = claims.get("act_chain", [])
     if not (
         isinstance(authority, dict)
         and isinstance(caps, list)

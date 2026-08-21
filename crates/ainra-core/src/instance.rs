@@ -109,6 +109,18 @@ impl InstancePop {
 
 /// Verify the instance rung, in a fixed order, first-failure-wins.
 ///
+/// # This function is MEANINGLESS on its own
+///
+/// It checks the instance credential **and nothing else**. It takes no status list, so it cannot see revocation;
+/// it takes no checkpoint, so it cannot see whether the passport was ever logged. Handed a credential whose
+/// lineage was revoked an hour ago it returns `Ok(())`, because deciding that is not its job.
+///
+/// The coupling ADR-019 promises — "revoking the passport kills every live instance" — is **ordinal**: it holds
+/// because [`crate::verify::verify`] runs the nine passport steps first and never reaches step 10 when one of them
+/// refuses. Call this directly and you have opted out of all nine. Callers wanting the guarantee must use
+/// [`crate::verify::verify`]. Flagged by the M30 adversarial review, which observed that the obvious-looking name
+/// invites exactly the misuse this paragraph exists to prevent.
+///
 /// Inputs the VERIFIER supplies and a presenter cannot influence: `now`, `expected_aud`, the passport's
 /// `passport_key` and `passport_caps`, and `passport_leaf`. Everything else comes off the wire.
 ///

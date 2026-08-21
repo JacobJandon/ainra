@@ -772,3 +772,39 @@ closed `ALL` set; `reasons-check` had compared core ↔ sdk-ts ↔ docs and neve
 a blind spot exactly where the next defect lives. It now checks all four.
 
 *Status:* NEW. Verified across all five surfaces; the CLI/middleware/MCP ergonomics are M28 Task 3.
+
+## D-048 — M30: policy parity is a gate, because the corpus structurally cannot reach it
+
+*Problem:* the four-way differential proves every implementation reaches the same verdict, with the same named
+reason, on the same bytes. It says nothing about **who supplies a value**, **what a default constructor trusts**,
+or **what happens when a caller omits an argument** — and two implementations can agree on all 1009 vectors while
+disagreeing completely about those. Five defects have now lived in that gap: the Python audience fail-open (M29),
+a presenter-chosen freshness class, a required `act_chain`, a browser that read its audience off the wire, and a
+Python GA layer that never authenticated the status list at all. Every one passed the differential.
+
+*Decision:* `make policy-parity` enumerates each security-relevant policy decision an API exposes and runs it
+against every implementation, called the way an integrator would **including the wrong ways** — omit the audience,
+pass the bundle's own value, construct with defaults and verify. Every implementation must produce the same closed
+outcome with the same named reason. The enumeration is [`POLICY-PARITY.md`](POLICY-PARITY.md).
+
+*And `make diff` now states its own scope*, in its own output, because a green differential was being read as a
+broader guarantee than it is.
+
+*The asymmetries are recorded, not smoothed over:* `Verifier.fromDirectory` (TS) requires a root-signed directory
+while Python's raw constructor accepts unauthenticated anchors; Python has no currency mode; and `ainra-core` has
+no defaults to get wrong at all, because `Presentation` is a struct literal where omitting a field is a **compile
+error** — the strongest fail-closed in the repository, and the reason Rust is not a row in the harness.
+
+*One design question the fixes forced, answered explicitly.* Making status authentication unconditional broke seven
+tests that build `Verifier(anchors)` over corpus anchors, which carry no status key because the corpus predates
+D-020. Rather than weaken the check or edit tests into agreement, the constructors now differ deliberately:
+`from_directory` marks its anchors authenticated and authentication is **mandatory** (a missing status key fails
+closed, exactly as TS); the raw constructor is the caller supplying anchors it already trusts — the trusted-input
+mode the frozen primitive documents, and which TS has no equivalent of.
+
+*Negative controls:* restore the M29 audience fail-open → red; drop the TS freshness override → red; return a
+different reason for one misuse → red. The second took three attempts, and each failure was a harness pointed at
+something that could not show the defect — first the corpus path instead of the GA verifier, then an edit that
+broke the status signature so the run never reached the freshness comparison.
+
+*Status:* NEW. Two implementations covered; the CLI and MCP surfaces reach the same code through the SDKs.

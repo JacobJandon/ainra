@@ -18,9 +18,67 @@ verdict, never a crash and never a wrong ``valid``. No I/O, no telemetry.
 
 from __future__ import annotations
 
+import json
+
+from . import reasons as R
+from ._b64 import decode as b64d
+from ._b64 import decode_fixed as b64f
+from ._canon import CanonError, canon_bytes
+from ._crypto import ed25519_verify, mldsa65_verify
 from .directory import verify_directory
 from .verdict import Verdict, invalid
 from .verify import verify as _verify
+
+
+def _authenticate_status(anchors: dict, pres: dict, mandatory: bool = True) -> str | None:
+    """Prove the presented status list is the one the REGISTRAR signed. Returns a reason, or None to accept.
+
+    Mirrors `authenticateStatus` in the TS SDK: a signed publication must be present, the URI must bind three
+    ways (the passport's claimed URI = the bundle's signed URI = the directory's published URI, so no other
+    registrar's all-clear list can be spliced in), and the hybrid signature must verify over the canonical
+    ``{bit_len, issued_at, status_list, uri}``. Every failure is ``stale_status`` — status we cannot authenticate
+    is status we do not have.
+    """
+    claims_b64 = pres.get("claims")
+    raw = b64d(claims_b64) if isinstance(claims_b64, str) else None
+    if raw is None:
+        return None  # a malformed bundle is the main verify path's business, not ours
+    try:
+        claims = json.loads(raw.decode("utf-8"))
+    except Exception:
+        return None
+    reg = str(claims.get("iss", "")).split(":")[2] if str(claims.get("iss", "")).count(":") >= 2 else None
+    info = anchors.get(reg) if reg else None
+    if info is None:
+        return None  # unknown registrar is the main path's business (and its own reason)
+    if not info.get("status_ed25519") or not info.get("status_mldsa65"):
+        # From an authenticated directory, an accredited registrar with no status key cannot have its revocations
+        # authenticated → fail closed, exactly as the TS SDK does. From the raw constructor the caller supplied
+        # anchors without one on purpose (the trusted-input mode) — see the note on `_anchors_authenticated`.
+        return R.STALE_STATUS if mandatory else None
+    uri = pres.get("status_uri")
+    sig_ed, sig_ml = pres.get("status_sig_ed25519"), pres.get("status_sig_mldsa65")
+    if not isinstance(uri, str) or not isinstance(sig_ed, str) or not isinstance(sig_ml, str):
+        return R.STALE_STATUS
+    claimed = ((claims.get("status") or {}).get("status_list") or {}).get("uri")
+    if uri != info.get("status_uri") or claimed != info.get("status_uri"):
+        return R.STALE_STATUS
+    ed, ml = b64f(sig_ed, 64), b64d(sig_ml)
+    pub_ed, pub_ml = b64f(info["status_ed25519"], 32), b64d(info["status_mldsa65"])
+    if ed is None or ml is None or pub_ed is None or pub_ml is None:
+        return R.STALE_STATUS
+    try:
+        msg = canon_bytes({
+            "bit_len": pres.get("status_len"),
+            "issued_at": pres.get("status_issued_at"),
+            "status_list": pres.get("status_list"),
+            "uri": uri,
+        })
+    except CanonError:
+        return R.STALE_STATUS
+    if not ed25519_verify(pub_ed, ed, msg) or not mldsa65_verify(pub_ml, ml, msg):
+        return R.STALE_STATUS
+    return None
 
 
 class Verifier:
@@ -41,6 +99,16 @@ class Verifier:
         #: snapshot stays acceptable, so letting the bundle pick it lets a holder of a pre-revocation snapshot
         #: stretch the revocation window from 30 seconds to 24 hours.
         self._freshness = str(freshness or "F2")
+        #: True when these anchors came from an authenticated directory (`from_directory`), which always publishes
+        #: a status key per registrar. Then D-020 authentication is MANDATORY and a missing key fails closed,
+        #: matching the TS SDK exactly.
+        #:
+        #: False for the raw constructor, where the caller supplied anchors it already trusts — the pre-D-020
+        #: trusted-input mode the frozen `verify()` primitive documents. The TS SDK has no equivalent constructor,
+        #: which is why this distinction has to be made explicit here rather than inherited. It is recorded as a
+        #: known asymmetry in docs/POLICY-PARITY.md: a Python integrator CAN build a verifier over anchors nobody
+        #: signed, and such a verifier cannot authenticate revocations. Use `from_directory` in production.
+        self._anchors_authenticated = False
 
     @classmethod
     def from_directory(
@@ -70,8 +138,20 @@ class Verifier:
                     "mldsa65": e["issuer_mldsa65"],
                 },
                 "log_root_key": e["log_root_slh"],
+                # These three were DROPPED here, and each drop had a consequence:
+                #  * `distrust_from_leaf` (D-044) — the root's published, appealable graduated-distrust cutoff.
+                #    Without it every Python verifier built the documented way treated a distrusted registrar as
+                #    fully trusted.
+                #  * the status key + URI (D-020) — without them the status list cannot be authenticated at all,
+                #    which is what let a presenter forge an all-clear bitmap for a revoked passport.
+                "distrust_from_leaf": e.get("distrust_from_leaf"),
+                "status_ed25519": e.get("status_ed25519"),
+                "status_mldsa65": e.get("status_mldsa65"),
+                "status_uri": e.get("status_uri"),
             }
-        return cls(anchors, directory.get("revoked_delegates", []), audience, freshness)
+        v = cls(anchors, directory.get("revoked_delegates", []), audience, freshness)
+        v._anchors_authenticated = True
+        return v
 
     def verify(self, bundle: dict, now: int) -> Verdict:
         """Verify a presentation bundle at caller-supplied ``now``. Fail closed."""
@@ -96,4 +176,13 @@ class Verifier:
         #  * MANDATE REVOCATIONS. A presenter must not be able to drop a revocation. There is no dynamic mandate
         #    feed in GA, so the authenticated set is empty — matching the TS SDK rather than trusting the wire.
         pres["mandate_revocations"] = []
+        # D-020 — AUTHENTICATE THE STATUS LIST BEFORE TRUSTING A SINGLE BIT OF IT.
+        # This layer did not exist in this SDK. The M5 adversarial review found the same hole in the TS wedge and
+        # closed it there; Python shipped without it, so a presenter could hand over a forged all-clear bitmap and
+        # have a REVOKED passport verify VALID. Demonstrated in the M30 review against the shipped middleware.
+        # The frozen 9-step verify still receives status bits as a trusted input (exactly like `now`) — the
+        # authentication belongs here in the GA layer, which is where TS puts it too.
+        bad = _authenticate_status(self._anchors, pres, self._anchors_authenticated)
+        if bad is not None:
+            return invalid(bad)
         return _verify(self._anchors, pres, now)

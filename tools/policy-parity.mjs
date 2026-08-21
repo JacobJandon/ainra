@@ -126,17 +126,27 @@ function runPy(sc) {
 import json, sys
 sys.path.insert(0, ${JSON.stringify(join(ROOT, "packages/sdk-py"))})
 from ainra import Verifier
+from ainra.verify import verify as verify_primitive
 c = json.load(open(${JSON.stringify(f)}))
 aud = c["audience"]
 if c["mode"] == "sample":
+    # Policies a plain passport can express: drive the real GA Verifier over the signed sample directory.
     v = (Verifier.from_directory(c["directory"], c["roots"]["root_ed25519"], c["roots"]["root_slh"])
          if aud is None else
          Verifier.from_directory(c["directory"], c["roots"]["root_ed25519"], c["roots"]["root_slh"], aud))
     if v is None:
         print("ERROR: sample directory did not verify"); raise SystemExit(0)
+    r = v.verify(c["bundle"], c["now"])
 else:
-    v = Verifier(c["anchors"]) if aud is None else Verifier(c["anchors"], [], aud)
-r = v.verify(c["bundle"], c["now"])
+    # Instance policies need corpus vectors, whose anchors predate D-020 and carry no status key — so the GA
+    # Verifier correctly refuses them at status authentication before the instance rung is ever reached. Drive
+    # the frozen primitive, with every policy field sourced the way the GA layer sources it. Which path each
+    # scenario drives is recorded in docs/POLICY-PARITY.md rather than left implicit.
+    ga = Verifier(c["anchors"]) if aud is None else Verifier(c["anchors"], [], aud)
+    b = dict(c["bundle"])
+    b["audience"] = ga._audience
+    b["mandate_revocations"] = []
+    r = verify_primitive(c["anchors"], b, c["now"])
 print("valid" if r.valid else r.reason)
 `;
   return execFileSync("python3", ["-c", script], { encoding: "utf8" }).trim();

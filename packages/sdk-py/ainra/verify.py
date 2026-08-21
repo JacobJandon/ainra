@@ -283,8 +283,16 @@ def _verify(anchors: dict, presentation: dict, now: int) -> Verdict:
         bits = zlib.decompressobj().decompress(packed, (MAX_STATUS_BITS // 8) + 1)
     except Exception:
         return invalid(R.STALE_STATUS, **ident())
+    # FAIL CLOSED past the delivered bytes. `ainra-core` maps every out-of-range index to Revoked
+    # (status.rs:136-141) and the TS SDK rejects a list shorter than its declared `bit_len`. This read
+    # `else 0` — NOT revoked — so a presenter who declared a long `bit_len` and delivered a short list was
+    # handed a free all-clear for every index past the bytes actually sent. Found by the M30 adversarial
+    # review; the corpus cannot catch it because no vector delivers a list shorter than it declares.
+    declared_bytes = (int(status_len) + 7) // 8
+    if len(bits) < declared_bytes:
+        return invalid(R.STALE_STATUS, **ident())
     byte_idx = idx // 8
-    bit = (bits[byte_idx] >> (idx % 8)) & 1 if byte_idx < len(bits) else 0
+    bit = (bits[byte_idx] >> (idx % 8)) & 1 if byte_idx < len(bits) else 1
     if bit:
         return invalid(R.REVOKED, **ident())
 

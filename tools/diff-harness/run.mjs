@@ -207,3 +207,11 @@ if (failures) {
   process.exit(1);
 }
 console.log("\nDIFF OK: all implementations agree (core ↔ sdk ↔ P0 ↔ py)");
+// State the SCOPE of this guarantee here, where it is read, rather than leaving a green line to be taken for
+// more than it proves. Three defects have lived in the gap this sentence names — the sdk-py audience fail-open
+// (M29), the presenter-chosen freshness class and the required `act_chain` (both M30). All three passed the
+// differential, and always would have.
+console.log("  scope: this proves every implementation reaches the same verdict, with the same named reason, on");
+console.log("         the same BYTES. It does NOT prove they agree about who supplies a value, what a default");
+console.log("         constructor trusts, or what happens when a caller omits an argument — that is API shape");
+console.log("         and default policy, covered by `make policy-parity` (docs/POLICY-PARITY.md).");

@@ -54,12 +54,24 @@ touches verify logic is judged against it first:
    survived in a second. Asserting an existing claim somewhere new **fails the build until you register it** — and
    registering it is what makes you confirm it is true in the new place.
 
-3. **Any corpus delta is explained in the PR body.** If your change adds, removes, or alters vectors, say which and
+3. **The corpus proves verdicts on bytes; it does not prove who decides.** `make diff` shows every
+   implementation reaching the same verdict, with the same named reason, on the same bytes. It cannot show that
+   they agree about **who supplies a value, what a default constructor trusts, or what happens when a caller omits
+   an argument** — that is API shape and default policy, and `make policy-parity` covers it
+   ([`docs/POLICY-PARITY.md`](docs/POLICY-PARITY.md)).
+
+   Three defects have lived in exactly that gap and passed the differential every time: the Python SDK taking the
+   **audience** off the bundle instead of the verifier's identity; the Python SDK letting the **presenter choose
+   the freshness class**, so an hour-stale status was accepted at `F3`; and the Python SDK **requiring
+   `act_chain`** where the Rust core marks it optional, which rejected the bundle shipped in our own verifier kit.
+   If your change touches a constructor, a default, or who sources a field, it belongs in the parity harness.
+
+4. **Any corpus delta is explained in the PR body.** If your change adds, removes, or alters vectors, say which and
    why in plain words: what behaviour is now pinned that was not pinned before. Silent corpus edits are the one
    thing a reviewer will always reject — the corpus is the contract.
-4. **New behaviour arrives with a vector, not just a unit test.** A unit test protects one implementation; a vector
+5. **New behaviour arrives with a vector, not just a unit test.** A unit test protects one implementation; a vector
    protects all four, forever.
-5. **`make conformance` stays green both ways** — the three in-repo verdict implementations pass clean over the same
+6. **`make conformance` stays green both ways** — the three in-repo verdict implementations pass clean over the same
    corpus hash, *and* the deliberately sabotaged adapter is still caught with named divergences. A conformance tool
    that cannot fail is theatre; if your change makes the broken adapter pass, the runner is what broke.
 

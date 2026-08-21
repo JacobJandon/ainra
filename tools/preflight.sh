@@ -74,6 +74,7 @@ run "reason contract"    "docs name every reason impls return" node tools/reason
 run "corpus counts"      "stated counts == vectors on disk"  node tools/corpus-check.mjs
 run "instance gate"      "running copy in, unentitled out"   node tools/instance-gate-check.mjs
 run "claim registry"     "every claim agrees everywhere"     node tools/claims.mjs
+run "policy parity"      "same policy, same reason, everywhere" node tools/policy-parity.mjs
 run "soak ingest"        "declaration reads what the soak writes" node tools/soak-ingest-check.mjs
 run "no names in git"    "D-036: candidates stay out of the repo" node tools/names-check.mjs
 run "cross-impl interop" "fresh sigs verify in TS + PY"   make interop

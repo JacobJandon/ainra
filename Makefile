@@ -1,6 +1,6 @@
 # AINRA — the acceptance bar (MTS §28, brief §8): a stranger clones, runs `make test && make vectors && make diff`,
 # and everything is green in under 10 minutes on a laptop.
-.PHONY: one-decode-path bench-gate all test vectors vectors-check diff cli-check suite-migration-drill ceremony-rehearsal-multi witness-check push-advisory-check changelog-board-check fmt clippy fuzz-smoke bench sdk-build sdk-test ci clean status console samples drill explorer demo scale ceremony testbed wedge-build wedge-test repro mirror verify-mirror check-freeze freeze genesis-local verifier-kit-smoke ceremony-dry-run soak-smoke drill-networked preflight s7 license gitleaks audit verify-as-external verifier-triple-drill soak-verify genesis-status verify-transcript genesis-board-demo release doctor verifier-operator-drill site site-up site-down site-check stage-all stage-all-down explorer-up explorer-down ainrascan stage-up stage-down stage-status stage-smoke demo-walkthrough three-clients genesis-verify config-diff declaration genesis-rehearsal site-demo verify issue-first registrar-console mcp-test skills-replay presentation-diff conformance campaign-status campaign-init campaign-gates campaign-check publish-preflight stage-install stage-uninstall stage-health stranger probe-drill miri reasons-check corpus-check instance-gate claims-check claims claims-live site-net site-net-check lockfile-sync soak-ingest outreach-check names-check interop interop-negative
+.PHONY: one-decode-path bench-gate all test vectors vectors-check diff cli-check suite-migration-drill ceremony-rehearsal-multi witness-check push-advisory-check changelog-board-check fmt clippy fuzz-smoke bench sdk-build sdk-test ci clean status console samples drill explorer demo scale ceremony testbed wedge-build wedge-test repro mirror verify-mirror check-freeze freeze genesis-local verifier-kit-smoke ceremony-dry-run soak-smoke drill-networked preflight s7 license gitleaks audit verify-as-external verifier-triple-drill soak-verify genesis-status verify-transcript genesis-board-demo release doctor verifier-operator-drill site site-up site-down site-check stage-all stage-all-down explorer-up explorer-down ainrascan stage-up stage-down stage-status stage-smoke demo-walkthrough three-clients genesis-verify config-diff declaration genesis-rehearsal site-demo verify issue-first registrar-console mcp-test skills-replay presentation-diff conformance campaign-status campaign-init campaign-gates campaign-check publish-preflight stage-install stage-uninstall stage-health stranger probe-drill miri reasons-check corpus-check instance-gate claims-check claims claims-live policy-parity site-net site-net-check lockfile-sync soak-ingest outreach-check names-check interop interop-negative
 
 all: fmt clippy test vectors diff
 
@@ -108,7 +108,7 @@ sdk-test: sdk-build
 	cd packages/sdk-ts && npm test
 
 # The full local gate mirror of .github/workflows/ci.yml.
-ci: fmt clippy lockfile-sync soak-ingest reasons-check corpus-check instance-gate claims-check test vectors diff conformance cli-check suite-migration-drill ceremony-rehearsal-multi witness-check push-advisory-check changelog-board-check sdk-test site site-check
+ci: fmt clippy lockfile-sync soak-ingest reasons-check corpus-check instance-gate claims-check policy-parity test vectors diff conformance cli-check suite-migration-drill ceremony-rehearsal-multi witness-check push-advisory-check changelog-board-check sdk-test site site-check
 	node tools/s7-lint.mjs
 	node tools/license-check.mjs
 	./tools/fuzz-smoke.sh
@@ -480,6 +480,11 @@ claims:          ## regenerate docs/CLAIMS.md from the registry
 # is exactly what happened in M28 when a footer edit landed in the built page instead of its include.
 claims-live:     ## the deployed site must agree with the repo's sources of truth (needs network)
 	@node tools/claims-live.mjs $(if $(BASE),--base $(BASE),)
+
+# M30 — the class the corpus structurally cannot reach: API shape and default policy. Vectors pin wire data and
+# assert a verdict; this pins WHO DECIDES. Three real defects have lived here. See docs/POLICY-PARITY.md.
+policy-parity:   ## every implementation decides each security policy identically, and closed
+	@node tools/policy-parity.mjs
 
 site-net:        ## publish the running network's read contract into site/net/ and stamp when
 	bash tools/site-net.sh publish

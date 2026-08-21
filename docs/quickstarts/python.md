@@ -75,9 +75,12 @@ Next: prove your own implementation with the [conformance runner](conformance.md
 
 ```python
 v = Verifier.from_directory(directory, roots["root_ed25519"], roots["root_slh"],
-                            audience="https://api.example")
+                            audience="https://api.example", freshness="F2")
 v.verify(bundle, now)
 ```
+
+Use `from_directory`, not the raw `Verifier(anchors, …)`: only the directory path carries the registrar's status
+key, so only it can **authenticate** revocations rather than trust the presenter's copy of them.
 
 The empty default is fail-closed: no audience, no instance credential accepted. Minting is
 `mint_instance_credential` with a signing callback, run where the control key lives.

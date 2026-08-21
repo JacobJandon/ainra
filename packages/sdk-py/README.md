@@ -158,6 +158,21 @@ base64url / canonical-JSON gateways. Zero telemetry, no network.
 
 Apache-2.0 OR MIT (dual). The conformance vectors are CC0 (`vectors/LICENSE`).
 
+## Build it the documented way
+
+```python
+v = Verifier.from_directory(directory, roots["root_ed25519"], roots["root_slh"],
+                            audience="https://api.example", freshness="F2")
+```
+
+`from_directory` authenticates the directory against both ceremony roots and carries the registrar's **status
+key**, its **status URI**, and any **graduated-distrust cutoff** into the verifier — so revocations are
+authenticated (D-020) and a distrusted registrar is refused (D-044).
+
+The raw `Verifier(anchors, …)` constructor exists for callers embedding anchors they already trust. It **cannot**
+authenticate revocations, because anchors supplied that way carry no status key. Use `from_directory` in
+production; the difference is recorded in [`docs/POLICY-PARITY.md`](../../docs/POLICY-PARITY.md).
+
 ## Verify a running copy (ADR-019)
 
 Same call; supply **your** audience when you build the verifier:

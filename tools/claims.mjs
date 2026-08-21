@@ -40,6 +40,25 @@ const TRUTH = {
   vectorsPassport: () => countJson("vectors/v1"),
   vectorsDelta: () => countJson("vectors/v1-delta"),
   vectorsDirectory: () => countJson("vectors/v1-directory"),
+  // Sizes of individual vector FAMILIES (e.g. the 216 instance vectors). A family count is a true statement
+  // about the corpus, not a wrong total, so the corpus claim must not flag it. Computed from disk so it stays
+  // right as families grow.
+  familySizes: () => {
+    const counts = new Map();
+    try {
+      for (const f of readdirSync(join(ROOT, "vectors/v1"))) {
+        const m = f.match(/^([a-z0-9-]+?)-\d{4}\.json$/);
+        if (m) counts.set(m[1], (counts.get(m[1]) ?? 0) + 1);
+      }
+    } catch { /* no corpus, no families */ }
+    // families sharing a stem (instance-valid, instance-expired, …) also roll up
+    const roll = new Map();
+    for (const [k, v] of counts) {
+      const stem = k.split("-")[0];
+      roll.set(stem, (roll.get(stem) ?? 0) + v);
+    }
+    return new Set([...counts.values(), ...roll.values()]);
+  },
   reasons: () => {
     const m = read("crates/ainra-core/src/verdict.rs")?.match(/const ALL: \[\(Reason, &str\); (\d+)\]/);
     return m ? Number(m[1]) : 0;
@@ -77,7 +96,7 @@ const CLAIMS = [
             // M30: the parity harness and its doc both cite the corpus size when explaining what the differential
             // does and does not cover. Registered rather than exempted — if the corpus grows, that explanation
             // has to grow with it, and this is what will say so.
-            "tools/policy-parity.mjs", "docs/POLICY-PARITY.md", "CONTRIBUTING.md"],
+            "tools/policy-parity.mjs", "docs/POLICY-PARITY.md", "CONTRIBUTING.md", "docs/PLAN-M30.md"],
   },
   {
     id: "reasons.count",
@@ -228,6 +247,7 @@ function plausible(claim, v, truth) {
   if (claim.id === "vectors.passport") {
     const n = Number(v);
     if (n === 366) return false; // ADR-017's passport validity in days, not a count of anything
+    if (TRUTH.familySizes().has(n)) return false; // a vector FAMILY size, which is a true statement
     return Number.isFinite(n) && n >= 100 && n !== 17 && n !== 9 && Math.abs(n - Number(truth)) < 100000 &&
            ![TRUTH.vectorsDelta(), TRUTH.vectorsDirectory(), TRUTH.manifestFiles(), Number(truth) + 26].includes(n);
   }

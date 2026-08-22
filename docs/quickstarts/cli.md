@@ -33,10 +33,13 @@ HTTP endpoints — see the registrar console (`make registrar-console`).
 ## The instance rung (ADR-019)
 
 ```sh
-ainra instance issue <serial> --aud https://api.example --caps read:invoices --ttl 900
-ainra instance verify <iid> --aud https://api.example
+ainra instance issue   <serial> --aud https://api.example --caps read:invoices --ttl 900   # operator
+ainra instance present <iid>    --aud https://api.example                                  # in the container
+ainra instance verify  <iid>    --aud https://api.example                                  # receiving service
 ```
 
 `issue` runs where the passport key lives and hands the container two files (both `0600`) — the credential and the
-instance key. `verify` is what a receiving service does: it checks the **passport** first (revocation, then its
-window), then the copy. Revoke the passport and every live copy is refused with `revoked`.
+instance key. `present` runs **inside** the container and signs `{aud, nonce, ts}` with the instance key; without
+it a service refuses you with `instance_pop_invalid`, because holding the credential bytes is not holding the key.
+`verify` is what a receiving service does: it checks the **passport** first (revocation, then its window), then
+the copy and its proof-of-possession. Revoke the passport and every live copy is refused with `revoked`.

@@ -102,12 +102,18 @@ node "$ainra_bin" issue "ainra:reg-eu-1:acme:billing@1.0.0" >/dev/null
 # the OPERATOR mints, where the passport key lives:
 node "$ainra_bin" instance issue "ainra:reg-eu-1:acme:billing@1.0.0" \
   --aud https://api.example --caps read:invoices --ttl 900
-# the RUNNING COPY presents; a receiving service checks it:
+# the RUNNING COPY proves it holds the instance key — this step is what makes the presentation
+# holder-bound rather than bearer, and a receiving service must demand it:
 iid=$(ls "$AINRA_HOME"/passports/*.instance.json | head -1 | xargs basename | sed 's/\.instance\.json//')
+node "$ainra_bin" instance present "$iid" --aud https://api.example
+# the SERVICE verifies the credential AND the proof-of-possession:
 node "$ainra_bin" instance verify "$iid" --aud https://api.example
 ```
 
-Two rules you cannot talk your way around:
+Three rules you cannot talk your way around:
+
+- **A credential alone is not a presentation.** Without the proof-of-possession from `instance present`, a
+  receiving service refuses you with `instance_pop_invalid` — holding the bytes is not holding the key.
 
 - **The audience is the receiver's, not yours.** Present to a service you were not addressed to and you get
   `instance_pop_invalid`. A verifier that has not been told who it is accepts no instance credential at all.

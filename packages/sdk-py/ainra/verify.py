@@ -279,16 +279,28 @@ def _verify(anchors: dict, presentation: dict, now: int) -> Verdict:
     packed = b64d(presentation.get("status_list"))
     if packed is None:
         return invalid(R.STALE_STATUS, **ident())
+    # BOUND THE INFLATE BY WHAT THE LIST DECLARES, both ways.
+    #
+    # `ainra-core` caps the output at `need + 8` (status.rs:117) and the TS SDK at `maxOutputLength: need + 8`
+    # (index.ts:300). This capped at a flat 2 MiB regardless of `bit_len`, AND `decompressobj.decompress(data,
+    # max_length)` TRUNCATES rather than raising — so the oversize never surfaced. A 64 KB header inflating to
+    # 64 MB of zeros therefore delivered a huge all-clear bitmap: the revoked bit read 0 and a REVOKED passport
+    # verified VALID, on top of the memory amplification. The M30 review found this one layer below the
+    # short-list guard that was added earlier in the same milestone — a fix that bounded only from below.
+    declared_bytes = (int(status_len) + 7) // 8
+    budget = declared_bytes + 8
     try:
-        bits = zlib.decompressobj().decompress(packed, (MAX_STATUS_BITS // 8) + 1)
+        d = zlib.decompressobj()
+        bits = d.decompress(packed, budget)
+        # Anything still buffered means the stream wanted MORE than the declared list can hold. Truncation is
+        # silent here, so the leftover is the only signal that it happened.
+        if d.unconsumed_tail or not d.eof:
+            return invalid(R.STALE_STATUS, **ident())
     except Exception:
         return invalid(R.STALE_STATUS, **ident())
-    # FAIL CLOSED past the delivered bytes. `ainra-core` maps every out-of-range index to Revoked
-    # (status.rs:136-141) and the TS SDK rejects a list shorter than its declared `bit_len`. This read
-    # `else 0` — NOT revoked — so a presenter who declared a long `bit_len` and delivered a short list was
-    # handed a free all-clear for every index past the bytes actually sent. Found by the M30 adversarial
-    # review; the corpus cannot catch it because no vector delivers a list shorter than it declares.
-    declared_bytes = (int(status_len) + 7) // 8
+    # FAIL CLOSED past the delivered bytes: `ainra-core` maps every out-of-range index to Revoked
+    # (status.rs:136-141). This read `else 0` — NOT revoked — so declaring a long `bit_len` and delivering a
+    # short list bought a free all-clear for every index past the bytes actually sent.
     if len(bits) < declared_bytes:
         return invalid(R.STALE_STATUS, **ident())
     byte_idx = idx // 8

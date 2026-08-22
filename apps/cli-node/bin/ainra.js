@@ -348,7 +348,8 @@ usage:
   ainra migrate [--dry-run]                    Suite Migration Drill: REISSUE legacy creds to hybrid, prev_leaf continuity
   ainra log verify                             verify the whole hash chain + checkpoint
   ainra instance issue <serial> --aud <a> [--caps a,b] [--ttl 900]   ADR-019: mint a credential for ONE running copy
-  ainra instance verify <iid> --aud <a>        verify a running copy's credential (what a receiving service does)
+  ainra instance present <iid> --aud <a>       IN the container: prove possession of the instance key
+  ainra instance verify <iid> --aud <a>        verify a running copy (credential + proof-of-possession)
   ainra demo                                   run the full lifecycle end to end
 home: ${HOME}  (override with AINRA_HOME)`);
 }
@@ -398,6 +399,23 @@ function cmdInstanceIssue(ref, opts) {
   return ic;
 }
 
+function cmdInstancePresent(iid, opts) {
+  const f = P('passports', (iid || die('usage: ainra instance present <iid> --aud <audience>')) + '.instance.json');
+  if (!exists(f)) die(`no instance credential ${iid}`);
+  const keyFile = P('passports', iid + '.instance.key');
+  if (!exists(keyFile)) die(`no instance key for ${iid} — this command runs INSIDE the container`);
+  const aud = opts.aud || die('--aud is required: a proof-of-possession is bound to one audience');
+  const pop = { aud, nonce: 'n-' + hex(crypto.randomBytes(8)), ts: Math.floor(Date.now() / 1000) };
+  pop.sig = sign(popSigningBytes(pop), load(keyFile));
+  const out = P('passports', iid + '.pop.json');
+  save(out, pop, 0o600);
+  console.log(`✓ proof-of-possession produced · ${iid}`);
+  console.log(`  nonce ${pop.nonce} · ts ${pop.ts} · audience ${aud}`);
+  console.log(`  send this WITH the credential; it is what makes the presentation holder-bound rather than bearer.`);
+  console.log(`  file ${out}`);
+  return pop;
+}
+
 function cmdInstanceVerify(iid, opts) {
   const f = P('passports', (iid || die('usage: ainra instance verify <iid> --aud <audience>')) + '.instance.json');
   if (!exists(f)) die(`no instance credential ${iid}`);
@@ -437,6 +455,19 @@ function cmdInstanceVerify(iid, opts) {
   }
   const okSig = verify(icSigningBytes(ic), ic.sig, doc.key.pub);
   if (!okSig) fails.push('instance_sig_invalid (not minted by this passport control key)');
+  // PROOF-OF-POSSESSION. Without this the command is a bearer check, and it printed "✓ VALID" for one whole
+  // milestone while `popSigningBytes` and POP_MAX_SKEW_SECS sat unreferenced two hundred lines above — the dead
+  // constants were the tell. A receiving service that does not demand a PoP is not doing what ADR-019 describes,
+  // and this command is advertised as "what a receiving service does". Found by the M30 adversarial review.
+  const popFile = opts.pop || P('passports', iid + '.pop.json');
+  if (!exists(popFile)) {
+    fails.push(`instance_pop_invalid (no proof-of-possession — the container must run: ainra instance present ${iid} --aud ${aud})`);
+  } else {
+    const pop = load(popFile);
+    if (pop.aud !== aud) fails.push(`instance_pop_invalid (PoP addressed to ${pop.aud}, not ${aud})`);
+    else if (Math.abs((pop.ts || 0) - t) > POP_MAX_SKEW_SECS) fails.push(`instance_pop_invalid (PoP is ${Math.abs((pop.ts||0)-t)}s from now, tolerance ${POP_MAX_SKEW_SECS}s)`);
+    else if (!verify(popSigningBytes(pop), pop.sig, ic.ikey)) fails.push('instance_pop_invalid (not signed by this credential instance key)');
+  }
   if (fails.length) { console.log(`✗ INVALID · ${iid}`); fails.forEach(x => console.log(`  ${x}`)); process.exit(1); }
   console.log(`✓ VALID · ${iid} under ${ic.sub}`);
   console.log(`  ${ic.exp - t}s of life left · capabilities ${ic.capabilities.length ? ic.capabilities.join(',') : '(none)'} · audience ${ic.aud}`);
@@ -458,6 +489,7 @@ switch (cmd) {
   case 'log': args[0] === 'verify' ? logVerify() : usage(); break;
   case 'instance':
     if (args[0] === 'issue') cmdInstanceIssue(args[1], opts);
+    else if (args[0] === 'present') cmdInstancePresent(args[1], opts);
     else if (args[0] === 'verify') cmdInstanceVerify(args[1], opts);
     else usage();
     break;

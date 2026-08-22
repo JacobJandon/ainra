@@ -52,6 +52,28 @@ class TestStatusCannotBeForged(unittest.TestCase):
         attack = dict(self.pres, status_list=_b64(zlib.compress(b"")))
         self.assertEqual(self._verdict(attack), "stale_status")
 
+    def test_a_decompression_bomb_is_refused(self):
+        """A 64 KB header that inflates to 64 MB of zeros.
+
+        `decompressobj.decompress(data, max_length)` TRUNCATES rather than raising, and the budget here was a flat
+        2 MiB regardless of `bit_len` — so the oversize never surfaced and the huge all-clear bitmap made a REVOKED
+        passport verify VALID. Found by the M30 review one layer below the short-list guard added earlier in the
+        same milestone, which bounded only from below. ainra-core caps at `need + 8` (status.rs:117); so does TS.
+        """
+        bomb = zlib.compress(bytes(64 * 1024 * 1024))
+        attack = dict(self.pres, status_list=_b64(bomb))
+        self.assertEqual(self._verdict(attack), "stale_status")
+
+    def test_an_over_long_but_small_list_is_refused(self):
+        """The same rule without the amplification: more bytes than the declared length can hold."""
+        n = self.pres["status_len"]
+        over = zlib.compress(bytes((n + 7) // 8 + 64))
+        self.assertEqual(self._verdict(dict(self.pres, status_list=_b64(over))), "stale_status")
+
+    def test_the_honest_list_still_verifies(self):
+        """Otherwise the two bounds above could be passing by refusing everything."""
+        self.assertEqual(self._verdict(self.pres), "revoked")
+
     def test_an_all_clear_forgery_is_refused_by_a_directory_built_verifier(self):
         """Same declared length, every bit clear — the M5 bypass.
 

@@ -310,6 +310,17 @@ Four things to read out of that transcript:
 4. **Revoking the passport kills the copy**, and reports `revoked` rather than an instance reason: the lineage
    failed, not the container, and the reason has to send whoever is debugging to the right layer.
 
+> **⚠ Corrected in M30.** The transcript above was captured from a `ainra instance verify` that checked the
+> credential's window, audience, binding and signature — and **never checked the proof-of-possession**. It printed
+> `✓ VALID` for a presentation that proved no possession of the instance key, which is a bearer check wearing the
+> label of a holder-bound one. `popSigningBytes` and `POP_MAX_SKEW_SECS` sat defined and unreferenced in the same
+> file for the whole milestone; the dead constants were the tell. The M30 adversarial review found it.
+>
+> The lifecycle now has the step that was missing: `ainra instance present <iid> --aud <a>` runs **inside** the
+> container and signs `{aud, nonce, ts}` with the instance key, and `instance verify` refuses without it —
+> `instance_pop_invalid (no proof-of-possession …)`. The claim this milestone made about holder binding is true of
+> the SDKs, and was not true of this CLI until M30.
+
 ### The one honest limitation, printed where it is easiest to miss
 
 The line *"this passport format carries no capabilities array, so the ∩ rule is not checked here"* is printed by

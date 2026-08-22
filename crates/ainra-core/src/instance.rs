@@ -175,6 +175,14 @@ pub fn verify_instance(
     crypto::verify_hybrid(passport_key, &msg, &ic.sig).map_err(|_| Reason::InstanceSigInvalid)?;
 
     // (5) PROOF-OF-POSSESSION — audience, freshness, then the signature under the INSTANCE key.
+    // The empty audience is a SENTINEL, not a value. Every surface documents "" as the fail-closed default for a
+    // verifier that has not declared itself — but plain equality made `"" == ""` pass, so a credential MINTED with
+    // `aud: ""` was universally presentable to exactly the verifiers the docs steer people toward. Two independent
+    // M30 reviewers found this separately. An unnamed verifier now accepts no instance credential at all, and an
+    // unaddressed credential is refused everywhere.
+    if expected_aud.is_empty() || ic.aud.is_empty() || pop.aud.is_empty() {
+        return Err(Reason::InstancePopInvalid);
+    }
     if ic.aud != expected_aud || pop.aud != expected_aud {
         return Err(Reason::InstancePopInvalid);
     }

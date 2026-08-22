@@ -125,7 +125,6 @@ function runPy(sc) {
 import json, sys
 sys.path.insert(0, ${JSON.stringify(join(ROOT, "packages/sdk-py"))})
 from ainra import Verifier
-from ainra.verify import verify as verify_primitive
 c = json.load(open(${JSON.stringify(f)}))
 aud = c["audience"]
 if c["mode"] == "sample":
@@ -137,15 +136,16 @@ if c["mode"] == "sample":
         print("ERROR: sample directory did not verify"); raise SystemExit(0)
     r = v.verify(c["bundle"], c["now"])
 else:
-    # Instance policies need corpus vectors, whose anchors predate D-020 and carry no status key — so the GA
-    # Verifier correctly refuses them at status authentication before the instance rung is ever reached. Drive
-    # the frozen primitive, with every policy field sourced the way the GA layer sources it. Which path each
-    # scenario drives is recorded in docs/POLICY-PARITY.md rather than left implicit.
+    # DRIVE THE GA VERIFIER ITSELF, and never hand it the value under test.
+    #
+    # The first version of this driver read the verifier's own audience back off it and then applied that
+    # substitution to the bundle by hand before calling the frozen primitive. The harness therefore performed the
+    # very override it was testing the SDK for, so every instance row stayed green with the SDK override deleted:
+    # make policy-parity would NOT have caught the M29 audience defect it was written to stop recurring. Proven by
+    # sabotage - with the override removed, audience binding was defeated end to end and this file still printed
+    # OK. A harness that supplies the value under test is measuring itself.
     ga = Verifier(c["anchors"]) if aud is None else Verifier(c["anchors"], [], aud)
-    b = dict(c["bundle"])
-    b["audience"] = ga._audience
-    b["mandate_revocations"] = []
-    r = verify_primitive(c["anchors"], b, c["now"])
+    r = ga.verify(c["bundle"], c["now"])
 print("valid" if r.valid else r.reason)
 `;
   return execFileSync("python3", ["-c", script], { encoding: "utf8" }).trim();

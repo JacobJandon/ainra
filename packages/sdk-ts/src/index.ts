@@ -793,6 +793,10 @@ function verifyInstance(
   const pkey: HybridPublic = { ed25519: dec(p.keys[0].ed25519, "instance_sig_invalid"), mldsa65: dec(p.keys[0].mldsa65, "instance_sig_invalid") };
   if (verifyHybrid(pkey, instanceSigningBytes(ic), ic.sig)) throw new Reject("instance_sig_invalid");
   // (5) proof-of-possession — audience, freshness, then the signature under the INSTANCE key.
+  // The empty audience is a SENTINEL, not a value — see the note in ainra-core's instance.rs. `"" === ""` passed,
+  // so a credential minted with `aud: ""` was accepted by every verifier that had not named itself, which is the
+  // documented default.
+  if (expectedAud === "" || ic.aud === "" || pop.aud === "") throw new Reject("instance_pop_invalid");
   if (ic.aud !== expectedAud || pop.aud !== expectedAud) throw new Reject("instance_pop_invalid");
   const delta = pop.ts > now ? pop.ts - now : now - pop.ts;
   if (delta > POP_MAX_SKEW_SECS) throw new Reject("instance_pop_invalid");
@@ -892,6 +896,49 @@ export type PresentationBundle = WireVector["presentation"];
 /** Decode a wire presentation into verify inputs. `now` and `revoked` are supplied by the CALLER (the verifier's
  * own clock + the trusted directory's revoked-delegate set) — a presenter cannot dictate either. Throws `Reject`
  * on a malformed status list (fail closed); other decode errors propagate for the caller's try/catch. */
+
+/** Decode the ADR-019 instance layer, ENFORCING RUNTIME TYPES.
+ *
+ * TypeScript's types are erased at runtime, so `nbf: number` is a promise about the source, not about the bytes.
+ * Without these checks a JSON string reached the window comparisons, every relational operator against it produced
+ * `NaN`, and `NaN` comparisons are ALL false — so `now < nbf`, `now >= exp` and `exp - nbf > ceiling` all passed at
+ * once. A credential validly minted with `"nbf": "-"` therefore verified with **no validity window, no one-hour
+ * ceiling, and (via `pop.ts`) no proof-of-possession freshness**: an unbounded bearer token, which is exactly the
+ * pre-ADR-019 state the rung exists to end. Found by the M30 adversarial review; `ainra-core` was never exposed
+ * (serde types these `u64`) and the Python SDK guards with `isinstance`, so TS was the only implementation without
+ * the check — and the corpus could not see it, because the generator only ever emits integers.
+ *
+ * Refused as `schema_violation`, matching what serde does in the Rust core. */
+function decodeInstance(i: NonNullable<PresentationBundle["instance"]>): { ic: InstanceCredential; pop: InstancePop } {
+  const int = (v: unknown): number => {
+    // Number.isInteger is not enough on its own: it accepts -0 and any float that happens to be integral. The
+    // wire form must be a plain non-negative integer, so the same value cannot arrive spelled several ways.
+    if (typeof v !== "number" || !Number.isInteger(v) || Object.is(v, -0) || v < 0) throw new Reject("schema_violation");
+    return v;
+  };
+  const str = (v: unknown): string => {
+    if (typeof v !== "string") throw new Reject("schema_violation");
+    return v;
+  };
+  if (!i.pop || typeof i.pop !== "object") throw new Reject("schema_violation");
+  if (!Array.isArray(i.capabilities) || i.capabilities.some((c) => typeof c !== "string"))
+    throw new Reject("schema_violation");
+  return {
+    ic: {
+      sub: str(i.sub), iid: str(i.iid),
+      ikey: { ed25519: dec(i.ikey.ed25519), mldsa65: dec(i.ikey.mldsa65) },
+      nbf: int(i.nbf), exp: int(i.exp),
+      capabilities: i.capabilities as string[], aud: str(i.aud),
+      passportLeaf: dec(i.passport_leaf),
+      sig: { ed25519: dec(i.sig.ed25519), mldsa65: dec(i.sig.mldsa65) },
+    },
+    pop: {
+      aud: str(i.pop.aud), nonce: str(i.pop.nonce), ts: int(i.pop.ts),
+      sig: { ed25519: dec(i.pop.sig.ed25519), mldsa65: dec(i.pop.sig.mldsa65) },
+    },
+  };
+}
+
 function decodePresentation(pr: PresentationBundle, revoked: Set<string>, now: number, audience: string): Presentation {
   return {
     claims: dec(pr.claims),
@@ -911,22 +958,7 @@ function decodePresentation(pr: PresentationBundle, revoked: Set<string>, now: n
     mandateProofs: [],
     mandateRevocations: new Set(pr.mandate_revocations),
     revokedDelegates: revoked,
-    instance: pr.instance
-      ? {
-          ic: {
-            sub: pr.instance.sub, iid: pr.instance.iid,
-            ikey: { ed25519: dec(pr.instance.ikey.ed25519), mldsa65: dec(pr.instance.ikey.mldsa65) },
-            nbf: pr.instance.nbf, exp: pr.instance.exp,
-            capabilities: pr.instance.capabilities, aud: pr.instance.aud,
-            passportLeaf: dec(pr.instance.passport_leaf),
-            sig: { ed25519: dec(pr.instance.sig.ed25519), mldsa65: dec(pr.instance.sig.mldsa65) },
-          },
-          pop: {
-            aud: pr.instance.pop.aud, nonce: pr.instance.pop.nonce, ts: pr.instance.pop.ts,
-            sig: { ed25519: dec(pr.instance.pop.sig.ed25519), mldsa65: dec(pr.instance.pop.sig.mldsa65) },
-          },
-        }
-      : undefined,
+    instance: pr.instance ? decodeInstance(pr.instance) : undefined,
     audience,
   };
 }

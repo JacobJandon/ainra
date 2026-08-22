@@ -481,6 +481,10 @@ def _verify_instance(inst, claims: dict, passport_leaf: bytes, now: int, expecte
         return R.INSTANCE_SIG_INVALID
     # (5) proof-of-possession — audience, freshness, then the signature under the INSTANCE key.
     pop = inst.get("pop") or {}
+    # The empty audience is a SENTINEL, not a value — see ainra-core's instance.rs. Equality made "" == "" pass,
+    # so a credential minted with an empty aud was accepted by every verifier that had not named itself.
+    if not expected_aud or not inst.get("aud") or not pop.get("aud"):
+        return R.INSTANCE_POP_INVALID
     if inst.get("aud") != expected_aud or pop.get("aud") != expected_aud:
         return R.INSTANCE_POP_INVALID
     ts = pop.get("ts")

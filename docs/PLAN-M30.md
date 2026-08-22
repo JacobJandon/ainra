@@ -121,3 +121,57 @@ naming the trap. Not sealed to `pub(crate)`: it is legitimately useful to embedd
   Documented in ADR-019 from the start; single-use is caller state and core holds none.
 - **Coverage gaps** (no vectors today): instance + delegate-mode checkpoint; instance + renewal; a status list
   shorter than its declared `bit_len` (the last is now pinned by a Python test rather than a vector).
+
+---
+
+# The independent re-review (M30b)
+
+The three dimensions lost to the capacity limit were re-run, plus the refute pass that was missing. **The most
+serious findings are against my own work, not against ADR-019.** Each was re-derived and re-demonstrated by me
+before being acted on.
+
+## Fixed in this pass
+
+| # | finding | severity | pinned by |
+|---|---|---|---|
+| 1 | **TS type confusion.** TS types are erased at runtime and the decoder checked nothing, so a credential validly minted with `"nbf": "-"` reached the window comparisons as a string. Every relational operator yields `NaN`, and `NaN` comparisons are all false — window, ≤1 h ceiling and PoP freshness **all bypassed at once**: an unbounded bearer token, the exact pre-ADR-019 state. Rust was safe (serde `u64`), Python guards with `isinstance`; TS was alone, and the corpus cannot see it because the generator only emits integers. | **high** | decode gateway → `schema_violation`; the reviewer's forged vectors, controls intact |
+| 2 | **The empty audience was not fail-closed.** Every surface documents `""` as the safe default, and plain equality made `"" == ""` **pass** — so a credential minted with `aud: ""` was universally presentable to exactly the verifiers the docs steer people toward. Found independently by two reviewers. | **high** | sentinel check in all three |
+| 3 | **My parity harness was blind to its own purpose.** Its driver read the verifier's audience back off the object and applied that substitution itself, so it performed the override it was testing for. With the SDK override deleted — audience binding defeated end to end — it printed OK. It would **not** have caught the M29 defect it was written to stop recurring. | **high** (gate) | drives the GA verifier; the same sabotage now reddens two rows |
+| 4 | **Python decompression bomb — a second revocation bypass.** The inflate budget ignored the declared `bit_len` and `decompress(…, max_length)` truncates silently, so 64 KB → 64 MB of zeros delivered an all-clear bitmap and a revoked passport verified VALID. My earlier guard in this milestone bounded only **from below**. | **high** | bounded both ways; 3 tests, control reddens 2 |
+| 5 | **`ainra instance verify` never checked the proof-of-possession** — advertised as "what a receiving service does" and used as the M28 evidence transcript. `popSigningBytes` and `POP_MAX_SKEW_SECS` sat unreferenced; the dead constants were the tell. | medium | `instance present` added; verify refuses without a PoP; M28 transcript corrected in place |
+
+## Confirmed open — recorded, not fixed
+
+These are real and need a decision rather than a patch. None is fixed today, and saying so is the point.
+
+- **The PoP is not bound to the credential it accompanies** (both reviewers, independently). It signs
+  `{aud, nonce, ts}` — no `iid`, no `ikey`, no credential digest. So a PoP captured from an honest presentation
+  lets the capturer present *any* credential minted to that instance key at that audience, including a wider one
+  or one from another lineage. Demonstrated across all three implementations. The documented nonce-cache mitigation
+  does **not** help: the attack forwards a fresh, never-seen PoP with a substituted credential. **Fix is breaking**
+  (add `iid` + a hash of the credential's signing bytes to the PoP body), which is why it is a decision, and it
+  should be made before anyone depends on the current shape.
+- **Python's delegation-chain expiry rule is structurally different from Rust's**, and one direction is fail-open:
+  a hop expiring *before* the passport is accepted by Python and refused by Rust and TS. No vector can see it —
+  the generator sets every hop `exp` equal to the passport `exp`.
+- **`iid` is unbounded and echoed into the verdict event before the verdict is known.** A bundle refused at step 4
+  still writes up to 200 KB of attacker-chosen text into the verifier's log, and the doc comment calling it "safe
+  to emit: opaque and random by construction" is a promise made by the party the verifier does not trust.
+- **Unbounded capability arrays** are an O(n×m) CPU amplifier at the instance rung (12 000 × 12 000 ≈ 0.4–0.9 s per
+  presentation). Requires a registrar-signed passport, so insider-only.
+- **The PoP window is 61 seconds, presenter-positionable**, not the 30 the constant reads as — `abs_diff` is
+  symmetric, so a future-dated PoP is accepted.
+- **`verify_wire` is still `pub` and still reads the wire audience**, and `WirePresentation.audience`'s doc comment
+  still says "A presenter cannot set this". The M30 fix corrected the two entry points above it and left the layer
+  below, so the comment is still false where it sits.
+- **`site/verify.html` runs two engines** — WASM `verify` (no audience) and a JS fallback via `runVector` (wire
+  audience) — which now disagree on instance credentials, and `wasm-differential` covers only `run_vector`.
+- **Wire malleability**: `-0` and exponent notation are accepted by TS/Python and refused by Rust. Semantically
+  identical values, no privilege gain, but a real three-way divergence in reason.
+
+## What this says about the first pass
+
+The self-refutation missed things a hostile reader found in an afternoon. Two of the fixes I reported as complete
+were incomplete in the same file, one of the controls I named did not redden when reverted, and the gate I built to
+end this class of defect could not see the class. That is the argument for an independent refute phase, made at my
+own expense.

@@ -142,6 +142,13 @@ before being acted on.
 
 ## Confirmed open — recorded, not fixed
 
+> **Resolved in M31 (2026-08-23) — see [PLAN-M31.md](PLAN-M31.md).** Seven of the eight below are closed by
+> decisions D-049 through D-053. The eighth (wire malleability) is **still open** by decision: D-054 records why
+> the fix requires an SDK API change, corrects this section's characterisation of it — it is a *verdict*
+> divergence, not a reason divergence, and core is one of the permissive implementations rather than the strict
+> one — and `make number-syntax` now pins it so it cannot drift. Two other notes below were also wrong in detail;
+> M31 lists the corrections. The findings are left as written: they are the record of what was known that day.
+
 These are real and need a decision rather than a patch. None is fixed today, and saying so is the point.
 
 - **The PoP is not bound to the credential it accompanies** (both reviewers, independently). It signs

@@ -1061,6 +1061,30 @@ fn generate() -> Vec<Vector> {
         ));
     }
 
+    // The passport outliving its own delegation (D-052). Every hop here narrows correctly — hop 2 expires no later
+    // than hop 1 — so `chain-expired` above cannot be the reason. What fails is the PASSPORT: it claims a window
+    // that runs past the grant authorising it.
+    //
+    // This family exists because no vector could see the case. The generator sets every hop's `exp` EQUAL to the
+    // passport's, and at equality the Python SDK's (inverted) rule and the Rust/TS rule agree — so a 1009-vector
+    // four-way differential reported total agreement while the implementations disagreed about which direction
+    // the inequality ran. Vectors prove agreement on the bytes they contain and nothing about the bytes nobody
+    // generated; this is what closing that looks like.
+    for i in 0..per {
+        let mut p = valid_chain_params(1300 + i);
+        let hop_exp = p.exp - 100;
+        for hop in p.chain.iter_mut() {
+            hop.exp = hop_exp;
+        }
+        let b = build(&p);
+        let v = wire_valid(&format!("chain-hop-outlived-by-passport-{:04}", i), "", &b);
+        out.push(invalid(
+            v,
+            Reason::ChainExpired,
+            "the passport expires after the delegation hop that authorises it",
+        ));
+    }
+
     // mandate (path is AUTHENTICATED in the signed body; presenter supplies only the revocation set)
     for i in 0..per {
         let mut p = valid_params(1200 + i);
@@ -1201,6 +1225,8 @@ fn generate() -> Vec<Vector> {
             pop_ts: u64,
             signer: &'a crypto::HybridKeypair,
             pop_signer: &'a crypto::HybridKeypair,
+            /// D-053: overridden only by the bound-probing families below; None gives the derived default.
+            iid: Option<String>,
         }
         fn mint(m: Mint<'_>) -> WireInstance {
             let Mint {
@@ -1214,6 +1240,7 @@ fn generate() -> Vec<Vector> {
                 pop_ts,
                 signer,
                 pop_signer,
+                iid: m_iid,
             } = m;
             let leaf = ainra_core::verify::prelog_leaf(&b.claims).expect("prelog leaf");
             let ik = inst.public();
@@ -1223,7 +1250,7 @@ fn generate() -> Vec<Vector> {
                 .to_string();
             let ic = ainra_core::instance::InstanceCredential {
                 sub: sub.clone(),
-                iid: format!("i-{:04x}", nbf % 0xffff),
+                iid: m_iid.unwrap_or_else(|| format!("i-{:04x}", nbf % 0xffff)),
                 ikey: ik.clone(),
                 nbf,
                 exp,
@@ -1247,8 +1274,10 @@ fn generate() -> Vec<Vector> {
                     mldsa65: Vec::new(),
                 },
             };
+            // D-049: the PoP is signed over the credential it accompanies. `ic` here carries exactly the field
+            // values that go onto the wire below, so the digest the verifier recomputes matches.
             let psig = pop_signer
-                .sign(&pop.signing_bytes().expect("pop bytes"))
+                .sign(&pop.signing_bytes(&ic).expect("pop bytes"))
                 .expect("sign pop");
             WireInstance {
                 sub,
@@ -1295,6 +1324,7 @@ fn generate() -> Vec<Vector> {
                 pop_ts: now,
                 signer: &ctrl,
                 pop_signer: &inst,
+                iid: None,
             }));
             v.presentation.audience = AUD.to_string();
             out.push(v);
@@ -1316,6 +1346,7 @@ fn generate() -> Vec<Vector> {
                 pop_ts: now,
                 signer: &ctrl,
                 pop_signer: &inst,
+                iid: None,
             }));
             v.presentation.audience = AUD.to_string();
             out.push(invalid(
@@ -1341,12 +1372,126 @@ fn generate() -> Vec<Vector> {
                 pop_ts: now,
                 signer: &ctrl,
                 pop_signer: &inst,
+                iid: None,
             }));
             v.presentation.audience = AUD.to_string();
             out.push(invalid(
                 v,
                 Reason::InstanceExpired,
                 "lifetime exceeds the 1 h ceiling — enforced at verify, not only at issuance",
+            ));
+        }
+
+        // (3a) POP BOUND TO ITS CREDENTIAL (D-049) — the substitution attack, as bytes.
+        //
+        // The operator mints TWO credentials to the SAME instance key at the SAME audience: a narrow one the
+        // container presents honestly, and a wider one. Both are genuinely signed by the passport control key,
+        // and both name the same lineage leaf. The vector presents the WIDE credential carrying the PoP that was
+        // produced for the NARROW one.
+        //
+        // Everything the old `{aud, nonce, ts}` PoP body named is identical between the two, so that body could
+        // not tell them apart: a PoP captured off an honest presentation verified against a credential it had
+        // never seen. Nothing about the forwarded PoP is stale or replayed — it is fresh, its nonce is unused, and
+        // its signature is genuine — so a nonce cache, which is the mitigation ADR-019 originally recommended,
+        // does not fire. Only binding the credential's digest into the signed body refuses it.
+        for i in 0..per {
+            let caps = ["read:invoices", "sign:invoice"];
+            let (b, ctrl, inst, now) = instance_fixture(4700 + i, &caps, false);
+            let mut v = wire_valid(&format!("instance-pop-other-credential-{:04}", i), "", &b);
+            // The honest, NARROW credential — and the PoP the container legitimately produced for it.
+            let narrow = mint(Mint {
+                b: &b,
+                inst: &inst,
+                caps: &["read:invoices"],
+                nbf: now - 60,
+                exp: now + 600,
+                aud: AUD,
+                pop_aud: AUD,
+                pop_ts: now,
+                signer: &ctrl,
+                pop_signer: &inst,
+                iid: None,
+            });
+            // The WIDER credential the attacker also holds: same instance key, same audience, same leaf.
+            let mut wide = mint(Mint {
+                b: &b,
+                inst: &inst,
+                caps: &["read:invoices", "sign:invoice"],
+                nbf: now - 60,
+                exp: now + 600,
+                aud: AUD,
+                pop_aud: AUD,
+                pop_ts: now,
+                signer: &ctrl,
+                pop_signer: &inst,
+                iid: None,
+            });
+            wide.pop = narrow.pop.clone(); // ← the forward
+            v.presentation.instance = Some(wide);
+            v.presentation.audience = AUD.to_string();
+            out.push(invalid(
+                v,
+                Reason::InstancePopInvalid,
+                "a PoP captured from one credential, forwarded with a wider one minted to the same instance key",
+            ));
+        }
+
+        // (3b) SHAPE BOUNDS (D-053) — a VALIDLY SIGNED credential is still refused when a field is oversized.
+        //
+        // Both families sign correctly, so nothing here is a signature failure: what is being pinned is that the
+        // verifier bounds attacker-chosen fields BEFORE it spends anything on them. The `iid` reaches the verdict
+        // event (and therefore the operator's log) even for a bundle that is about to be refused; the capability
+        // arrays reach an O(n×m) subset test on both sides.
+        for i in 0..per {
+            let caps = ["read:invoices"];
+            let (b, ctrl, inst, now) = instance_fixture(5000 + i, &caps, false);
+            let mut v = wire_valid(&format!("instance-iid-too-long-{:04}", i), "", &b);
+            v.presentation.instance = Some(mint(Mint {
+                b: &b,
+                inst: &inst,
+                caps: &["read:invoices"],
+                nbf: now - 60,
+                exp: now + 600,
+                aud: AUD,
+                pop_aud: AUD,
+                pop_ts: now,
+                signer: &ctrl,
+                pop_signer: &inst,
+                iid: Some("i-".to_string() + &"A".repeat(ainra_core::instance::MAX_IID_LEN)),
+            }));
+            v.presentation.audience = AUD.to_string();
+            out.push(invalid(
+                v,
+                Reason::SchemaViolation,
+                "iid past MAX_IID_LEN — refused before it can be read or logged",
+            ));
+        }
+        for i in 0..per {
+            let caps = ["read:invoices"];
+            let (b, ctrl, inst, now) = instance_fixture(5100 + i, &caps, false);
+            let mut v = wire_valid(&format!("instance-caps-too-many-{:04}", i), "", &b);
+            let many: Vec<String> = (0..=ainra_core::instance::MAX_CAPABILITIES)
+                .map(|n| format!("read:c{n}"))
+                .collect();
+            let many_refs: Vec<&str> = many.iter().map(String::as_str).collect();
+            v.presentation.instance = Some(mint(Mint {
+                b: &b,
+                inst: &inst,
+                caps: &many_refs,
+                nbf: now - 60,
+                exp: now + 600,
+                aud: AUD,
+                pop_aud: AUD,
+                pop_ts: now,
+                signer: &ctrl,
+                pop_signer: &inst,
+                iid: None,
+            }));
+            v.presentation.audience = AUD.to_string();
+            out.push(invalid(
+                v,
+                Reason::SchemaViolation,
+                "capability array past MAX_CAPABILITIES — bounded before the O(n×m) subset test",
             ));
         }
 
@@ -1366,6 +1511,7 @@ fn generate() -> Vec<Vector> {
                 pop_ts: now,
                 signer: &ctrl,
                 pop_signer: &inst,
+                iid: None,
             }));
             v.presentation.audience = AUD.to_string();
             out.push(invalid(
@@ -1393,6 +1539,7 @@ fn generate() -> Vec<Vector> {
                 pop_ts: now,
                 signer: &impostor,
                 pop_signer: &inst,
+                iid: None,
             }));
             v.presentation.audience = AUD.to_string();
             out.push(invalid(
@@ -1421,6 +1568,7 @@ fn generate() -> Vec<Vector> {
                 pop_ts: now,
                 signer: &ctrl,
                 pop_signer: &thief,
+                iid: None,
             }));
             v.presentation.audience = AUD.to_string();
             out.push(invalid(
@@ -1444,6 +1592,7 @@ fn generate() -> Vec<Vector> {
                 pop_ts: now,
                 signer: &ctrl,
                 pop_signer: &inst,
+                iid: None,
             }));
             v.presentation.audience = AUD.to_string();
             out.push(invalid(
@@ -1470,6 +1619,7 @@ fn generate() -> Vec<Vector> {
                 pop_ts: now,
                 signer: &ctrl,
                 pop_signer: &inst,
+                iid: None,
             }));
             v.presentation.audience = AUD.to_string();
             out.push(invalid(
@@ -1495,6 +1645,7 @@ fn generate() -> Vec<Vector> {
                 pop_ts: now,
                 signer: &ctrl,
                 pop_signer: &inst,
+                iid: None,
             });
             // a non-canonical base64url tail on the bound leaf: the strict decoder must refuse it outright
             wi.passport_leaf = format!("{}=", &wi.passport_leaf);

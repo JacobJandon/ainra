@@ -171,7 +171,12 @@ const CAPABILITIES = [
 
 // Files that record history rather than assert current fact.
 const EXEMPT = [/^CHANGELOG\.md$/, /^docs\/releases\//, /^docs\/_archive\//, /^docs\/DECISIONS\.md$/,
-                /^SECURITY-ADVISORIES\.md$/, /^docs\/PLAN-M29\.md$/, /^docs\/CLAIMS\.md$/, /^tools\/claims\.mjs$/,
+                /^SECURITY-ADVISORIES\.md$/, /^docs\/CLAIMS\.md$/, /^tools\/claims\.mjs$/,
+                // A COMPLETED milestone plan is a record of what was true on a date, in the same category as a
+                // release board: M30 really did ship ADR-019 with 216 instance vectors, and rewriting that to
+                // today's number would falsify the record rather than fix a claim. Previously only M29 was listed,
+                // which meant every later plan doc had to be hand-patched or reworded to get past this gate.
+                /^docs\/PLAN-M\d+\.md$/,
                 /^MANIFEST\.sha256$/, /^docs\/BENCHMARKS\.md$/];
 
 const tracked = () =>

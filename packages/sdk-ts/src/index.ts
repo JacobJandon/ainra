@@ -431,6 +431,19 @@ export const INSTANCE_CRED_DEFAULT_SECS = 60 * 60;
  *  (ADR-016), never applied to a validity window: the instance window is compared exactly, like the passport's. */
 export const POP_MAX_SKEW_SECS = 30;
 
+/** How far a PoP may be dated into the FUTURE — clock skew only (D-050). Mirrors
+ *  `ainra_core::instance::POP_MAX_FUTURE_SECS`. Every second here is a second a presenter can add to a captured
+ *  PoP's life, and buys an honest party almost nothing. */
+export const POP_MAX_FUTURE_SECS = 5;
+
+/** Longest `iid` a verifier will look at (D-053). Mirrors `ainra_core::instance::MAX_IID_LEN`. The field is
+ *  attacker-chosen and reaches the verifier's LOG, so it is bounded before it is read. */
+export const MAX_IID_LEN = 64;
+
+/** Most capabilities either side of the ∩ check may carry (D-053). Mirrors
+ *  `ainra_core::instance::MAX_CAPABILITIES`. The subset test is O(n×m) and neither side was bounded. */
+export const MAX_CAPABILITIES = 256;
+
 /** Canonical bytes the passport's control key signs. Field order mirrors `InstanceCredential::signing_bytes` in
  *  ainra-core byte-for-byte; the four-way differential is what keeps them honest. */
 export function instanceSigningBytes(ic: InstanceCredential): Uint8Array {
@@ -445,9 +458,24 @@ export function instanceSigningBytes(ic: InstanceCredential): Uint8Array {
     sub: ic.sub,
   }));
 }
-/** Canonical bytes the INSTANCE key signs. */
-export function popSigningBytes(pop: InstancePop): Uint8Array {
-  return new TextEncoder().encode(canonicalize({ aud: pop.aud, nonce: pop.nonce, ts: pop.ts }));
+/** SHA-256 over an instance credential's signing bytes — mirrors `InstanceCredential::digest` (D-049). */
+export function instanceCredDigest(ic: InstanceCredential): Uint8Array {
+  return sha256(instanceSigningBytes(ic));
+}
+
+/** Canonical bytes the INSTANCE key signs.
+ *
+ *  `cred` binds the proof to ONE credential (D-049). Without it the body named neither the credential nor the
+ *  instance, so a PoP captured from an honest presentation could be replayed with a different credential minted to
+ *  the same instance key at the same audience — a wider one, or one from another lineage. A nonce cache does not
+ *  stop that: the forwarded PoP is fresh. */
+export function popSigningBytes(pop: InstancePop, ic: InstanceCredential): Uint8Array {
+  return new TextEncoder().encode(canonicalize({
+    aud: pop.aud,
+    cred: b64uEncode(instanceCredDigest(ic)),
+    nonce: pop.nonce,
+    ts: pop.ts,
+  }));
 }
 
 const SCOPE_CHECKPOINT = "checkpoint-daily";
@@ -787,7 +815,8 @@ function verifyInstance(
   // (2) window — exact, no skew, plus the ceiling enforced at VERIFY (not only at issuance).
   if (ic.exp <= ic.nbf || ic.exp - ic.nbf > INSTANCE_CRED_DEFAULT_SECS) throw new Reject("instance_expired");
   if (now < ic.nbf || now >= ic.exp) throw new Reject("instance_expired");
-  // (3) scope — narrowing only.
+  // (3) scope — narrowing only. Bounded first (D-053): the subset test below is O(n×m).
+  if (ic.capabilities.length > MAX_CAPABILITIES || p.capabilities.length > MAX_CAPABILITIES) throw new Reject("schema_violation");
   if (!ic.capabilities.every((c) => p.capabilities.includes(c))) throw new Reject("instance_scope_exceeds");
   // (4) credential signature under the PASSPORT's control key.
   const pkey: HybridPublic = { ed25519: dec(p.keys[0].ed25519, "instance_sig_invalid"), mldsa65: dec(p.keys[0].mldsa65, "instance_sig_invalid") };
@@ -798,9 +827,10 @@ function verifyInstance(
   // documented default.
   if (expectedAud === "" || ic.aud === "" || pop.aud === "") throw new Reject("instance_pop_invalid");
   if (ic.aud !== expectedAud || pop.aud !== expectedAud) throw new Reject("instance_pop_invalid");
-  const delta = pop.ts > now ? pop.ts - now : now - pop.ts;
-  if (delta > POP_MAX_SKEW_SECS) throw new Reject("instance_pop_invalid");
-  if (verifyHybrid(ic.ikey, popSigningBytes(pop), pop.sig)) throw new Reject("instance_pop_invalid");
+  // Age and clock skew are different quantities (D-050). The symmetric comparison here gave a 61-second window
+  // the PRESENTER positioned — dating a PoP forward bought thirty more seconds of life.
+  if (now - pop.ts > POP_MAX_SKEW_SECS || pop.ts - now > POP_MAX_FUTURE_SECS) throw new Reject("instance_pop_invalid");
+  if (verifyHybrid(ic.ikey, popSigningBytes(pop, ic), pop.sig)) throw new Reject("instance_pop_invalid");
 }
 
 function prelogLeaf(claims: Uint8Array): Uint8Array {
@@ -909,7 +939,13 @@ export type PresentationBundle = WireVector["presentation"];
  * the check — and the corpus could not see it, because the generator only ever emits integers.
  *
  * Refused as `schema_violation`, matching what serde does in the Rust core. */
-function decodeInstance(i: NonNullable<PresentationBundle["instance"]>): { ic: InstanceCredential; pop: InstancePop } {
+/** Decode a wire instance object into the credential + proof the verify and mint APIs take.
+ *
+ *  Exported because D-049 requires it: a container receives its credential as JSON and must hand the DECODED
+ *  credential to {@link proveInstancePossession}. Without this it would have to hand-roll strict base64url, which
+ *  is the one thing D-029 says every implementation must do in exactly one place. Throws `Reject` on any
+ *  non-canonical field rather than returning a partly-decoded object. */
+export function decodeInstance(i: NonNullable<PresentationBundle["instance"]>): { ic: InstanceCredential; pop: InstancePop } {
   const int = (v: unknown): number => {
     // Number.isInteger is not enough on its own: it accepts -0 and any float that happens to be integral. The
     // wire form must be a plain non-negative integer, so the same value cannot arrive spelled several ways.
@@ -923,6 +959,9 @@ function decodeInstance(i: NonNullable<PresentationBundle["instance"]>): { ic: I
   if (!i.pop || typeof i.pop !== "object") throw new Reject("schema_violation");
   if (!Array.isArray(i.capabilities) || i.capabilities.some((c) => typeof c !== "string"))
     throw new Reject("schema_violation");
+  // D-053: bound the attacker-chosen fields at the decode gate, before anything reads or logs them.
+  if (typeof i.iid !== "string" || i.iid.length > MAX_IID_LEN) throw new Reject("schema_violation");
+  if (i.capabilities.length > MAX_CAPABILITIES) throw new Reject("schema_violation");
   return {
     ic: {
       sub: str(i.sub), iid: str(i.iid),
@@ -1453,7 +1492,9 @@ export function verdictEvent(
     if (typeof pres.status_issued_at === "number") age = Math.max(0, Math.trunc(now - pres.status_issued_at));
   } catch { /* undecodable claims → null fields; still a well-formed event */ }
   const inst = (pres as { instance?: { iid?: unknown; exp?: unknown } }).instance;
-  const instance_iid = typeof inst?.iid === "string" ? inst.iid : null;
+  // D-053: the event is built for REFUSED bundles too, so this is the presenter writing into the operator's log.
+  // An `iid` past the bound is not a malformed value to pass along, it is not an `iid` — emit null.
+  const instance_iid = typeof inst?.iid === "string" && inst.iid.length <= MAX_IID_LEN ? inst.iid : null;
   const instance_exp = typeof inst?.exp === "number" ? inst.exp : null;
   return { status: verdict.verdict, reason: verdict.verdict === "valid" ? null : verdict.reason, name, number, tier, freshness_age_s: age, instance_iid, instance_exp };
 }
@@ -1520,16 +1561,25 @@ export async function mintInstanceCredential(args: {
  * enforced, and enforces nothing itself, because a replay cache is state. */
 export async function proveInstancePossession(args: {
   audience: string;
+  /** The credential this proof accompanies. Required since D-049: a PoP that does not name its credential is a
+   *  proof about a key, and keys outlive credentials. */
+  credential: InstanceCredential;
   nonce: string;
   now: number;
   instanceSign: HybridSigner;
 }): Promise<InstancePop> {
+  // D-049: refuse to produce an unbound proof. A PoP with no credential named is a proof about a KEY, and keys
+  // outlive credentials — it is exactly the artefact an attacker forwards. Failing here rather than emitting one
+  // is the whole point of making `credential` required.
+  if (!args.credential || typeof args.credential !== "object") throw new Reject("schema_violation");
+  if (!args.audience) throw new Reject("schema_violation");
+  if (args.credential.aud !== args.audience) throw new Reject("schema_violation");
   const pop: InstancePop = {
     aud: args.audience,
     nonce: args.nonce,
     ts: args.now,
     sig: { ed25519: new Uint8Array(), mldsa65: new Uint8Array() },
   };
-  pop.sig = await args.instanceSign(popSigningBytes(pop));
+  pop.sig = await args.instanceSign(popSigningBytes(pop, args.credential));
   return pop;
 }

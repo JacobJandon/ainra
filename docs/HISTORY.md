@@ -72,5 +72,8 @@ walking into. Five of its seven recommendations shipped:
 - **[genesis-day/ROLLBACK.md](genesis-day/ROLLBACK.md)** — we can never measure how many verifiers hold a given root,
   because the charter forbids the telemetry that would tell us. So reversibility is over-engineered instead.
 
-Its two open recommendations are the two that were never code: the instance-credential rung (a design decision), and
-**witnesses** (people).
+Of its two open recommendations, one is now closed: the **instance-credential rung** shipped in M28 (ADR-019 /
+[D-047](DECISIONS.md)), was red-teamed in M30, and had its proof-of-possession bound to the credential it
+accompanies in M31 ([D-049](DECISIONS.md)) after an independent re-review found a captured proof could be forwarded
+with a different one. What remains is the recommendation that was never code at all: **witnesses** — people, still
+zero, and still stated as a gap wherever detection is described.

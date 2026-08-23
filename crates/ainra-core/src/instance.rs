@@ -35,7 +35,35 @@ use crate::verdict::Reason;
 /// signed timestamp, exactly like a checkpoint's, and not a validity window. The instance credential's own
 /// `nbf`/`exp` window is compared exactly, with no skew, like every other window in the system (ADR-017: expiry is
 /// expiry). Conflating the two is how a grace period gets introduced by accident.
+///
+/// D-050: this bound is the PoP's **age**, and it is deliberately one-sided. The M30b re-review found the previous
+/// `abs_diff` comparison gave a 61-second window that the *presenter* positioned: dating a PoP into the future
+/// bought it thirty extra seconds of life, and the constant read as if it were thirty. Age and clock skew are
+/// different quantities and now have different names and different sizes.
 pub const POP_MAX_SKEW_SECS: u64 = 30;
+
+/// How far a PoP may be dated into the FUTURE — clock skew between two honest machines, nothing more.
+///
+/// Kept small on purpose. Every second here is a second a presenter can add to a captured PoP's usable life, and
+/// unlike age it buys an honest party almost nothing: a verifier whose clock trails the presenter's by more than
+/// this is a verifier with a clock problem, not a protocol problem.
+pub const POP_MAX_FUTURE_SECS: u64 = 5;
+
+/// Longest `iid` a verifier will look at, in bytes (D-053).
+///
+/// An `iid` is an opaque random handle — the reference minter writes eighteen characters. The bound exists because
+/// the field is attacker-chosen and lands in the verifier's LOG: before it, a bundle refused at the binding step
+/// still wrote up to two hundred kilobytes of presenter-supplied text into the operator's logging pipeline, and the
+/// doc comment justifying that emission described the field as "opaque and random by construction" — a promise made
+/// by the party the verifier has just decided not to trust.
+pub const MAX_IID_LEN: usize = 64;
+
+/// Most capabilities a credential may carry on either side of the ∩ check (D-053).
+///
+/// The subset test is O(n×m). With both sides unbounded, a registrar-signed passport and a credential each holding
+/// twelve thousand capabilities cost roughly a second of CPU per presentation — a verifier-side amplifier that
+/// needs no invalid signature to fire, only a large valid one.
+pub const MAX_CAPABILITIES: usize = 256;
 
 /// A credential for one running copy of an agent, minted under a passport.
 #[derive(Clone)]
@@ -95,12 +123,44 @@ impl InstanceCredential {
             .map_err(|_| Reason::InstanceSigInvalid)?
             .into_bytes())
     }
+
+    /// SHA-256 over [`InstanceCredential::signing_bytes`] — the credential's identity as the operator signed it.
+    ///
+    /// Two credentials with equal signing bytes ARE the same credential, so this is a complete binding target for
+    /// [`InstancePop::signing_bytes`]. The signature is deliberately NOT hashed in: ML-DSA signing is randomised,
+    /// so including it would make the digest depend on which of several valid signatures the operator happened to
+    /// produce, and a presenter re-signing nothing would still see the PoP break.
+    pub fn digest(&self) -> core::result::Result<[u8; 32], Reason> {
+        use sha2::{Digest, Sha256};
+        let mut h = Sha256::new();
+        h.update(self.signing_bytes()?);
+        let out = h.finalize();
+        let mut d = [0u8; 32];
+        d.copy_from_slice(&out);
+        Ok(d)
+    }
 }
 
 impl InstancePop {
     /// Canonical bytes the instance key signs.
-    pub fn signing_bytes(&self) -> core::result::Result<Vec<u8>, Reason> {
-        let body = serde_json::json!({ "aud": self.aud, "nonce": self.nonce, "ts": self.ts });
+    ///
+    /// `cred` is what makes this a proof about **one credential** rather than a proof about a key (D-049). Before
+    /// it existed the body was `{aud, nonce, ts}`, which named neither the credential nor even the instance — so a
+    /// PoP captured from an honest presentation could be forwarded with a *different* credential minted to the same
+    /// instance key at the same audience, including a wider one or one from another lineage. The nonce cache the
+    /// docs recommended did not help: the forwarded PoP is fresh and has never been seen before. Binding to the
+    /// credential's signing bytes covers, in one field, every part of what the operator authorised — subject,
+    /// `iid`, instance key, window, capabilities, audience and lineage leaf.
+    pub fn signing_bytes(
+        &self,
+        cred: &InstanceCredential,
+    ) -> core::result::Result<Vec<u8>, Reason> {
+        let body = serde_json::json!({
+            "aud": self.aud,
+            "cred": b64u(&cred.digest()?),
+            "nonce": self.nonce,
+            "ts": self.ts,
+        });
         Ok(crate::canon::canonicalize(&body)
             .map_err(|_| Reason::InstancePopInvalid)?
             .into_bytes())
@@ -143,6 +203,16 @@ pub fn verify_instance(
     now: u64,
     expected_aud: &str,
 ) -> core::result::Result<(), Reason> {
+    // (0) SHAPE — bounds before work (D-053). These run FIRST: every field below is attacker-chosen, and both an
+    // oversized `iid` (which reaches the log) and an oversized capability set (which reaches an O(n×m) loop) cost
+    // the verifier something before any signature has been checked.
+    if ic.iid.len() > MAX_IID_LEN
+        || ic.capabilities.len() > MAX_CAPABILITIES
+        || passport_caps.len() > MAX_CAPABILITIES
+    {
+        return Err(Reason::SchemaViolation);
+    }
+
     // (1) BINDING — this credential must belong to the passport that was actually presented and proven logged.
     // `passport_leaf` is recomputed by the caller from the presented claims, never taken from the wire.
     if ic.sub != passport_sub || &ic.passport_leaf != passport_leaf {
@@ -186,10 +256,14 @@ pub fn verify_instance(
     if ic.aud != expected_aud || pop.aud != expected_aud {
         return Err(Reason::InstancePopInvalid);
     }
-    if pop.ts.abs_diff(now) > POP_MAX_SKEW_SECS {
+    // Age and skew, separately (D-050). `abs_diff` treated a PoP dated into the future exactly like an old one,
+    // which handed the presenter half the window to position.
+    if now.saturating_sub(pop.ts) > POP_MAX_SKEW_SECS
+        || pop.ts.saturating_sub(now) > POP_MAX_FUTURE_SECS
+    {
         return Err(Reason::InstancePopInvalid);
     }
-    let pop_msg = pop.signing_bytes()?;
+    let pop_msg = pop.signing_bytes(ic)?;
     crypto::verify_hybrid(&ic.ikey, &pop_msg, &pop.sig).map_err(|_| Reason::InstancePopInvalid)?;
 
     Ok(())
@@ -205,6 +279,7 @@ mod tests {
         HybridKeypair::generate(&mut rand_chacha::ChaCha20Rng::from_seed([seed; 32]))
     }
 
+    #[derive(Clone)]
     struct Fix {
         ic: InstanceCredential,
         pop: InstancePop,
@@ -215,6 +290,17 @@ mod tests {
 
     /// A credential and PoP that MUST verify. Every negative test below mutates exactly one thing about this
     /// fixture, so a failure names the field that caused it.
+    /// Re-seal a mutated fixture: sign the credential with the passport key, then sign a FRESH PoP over it.
+    ///
+    /// D-049 made this necessary and that is the point — a credential whose bytes changed is a different
+    /// credential, and the PoP that named the old one no longer applies to it. Before the binding, a test could
+    /// mutate `ic` and keep the original PoP, which is precisely the substitution an attacker was performing.
+    fn reseal(f: &mut Fix, now: u64) {
+        f.ic.sig = kp(1).sign(&f.ic.signing_bytes().unwrap()).unwrap();
+        f.pop.ts = now;
+        f.pop.sig = kp(2).sign(&f.pop.signing_bytes(&f.ic).unwrap()).unwrap();
+    }
+
     fn good(now: u64) -> Fix {
         let passport = kp(1);
         let instance = kp(2);
@@ -244,7 +330,7 @@ mod tests {
                 mldsa65: alloc::vec![],
             },
         };
-        pop.sig = instance.sign(&pop.signing_bytes().unwrap()).unwrap();
+        pop.sig = instance.sign(&pop.signing_bytes(&ic).unwrap()).unwrap();
         Fix {
             ic,
             pop,
@@ -263,7 +349,7 @@ mod tests {
     fn run_at(f: &Fix, now: u64) -> core::result::Result<(), Reason> {
         let mut pop = f.pop.clone();
         pop.ts = now;
-        pop.sig = kp(2).sign(&pop.signing_bytes().unwrap()).unwrap();
+        pop.sig = kp(2).sign(&pop.signing_bytes(&f.ic).unwrap()).unwrap();
         verify_instance(
             &f.ic,
             &pop,
@@ -342,8 +428,47 @@ mod tests {
         // …and exactly at the ceiling it is accepted, which is what makes the line above mean "too long" rather
         // than "any window at all is rejected".
         f.ic.exp = f.ic.nbf + INSTANCE_CRED_DEFAULT_SECS;
-        f.ic.sig = passport.sign(&f.ic.signing_bytes().unwrap()).unwrap();
+        reseal(&mut f, now);
         assert_eq!(run(&f, now), Ok(()));
+    }
+
+    // WITNESS: the D-049 binding, stated as the attack it kills. Could this have seen a failure? Yes — and it DID:
+    // run it against the `{aud, nonce, ts}` body and the substituted credential verifies, because the PoP named
+    // nothing that changed. That is the whole finding, executable.
+    //
+    // The scenario: an operator mints a NARROW credential for a container and the container presents it honestly.
+    // An attacker on the path captures that presentation. The attacker also holds a WIDER credential minted to the
+    // same instance key at the same audience — from a previous, still-unexpired mint, or from another lineage the
+    // same key served. It swaps the credential and forwards the captured PoP unchanged. The PoP is fresh, its
+    // nonce has never been seen, and its signature is genuine, so a nonce cache does not fire.
+    #[test]
+    fn a_captured_pop_cannot_be_forwarded_with_a_different_credential() {
+        let now = 1_776_729_600;
+        let passport = kp(1);
+        let honest = good(now);
+
+        // The wider credential: same instance key, same audience, same lineage leaf — everything the old PoP body
+        // could have named is identical. Only the capabilities differ.
+        let mut wide = honest.ic.clone();
+        wide.capabilities = alloc::vec![String::from("read:x"), String::from("write:y")];
+        wide.sig = passport.sign(&wide.signing_bytes().unwrap()).unwrap();
+
+        // Sanity: the wide credential is genuinely valid when presented WITH its own PoP. Without this line the
+        // test below could pass because the credential was malformed rather than because the binding held.
+        let mut legit = Fix {
+            ic: wide.clone(),
+            ..honest.clone()
+        };
+        reseal(&mut legit, now);
+        assert_eq!(run(&legit, now), Ok(()));
+
+        // The attack: wide credential + the PoP captured from the narrow presentation.
+        let forwarded = Fix {
+            ic: wide,
+            pop: honest.pop.clone(),
+            ..honest.clone()
+        };
+        assert_eq!(run(&forwarded, now), Err(Reason::InstancePopInvalid));
     }
 
     // WITNESS: the ∩ rule. Could it have seen a failure? Yes — the fixture asks for a strict subset and passes;
@@ -359,7 +484,7 @@ mod tests {
         // The empty set is the narrowest possible narrowing and must be allowed — otherwise "narrowing only"
         // would quietly mean "narrowing, but not too much".
         f.ic.capabilities = alloc::vec![];
-        f.ic.sig = passport.sign(&f.ic.signing_bytes().unwrap()).unwrap();
+        reseal(&mut f, now);
         assert_eq!(run(&f, now), Ok(()));
     }
 
@@ -405,7 +530,7 @@ mod tests {
     fn pop_must_be_signed_by_the_instance_key() {
         let now = 1_776_729_600;
         let mut f = good(now);
-        f.pop.sig = kp(4).sign(&f.pop.signing_bytes().unwrap()).unwrap();
+        f.pop.sig = kp(4).sign(&f.pop.signing_bytes(&f.ic).unwrap()).unwrap();
         assert_eq!(run(&f, now), Err(Reason::InstancePopInvalid));
     }
 
@@ -417,17 +542,21 @@ mod tests {
         let mut f = good(now);
         // Wrong audience: refused even with a valid signature over that wrong audience.
         f.pop.aud = String::from("https://elsewhere.example");
-        f.pop.sig = instance.sign(&f.pop.signing_bytes().unwrap()).unwrap();
+        f.pop.sig = instance.sign(&f.pop.signing_bytes(&f.ic).unwrap()).unwrap();
         assert_eq!(run(&f, now), Err(Reason::InstancePopInvalid));
         // Stale PoP, correctly signed.
         let mut f2 = good(now);
         f2.pop.ts = now - (POP_MAX_SKEW_SECS + 1);
-        f2.pop.sig = instance.sign(&f2.pop.signing_bytes().unwrap()).unwrap();
+        f2.pop.sig = instance
+            .sign(&f2.pop.signing_bytes(&f2.ic).unwrap())
+            .unwrap();
         assert_eq!(run(&f2, now), Err(Reason::InstancePopInvalid));
         // …and just inside the tolerance it is accepted, so the line above means "too old" and not "any ts fails".
         let mut f3 = good(now);
         f3.pop.ts = now - POP_MAX_SKEW_SECS;
-        f3.pop.sig = instance.sign(&f3.pop.signing_bytes().unwrap()).unwrap();
+        f3.pop.sig = instance
+            .sign(&f3.pop.signing_bytes(&f3.ic).unwrap())
+            .unwrap();
         assert_eq!(run(&f3, now), Ok(()));
     }
 

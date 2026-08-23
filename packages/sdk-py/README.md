@@ -13,7 +13,7 @@ Why a fourth brain? If an independent reimplementation, built to the same
 spec + vector reference, reaches the same verdict on every vector, that is
 independent confirmation the standard is unambiguous and the reference is
 correct. If it disagreed, we would have found something. It agrees on
-**1009 passport + 17 delta + 9 directory** vectors.
+**1105 passport + 17 delta + 9 directory** vectors.
 
 ## Package name
 
@@ -131,12 +131,12 @@ every vector, including the `alg-downgrade-*`, `noncanon-*`, `boundary-*`,
 `renewal-*` classes, plus delta and directory:
 
 ```
-(A) verdict diff  core↔sdk : 1009/1009 agree
+(A) verdict diff  core↔sdk : 1105/1105 agree
 (B) canon 3-way  core↔sdk↔P0 : 10/10 byte-identical
 (C) canon reject core↔sdk : 4/4 both refuse
 (D) delta diff   core↔sdk : 17/17 agree
 (E) directory diff core↔sdk : 9/9 agree
-(F) verdict diff  core↔py : 1009/1009 agree
+(F) verdict diff  core↔py : 1105/1105 agree
 (F) delta diff   core↔py : 17/17 agree
 (F) directory diff core↔py : 9/9 agree
 

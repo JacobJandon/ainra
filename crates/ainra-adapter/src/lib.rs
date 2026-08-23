@@ -97,8 +97,13 @@ pub struct WirePresentation {
     /// of every existing vector and break `make repro` for no gain).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub instance: Option<WireInstance>,
-    /// The VERIFIER's audience. A presenter cannot set this; the vector carries it so the corpus can pin
+    /// FIXTURE DATA ONLY — the audience a *conformance vector* says its verifier has, so the corpus can pin
     /// audience-mismatch cases deterministically.
+    ///
+    /// This field is on the wire struct because vectors are serialised with it, and a real presenter therefore
+    /// CAN set it. Nothing in the verify path reads it: [`verify_wire`] takes the audience as a parameter, and
+    /// only [`run`] — the vector runner, where the fixture is the whole point — passes this value in. Do not
+    /// reintroduce a read of it from any other path.
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub audience: String,
 }
@@ -349,11 +354,21 @@ fn presentation_parts(p: &WirePresentation) -> D<Decoded> {
 
 // ── the single vector → Presentation/TrustAnchors → Verdict path ───────────────────────────────────────────
 
-/// Verify one decoded wire presentation against decoded anchors at `now`.
+/// Verify one decoded wire presentation against decoded anchors at `now`, **for the audience the caller names**.
 ///
 /// This is **the** conversion: every surface — the generator, the conformance runner, the CLI, the browser —
 /// reaches core verify types through this function and no other.
-pub fn verify_wire(p: &WirePresentation, anchors: &verify::TrustAnchors, now: u64) -> Verdict {
+///
+/// `audience` is a parameter rather than a field read off `p` (D-051). It used to be the latter, and the M30 fix
+/// corrected the two entry points above this one while leaving this layer reading the wire — so a third party
+/// calling the public function directly still got presenter-chosen audience binding, under a field comment that
+/// said a presenter could not set it. A parameter cannot be forgotten; a field can.
+pub fn verify_wire(
+    p: &WirePresentation,
+    anchors: &verify::TrustAnchors,
+    now: u64,
+    audience: &str,
+) -> Verdict {
     let d = match presentation_parts(p) {
         Ok(d) => d,
         Err(reason) => return Verdict::invalid(reason),
@@ -377,7 +392,7 @@ pub fn verify_wire(p: &WirePresentation, anchors: &verify::TrustAnchors, now: u6
         mandate_revocations: d.mandate_revocations,
         revoked_delegates: d.revoked_delegates,
         instance: d.instance,
-        audience: p.audience.clone(),
+        audience: audience.to_string(),
     };
     verify::verify(&pres, anchors)
 }
@@ -405,10 +420,13 @@ pub fn run(v: &Vector) -> Verdict {
             },
         );
     }
+    // The vector IS the fixture, so its declared audience is the verifier's audience here — said explicitly
+    // rather than absorbed silently from the wire struct.
     verify_wire(
         &v.presentation,
         &verify::TrustAnchors { registrars },
         v.presentation.now,
+        &v.presentation.audience,
     )
 }
 
@@ -628,9 +646,13 @@ pub fn event_json(
 ///
 /// The two instance keys are ALWAYS present — `null` when a passport was presented directly. A variable-shape
 /// event would mean every consumer has to branch, and the whole point of this shape (M16, D-033) is that one
-/// serializer's bytes are every surface's bytes. `instance_iid` is safe to emit: an `iid` is opaque and random by
-/// construction (ADR-019), never a hostname and never a user identifier, so it identifies a process to its own
-/// operator and nobody else.
+/// serializer's bytes are every surface's bytes.
+///
+/// `instance_iid` is emitted only when it is within [`instance::MAX_IID_LEN`], and null otherwise (D-053). The
+/// comment that used to sit here said the field was "safe to emit: opaque and random by construction" — which is
+/// what ADR-019 asks a HONEST minter to do, and therefore a promise made by the party the verifier is in the middle
+/// of deciding whether to trust. The event is built for refused bundles too, so an unbounded read here is the
+/// presenter writing arbitrary text into the operator's logging pipeline.
 #[allow(clippy::too_many_arguments)]
 pub fn event_json_instance(
     status: &str,
@@ -672,7 +694,12 @@ pub fn verdict_event(p: &WirePresentation, verdict: &Verdict, now: u64) -> Strin
     let age = (now as i64 - p.status_issued_at as i64).max(0);
     let reason = verdict.reason().map(reason_str);
     let (iid, iexp) = match &p.instance {
-        Some(i) => (Some(i.iid.as_str()), Some(i.exp)),
+        // D-053: an `iid` past the bound is not an `iid`. Emit null rather than the presenter's payload — this
+        // event is built for REFUSED bundles too, so the write happens whether or not the bundle was trusted.
+        Some(i) if i.iid.len() <= ainra_core::instance::MAX_IID_LEN => {
+            (Some(i.iid.as_str()), Some(i.exp))
+        }
+        Some(i) => (None, Some(i.exp)),
         None => (None, None),
     };
     event_json_instance(
@@ -732,10 +759,8 @@ pub fn verify_bundle_json_aud(
         return schema_violation_event();
     };
     let anchors = anchors_from_json(&dir);
-    // The CALLER's audience replaces whatever the bundle claimed, exactly as `now` does.
-    let mut p = p;
-    p.audience = audience.to_string();
-    let verdict = verify_wire(&p, &anchors, now_secs);
+    // The CALLER's audience is passed, never absorbed from the bundle — exactly as `now` is.
+    let verdict = verify_wire(&p, &anchors, now_secs, audience);
     verdict_event(&p, &verdict, now_secs)
 }
 

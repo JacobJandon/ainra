@@ -3,7 +3,7 @@
 
 The conformance corpus proves the implementations agree on **verdicts over wire data**. It cannot prove they agree
 on **who supplies a value**, **what a default constructor trusts**, or **what happens when a caller omits an
-argument** — and two implementations can pass all 1009 vectors while disagreeing completely about those.
+argument** — and two implementations can pass all 1105 vectors while disagreeing completely about those.
 
 That gap is not theoretical. It has produced three defects:
 

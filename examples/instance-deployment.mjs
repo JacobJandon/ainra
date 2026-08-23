@@ -67,7 +67,9 @@ line("CONTAINER — holds its own instance key + the credential. That is the ent
   const { pop } = presentation.instance;
   line(`  instance key        the ONLY secret in here`);
   line(`  proves possession   nonce=${pop.nonce} ts=${pop.ts}`);
-  line(`  signed over         ${b64len(popSigningBytes({ aud: pop.aud, nonce: pop.nonce, ts: pop.ts }))} of canonical bytes`);
+  line(`  signed over         ${b64len(popSigningBytes({ aud: pop.aud, nonce: pop.nonce, ts: pop.ts }, decodeIc(presentation.instance)))} of canonical bytes`);
+  line(`  bound to credential D-049 — the PoP names THIS credential, so a captured one cannot be`);
+  line(`                      forwarded with a wider credential minted to the same instance key`);
   line(`  sends               the passport bundle + the instance object, in one header`);
   const header = Buffer.from(JSON.stringify(presentation)).toString("base64url");
   line(`  x-ainra-passport:   ${header.slice(0, 40)}…  (${header.length} bytes)`);

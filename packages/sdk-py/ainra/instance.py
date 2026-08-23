@@ -19,7 +19,9 @@ carries an ``instance`` object — you do not call it separately.
 from __future__ import annotations
 
 from ._b64 import decode as b64d
+from ._b64 import encode as b64e
 from ._canon import canon_bytes
+from ._crypto import sha256
 
 #: ADR-019 ceiling — mirrors ``ainra_core::consts::INSTANCE_CRED_DEFAULT_SECS``. A verifier enforces this
 #: regardless of what a minter chose, so the clamp below is a courtesy and not the control.
@@ -47,9 +49,25 @@ def instance_signing_bytes(ic: dict) -> bytes:
     )
 
 
-def pop_signing_bytes(pop: dict) -> bytes:
-    """Canonical bytes the INSTANCE key signs."""
-    return canon_bytes({"aud": pop.get("aud"), "nonce": pop.get("nonce"), "ts": pop.get("ts")})
+def instance_cred_digest(ic: dict) -> bytes:
+    """SHA-256 over an instance credential's signing bytes — mirrors ``InstanceCredential::digest`` (D-049)."""
+    return sha256(instance_signing_bytes(ic))
+
+
+def pop_signing_bytes(pop: dict, ic: dict) -> bytes:
+    """Canonical bytes the INSTANCE key signs.
+
+    ``cred`` binds the proof to ONE credential (D-049) — without it, a PoP captured from an honest presentation
+    could be forwarded with a different credential minted to the same instance key at the same audience.
+    """
+    return canon_bytes(
+        {
+            "aud": pop.get("aud"),
+            "cred": b64e(instance_cred_digest(ic)),
+            "nonce": pop.get("nonce"),
+            "ts": pop.get("ts"),
+        }
+    )
 
 
 def mint_instance_credential(
@@ -98,7 +116,7 @@ def mint_instance_credential(
     return ic
 
 
-def prove_instance_possession(*, audience: str, nonce: str, now: int, instance_sign) -> dict:
+def prove_instance_possession(*, audience: str, credential: dict, nonce: str, now: int, instance_sign) -> dict:
     """Produce the proof-of-possession a running copy sends with each presentation.
 
     A fresh ``nonce`` per presentation is the caller's responsibility. The nonce is bound into the signed bytes so
@@ -106,6 +124,13 @@ def prove_instance_possession(*, audience: str, nonce: str, now: int, instance_s
     A caller that does not enforce it is exposed to replay inside the timestamp window, against this audience, by
     someone who already has the bundle — said plainly rather than left to be discovered.
     """
+    # D-049: refuse to produce an unbound proof — see the TS mirror of this guard for the reasoning.
+    if not isinstance(credential, dict):
+        raise ValueError("schema_violation: a proof-of-possession must name the credential it accompanies")
+    if not audience:
+        raise ValueError("schema_violation: a proof-of-possession must name one audience")
+    if credential.get("aud") != audience:
+        raise ValueError("schema_violation: credential audience does not match the audience being proved to")
     pop = {"aud": audience, "nonce": nonce, "ts": int(now)}
-    pop["sig"] = instance_sign(pop_signing_bytes(pop))
+    pop["sig"] = instance_sign(pop_signing_bytes(pop, credential))
     return pop

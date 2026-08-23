@@ -27,6 +27,9 @@ function cjson(o) { // canonical JSON: sorted keys, no spaces — stable bytes f
 const sha256 = b => crypto.createHash('sha256').update(b).digest();
 const hex = b => b.toString('hex');
 const b64 = u => Buffer.from(u).toString('base64');
+// base64url, unpadded — what ainra-core's `b64u` emits. Needed wherever this CLI COMPUTES a value that must
+// byte-match core (the D-049 `cred` digest), as opposed to passing a wire string straight through.
+const b64u = u => Buffer.from(u).toString('base64url');
 // one strict canonical decode gateway (D-029): standard base64, canonical round-trip, fail closed on
 // trailing-bits / padding / whitespace / alphabet swaps. Every externally-sourced decode routes through here.
 function strictB64(s) {
@@ -362,7 +365,8 @@ home: ${HOME}  (override with AINRA_HOME)`);
    The passport key file is written 0600 as of this milestone — it was 0644, world-readable, which is how the
    before-state of M28 was measured. Instance material is written 0600 from the start. */
 const CRED_MAX_SECS = 3600;        // ADR-019 ceiling — mirrors ainra_core::consts::INSTANCE_CRED_DEFAULT_SECS
-const POP_MAX_SKEW_SECS = 30;      // mirrors ainra_core::instance::POP_MAX_SKEW_SECS
+const POP_MAX_SKEW_SECS = 30;      // mirrors ainra_core::instance::POP_MAX_SKEW_SECS — max AGE
+const POP_MAX_FUTURE_SECS = 5;     // mirrors ainra_core::instance::POP_MAX_FUTURE_SECS — clock skew only (D-050)
 
 function icSigningBytes(ic) {      // MUST byte-match InstanceCredential::signing_bytes in ainra-core
   return Buffer.from(cjson({
@@ -371,7 +375,12 @@ function icSigningBytes(ic) {      // MUST byte-match InstanceCredential::signin
     nbf: ic.nbf, passport_leaf: ic.passport_leaf, sub: ic.sub,
   }));
 }
-function popSigningBytes(pop) { return Buffer.from(cjson({ aud: pop.aud, nonce: pop.nonce, ts: pop.ts })); }
+// D-049: the PoP names the credential it accompanies. Without `cred`, a captured PoP could be forwarded with a
+// DIFFERENT credential minted to the same instance key at the same audience — a wider one, or one from another
+// lineage — and a nonce cache would not fire, because the forwarded PoP is fresh.
+function popSigningBytes(pop, ic) {
+  return Buffer.from(cjson({ aud: pop.aud, cred: b64u(sha256(icSigningBytes(ic))), nonce: pop.nonce, ts: pop.ts }));
+}
 
 function cmdInstanceIssue(ref, opts) {
   const doc = findPassport(ref || die('usage: ainra instance issue <serial|name> --aud <audience> [--caps a,b] [--ttl 900]'));
@@ -405,8 +414,11 @@ function cmdInstancePresent(iid, opts) {
   const keyFile = P('passports', iid + '.instance.key');
   if (!exists(keyFile)) die(`no instance key for ${iid} — this command runs INSIDE the container`);
   const aud = opts.aud || die('--aud is required: a proof-of-possession is bound to one audience');
+  // D-049: the proof names the credential, so the container must read the credential it is proving possession of.
+  const ic = load(f);
+  if (ic.aud !== aud) die(`this credential is addressed to ${ic.aud}, not ${aud} — a PoP for a different audience would be refused`);
   const pop = { aud, nonce: 'n-' + hex(crypto.randomBytes(8)), ts: Math.floor(Date.now() / 1000) };
-  pop.sig = sign(popSigningBytes(pop), load(keyFile));
+  pop.sig = sign(popSigningBytes(pop, ic), load(keyFile));
   const out = P('passports', iid + '.pop.json');
   save(out, pop, 0o600);
   console.log(`✓ proof-of-possession produced · ${iid}`);
@@ -465,8 +477,9 @@ function cmdInstanceVerify(iid, opts) {
   } else {
     const pop = load(popFile);
     if (pop.aud !== aud) fails.push(`instance_pop_invalid (PoP addressed to ${pop.aud}, not ${aud})`);
-    else if (Math.abs((pop.ts || 0) - t) > POP_MAX_SKEW_SECS) fails.push(`instance_pop_invalid (PoP is ${Math.abs((pop.ts||0)-t)}s from now, tolerance ${POP_MAX_SKEW_SECS}s)`);
-    else if (!verify(popSigningBytes(pop), pop.sig, ic.ikey)) fails.push('instance_pop_invalid (not signed by this credential instance key)');
+    else if (t - (pop.ts || 0) > POP_MAX_SKEW_SECS) fails.push(`instance_pop_invalid (PoP is ${t - (pop.ts||0)}s old, max age ${POP_MAX_SKEW_SECS}s)`);
+    else if ((pop.ts || 0) - t > POP_MAX_FUTURE_SECS) fails.push(`instance_pop_invalid (PoP is dated ${(pop.ts||0) - t}s into the future, max skew ${POP_MAX_FUTURE_SECS}s)`);
+    else if (!verify(popSigningBytes(pop, ic), pop.sig, ic.ikey)) fails.push('instance_pop_invalid (not signed by this credential instance key or over a different credential)');
   }
   if (fails.length) { console.log(`✗ INVALID · ${iid}`); fails.forEach(x => console.log(`  ${x}`)); process.exit(1); }
   console.log(`✓ VALID · ${iid} under ${ic.sub}`);

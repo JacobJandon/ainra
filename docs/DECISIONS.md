@@ -758,6 +758,13 @@ Single-use of the PoP nonce is **not** enforced in core, because a replay cache 
 nonce is bound into the signed bytes so a caller can enforce it, and the docs say plainly that a caller who does not
 is exposed to replay inside the timestamp window, against that audience, by someone who already has the bundle.
 
+> **AMENDED by [D-049](#d-049--the-proof-of-possession-names-the-credential-it-accompanies-adr-019-amendment).**
+> The PoP body described above — `{aud, nonce, ts}` — named nothing about the credential it travelled with, so a
+> captured proof could be forwarded with a *different* credential minted to the same instance key at the same
+> audience. The nonce cache recommended in this paragraph does **not** mitigate that: the forwarded proof is fresh
+> and its nonce has never been seen. The signed body is now `{aud, cred, nonce, ts}`. The replay caveat above
+> still stands on its own terms; it was never the whole story.
+
 *Verified:* nine new vector families — 216 vectors — including the acceptance family without which the rejections
 prove nothing, and `instance-passport-revoked-*`, which returns **`revoked`** rather than an instance reason because
 step 10 runs after step 7 and the lineage, not the container, is what failed. Corpus **793 → 1009**; four-way
@@ -808,3 +815,134 @@ something that could not show the defect — first the corpus path instead of th
 broke the status signature so the run never reached the freshness comparison.
 
 *Status:* NEW. Two implementations covered; the CLI and MCP surfaces reach the same code through the SDKs.
+
+---
+
+## D-049 — The proof-of-possession names the credential it accompanies (ADR-019 amendment)
+
+*Problem:* the PoP body was `{aud, nonce, ts}`. It named the audience, a nonce and a time — and nothing about the
+credential it travelled with, not even the `iid`. So a PoP captured from an honest presentation could be forwarded
+with a **different** credential minted to the same instance key at the same audience: a wider one, or one from
+another lineage that key had served. The credential's own signature is genuine, the PoP's signature is genuine, and
+the two were never required to be about each other.
+
+*The mitigation that does not work:* ADR-019 recommended a single-use nonce cache. It does not help here. The
+forwarded PoP is **fresh** — never presented, nonce never seen — so a replay cache has nothing to match against.
+This attack is not a replay; it is a substitution.
+
+*Decision:* the signed body becomes `{aud, cred, nonce, ts}`, where `cred` is base64url(SHA-256(credential signing
+bytes)). One field, and it covers everything the operator authorised — subject, `iid`, instance key, window,
+capabilities, audience, lineage leaf — because all of them are inside the bytes being hashed.
+
+*Rejected:* adding `iid` alone (it names the container, not the grant — two credentials to one container still
+substitute freely); hashing the credential *including* its signature (ML-DSA signing is randomised, so the digest
+would depend on which of several valid signatures the operator produced); requiring the nonce cache and documenting
+the risk (a mitigation that provably does not apply to the attack is not a mitigation).
+
+*Breaking, deliberately, now.* It changes bytes on the wire. Nothing external depends on those bytes yet — the SDKs
+are unpublished, the DoD external-evidence rows are still zero — and the cost of this change rises monotonically
+from here. Waiting would have meant asking someone else to pay it.
+
+*Negative controls:* delete the `cred` field from the core body → `a_captured_pop_cannot_be_forwarded_with_a_
+different_credential` fails and is the ONLY failure, so the test reads the binding and not something incidental.
+At corpus level, the `instance-pop-other-credential-*` family carries the attack as bytes, refused by all four
+implementations; the `pop.unbound_refused` / `pop.audience_mismatch_refused` parity rows prove neither SDK will
+*mint* an unbound proof, with `pop.wellformed_is_produced` as the positive control that keeps them meaningful.
+
+*Also required, and easy to miss:* the minting APIs now take the credential, and `decodeInstance` is exported from
+the TS SDK — a container receives its credential as JSON and must be able to reach the decoded form without
+hand-rolling base64url, which D-029 says belongs in exactly one place.
+
+*Status:* NEW. All four implementations, the CLI lifecycle, the corpus, and both SDK minting APIs.
+
+## D-050 — A PoP's age and a PoP's clock skew are different quantities
+
+*Problem:* the window was `abs_diff(pop.ts, now) > POP_MAX_SKEW_SECS`, a symmetric comparison against a constant
+named and documented as thirty seconds. It is a **sixty-one** second window, and the presenter chooses where in it
+to sit: dating a PoP thirty seconds into the future buys thirty more seconds of usable life.
+
+*Decision:* two bounds, separately named. `POP_MAX_SKEW_SECS = 30` is the maximum **age**. `POP_MAX_FUTURE_SECS = 5`
+is tolerance for two honest clocks disagreeing. Every second of the second constant is a second an attacker can add
+to a captured proof, and it buys an honest party almost nothing — a verifier whose clock trails a presenter's by
+more than five seconds has a clock problem, not a protocol problem.
+
+*Status:* NEW. Core, both SDKs, and the CLI.
+
+## D-051 — The audience is a parameter, not a field a presenter can fill in
+
+*Problem:* M29 made the verifier supply its own audience, and M30 fixed the two entry points above `verify_wire`.
+`verify_wire` itself stayed `pub` and kept reading `p.audience` off the wire struct, under a field comment that
+read *"A presenter cannot set this"*. A third party calling the public function got presenter-chosen audience
+binding and a doc comment assuring them otherwise.
+
+*Decision:* `verify_wire` takes `audience: &str`. Nothing in the verify path reads `WirePresentation::audience`;
+only `run`, the vector runner — where the fixture genuinely is the verifier's configuration — passes it in, and it
+does so explicitly. A parameter cannot be forgotten. A field can.
+
+*The same defect had a second home.* `site/verify.html` runs whichever of two engines the visitor's browser gives
+it: `ainra-core` via WebAssembly, or the JS SDK as fallback. The WASM path called `verify()` (audience defaults to
+`""`, now fail-closed) and the JS path called `runVector()` (audience read off the wire). On the same instance
+bundle one engine refused and the other returned VALID — and the one that accepted let the presenter name the
+verifier. `make wasm-diff` could not see it: it drives `run_vector` on both sides, so both read the wire audience
+and agreed. `make engine-parity` is the missing witness, and it goes red on either half of the old wiring.
+
+*Status:* NEW. Adapter, WASM surface, browser page, and a new preflight row.
+
+## D-052 — The passport may not outlive the delegation that authorises it
+
+*Problem:* `ainra-core` and the TS SDK compute the chain's effective expiry from the **first hop** and then require
+`passport.exp ≤ effective`. The Python SDK seeded with the **passport's** expiry and required each hop to fall
+before it. Those are inverted rules. Python accepted a passport whose window ran past the grant authorising it —
+a credential claiming authority after the delegation ended.
+
+*Why the corpus was silent:* the generator sets every hop's `exp` equal to the passport's, and at equality both
+rules agree. A four-way differential over more than a thousand vectors reported total agreement, because agreement
+on the bytes it was given says nothing about the bytes nobody generated.
+
+*Decision:* Python adopts the Rust/TS rule exactly. The `now >= hop.exp` test the old rule needed is not dropped so
+much as made unreachable: with `now < exp` enforced upstream and `exp ≤ eff_exp` here, an expired hop cannot occur.
+
+*Negative control:* the new `chain-hop-outlived-by-passport-*` family. Restore the inverted rule and the
+differential prints `core=invalid/chain_expired` against `py=valid` on all 24.
+
+*Status:* NEW. Python SDK; corpus family added so no implementation can drift back.
+
+## D-053 — Bound the attacker-chosen fields before spending anything on them
+
+*Problem:* two unbounded fields at the instance rung. `iid` reached the **verdict event** — the operator's log —
+for bundles that were about to be refused, so a presenter could write up to 200 KB of chosen text into a logging
+pipeline; the doc comment authorising that emission called the field "opaque and random by construction", which is
+what ADR-019 asks an *honest* minter to do and therefore a promise made by the party under suspicion. Separately,
+the capability ∩ test is O(n×m) with neither side bounded.
+
+*Decision:* `MAX_IID_LEN = 64` and `MAX_CAPABILITIES = 256`, checked **first**, before binding, window, scope or any
+signature. An `iid` past the bound is not a malformed `iid`, it is not an `iid`: the event emits null rather than
+passing the payload along.
+
+*Negative control:* raise `MAX_IID_LEN` to 4096 and exactly 24 vectors fail — the `instance-iid-too-long-*` family
+and nothing else — reporting `expected schema_violation, got Valid`. Without the bound that oversized field rides a
+**valid** verdict straight into the log.
+
+*Status:* NEW. All four implementations, two corpus families.
+
+## D-054 — Non-canonical integer syntax: a real divergence, bounded and NOT closed
+
+*Problem:* `"exp": 2.6e3` and `"exp": 2600` are the same JSON number. `ainra-core` and the TS SDK parse the
+exponent form to exactly 2600 and return **VALID**; the Python SDK type-checks, gets a float, and refuses. The same
+bytes therefore get a different **verdict**, not merely a different reason — larger than the M30b note that first
+recorded it claimed, and in the opposite direction (it read as core being the strict one).
+
+*Why it is not closed:* every implementation decodes a **parsed object**. By the time any of this code runs, `-0`
+and `2.6e3` are gone — no post-parse check can distinguish them, because `Number.isInteger(2600)` is true however
+2600 was spelled. Closing it means the SDKs must consume bytes and lex numbers themselves: an API change to both
+SDKs, for a divergence that grants no privilege (mutating a signed field breaks its signature; the exponent form
+that survives denotes the identical value).
+
+*Decision:* record it, bound it, and refuse to let it drift. `make number-syntax` asserts the **measured** per
+implementation behaviour rather than agreement, so any implementation becoming stricter or laxer flips a row and
+fails the board. The one part that was cheap and strictly better is done: Python now answers `schema_violation`
+rather than `instance_expired`, because a float where an integer belongs is a serializer fault and telling an
+integrator to check their clock sends them to the wrong place.
+
+*Status:* OPEN, deliberately. This is the one M30b finding this milestone did not close, and the gate exists so
+that stays visible rather than becoming folklore.

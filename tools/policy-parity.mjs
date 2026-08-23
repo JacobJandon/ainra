@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 //
-// make policy-parity — the gate for the class the 1009-vector differential CANNOT catch.
+// make policy-parity — the gate for the class the four-way differential CANNOT catch.
 //
 // WHY THIS EXISTS. In M29 the Python SDK let the AUDIENCE come off the presentation bundle instead of the
 // verifier's own identity — a fail-open TypeScript had already closed in M28. The differential could not catch it
 // and never will: vectors pin wire data and assert a verdict, while that bug lived in API SHAPE and DEFAULT
 // POLICY — who supplies a value, what a default constructor trusts, what happens when a caller omits an argument.
-// Two implementations can agree on all 1009 vectors while disagreeing completely about who decides.
+// Two implementations can agree on every vector in the corpus while disagreeing completely about who decides.
 //
 // So this harness calls each implementation THE WAY AN INTEGRATOR WOULD, including the wrong ways, and requires
 // the same closed outcome with the same named reason everywhere.
@@ -58,10 +58,38 @@ const SCENARIOS = [
     what: "presenter hands over its own revocation set; the verifier must not take policy from the wire",
     sampleBundle: (b) => ({ ...b, mandate_revocations: ["deadbeef"] }), audience: null, expect: "valid" },
 
+  // ── MINTING-side policy (D-049). Everything above asks what a VERIFIER accepts; these ask what the SDK is
+  // willing to PRODUCE. Vectors cannot reach this at all: an artefact the API refuses to create never becomes
+  // bytes, so there is nothing for a corpus to pin. It is still a security policy — an unbound proof-of-possession
+  // is the exact artefact the substitution attack forwards, and an SDK that hands one out has armed the attacker
+  // regardless of how strictly its verifier behaves.
+  { id: "pop.unbound_refused", policy: "may an SDK mint a PoP that names no credential", mint: "no-credential",
+    what: "caller asks for a proof-of-possession without supplying the credential it accompanies",
+    audience: null, expect: "refused" },
+
+  { id: "pop.audience_mismatch_refused", policy: "may an SDK mint a PoP for the wrong audience", mint: "wrong-audience",
+    what: "credential is addressed to one service; caller asks to prove possession to another",
+    audience: null, expect: "refused" },
+
+  { id: "pop.wellformed_is_produced", policy: "may an SDK mint a PoP that names no credential", mint: "good",
+    what: "the correct call must still succeed — otherwise the two rows above prove only that minting is broken",
+    audience: null, expect: "minted" },
+
   { id: "defaults.fail_closed", policy: "what a default constructor trusts",
     what: "construct with defaults and verify an instance presentation — must not accept it",
     vec: () => instanceVec, audience: null, expect: "instance_pop_invalid" },
 ];
+
+// What each minting case perturbs. Kept next to the scenarios so both drivers read the SAME definition — a
+// harness whose two sides construct their inputs separately can agree by coincidence.
+function mintCredential(sc, ic) {
+  if (sc.mint === "no-credential") return undefined;
+  return ic;
+}
+function mintAudience(sc, cred) {
+  if (sc.mint === "wrong-audience") return "https://somewhere-else.example";
+  return cred.aud;
+}
 
 // ── the implementations ──────────────────────────────────────────────────────────────────────────────────────────
 //
@@ -84,7 +112,20 @@ const SAMPLE = join(ROOT, "kits/verifier/sample-artifacts");
 const sample = (f) => JSON.parse(readFileSync(join(SAMPLE, f), "utf8"));
 
 async function runTs(sc) {
-  const { Verifier, runVector } = await import(join(ROOT, "packages/sdk-ts/dist/index.js"));
+  const { Verifier, runVector, proveInstancePossession, decodeInstance } = await import(join(ROOT, "packages/sdk-ts/dist/index.js"));
+  if (sc.mint) {
+    // A signer that records nothing and returns a fixed-shape signature: this row is about whether the API
+    // AGREES TO SIGN, not about the cryptography, so the signer must never be the reason it fails.
+    const sign = async () => ({ ed25519: new Uint8Array(64), mldsa65: new Uint8Array(3309) });
+    // Each SDK is driven through ITS OWN credential representation — TS takes a decoded struct, Python takes the
+    // wire dict. That asymmetry is real and is recorded in docs/POLICY-PARITY.md; papering over it here by
+    // feeding TS a wire object would make this row fail for a reason that has nothing to do with the policy.
+    const wire = structuredClone(instanceVec.presentation.instance);
+    const decoded = decodeInstance(wire).ic;
+    const args = { audience: mintAudience(sc, wire), credential: mintCredential(sc, decoded), nonce: "n-parity", now: instanceVec.presentation.now, instanceSign: sign };
+    try { const pop = await proveInstancePossession(args); return pop && pop.sig ? "minted" : "refused"; }
+    catch { return "refused"; }
+  }
   const aud = sc.audience === null ? undefined : sc.audience();
   if (sc.viaSample) {
     // Policies a plain passport can express: drive the real GA Verifier over the signed sample directory.
@@ -110,6 +151,25 @@ async function runTs(sc) {
 function runPy(sc) {
   const dir = mkdtempSync(join(tmpdir(), "pp-"));
   const f = join(dir, "case.json");
+  if (sc.mint) {
+    const ic = structuredClone(instanceVec.presentation.instance);
+    const payload = { credential: mintCredential(sc, ic) ?? null, audience: mintAudience(sc, ic), now: instanceVec.presentation.now };
+    writeFileSync(f, JSON.stringify(payload));
+    const script = `
+import json, sys
+sys.path.insert(0, ${JSON.stringify(join(ROOT, "packages/sdk-py"))})
+from ainra import prove_instance_possession
+c = json.load(open(${JSON.stringify(f)}))
+sign = lambda b: {"ed25519": "A" * 86, "mldsa65": "A" * 4412}
+try:
+    pop = prove_instance_possession(audience=c["audience"], credential=c["credential"],
+                                    nonce="n-parity", now=c["now"], instance_sign=sign)
+    print("minted" if pop and pop.get("sig") else "refused")
+except Exception:
+    print("refused")
+`;
+    return execFileSync("python3", ["-c", script], { encoding: "utf8" }).trim();
+  }
   const aud = sc.audience === null ? null : sc.audience();
   let payload;
   if (sc.viaSample) {

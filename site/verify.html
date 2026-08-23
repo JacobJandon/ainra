@@ -411,6 +411,12 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
 #try .dstep .i.ok{color:var(--green)}#try .dstep .i.no{color:var(--red)}#try .dstep .i.pend{color:var(--muted)}
 #try .dstep .t{font-size:12.5px;line-height:1.45}
 #try .dstep .t b{color:var(--ink)}#try .dstep .t code{font-family:var(--mono);font-size:11px;background:rgba(11,18,32,.05);padding:1px 4px;border-radius:3px}
+#try .audrow{display:block;margin:14px 0 4px}
+#try .audrow>span{display:block;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+#try .audrow>input{width:100%;padding:9px 11px;border:1px solid var(--line);background:var(--paper);color:var(--ink);
+  border-radius:6px;font:inherit;font-size:14px}
+#try .audrow>input:focus{outline:2px solid var(--green);outline-offset:1px}
+#try .audrow>small{display:block;margin-top:6px;font-size:12px;line-height:1.5;color:var(--muted)}
 #try .run{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
 #try .provenance{margin-top:14px;font-family:var(--mono);font-size:9.5px;letter-spacing:.05em;color:var(--muted);line-height:1.7}
 #try .provenance b{color:var(--green)}
@@ -578,6 +584,14 @@ nav .nav-links a[aria-current="page"],nav .ndocs[aria-current="page"]{text-decor
             <div class="reason" id="reason">choose a passport, then press Verify</div>
           </div>
           <div class="dsteps" id="steps"></div>
+          <label class="audrow" for="aud">
+            <span>This verifier's audience</span>
+            <input id="aud" type="text" placeholder="leave blank — most passports are not addressed to anyone"
+                   autocomplete="off" spellcheck="false">
+            <small>A holder-bound instance credential (ADR-019) names the one service it may be presented to. Type
+            that service's identifier here to verify as it; leave it blank and any such credential is refused —
+            a verifier that has not said who it is cannot be the audience of anything.</small>
+          </label>
           <div class="run">
             <button class="btn btn-green" id="verifyBtn">▶ Verify in my browser</button>
             <button class="btn btn-ghost" id="resetBtn" hidden>↺ Reset (undo forgery)</button>
@@ -854,7 +868,7 @@ nav .nav-links a[aria-current="page"],nav .ndocs[aria-current="page"]{text-decor
 <script type="module">
 // try-it-live. The engine is ainra-core itself — the Rust verify path compiled to WebAssembly (L5) — so "the same
 // code that passes every conformance vector" is literal here rather than a family resemblance. A harness runs the
-// whole corpus through this exact artifact in a headless browser and requires 1009/1009 agreement with the core.
+// whole corpus through this exact artifact in a headless browser and requires 1105/1105 agreement with the core.
 // If WebAssembly cannot load, the page falls back to the JavaScript mirror and SAYS SO in the provenance line;
 // it never quietly answers with a different implementation than the one it claims.
 let ENGINE = null;
@@ -902,14 +916,18 @@ async function loadEngine(){
     const m = await import("./assets/wasm/ainra_wasm.js");
     await m.default();
     return { kind:"wasm", label:"ainra-core · Rust → WebAssembly", note:"",
-      verify:(pres,anchors,now)=>{ const e=JSON.parse(m.verify(JSON.stringify(pres),JSON.stringify(anchors),now));
+      verify:(pres,anchors,now,aud)=>{ const e=JSON.parse(m.verify_aud(JSON.stringify(pres),JSON.stringify(anchors),now,aud));
                                    return { verdict:e.status, reason:e.reason, event:e }; } };
   }catch(e){ /* fall through — and be honest about it below */ }
   try{
     const s = await import("./vendor/ainra-sdk.js");
     return { kind:"js", label:"@ainra/sdk · JavaScript mirror",
-      note:"WebAssembly did not load here, so this ran the independent JavaScript implementation instead. The differential holds both to the same answers on all 1009 vectors — but the Rust core did not run in this tab, and we would rather say that than let you assume it did.",
-      verify:(pres,anchors,now)=>{ const v=s.runVector({name:"",expect:{},anchors,presentation:pres});
+      note:"WebAssembly did not load here, so this ran the independent JavaScript implementation instead. The differential holds both to the same answers on all 1105 vectors — but the Rust core did not run in this tab, and we would rather say that than let you assume it did.",
+      // The audience is written onto the presentation because `runVector` reads it from there and nowhere else.
+      // Both engines therefore verify for the SAME audience — this page used to hand the WASM engine nothing and
+      // the JS engine whatever the pasted bundle claimed, so the two disagreed the moment an instance credential
+      // was involved: one refused it, the other let the presenter name the verifier.
+      verify:(pres,anchors,now,aud)=>{ const v=s.runVector({name:"",expect:{},anchors,presentation:{...pres,audience:aud}});
                                    return { verdict:v.verdict, reason:v.reason, event:null }; } };
   }catch(e){ return null; }
 }
@@ -933,7 +951,11 @@ async function verify(){
   const wire = pasted ? {presentation:pasted.pres, anchors:pasted.anchors} : forge(toWire(sel.rec, sel.R));
   const rec = pasted ? {} : sel.rec;
   let v;
-  try{ v=ENGINE.verify(wire.presentation, wire.anchors, NOW); }
+  // THIS verifier's audience, supplied by whoever is running the page — never read off the bundle. Left blank it
+  // stays blank, and a holder-bound instance credential is refused by both engines alike, which is the correct
+  // answer: a verifier that has not said who it is cannot be the audience of anything.
+  const AUD = ($("#aud")?.value || "").trim();
+  try{ v=ENGINE.verify(wire.presentation, wire.anchors, NOW, AUD); }
   catch(e){
     $("#big").textContent="ERROR"; $("#big").className="big no";
     $("#reason").innerHTML="the verifier threw an unexpected exception — this is a demo bug, not a verdict on the passport";

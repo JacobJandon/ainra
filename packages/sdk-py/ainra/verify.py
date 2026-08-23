@@ -22,6 +22,7 @@ import zlib
 from . import reasons as R
 from ._b64 import decode as b64d
 from ._b64 import decode_fixed as b64f
+from ._b64 import encode as b64e
 from ._canon import CanonError, canon_bytes, canonicalize
 from ._crypto import (
     ED25519_SIG_LEN,
@@ -121,7 +122,7 @@ def _verify(anchors: dict, presentation: dict, now: int) -> Verdict:
     # `act_chain` is NOT required. ainra-core declares it `#[serde(default)]` (passport.rs:141) — a root-issued
     # passport with no delegation may omit it entirely, and Rust and the TS SDK both accept that. This SDK
     # required it, so it rejected, with `schema_violation`, the very bundle shipped in the external verifier kit
-    # (kits/verifier/sample-artifacts/bundle-valid.json, which has no act_chain). The 1009-vector corpus cannot
+    # (kits/verifier/sample-artifacts/bundle-valid.json, which has no act_chain). The 1105-vector corpus cannot
     # catch it: the generator always emits the field, even when empty, so the omitted case is never on the wire.
     # Found by the M30 policy-parity harness — see docs/POLICY-PARITY.md.
     required = (
@@ -252,13 +253,31 @@ def _verify(anchors: dict, presentation: dict, now: int) -> Verdict:
     if act_chain and not set(caps).issubset(allowed):
         return invalid(R.CHAIN_WIDENING, **ident())
 
-    # ── Step 10: delegation expiry (each hop ≤ its delegator, within now) ──
-    prev_exp = exp
-    for hop in act_chain:
-        h_exp = hop.get("exp")
-        if not isinstance(h_exp, int) or h_exp > prev_exp or now >= h_exp:
+    # ── Step 10: delegation expiry (each hop ≤ its delegator; the PASSPORT within the chain) ──
+    #
+    # D-052. This rule used to run in the opposite direction from ``ainra_core::chain::narrow`` and the TS SDK:
+    # it seeded ``prev_exp`` with the PASSPORT's ``exp`` and required each hop to expire before it, where the other
+    # two seed with the FIRST HOP's ``exp`` and require the passport to expire before the chain. Those are inverted
+    # rules, and a passport outliving the delegation that authorises it is the direction that matters — it is a
+    # credential claiming authority past the grant's end. Python accepted that; Rust and TS refuse it.
+    #
+    # No vector could see the split, and it is worth naming why: the generator sets every hop's ``exp`` equal to
+    # the passport's, and at equality both rules agree. A four-way differential over 1105 vectors proved agreement
+    # on every byte it was given and had nothing to say about the case nobody generated.
+    if act_chain:
+        eff_exp = act_chain[0].get("exp")
+        if not isinstance(eff_exp, int) or isinstance(eff_exp, bool):
             return invalid(R.CHAIN_EXPIRED, **ident())
-        prev_exp = h_exp
+        for hop in act_chain[1:]:
+            h_exp = hop.get("exp")
+            if not isinstance(h_exp, int) or isinstance(h_exp, bool) or h_exp > eff_exp:
+                return invalid(R.CHAIN_EXPIRED, **ident())
+            eff_exp = h_exp
+        # The passport may not outlive its chain. With `now < exp` already enforced at step 3, this also makes an
+        # already-expired hop unreachable — so the explicit `now >= h_exp` test the old rule needed is not a check
+        # that was dropped, it is a check this rule makes impossible to fail.
+        if exp > eff_exp:
+            return invalid(R.CHAIN_EXPIRED, **ident())
 
     # ── Step 11: status freshness (fail closed) ───────────────────────────
     fclass = presentation.get("freshness")
@@ -394,6 +413,17 @@ INSTANCE_CRED_DEFAULT_SECS = 60 * 60
 #: (ADR-016), never applied to a validity window: the instance window is compared exactly, like the passport's.
 POP_MAX_SKEW_SECS = 30
 
+#: How far a PoP may be dated into the FUTURE — clock skew only (D-050). Mirrors
+#: ``ainra_core::instance::POP_MAX_FUTURE_SECS``.
+POP_MAX_FUTURE_SECS = 5
+
+#: Longest ``iid`` a verifier will look at (D-053). Mirrors ``ainra_core::instance::MAX_IID_LEN``.
+MAX_IID_LEN = 64
+
+#: Most capabilities either side of the ∩ check may carry (D-053). Mirrors
+#: ``ainra_core::instance::MAX_CAPABILITIES`` — the subset test is O(n×m).
+MAX_CAPABILITIES = 256
+
 
 def _instance_signing_bytes(ic: dict) -> bytes:
     """Canonical bytes the passport's control key signs.
@@ -416,9 +446,22 @@ def _instance_signing_bytes(ic: dict) -> bytes:
     )
 
 
-def _pop_signing_bytes(pop: dict) -> bytes:
-    """Canonical bytes the INSTANCE key signs."""
-    return canon_bytes({"aud": pop.get("aud"), "nonce": pop.get("nonce"), "ts": pop.get("ts")})
+def _pop_signing_bytes(pop: dict, ic: dict) -> bytes:
+    """Canonical bytes the INSTANCE key signs.
+
+    ``cred`` binds the proof to ONE credential (D-049). Before it existed the body was ``{aud, nonce, ts}``, which
+    named neither the credential nor the instance — so a PoP captured from an honest presentation could be
+    forwarded with a different credential minted to the same instance key at the same audience. A nonce cache does
+    not help; the forwarded PoP is fresh and has never been seen.
+    """
+    return canon_bytes(
+        {
+            "aud": pop.get("aud"),
+            "cred": b64e(sha256(_instance_signing_bytes(ic))),
+            "nonce": pop.get("nonce"),
+            "ts": pop.get("ts"),
+        }
+    )
 
 
 def _hybrid_ok(pub_ed, pub_ml, sig, msg: bytes) -> bool:
@@ -447,7 +490,7 @@ def _verify_instance(inst, claims: dict, passport_leaf: bytes, now: int, expecte
     # (0) DECODE, strictly, before anything is weighed. D-029: a non-canonical base64url field is a decode
     #     failure, not a signature failure — core refuses it at the adapter gateway with ``schema_violation`` and
     #     the TS SDK does the same at ``decodePresentation``. The first version of this function returned
-    #     ``instance_sig_invalid`` here and the four-way differential caught it: 985/1009, 24 disagreements, all
+    #     ``instance_sig_invalid`` here and the four-way differential caught it: 985/1105, 24 disagreements, all
     #     ``instance-noncanon``. Decoding first is also what keeps the reason honest — "we could not read it" is a
     #     different fact from "it was signed by the wrong key".
     ikey = inst.get("ikey") or {}
@@ -463,13 +506,25 @@ def _verify_instance(inst, claims: dict, passport_leaf: bytes, now: int, expecte
     pop_ml = b64d(pop_sig.get("mldsa65")) if isinstance(pop_sig, dict) else None
     if any(x is None for x in (leaf, ik_ed, ik_ml, ic_sig_ed, ic_sig_ml, pop_ed, pop_ml)):
         return R.SCHEMA_VIOLATION
+    # (0b) SHAPE BOUNDS (D-053) — before anything reads, loops over, or logs these attacker-chosen fields.
+    iid = inst.get("iid")
+    inst_caps = inst.get("capabilities")
+    if not isinstance(iid, str) or len(iid) > MAX_IID_LEN:
+        return R.SCHEMA_VIOLATION
+    if not isinstance(inst_caps, list) or len(inst_caps) > MAX_CAPABILITIES:
+        return R.SCHEMA_VIOLATION
+    if len(claims.get("capabilities") or []) > MAX_CAPABILITIES:
+        return R.SCHEMA_VIOLATION
     # (1) binding — belongs to the passport actually presented and proven logged.
     if inst.get("sub") != claims.get("sub") or leaf != passport_leaf:
         return R.INSTANCE_SIG_INVALID
     # (2) window — exact, no skew, plus the ceiling enforced at VERIFY and not only at issuance.
     nbf, exp = inst.get("nbf"), inst.get("exp")
+    # A field that is not an integer is a SCHEMA fault, not an expiry one (D-054). Saying "expired" about a float
+    # sends an integrator to look at their clock when the problem is their serializer, and it is the one part of
+    # the integer-syntax divergence in D-054 that is cheap to make honest.
     if not isinstance(nbf, int) or not isinstance(exp, int) or isinstance(nbf, bool) or isinstance(exp, bool):
-        return R.INSTANCE_EXPIRED
+        return R.SCHEMA_VIOLATION
     if exp <= nbf or exp - nbf > INSTANCE_CRED_DEFAULT_SECS:
         return R.INSTANCE_EXPIRED
     if now < nbf or now >= exp:
@@ -500,11 +555,18 @@ def _verify_instance(inst, claims: dict, passport_leaf: bytes, now: int, expecte
     if inst.get("aud") != expected_aud or pop.get("aud") != expected_aud:
         return R.INSTANCE_POP_INVALID
     ts = pop.get("ts")
-    if not isinstance(ts, int) or isinstance(ts, bool) or abs(ts - now) > POP_MAX_SKEW_SECS:
+    # Age and clock skew are different quantities (D-050). ``abs`` gave a 61-second window the PRESENTER could
+    # position by dating the PoP forward.
+    if (
+        not isinstance(ts, int)
+        or isinstance(ts, bool)
+        or now - ts > POP_MAX_SKEW_SECS
+        or ts - now > POP_MAX_FUTURE_SECS
+    ):
         return R.INSTANCE_POP_INVALID
     ikey = inst.get("ikey") or {}
     try:
-        pop_msg = _pop_signing_bytes(pop)
+        pop_msg = _pop_signing_bytes(pop, inst)
     except CanonError:
         return R.INSTANCE_POP_INVALID
     if not _hybrid_ok(
@@ -554,8 +616,6 @@ def _verify_delegate_checkpoint(cs, log_root_slh, cp_msg, now, presentation) -> 
         return False
     if now < c_nbf or now >= c_exp:
         return False
-    from ._b64 import encode as b64e
-
     fingerprint = b64e(sha256(cert_msg))
     if fingerprint in (presentation.get("revoked_delegates") or []):
         return False

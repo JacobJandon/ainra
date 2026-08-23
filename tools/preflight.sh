@@ -80,8 +80,12 @@ run "no names in git"    "D-036: candidates stay out of the repo" node tools/nam
 run "cross-impl interop" "fresh sigs verify in TS + PY"   make interop
 if command -v wasm-bindgen >/dev/null 2>&1 && node tools/wasm-differential.mjs --probe >/dev/null 2>&1; then
   run "browser verifier"   "whole corpus agrees in-browser" make wasm-diff
+  run "engine parity"      "both page engines give one answer" node tools/engine-parity.mjs
+  run "number syntax"      "D-054 divergence stays bounded"    node tools/number-syntax-check.mjs
 else
   skip "browser verifier" "needs wasm-bindgen-cli + a headless browser (enforced in CI; see make wasm)"
+  skip "engine parity"     "needs the WASM build (enforced in CI; see make engine-parity)"
+  skip "number syntax"     "needs the WASM build (enforced in CI; see make number-syntax)"
 fi
 run "S7 neutrality"      "no brands / no impersonation" node tools/s7-lint.mjs
 run "license headers"    "SPDX on every source file"    node tools/license-check.mjs

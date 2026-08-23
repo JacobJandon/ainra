@@ -28,6 +28,7 @@ from .instance import (
     INSTANCE_CRED_DEFAULT_SECS,
     instance_signing_bytes,
     mint_instance_credential,
+    instance_cred_digest,
     pop_signing_bytes,
     prove_instance_possession,
 )
@@ -42,6 +43,7 @@ __all__ = [
     "mint_instance_credential",
     "prove_instance_possession",
     "instance_signing_bytes",
+    "instance_cred_digest",
     "pop_signing_bytes",
     "INSTANCE_CRED_DEFAULT_SECS",
     "Verifier",

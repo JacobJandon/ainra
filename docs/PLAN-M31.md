@@ -72,10 +72,41 @@ Every one reddened, and each is named with what it proves:
 6. The parity harness's own positive control (`pop.wellformed_is_produced`) failed on first run and was right to:
    TS takes a decoded credential and Python takes the wire dict, an asymmetry the harness was hiding.
 
+## The three coverage gaps M30 recorded
+
+Two are now closed, both as **acceptance** families — deliberately, because the risk in a combination is not that
+it gets wrongly refused but that one layer quietly stops applying in the presence of the other, and a rejection
+family would stay green even if the instance rung were skipped entirely.
+
+- `instance-delegate-checkpoint-*` — an instance credential under a checkpoint signed by the ADR-002 delegate
+  rather than the root directly.
+- `instance-under-renewal-*` — an instance credential under a passport carrying `prev_leaf`. The generator had no
+  renewal support at all before this: every vector in the corpus was a first-generation passport.
+
+Both were verified to exercise what they claim rather than merely pass — the renewal vectors really do carry
+`prev_leaf` in the signed claims, and the delegate vectors really do carry a delegate certificate.
+
+The third — a status list shorter than its declared `bit_len` — remains pinned by a Python test rather than a
+vector, unchanged from M30.
+
+## The renewal-overlap gap: reclassified, not closed
+
+M30 listed this under known limitations as "closed operationally". Verified rather than assumed: renewal really
+does allocate a **new status index** (`ainra-cli-rs`), the verify path really never reads `prev_leaf` (zero
+occurrences), and the reference registrar really does sweep every unexpired generation —
+`revoke_kills_every_unexpired_generation` asserts both indices land in one signed delta and that the superseded
+record independently verifies as `revoked`.
+
+So M30's note was accurate. What it did not say is that a verifier **structurally cannot** close this: `prev_leaf`
+is a leaf hash, not an index, so nothing in a presented passport names the previous generation's status bit.
+[D-055](DECISIONS.md) therefore states it as a registrar conformance requirement instead of leaving it as an
+assumption — and records the part that is still missing: the adversarial probe kit has no renewal journey, so a
+third party can fail this requirement today without the probe noticing.
+
 ## Vectors
 
-1009 → 1105. Four new families, 96 vectors, each carrying an attack or a bound rather than a variation:
+1009 → 1153. Six new families, 144 vectors, each carrying an attack or a bound rather than a variation:
 `instance-pop-other-credential`, `instance-iid-too-long`, `instance-caps-too-many`,
-`chain-hop-outlived-by-passport`. The 216 pre-existing instance vectors were regenerated because D-049 changes the
+`chain-hop-outlived-by-passport`, plus the two coverage families above. The 216 pre-existing instance vectors were regenerated because D-049 changes the
 signed bytes — a deliberate format change, and the regeneration was audited: **exactly** the instance family moved
 and nothing else.

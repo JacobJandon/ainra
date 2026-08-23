@@ -20,9 +20,9 @@
     "sig_invalid": 48,
     "stale_status": 24,
     "unknown_registrar": 24,
-    "valid": 259
+    "valid": 307
   },
-  "count": 1105,
+  "count": 1153,
   "note": "CC0 conformance vectors. Each is a real signed credential + expected verdict. Regenerate with `make vectors`.",
   "version": "v1"
 }

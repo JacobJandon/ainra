@@ -62,6 +62,9 @@ struct CredParams {
     /// Override the delegate cert window `[0, exp]` (properly signed). Used to build a GENUINELY-expired cert so the
     /// expiry branch of `verify_sig_mode` actually fires (not a signature mismatch). `None` = the default long window.
     delegate_cert_exp: Option<u64>,
+    /// ADR-017 renewal: the leaf of the generation this passport supersedes, baked into the signed body as
+    /// `prev_leaf`. `None` = a first-generation passport, which is what every vector was until M31.
+    prev_leaf: Option<[u8; 32]>,
 }
 
 /// Everything needed to emit a wire vector AND to run verify locally.
@@ -226,6 +229,12 @@ fn build_mut(p: &CredParams, mutate: impl FnOnce(&mut Value)) -> Built {
         "status": { "status_list": { "idx": p.status_idx, "uri": format!("status://{}/1", p.registrar) } },
         "act_chain": serde_json::to_value(&act_chain).expect("act_chain")
     });
+    if let Some(pl) = &p.prev_leaf {
+        // ADR-017 continuity. Emitted ONLY when set: adding a null here would change the canonical bytes of every
+        // pre-existing vector and break `make repro` for no gain — the same discipline the wire `instance` field
+        // follows.
+        body["prev_leaf"] = json!(b64::encode(pl));
+    }
     if !p.mandates.is_empty() {
         let arr: Vec<Value> = p
             .mandates
@@ -672,6 +681,7 @@ fn valid_params(i: usize) -> CredParams {
         // Every 4th credential exercises the ADR-002 delegate checkpoint-signing path (still VALID).
         delegate_checkpoint: i % 4 == 3,
         delegate_cert_exp: None,
+        prev_leaf: None,
     }
 }
 
@@ -1199,6 +1209,21 @@ fn generate() -> Vec<Vector> {
             caps: &[&str],
             revoked: bool,
         ) -> (Built, crypto::HybridKeypair, crypto::HybridKeypair, u64) {
+            instance_fixture_with(seed, caps, revoked, |_| {})
+        }
+
+        /// The same fixture, with the passport's own parameters open to adjustment first.
+        ///
+        /// M30 recorded two coverage gaps by name: an instance credential under a DELEGATE-signed checkpoint, and
+        /// one under a RENEWED passport. Both are combinations, not new features — the instance rung and each of
+        /// those was covered alone, and nothing exercised them together. That is the shape of gap a corpus grown
+        /// family-by-family tends to leave.
+        fn instance_fixture_with(
+            seed: usize,
+            caps: &[&str],
+            revoked: bool,
+            adjust: impl FnOnce(&mut CredParams),
+        ) -> (Built, crypto::HybridKeypair, crypto::HybridKeypair, u64) {
             let mut rng = ChaCha20Rng::seed_from_u64(0x494E_5354_0000_0000 ^ seed as u64);
             let ctrl = crypto::HybridKeypair::generate(&mut rng);
             let inst = crypto::HybridKeypair::generate(&mut rng);
@@ -1206,6 +1231,7 @@ fn generate() -> Vec<Vector> {
             p.status_revoked = revoked;
             p.capabilities = caps.iter().map(|s| s.to_string()).collect();
             p.control_key = Some(ctrl.public());
+            adjust(&mut p);
             let b = build(&p);
             let now = b.nbf + (b.exp - b.nbf) / 2;
             (b, ctrl, inst, now)
@@ -1380,6 +1406,55 @@ fn generate() -> Vec<Vector> {
                 Reason::InstanceExpired,
                 "lifetime exceeds the 1 h ceiling — enforced at verify, not only at issuance",
             ));
+        }
+
+        // (2b) THE TWO COMBINATIONS M30 RECORDED AS UNCOVERED.
+        //
+        // Both are ACCEPTANCE vectors, and that is deliberate: the risk in a combination is not that it is wrongly
+        // refused but that one layer quietly stops applying in the presence of the other. A rejection family here
+        // would pass even if the instance rung were skipped entirely.
+        for i in 0..per {
+            let caps = ["read:invoices"];
+            let (b, ctrl, inst, now) =
+                instance_fixture_with(5200 + i, &caps, false, |p| p.delegate_checkpoint = true);
+            let mut v = wire_valid(&format!("instance-delegate-checkpoint-{:04}", i), "", &b);
+            v.presentation.instance = Some(mint(Mint {
+                b: &b,
+                inst: &inst,
+                caps: &["read:invoices"],
+                nbf: now - 60,
+                exp: now + 600,
+                aud: AUD,
+                pop_aud: AUD,
+                pop_ts: now,
+                signer: &ctrl,
+                pop_signer: &inst,
+                iid: None,
+            }));
+            v.presentation.audience = AUD.to_string();
+            out.push(v);
+        }
+        for i in 0..per {
+            let caps = ["read:invoices"];
+            // A renewed passport: same lineage, new window, `prev_leaf` naming the generation it supersedes.
+            let (b, ctrl, inst, now) =
+                instance_fixture_with(5300 + i, &caps, false, |p| p.prev_leaf = Some([0x5Au8; 32]));
+            let mut v = wire_valid(&format!("instance-under-renewal-{:04}", i), "", &b);
+            v.presentation.instance = Some(mint(Mint {
+                b: &b,
+                inst: &inst,
+                caps: &["read:invoices"],
+                nbf: now - 60,
+                exp: now + 600,
+                aud: AUD,
+                pop_aud: AUD,
+                pop_ts: now,
+                signer: &ctrl,
+                pop_signer: &inst,
+                iid: None,
+            }));
+            v.presentation.audience = AUD.to_string();
+            out.push(v);
         }
 
         // (3a) POP BOUND TO ITS CREDENTIAL (D-049) — the substitution attack, as bytes.

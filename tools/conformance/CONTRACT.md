@@ -67,9 +67,9 @@ node tools/conformance/run.mjs --impl "<command...>" --name NAME --version VER -
 {
   "report_version": "1", "runner_version": "1", "generated_at": "…Z",
   "implementation": { "name": "…", "version": "…" },
-  "corpus": { "hash": "sha256:…", "parts": {"passport":1105,"delta":17,"directory":9}, "total": 1131,
+  "corpus": { "hash": "sha256:…", "parts": {"passport":1153,"delta":17,"directory":9}, "total": 1179,
               "required_minimums": {"passport":500,"delta":15,"directory":9} },
-  "totals": { "checked": 1131, "passed": 1131, "failed": 0 },
+  "totals": { "checked": 1179, "passed": 1179, "failed": 0 },
   "guard_failures": [], "result": "pass",
   "divergences": [ { "part": "passport", "vector": "…", "expected": {…}, "got": {…} } ]
 }

@@ -104,3 +104,10 @@ indistinguishability is a term and not an implementation detail. The value is in
 in any single green report.
 
 The subject's name is not published in the report (only its SHA-256). A named probe subject is a marked probe.
+
+**Renewal is not probed.** [D-055](DECISIONS.md) makes it a registrar requirement that revoking a lineage flips
+every unexpired generation's status index, because ADR-017 renewal allocates a new one and the verifier cannot
+reach the old index from a presented passport. The probe has no renewal journey, so a registrar that revokes only
+the current generation would pass all nine checks above while leaving the superseded generation — and every
+instance credential under it — alive for the length of the overlap. The reference registrar is tested for this;
+a stranger's is not measured for it.

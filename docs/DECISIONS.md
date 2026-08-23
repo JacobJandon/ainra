@@ -946,3 +946,30 @@ integrator to check their clock sends them to the wrong place.
 
 *Status:* OPEN, deliberately. This is the one M30b finding this milestone did not close, and the gate exists so
 that stays visible rather than becoming folklore.
+
+## D-055 — Revocation is per LINEAGE; sweeping every generation is a registrar requirement, not a verifier check
+
+*Problem:* ADR-017 renewal issues the new generation with a **new status index**, and both generations stay valid
+through the overlap. Revocation is applied to an index. A registrar that revokes only the current index therefore
+leaves the superseded generation — and every instance credential minted under it — alive until its own expiry:
+renewal as a revocation bypass with a window the length of the overlap.
+
+*Why the verifier cannot close this.* A passport carries `prev_leaf`, which is a Merkle **leaf hash**, not a status
+index. There is nothing in a presented passport from which a verifier can derive the previous generation's index, so
+no amount of care in the verify path reaches it. Closing it verifier-side would mean adding the previous index to
+the signed claims — a passport format change, for a case the issuer is already able to handle correctly.
+
+*Decision:* state it as a **registrar conformance requirement** rather than pretend the verifier is doing it. The
+status list is one bit per LINEAGE (MTS §16); a registrar revoking a lineage MUST flip every unexpired generation's
+index in the same signed delta.
+
+*Reference implementation: verified, not assumed.* `revoke_kills_every_unexpired_generation`
+(`services/ainra-services/src/registrar.rs`) issues, reissues, revokes at a clock inside the overlap, and asserts
+both that the delta carries **both** indices and that the superseded record independently verifies as `revoked`.
+
+*Honest scope, stated because it is the part that matters:* this is proven for the registrar in this repository. The
+adversarial probe kit does **not** yet exercise it against a third party — `kits/probe/` has no renewal journey, so
+a stranger's registrar can today fail this requirement without the probe noticing. That is a real gap in
+[PROBES.md](PROBES.md)'s coverage, recorded here rather than left as an assumption about other people's software.
+
+*Status:* NEW. Requirement stated and proven for the reference registrar; third-party probing is not built.

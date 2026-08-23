@@ -122,7 +122,7 @@ def _verify(anchors: dict, presentation: dict, now: int) -> Verdict:
     # `act_chain` is NOT required. ainra-core declares it `#[serde(default)]` (passport.rs:141) — a root-issued
     # passport with no delegation may omit it entirely, and Rust and the TS SDK both accept that. This SDK
     # required it, so it rejected, with `schema_violation`, the very bundle shipped in the external verifier kit
-    # (kits/verifier/sample-artifacts/bundle-valid.json, which has no act_chain). The 1105-vector corpus cannot
+    # (kits/verifier/sample-artifacts/bundle-valid.json, which has no act_chain). The 1153-vector corpus cannot
     # catch it: the generator always emits the field, even when empty, so the omitted case is never on the wire.
     # Found by the M30 policy-parity harness — see docs/POLICY-PARITY.md.
     required = (
@@ -262,7 +262,7 @@ def _verify(anchors: dict, presentation: dict, now: int) -> Verdict:
     # credential claiming authority past the grant's end. Python accepted that; Rust and TS refuse it.
     #
     # No vector could see the split, and it is worth naming why: the generator sets every hop's ``exp`` equal to
-    # the passport's, and at equality both rules agree. A four-way differential over 1105 vectors proved agreement
+    # the passport's, and at equality both rules agree. A four-way differential over 1153 vectors proved agreement
     # on every byte it was given and had nothing to say about the case nobody generated.
     if act_chain:
         eff_exp = act_chain[0].get("exp")
@@ -490,7 +490,7 @@ def _verify_instance(inst, claims: dict, passport_leaf: bytes, now: int, expecte
     # (0) DECODE, strictly, before anything is weighed. D-029: a non-canonical base64url field is a decode
     #     failure, not a signature failure — core refuses it at the adapter gateway with ``schema_violation`` and
     #     the TS SDK does the same at ``decodePresentation``. The first version of this function returned
-    #     ``instance_sig_invalid`` here and the four-way differential caught it: 985/1105, 24 disagreements, all
+    #     ``instance_sig_invalid`` here and the four-way differential caught it: 985/1153, 24 disagreements, all
     #     ``instance-noncanon``. Decoding first is also what keeps the reason honest — "we could not read it" is a
     #     different fact from "it was signed by the wrong key".
     ikey = inst.get("ikey") or {}

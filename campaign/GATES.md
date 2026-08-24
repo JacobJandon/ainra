@@ -21,7 +21,9 @@ the count prints as `—`, never as zero.
 
 ### Readings
 
-_None yet. If this table stays empty it means the campaign has not reached a reading — not that one went unrecorded._
+| Gate | Reading | Count at the reading | Reason |
+|---|---|---|---|
+| K1 | continuing | 0/8 | machinery ready; sends not yet made — a human act, not a technical blocker |
 
 <!-- GATES:END -->
 

@@ -106,7 +106,9 @@ governance problem this project has in code.
 > that shape for non-human actors, and it is being built the same way round: the rules and the conformance suite
 > first, the institution second.
 >
-> **Where it stands.** Four independent implementations agree on 1153 conformance vectors; every artifact rebuilds
+> **Where it stands.** Four independent implementations of the verify path exist; the three written in Rust,
+> TypeScript and Python agree on all 1153 conformance vectors, on the verdict *and* the named reason, and the
+> fourth — a Node reference CLI — agrees byte-for-byte on canonical encoding. Every artifact rebuilds
 > byte-for-byte from tagged source; a stranger's cold clone passes the full board. What has *not* happened is
 > stated just as plainly on the roadmap — no ceremony yet, no independent verifiers yet.
 >

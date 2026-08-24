@@ -88,7 +88,7 @@ const CLAIMS = [
     where: ["README.md", "ROADMAP.md", "CONTRIBUTING.md", "RELEASING.md", "docs/STATUS.md", "docs/ARTIFACTS.md",
             "docs/SETTLERS.md", "docs/BEST-PRACTICES.md", "docs/WASM-DEMO.md", "docs/quickstarts/conformance.md",
             "packages/sdk-ts/README.md", "packages/sdk-py/README.md", "packages/middleware/README.md",
-            "tools/conformance/CONTRACT.md", "tools/preflight.sh",
+            "tools/conformance/CONTRACT.md", "tools/preflight.sh", "tools/outreach-check.mjs",
             "site/index.html", "site/docs.html", "site/foundation.html", "site/verify.html",
             "campaign/SPONSORS.md", "campaign/TEMPLATES.md", "campaign/FREE-INFRASTRUCTURE.md",
             "site/llms.txt", "packages/sdk-py/ainra/verify.py", "tools/corpus-check.mjs",

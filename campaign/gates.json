@@ -10,7 +10,13 @@
       "status": "open",
       "result": null,
       "source": "the local tracker (campaign/tracker.local.json) — the count is publishable, the people are not (D-036)",
-      "history": []
+      "history": [
+        {
+          "reading": "continuing",
+          "count": "0/8",
+          "reason": "machinery ready; sends not yet made — a human act, not a technical blocker"
+        }
+      ]
     },
     {
       "id": "K4",

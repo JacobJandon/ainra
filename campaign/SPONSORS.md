@@ -33,8 +33,9 @@ So the page funds **the events, not the author**, and says what is genuinely unc
 > implementation that answers those three questions with signed facts anyone can verify offline, in about five
 > lines, with the root switched off.
 >
-> The engineering is done and public: four independent implementations agree on 1153 CC0 conformance vectors, every
-> artifact rebuilds byte-for-byte from tagged source, and a stranger's cold clone passes an eighteen-row board.
+> The engineering is done and public: four independent implementations of the verify path exist, the three in
+> Rust, TypeScript and Python agree on 1153 CC0 conformance vectors on verdict and reason, every artifact rebuilds
+> byte-for-byte from tagged source, and a stranger's cold clone passes the full board.
 > **Verification is free forever and always will be — that is in the charter, enforced in code.**
 >
 > What is *not* done is the part money helps with. A neutral root is born in a recorded ceremony across independent

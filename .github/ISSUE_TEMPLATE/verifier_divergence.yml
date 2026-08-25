@@ -7,7 +7,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        **Why this template exists.** Four independent implementations agreeing byte-for-byte on every vector *is*
+        **Why this template exists.** Independent implementations agreeing byte-for-byte on every vector *is*
         the product. A divergence means one of them is wrong, or the Standard is ambiguous — both are findings we
         act on, and both end as a permanent vector in the CC0 corpus.
 

@@ -239,12 +239,35 @@ function check() {
     else console.log(`  ok    ${c.id.padEnd(22)} proven by ${c.gate}`);
   }
 
+  // ── OVERSTATEMENTS: true numbers, joined into a claim that is not true ────────────────────────────────────────
+  //
+  // A count can be right while the sentence built on it is wrong, and the registry above cannot see that: it reads
+  // numbers, and every number here was correct. "Four independent implementations agree on 1153 conformance
+  // vectors" pairs a true count (four implementations exist) with a claim `make diff` does not prove — three of
+  // them agree on verdict and reason over the corpus, and the fourth contributes its canonical encoder, checked
+  // byte-identical on ten inputs. That sentence stood on the roadmap, the sponsors letter, llms.txt (which is what
+  // AI agents read), the outreach templates and an issue template.
+  //
+  // Numbers were the wrong unit of vigilance. This checks the JOIN.
+  const OVERSTATEMENTS = [
+    { re: /\b(?:four|4)\s+(?:independent\s+|independently\s+written\s+)?implementations?\s+(?:agree|agreeing|reach)/gi,
+      why: "`make diff` proves THREE implementations agree on verdict and reason over the corpus; the fourth " +
+           "contributes a canonical encoder checked on ten inputs. Say how many exist and what each one proves, " +
+           "or drop the number." },
+  ];
+  for (const f of files) {
+    const text = read(f);
+    if (text === null) continue;
+    for (const o of OVERSTATEMENTS)
+      for (const m of text.matchAll(o.re)) fail(`${f}: "${m[0].trim()}" overstates what the gate proves — ${o.why}`);
+  }
+
   if (bad) {
     console.error("\nCLAIMS-CHECK FAILED — a public claim is wrong, or escaped the registry.");
     console.error("Fix the assertion, or register the new location in tools/claims.mjs after confirming it is true there.");
     process.exit(1);
   }
-  console.log(`CLAIMS-CHECK OK: ${CLAIMS.length} tracked claims + ${CAPABILITIES.length} capability claims; every assertion agrees with its source of truth and every location is registered.`);
+  console.log(`CLAIMS-CHECK OK: ${CLAIMS.length} tracked claims + ${CAPABILITIES.length} capability claims + ${OVERSTATEMENTS.length} overstatement pattern(s); every assertion agrees with its source of truth, every location is registered, and no true number is joined into an untrue claim.`);
 }
 
 // Only compare numbers that could plausibly BE this claim — 17/17 is the delta corpus, not a wrong passport count.

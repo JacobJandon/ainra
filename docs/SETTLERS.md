@@ -285,7 +285,7 @@ registry went **50+ → 112 → 267 methods**, because registering cost less tha
 advanced past `PROVISIONAL`. The objectors' concrete proposal — a `Recommended: Y/N` column, per RFC 8447 — was
 never adopted.
 
-**AINRA: immune on resolution** (root-signed directory + thin resolver ship *with* the core, ADR-014; four
+**AINRA: immune on resolution** (root-signed directory + thin resolver ship *with* the core, ADR-014; the
 implementations agree on every vector). **Exposed on registry semantics** — see R2; and note we cannot copy
 `Recommended` as written, because the charter says the root *records facts, never judgment*. The charter-compatible
 form is the objectors' *other* idea: mechanically testable predicates whose **result** is a fact.

@@ -54,7 +54,7 @@ Public reference implementation (five signed, board-proven releases; current: v0
 
 ## Conformance
 
-- 1153 CC0 conformance vectors; four independent implementations agree byte-for-byte on verdict and reason (`make diff` in the reference repository).
+- 1153 CC0 conformance vectors; three implementations (Rust, TypeScript, Python) agree byte-for-byte on verdict and reason, and a fourth (a Node reference CLI) agrees on canonical encoding (`make diff` in the reference repository).
 
 ## Submit evidence (how your operator helps the root reach genesis)
 

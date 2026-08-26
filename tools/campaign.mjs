@@ -15,6 +15,7 @@
 //   node tools/campaign.mjs init                     create the LOCAL tracker (gitignored — it holds people)
 //   node tools/campaign.mjs step [n]                 show / set which step you are on
 //   node tools/campaign.mjs add <kind> <id> [opts]   mark a candidate   (kind: verifier|interview|custodian|witness)
+//   node tools/campaign.mjs review [kind]            the approve/drop worksheet: everyone awaiting a decision + evidence URL
 //   node tools/campaign.mjs send <id>                record that the ask went out
 //   node tools/campaign.mjs nudge <id>               record the one follow-up this person gets
 //   node tools/campaign.mjs reply <id> <yes|no|later>
@@ -552,6 +553,36 @@ function cmdStatus() {
 // sent for them until the maintainer has looked at the evidence URL and said yes. This is not ceremony: the whole
 // risk of researching real people is that a confident machine writes a plausible sentence about someone who never
 // said it, and the only reliable check is a human opening the link. So the gate is on the tool, not in a doc.
+// The approve/drop worksheet: every candidate still awaiting a decision, one line each, with the evidence URL that
+// is the whole basis for deciding. It exists because the alternative was reading `tracker.local.json` by hand, and
+// a decision made from raw JSON is a decision made badly.
+//
+// Prints to the TERMINAL only and writes nothing. The tracker holds people (D-036), so this never becomes a file.
+function cmdReview() {
+  const t = requireTracker();
+  const kind = process.argv[3] && !process.argv[3].startsWith("--") ? process.argv[3] : null;
+  const pending = t.people.filter((p) => (p.status ?? "proposed") !== "approved" && (p.status ?? "proposed") !== "dropped")
+                         .filter((p) => !kind || p.kind === kind);
+  if (!pending.length) { console.log(kind ? `no ${kind} candidates awaiting a decision.` : "nothing awaiting a decision."); return; }
+
+  const byKind = {};
+  for (const p of pending) (byKind[p.kind] ??= []).push(p);
+  console.log(`${pending.length} candidate(s) awaiting your decision${kind ? ` (${kind} only)` : ""}.`);
+  console.log(`Approve if the evidence URL shows a real person doing work adjacent to this project. Drop on any doubt —`);
+  console.log(`a drop costs nothing and is reversible by re-adding; an approval puts a message in front of a stranger.\n`);
+  for (const [k, list] of Object.entries(byKind)) {
+    console.log(`── ${k} (${list.length}) ${"─".repeat(Math.max(0, 92 - k.length))}`);
+    for (const p of list) {
+      console.log(`  ${p.id.padEnd(18)} ${(p.why || "(no reason recorded)").slice(0, 88)}`);
+      console.log(`  ${" ".repeat(18)} ${p.evidence || "NO EVIDENCE URL — cannot be approved until re-added with --evidence"}`);
+    }
+    console.log("");
+  }
+  console.log(`  approve:  node tools/campaign.mjs approve <id>`);
+  console.log(`  drop:     node tools/campaign.mjs drop <id> --reason '…'`);
+  console.log(`  There is deliberately no bulk approve: approving in bulk is the same as not approving.`);
+}
+
 function cmdApprove() {
   const t = requireTracker(), id = process.argv[3];
   if (!id) die("which candidate? pass the id — or `approve --all-verifier` etc. is deliberately NOT offered:\n" +
@@ -576,7 +607,7 @@ function requireApproved(p, verb) {
 const cmd = process.argv[2] || "status";
 ({
   status: cmdStatus, init: cmdInit, step: cmdStep, add: cmdAdd, send: cmdSend, nudge: cmdNudge, reply: cmdReply,
-  star: cmdStar, draft: cmdDraft, approve: cmdApprove,
+  star: cmdStar, draft: cmdDraft, approve: cmdApprove, review: cmdReview,
   interview: cmdInterview, drop: cmdDrop, gates: cmdGates, record: cmdRecord, check: cmdCheck,
   render: () => renderDocs(has("check")),
-}[cmd] || (() => die(`unknown command "${cmd}". Try: status | init | step | add | approve | draft | star | send | nudge | reply | interview | drop | gates | record | render | check`)))();
+}[cmd] || (() => die(`unknown command "${cmd}". Try: status | init | step | add | review | approve | draft | star | send | nudge | reply | interview | drop | gates | record | render | check`)))();

@@ -1,0 +1,19 @@
+[
+  "tools/ainra-verify.mjs",
+  "tools/bench-gate.mjs",
+  "tools/changelog-board-guard.mjs",
+  "tools/demo-walkthrough.mjs",
+  "tools/deploy-current.mjs",
+  "tools/license-check.mjs",
+  "tools/lockfile-sync.mjs",
+  "tools/names-check.mjs",
+  "tools/one-decode-path.mjs",
+  "tools/outreach-check.mjs",
+  "tools/presentation-diff.mjs",
+  "tools/reasons-check.mjs",
+  "tools/render-samples.mjs",
+  "tools/s7-lint.mjs",
+  "tools/soak-ingest-check.mjs",
+  "tools/status-consistency.mjs",
+  "tools/verify-60s.mjs"
+]

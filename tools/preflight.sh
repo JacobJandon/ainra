@@ -72,9 +72,16 @@ run "one decode path"    "no duplicate bytes→core parser" node tools/one-decod
 run "lockfile sync"      "lockfiles state their package version" node tools/lockfile-sync.mjs
 run "reason contract"    "docs name every reason impls return" node tools/reasons-check.mjs
 run "corpus counts"      "stated counts == vectors on disk"  node tools/corpus-check.mjs
-run "instance gate"      "running copy in, unentitled out"   node tools/instance-gate-check.mjs
+# Via the make target, NOT `node …` directly: the target carries the `sdk-build` dependency that produces
+# packages/middleware/dist, and this checker imports from it. Calling the script bypassed that, so the row passed
+# on any machine that had ever built the packages and failed from a cold clone — found by `make succession-drill`,
+# which is the only thing here that runs without the operator's build state.
+run "instance gate"      "running copy in, unentitled out"   make instance-gate
 run "claim registry"     "every claim agrees everywhere"     node tools/claims.mjs
-run "policy parity"      "same policy, same reason, everywhere" node tools/policy-parity.mjs
+run "doctrine"           "rules that were only memory, gated"  node tools/doctrine-check.mjs
+run "amendment path"     "constitution needs a record to change" node tools/amendment-check.mjs
+run "honest decay"       "record states its own staleness"     node tools/staleness-drill.mjs
+run "policy parity"      "same policy, same reason, everywhere" make policy-parity
 run "soak ingest"        "declaration reads what the soak writes" node tools/soak-ingest-check.mjs
 run "no names in git"    "D-036: candidates stay out of the repo" node tools/names-check.mjs
 run "cross-impl interop" "fresh sigs verify in TS + PY"   make interop

@@ -13,6 +13,7 @@
 //   * Everything runs client-side against the same public read contract AINRAscan/mirrors use (CORS from M14). Zero telemetry.
 
 import { fetchT, getJSON } from "./net.mjs";
+import { staleness } from "./staleness.mjs";
 
 const qs = new URLSearchParams(location.search);
 const metaC = document.querySelector('meta[name="ainra-contract"]')?.content?.trim();
@@ -80,8 +81,11 @@ async function connect(base) {
     try {
       const p = await getJSON(base + "/published.json", { cache: "no-store" });
       if (p?.published_at_iso) {
-        const days = Math.max(0, Math.round((Date.now() - Date.parse(p.published_at_iso)) / 86400000));
-        set("as-of", `published ${p.published_at_iso.slice(0, 10)}${days > 0 ? ` (${days} day${days === 1 ? "" : "s"} ago)` : " (today)"}`);
+        // D-058: the horizon, not just the age. Past it the page says so itself, from the data — nobody has to
+        // remember to edit copy when the project stops being maintained, which is precisely when nobody will.
+        const { state, text } = staleness(p.published_at_iso);
+        set("as-of", text);
+        document.querySelectorAll("[data-staleness]").forEach((el) => { el.dataset.staleness = state; });
       }
     } catch { /* an unstamped copy states no date, which is the honest alternative to a guessed one */ }
   }

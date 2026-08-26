@@ -973,3 +973,138 @@ a stranger's registrar can today fail this requirement without the probe noticin
 [PROBES.md](PROBES.md)'s coverage, recorded here rather than left as an assumption about other people's software.
 
 *Status:* NEW. Requirement stated and proven for the reference registrar; third-party probing is not built.
+
+## D-056 — The amendment gate exists primarily against its own author
+
+*Problem:* the charter, the four rules and the constitutional prohibitions change because one person changes them,
+with no requirement to say why. Survivable at this size; disqualifying for an institution meant to outlive its
+founders.
+
+*Decision:* `GOVERNANCE-AMENDMENT.md` names six **unamendable** prohibitions (P1–P6), separates charter from
+normative from operational change, states who approves in each era — operator today, custodians at genesis, four
+constituencies after — and requires a public diff, a rationale, and a dated record for every amendment.
+`make amendment-check` enforces it; `docs/AMENDMENTS.md` is the record.
+
+*Written now, deliberately, while nothing is at stake.* A rule about amendment written during a dispute is written
+by the winner of that dispute.
+
+*Who it binds.* The most likely amender of these texts is whoever edits them most often, which today is one
+person. So this is a gate the author built against the author — and it is honest about its limit: it cannot stop
+someone with commit rights, it can only force the amendment and its justification into the same commit, so that a
+reader inspecting that commit finds both, or finds a commit that never passed.
+
+*A disagreement left visible rather than smoothed over:* `GOVERNANCE.md` calls the prohibitions "amendable only by
+supermajority in every constituency after twelve months of public comment". `GOVERNANCE-AMENDMENT.md` §1 holds
+that even that process should not reach them, and that a repeal is a fork under a different name. Both texts stand;
+the reader should know the two disagree.
+
+*Negative controls (`make amendment-check-negative`), all four rejected:* a prohibition deleted; a prohibition
+**softened** rather than removed ("holds no personal data" → "minimises personal data where practical"); the
+record file emptied; normative text changed with no record in the same commit. The softening case is the one that
+matters — nobody deletes a constitutional line, they reword it.
+
+*Also caught by its own control:* the first version compared prohibition text with a bare substring test and
+reported "holds no personal data" missing because the sentence wraps across two lines. A false alarm about the
+constitution is as corrosive as a missed one — a gate that cries wolf there gets routed around within a week.
+
+*Status:* NEW. Gate + record + negative controls, in preflight.
+
+## D-057 — Gate the joins and the omissions, not only the values (M32)
+
+*Problem:* the M32 census asked one question of every stated rule — *if a stranger with commit rights ignored this
+tomorrow, what would go red?* — and **tested** each by committing the violation and running the board. Ten bedrock
+rules were examined. Six were enforced by nothing at all; four were partial.
+
+*The pattern, which is the finding:* all four partials fail in the same direction. Every gate in this repository
+catches someone stating something **wrong** and misses someone stating **nothing**. The claim registry only
+inspects files that assert, so a file that quietly stops asserting drops out of the count instead of failing.
+Nobody deletes an uncomfortable zero on purpose — they reword around it.
+
+*The worst single result:* relabelling the site's demo passport from `SPECIMEN · TEST-ROOT` to
+`VERIFIED · PRODUCTION`, and its banner from "a labelled specimen" to "a production credential", passed `s7`,
+`claims`, `claims-live` and `link-check`. The distance between an honest demo and a credential impersonating a
+production one was one careless edit, opposed by nothing.
+
+*Decision:* `make doctrine` gates the census's ungated rules — specimen labelling (required-presence), the
+one-way attribution mark, Meridian's confinement to the disclosure passages, honest zeroes **including by
+omission**, DoD table rows against the evidence on disk, extrapolation tags, claim provenance on the
+trust-deciding surfaces, and a ratchet on negative controls.
+
+*The ratchet, and why not a cliff.* Seventeen gates predate the negative-control rule. Writing seventeen witness
+statements blind would produce seventeen plausible sentences rather than seventeen true ones, and a false witness
+reads as assurance. So the debt is frozen by name in `tools/negative-control-baseline.json` and may only shrink:
+a gate outside the baseline must name its witness, and a baseline gate that gains one must be removed from the
+file. The second rule is what separates this from an ignore-list — an ignore-list quietly grows correct and nobody
+notices; this one fails the moment it is out of date.
+
+*Negative controls (`make doctrine-negative`), all seven caught:* the census probes themselves, replayed. These
+are not invented scenarios — every one passed the entire board before this gate existed.
+
+*Caught by its own control, which is the point:* the DoD row check first used a bare `.includes` and matched a
+prose sentence forty lines above the table, so the hand-flipped row went unnoticed. And the provenance check first
+flagged two honest claims ("measured under 60 seconds in a local drill", a pasted board row) because its notion of
+provenance was too narrow — a check that punishes honest sourcing teaches writers to drop the word "measured",
+which is the opposite of the goal.
+
+*Status:* NEW. `make doctrine` + `make doctrine-negative`, in preflight. Census table in `docs/PLAN-M32.md`.
+
+## D-058 — The published record states its own decay
+
+*Problem:* if maintenance stops, nothing breaks visibly. Pages keep rendering, links keep resolving, and every
+sentence written in the present tense goes on implying a present tense that stopped being true months ago. The
+failure mode of an unmaintained trust root is not downtime — it is **staying up and slowly becoming a lie**.
+
+*Decision:* a stated staleness horizon (`docs/STALENESS.md`), rendered from the DATA rather than written by hand.
+`site/js/staleness.mjs` is a pure function of (stamp, now) with four states: current → aging → **stale at 45 days**
+→ **unmaintained at 180 days**. Past the far boundary the surface says `UNMAINTAINED SINCE <date> — treat
+everything on this page as historical.`
+
+*Why derived and not written:* the moment the horizon is crossed is precisely the moment nobody is left to edit
+anything. A maintainer who has stopped maintaining will not log in to add a banner saying so. And
+`UNMAINTAINED SINCE …` is a sentence nobody writes about their own project — which is the reason it must not
+require anyone to write it.
+
+*Why a horizon and not a dead-man switch:* taking the site down destroys the archive along with the claim. The
+honest alternative keeps the record readable and labels it correctly. An honest "unmaintained since 2029-04" costs
+the project its reputation for being alive and keeps its reputation for being truthful, which is the right trade
+for a root.
+
+*Pure by design:* no internal clock, no I/O, no DOM. A function that read `Date.now()` itself could not be drilled
+honestly.
+
+*Negative control:* `make staleness-drill` advances a synthetic clock across both boundaries and asserts the state
+changes where the document says — plus a control proving the sentence is a function of the data, since a
+hand-written constant would satisfy every boundary assertion while saying nothing true.
+
+*Status:* NEW. Horizon + drill + report, in preflight.
+
+## D-059 — Succession is a drill, not a document
+
+*Problem:* the project is operator-run. Every claim about what a successor could do was untested, and untested
+claims about the future are the ones that fail when someone finally needs them.
+
+*Decision:* `docs/SUCCESSION.md` states what is inherited (repository, published record, the **two** repositories
+the deploy path spans, release path, network, key material by form and location), a first-week sequence of
+commands, and what is **impossible** to inherit — after genesis the root keys are threshold-held by custodians and
+there is no whole thing to pass on. That is stated as a feature: a root a successor could simply *become* has a
+single point of compromise.
+
+`make succession-drill` clones into a scratch directory and runs the documented sequence with no local state, no
+operator knowledge, and no prepared environment. It times every step.
+
+*What it found on its first two runs — which is the entire justification:*
+
+1. **Two board rows passed only because of the operator's build state.** `instance gate` and `policy parity` were
+   invoked in preflight as `node tools/…` directly, bypassing the make targets that carry the `sdk-build`
+   dependency producing `packages/middleware/dist`. On any machine that had ever built the packages they passed;
+   from a cold clone they failed. An audit of every dist-importing target found two more (`genesis-verify`,
+   `three-clients`) missing the same dependency.
+2. **This document's own first-week sequence was wrong.** Step 2 read `make repro && make verify-mirror`;
+   `verify-mirror` has nothing to verify without `make mirror`. The drill failed on the exact instruction it was
+   told to follow.
+
+*A property of the drill worth stating:* it clones **committed** state, so an uncommitted fix is invisible to it.
+That is correct — a successor inherits what was pushed — and it means a fix must be committed before the drill can
+confirm it.
+
+*Status:* NEW. Document + drill + report, with real timings.

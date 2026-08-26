@@ -1,6 +1,6 @@
 # AINRA — the acceptance bar (MTS §28, brief §8): a stranger clones, runs `make test && make vectors && make diff`,
 # and everything is green in under 10 minutes on a laptop.
-.PHONY: number-syntax engine-parity one-decode-path bench-gate all test vectors vectors-check diff cli-check suite-migration-drill ceremony-rehearsal-multi witness-check push-advisory-check changelog-board-check fmt clippy fuzz-smoke bench sdk-build sdk-test ci clean status console samples drill explorer demo scale ceremony testbed wedge-build wedge-test repro mirror verify-mirror check-freeze freeze genesis-local verifier-kit-smoke ceremony-dry-run soak-smoke drill-networked preflight s7 license gitleaks audit verify-as-external verifier-triple-drill soak-verify genesis-status verify-transcript genesis-board-demo release doctor verifier-operator-drill site site-up site-down site-check stage-all stage-all-down explorer-up explorer-down ainrascan stage-up stage-down stage-status stage-smoke demo-walkthrough three-clients genesis-verify config-diff declaration genesis-rehearsal site-demo verify issue-first registrar-console mcp-test skills-replay presentation-diff conformance campaign-status campaign-init campaign-gates campaign-check publish-preflight stage-install stage-uninstall stage-health stranger probe-drill miri reasons-check corpus-check instance-gate claims-check claims claims-live policy-parity deploy-current site-net site-net-check lockfile-sync soak-ingest outreach-check names-check interop interop-negative
+.PHONY: succession-drill staleness-drill amendment-check amendment-check-negative doctrine doctrine-negative number-syntax engine-parity one-decode-path bench-gate all test vectors vectors-check diff cli-check suite-migration-drill ceremony-rehearsal-multi witness-check push-advisory-check changelog-board-check fmt clippy fuzz-smoke bench sdk-build sdk-test ci clean status console samples drill explorer demo scale ceremony testbed wedge-build wedge-test repro mirror verify-mirror check-freeze freeze genesis-local verifier-kit-smoke ceremony-dry-run soak-smoke drill-networked preflight s7 license gitleaks audit verify-as-external verifier-triple-drill soak-verify genesis-status verify-transcript genesis-board-demo release doctor verifier-operator-drill site site-up site-down site-check stage-all stage-all-down explorer-up explorer-down ainrascan stage-up stage-down stage-status stage-smoke demo-walkthrough three-clients genesis-verify config-diff declaration genesis-rehearsal site-demo verify issue-first registrar-console mcp-test skills-replay presentation-diff conformance campaign-status campaign-init campaign-gates campaign-check publish-preflight stage-install stage-uninstall stage-health stranger probe-drill miri reasons-check corpus-check instance-gate claims-check claims claims-live policy-parity deploy-current site-net site-net-check lockfile-sync soak-ingest outreach-check names-check interop interop-negative
 
 all: fmt clippy test vectors diff
 
@@ -354,12 +354,12 @@ demo-walkthrough:
 	node tools/demo-walkthrough.mjs
 
 # M17 Task 4 — prove 'any agent': the full lifecycle through 3 independent clients (HTTP/MCP/curl). Needs stage-up.
-three-clients:
+three-clients: sdk-build
 	node tools/three-clients.mjs
 
 # M19 — prove the LIVE network runs under the real genesis root (root-dark verify against the published
 # dual-root-signed directory + roots). Needs `make stage-up`.
-genesis-verify:
+genesis-verify: sdk-build
 	node tools/genesis-verify.mjs
 
 # Genesis (M15): production≡staging parity gate · the fail-closed founding-declaration pipeline · the dress rehearsal.
@@ -414,6 +414,24 @@ wasm: ## build the browser verifier into site/assets/wasm (size ceiling enforced
 
 wasm-diff: wasm ## run the FULL conformance corpus through the WASM in a headless browser; must be N/N
 	@node tools/wasm-differential.mjs
+
+succession-drill: ## can a stranger with the documented artifacts alone take this over? (times every step)
+	@bash tools/succession-drill.sh
+
+staleness-drill: ## fast-forward the clock; the published record must state its own decay (D-058)
+	@node tools/staleness-drill.mjs
+
+amendment-check: ## constitutional/normative text may not change without a record (D-056)
+	@node tools/amendment-check.mjs
+
+amendment-check-negative: ## prove the amendment gate rejects deletion, softening and unrecorded change
+	@bash tools/amendment-negative.sh
+
+doctrine: ## M32: the rules that were enforced only by memory (specimen labels, one-way mark, honest zeroes, DoD rows)
+	@node tools/doctrine-check.mjs
+
+doctrine-negative: ## replay the M32 census probes and prove `make doctrine` catches each
+	@bash tools/doctrine-negative.sh
 
 number-syntax: wasm sdk-build ## pin the D-054 integer-syntax divergence (expected to differ; must not drift)
 	@node tools/number-syntax-check.mjs
@@ -472,7 +490,7 @@ corpus-check:    ## every stated vector count must equal the corpus on disk
 # ADR-019 — "the middleware accepts an instance credential" is easy to believe and easy to have wrong: it needs the
 # bundle to decode, the verifier to carry an audience, and the event builder to see the instance fields. Three
 # things, any one of which fails silently.
-instance-gate:   ## the middleware accepts a running copy and refuses an unentitled one BY NAME
+instance-gate: sdk-build  ## the middleware accepts a running copy and refuses an unentitled one BY NAME
 	@node tools/instance-gate-check.mjs
 
 # M29 — the claim, not the place, is the unit. Three times a gate checked one location a claim was made and the
@@ -489,7 +507,7 @@ claims-live:     ## the deployed site must agree with the repo's sources of trut
 
 # M30 — the class the corpus structurally cannot reach: API shape and default policy. Vectors pin wire data and
 # assert a verdict; this pins WHO DECIDES. Three real defects have lived here. See docs/POLICY-PARITY.md.
-policy-parity:   ## every implementation decides each security policy identically, and closed
+policy-parity: sdk-build  ## every implementation decides each security policy identically, and closed
 	@node tools/policy-parity.mjs
 
 # claims-live checks the tracked CLAIMS match production; it passed green while the deployment was two

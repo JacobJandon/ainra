@@ -120,7 +120,8 @@ const CLAIMS = [
     // statement about how many exist. Counting it would make the gate red for saying what we intend to reach.
     find: () => /WITNESSES:\s*(\d+)|(?<![≥>]\s?)(?<!at least )(?<!least )\b(\d+)\s+witness\s+(?:operators|candidac)/gi,
     gate: "node tools/campaign.mjs check",
-    where: ["site/_includes/footer.html", "site/index.html", "site/docs.html", "site/foundation.html",
+    where: ["tools/doctrine-check.mjs", "tools/doctrine-negative.sh",
+            "site/_includes/footer.html", "site/index.html", "site/docs.html", "site/foundation.html",
             "site/get.html", "site/verify.html", "site/plan.html", "site/standard.html", "site/demo.html",
             "site/scan.html", "site/status.html", "site/404.html", "site/foundations.html",
             "ROADMAP.md", "docs/PLAN-M28.md", "docs/genesis-day/GO-NO-GO.md", "tools/campaign.mjs",

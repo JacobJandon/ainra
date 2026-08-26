@@ -79,6 +79,13 @@ const MERIDIAN_ALLOWED = new Set([
 for (const f of tracked()) {
   if (MERIDIAN_ALLOWED.has(f)) continue;
   if (/^docs\/(_archive|releases)\//.test(f) || f === "CHANGELOG.md" || f === "docs/DECISIONS.md") continue;
+  // The rule forbids the name in EXAMPLES, DEFAULTS and INTERFACES. Three kinds of file name it legitimately and
+  // are none of those: this checker (which must contain the string to search for it), the governance texts that
+  // classify the Meridian conditions as amendable charter material, and the milestone plan recording the census.
+  // Found by `make succession-drill` — from a cold clone, where these files are TRACKED and therefore visible to
+  // `git ls-files`; in the working tree they were still untracked when the rule was first written, so the gate
+  // could not see its own source. That is the third time an untracked file has hidden a defect from a gate here.
+  if (f === "tools/doctrine-check.mjs" || f === "tools/doctrine-negative.sh" || f === "GOVERNANCE-AMENDMENT.md") continue;
   const t = read(f);
   if (t === null || !/\bMeridian\b/.test(t)) continue;
   fail(`Meridian: named in ${f}, which is not one of the disclosure passages — it must never appear in examples, defaults or interfaces`);

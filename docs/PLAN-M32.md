@@ -131,3 +131,39 @@ after); public diff + rationale + dated record required in the same commit.
 Negative control, all four rejected: prohibition deleted · prohibition **softened** rather than deleted · record
 emptied · normative text changed with no record. The softening case is the one that matters, because nobody
 deletes a constitutional line — they reword it.
+
+## Task 2 — Succession, drilled
+
+[docs/SUCCESSION.md](SUCCESSION.md) · [docs/STALENESS.md](STALENESS.md) · `make succession-drill` ·
+`make staleness-drill` ([D-058](DECISIONS.md), [D-059](DECISIONS.md)).
+
+**The drill is the result, not the document.** It clones into a scratch directory and runs the documented
+first-week sequence with no local state and no operator knowledge. Across three runs it found five real
+inheritance gaps, none of which was visible from the working tree:
+
+| What failed | Why it passed for the operator |
+|---|---|
+| `instance-gate` | depended on `sdk-build`; it imports `packages/middleware/dist`, which is `wedge-build` |
+| `policy-parity`, `genesis-verify`, `three-clients` | invoked directly in preflight, bypassing the make target that carries the build dependency |
+| `skills-replay` | the P0 CLI's own dependencies (`@noble/post-quantum`) were installed by **nothing** |
+| `doctrine` + `claims` | the new gates could not see their own source — those files were still UNTRACKED, and both enumerate with `git ls-files` |
+| `SUCCESSION.md` step 2 | said `make repro && make verify-mirror`; `verify-mirror` has nothing to verify without `make mirror`. The drill failed on the exact instruction it was told to follow. |
+
+**Final run: all five steps green, 1384s total** — cold board 863s, artifacts rebuild + byte-verify 517s, network
+up 4s. Report: [docs/drills/SUCCESSION-DRILL.md](drills/SUCCESSION-DRILL.md).
+
+The drill clones **committed** state, so an uncommitted fix is invisible to it. That is correct — a successor
+inherits what was pushed, not what was in progress — and it means each fix had to be committed before the drill
+could confirm it.
+
+## Task 4 — Partially delivered, and here is exactly which part
+
+| Drill | State |
+|---|---|
+| Crypto succession | **`docs/CRYPTO-AGILITY.md` written** — the general retirement procedure, its trigger signals, and the overlap mechanics, with SUITE-MIGRATION-01 as the worked precedent. §5 states plainly that the *removal* direction is unproven: the existing drill ADDED a primitive, which is the easier direction. |
+| Root-dark | **not done.** The property is exercised inside `make genesis-local` stage 3 and the verifier kit, but there is no standalone timed drill and no stated minimum artifact set a mirror must carry. |
+| Format legibility | **not done.** `docs/WIRE-FORMAT-PRIMER.md` and the independent-parser drill are the largest single item in this milestone and were not started. |
+| Mirror sufficiency | **not done.** `make mirror` + `make verify-mirror` prove byte-identity, not that verification works from a mirror-only environment, and no bytes/day figure has been derived. |
+
+Three of four are outstanding. Saying so is worth more than four shallow drills would have been — a durability
+claim its own drill has not produced is exactly what this milestone exists to stop.

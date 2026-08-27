@@ -1,15 +1,29 @@
 <!-- SPDX-License-Identifier: Apache-2.0 OR MIT -->
 # Publishing to npm and PyPI — everything that is done, and the two things that are not
 
-**Status: READY and parked on registry identity.** `make publish-preflight` prints READY, the publish workflow's
-dry run has been proven green from the tag, and every blocker that was ours to clear is cleared. What remains is
-two web forms that require the maintainer's logged-in browser and cannot be done by anyone else.
+**Status: BLOCKED on a tag, then two web forms.** The packages are at **0.4.0** and the tree has moved well past
+`v0.3.3` — D-049 changed the proof-of-possession wire format, which is a breaking change, so the next release is a
+minor bump rather than a patch. `make publish-preflight` correctly refuses while the tree does not match a tag:
+publishing `0.3.3` from this tree would ship bytes the tag does not describe.
 
 ```
-publish-preflight   READY — "v0.3.3 is tagged AND the package tree matches it byte for byte"
-publish.yml         dry-run SUCCESS from --ref v0.3.3 — @ainra/sdk@0.3.3, 8 files, 25.3 kB, provenance path proven
+packages            0.4.0 (sdk · middleware · mcp · PyPI ainra) — bumped, NOT yet tagged
+publish-preflight   BLOCK — "packages differ from tag v0.3.3"; needs a v0.4.0 tag or a checkout of one
+every other row     PASS — build, pack, tarball contents, install smoke (1153/1153), py wheel, twine check
 names               @ainra/sdk · @ainra/middleware · @ainra/mcp · PyPI ainra — all still unclaimed (404)
 ```
+
+*Historical, and still true of what it describes:* the publish workflow's dry run was proven green from `v0.3.3`
+(8 files, 25.3 kB, provenance path proven, at the version current that day). That proved the **path**, and the path has not
+changed — only the version has.
+
+**The remaining sequence.** The first step is the maintainer's: `RELEASING.md` states that an agent never runs
+`git tag`, `npm publish` or `twine upload`.
+
+1. `git tag -s v0.4.0` — maintainer
+2. `make release VERSION=v0.4.0`
+3. `make publish-preflight` — must print READY before any token is pasted
+4. the two web forms — maintainer, logged-in browser
 
 ## Correcting the note this file replaces
 
@@ -73,10 +87,10 @@ a mismatch here as the usual cause of `invalid-pending-publisher`.
 ```sh
 cd ~/Desktop/Solvatron/ainra
 make publish-preflight                          # must print READY with "tag matches tree"
-gh workflow run publish.yml --ref v0.3.3 -f target=dry-run     # publishes nothing; proves the path
-gh workflow run publish.yml --ref v0.3.3 -f target=npm-sdk     # @ainra/sdk first — the others resolve it by name
-gh workflow run publish.yml --ref v0.3.3 -f target=npm-middleware
-gh workflow run publish.yml --ref v0.3.3 -f target=pypi
+gh workflow run publish.yml --ref v0.4.0 -f target=dry-run     # publishes nothing; proves the path
+gh workflow run publish.yml --ref v0.4.0 -f target=npm-sdk     # @ainra/sdk first — the others resolve it by name
+gh workflow run publish.yml --ref v0.4.0 -f target=npm-middleware
+gh workflow run publish.yml --ref v0.4.0 -f target=pypi
 
 # THEN verify from the PUBLIC registries in a clean environment — never from this checkout:
 npm view @ainra/sdk version
@@ -84,7 +98,7 @@ cd "$(mktemp -d)" && npm init -y >/dev/null && npm i @ainra/sdk && node -e 'cons
 python3 -m venv v && ./v/bin/pip install ainra && ./v/bin/python -c "import ainra; print(ainra.__version__)"
 ```
 
-`--ref v0.3.3` is load-bearing. The workflow file that runs is the one at the ref you dispatch, and the release
+`--ref v0.4.0` is load-bearing. The workflow file that runs is the one at the ref you dispatch, and the release
 gate compares the package tree against the tag — dispatching from `main` after `main` has moved on will block,
 correctly.
 

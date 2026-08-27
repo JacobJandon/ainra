@@ -1,7 +1,7 @@
 {
   "name": "ainra",
   "version": "0.3.3",
-  "description": "AINRA reference implementation — agent passports: issue, verify, revoke, log. Hybrid Ed25519 + ML-DSA-65; the download is one self-contained file (PQC bundled in), runs with just node.",
+  "description": "AINRA reference implementation \u2014 agent passports: issue, verify, revoke, log. Hybrid Ed25519 + ML-DSA-65; the download is one self-contained file (PQC bundled in), runs with just node.",
   "bin": {
     "ainra": "bin/ainra.js"
   },

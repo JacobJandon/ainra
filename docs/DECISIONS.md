@@ -1108,3 +1108,57 @@ That is correct — a successor inherits what was pushed — and it means a fix 
 confirm it.
 
 *Status:* NEW. Document + drill + report, with real timings.
+
+## D-060 — Root-dark was true of the corpus, not of the mirror
+
+*Problem:* the project has claimed offline, root-dark verification since M1. `make root-dark-drill` — the first
+drill to attempt it in an isolated cage containing **only** mirror bytes — found the claim was true of conformance
+vectors and false of issued credentials.
+
+A vector carries its own `anchors` and is self-contained; that is what makes it a good test fixture. A real bundle
+carries claims, signatures and proofs and **nothing about who was allowed to sign it**, because a presenter that
+supplied its own anchors would be naming its own authority. The trust anchors were not in the published artifact
+set at all, so an offline verifier holding a mirror could check a test fixture and not a credential.
+
+Two claims that read identically in a summary — "verification works offline" and "the mirror carries what an
+offline verifier needs" — and only the first was true.
+
+*Decision:* `make mirror` carries a **verifier anchor set** (directory, roots, and the sample bundles — 5 files,
+20 KB), and `make verify-mirror` requires each by exact path. They are deliberately NOT added to
+`MANIFEST.sha256`: that file's contract is "rebuilds byte-identically twice", and these are ceremony products that
+do not rebuild. A mirror is therefore *the manifest set plus the anchors*, and the two have different reasons to
+exist.
+
+*The drill's control:* a revoked credential checked against the same anchors is refused, so the valid verdict is a
+decision rather than a default.
+
+*Also measured, since a claim of durability should carry its cost:* static 33.0 MB fetched once; recurring
+26.8 MB/day per verifier at F1, 2.7 MB at F2, 9.5 KB at F3 — arithmetic on measured artifact sizes and the
+freshness constants read from the core at run time, labelled `[extrapolated]` because no mirror has run for a day
+and the verifier count is zero.
+
+*Status:* NEW. `make root-dark-drill` + `make mirror-sufficiency`, two reports in `docs/drills/`.
+
+## D-061 — A wire format is exactly as recoverable as the parser someone writes from the page
+
+*Problem:* "the format can be recovered from paper in 2050" is the boldest durability claim this project makes,
+and it was asserted rather than tested.
+
+*Decision:* `docs/WIRE-FORMAT-PRIMER.md` explains the credential, log and status formats from first principles,
+citing the public standards each rests on. `make legibility-drill` then implements a parser **from that page
+alone** — importing nothing from this repository, only `node:crypto`, `node:zlib` and `node:fs` — and runs it
+against the published corpus. The drill tests the DOCUMENT, not the code.
+
+*What it found on its first run, which is the entire argument:* the primer said the status bitmap was packed
+most-significant-bit-first. Both `ainra-core` and the independently-written Python verifier are
+least-significant-bit-first. **Twenty revoked credentials read as valid** — the worst direction an error of this
+kind can run, and a mistake no amount of re-reading the prose would have surfaced, because the prose was internally
+consistent and simply wrong.
+
+*The honest limit, stated in both the primer and the drill:* the independent parser checks Ed25519 and not
+ML-DSA-65, because no standard library carries a post-quantum implementation. A reader who can check one of the two
+signatures has performed **partial verification** and must report it as that, never as valid. Everything else —
+structure, canonical JSON, the validity window, the RFC 6962 leaf and inclusion proof, and the revocation bit with
+its fail-closed out-of-range rule — is fully recoverable.
+
+*Status:* NEW. Primer + drill + report, in preflight.

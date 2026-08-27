@@ -21,4 +21,26 @@ while read -r _hash path; do
   cp "$path" "$OUT/$path"
 done < MANIFEST.sha256
 cp MANIFEST.sha256 "$OUT/"
-echo "mirror assembled at $OUT ($(wc -l < MANIFEST.sha256) files + MANIFEST.sha256)"
+
+# THE VERIFIER ANCHOR SET (M32). The manifest lists what REBUILDS reproducibly; a mirror must additionally serve
+# what an offline verifier NEEDS, and those are not the same set. `make root-dark-drill` proved the difference:
+# a conformance vector carries its own anchors and verified fine from a mirror, while a real issued credential —
+# which carries claims, signatures and proofs but nothing about who was allowed to sign it — could not be verified
+# at all, because the root-signed directory and root keys were not mirrored. The project had claimed root-dark
+# verification since M1 and it was true of the corpus only.
+#
+# These are committed, byte-stable inputs rather than generated outputs, which is why they are copied here instead
+# of being added to MANIFEST.sha256 (that file's contract is "rebuilds byte-identically twice", and these do not
+# rebuild — they are ceremony products).
+ANCHORS="kits/verifier/sample-artifacts"
+anchor_n=0
+if [ -d "$ANCHORS" ]; then
+  mkdir -p "$OUT/$ANCHORS"
+  for f in "$ANCHORS"/*.json; do
+    [ -e "$f" ] || continue
+    cp "$f" "$OUT/$ANCHORS/"; anchor_n=$((anchor_n+1))
+  done
+fi
+[ "$anchor_n" -gt 0 ] || { echo "mirror: no verifier anchors found in $ANCHORS — a mirror without trust anchors cannot verify an issued credential"; exit 2; }
+
+echo "mirror assembled at $OUT ($(wc -l < MANIFEST.sha256) manifest files + MANIFEST.sha256 + $anchor_n verifier anchor file(s))"

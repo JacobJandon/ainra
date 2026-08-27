@@ -156,14 +156,37 @@ The drill clones **committed** state, so an uncommitted fix is invisible to it. 
 inherits what was pushed, not what was in progress — and it means each fix had to be committed before the drill
 could confirm it.
 
-## Task 4 — Partially delivered, and here is exactly which part
+## Task 4 — The thousand-year drills
 
-| Drill | State |
+All four now exist, each with a report in `docs/drills/`. Two of them found real defects on their first run.
+
+| Drill | Verdict |
 |---|---|
-| Crypto succession | **`docs/CRYPTO-AGILITY.md` written** — the general retirement procedure, its trigger signals, and the overlap mechanics, with SUITE-MIGRATION-01 as the worked precedent. §5 states plainly that the *removal* direction is unproven: the existing drill ADDED a primitive, which is the easier direction. |
-| Root-dark | **not done.** The property is exercised inside `make genesis-local` stage 3 and the verifier kit, but there is no standalone timed drill and no stated minimum artifact set a mirror must carry. |
-| Format legibility | **not done.** `docs/WIRE-FORMAT-PRIMER.md` and the independent-parser drill are the largest single item in this milestone and were not started. |
-| Mirror sufficiency | **not done.** `make mirror` + `make verify-mirror` prove byte-identity, not that verification works from a mirror-only environment, and no bytes/day figure has been derived. |
+| **Root-dark** ([report](drills/ROOT-DARK.md)) | An issued credential verifies from **33.0 MB** of mirror bytes with no service reachable, and a revoked one is refused as the control. |
+| **Mirror sufficiency** ([report](drills/MIRROR-SUFFICIENCY.md)) | Static 33.0 MB once; recurring **26.8 MB/day per verifier at F1**, 2.7 MB at F2, 9.5 KB at F3. Method shown, `[extrapolated]` where it multiplies out. |
+| **Format legibility** ([report](drills/FORMAT-LEGIBILITY.md)) | 80 corpus vectors parsed from the primer alone, importing no AINRA code. |
+| **Crypto succession** ([CRYPTO-AGILITY.md](CRYPTO-AGILITY.md)) | The general retirement procedure, with SUITE-MIGRATION-01 as the worked precedent. §5 states the *removal* direction is unproven. |
 
-Three of four are outstanding. Saying so is worth more than four shallow drills would have been — a durability
-claim its own drill has not produced is exactly what this milestone exists to stop.
+### What the drills found — which is why they are drills
+
+**The mirror could not verify an issued credential.** The project has claimed root-dark verification since M1, and
+it was true of the *corpus* only: a conformance vector carries its own `anchors` and is self-contained, while a
+real bundle carries claims, signatures and proofs and **nothing about who was allowed to sign it**. The trust
+anchors were not in the published artifact set at all. Two claims that look identical in a summary — "verification
+works offline" and "the mirror carries what an offline verifier needs" — and only one of them was true.
+
+Fixed: `make mirror` now carries the verifier anchor set (5 files, 20 KB), and `make verify-mirror` requires each
+by exact path. They are deliberately **not** added to `MANIFEST.sha256`, whose contract is "rebuilds byte-identically
+twice" — these are ceremony products that do not rebuild.
+
+**The primer had the status bit order backwards.** It said most-significant-bit-first; both `ainra-core` and the
+independently-written Python verifier are least-significant-bit-first. The drill caught it on its first run:
+**twenty revoked credentials read as valid** — the worst direction an error of this kind can run. A document
+describing a wire format is exactly as trustworthy as the parser someone writes from it, which is the argument for
+writing that parser.
+
+### The honest limit, stated in both the primer and the drill
+
+The independent parser checks Ed25519 and **not** ML-DSA-65 — no standard library carries a post-quantum
+implementation. A reader who can check one of the two signatures has performed *partial verification* and must
+report it that way, never as valid.

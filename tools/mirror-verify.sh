@@ -31,8 +31,28 @@ done < "$MAN"
 # subdir would be smuggled in unlisted, the M7 review's HIGH).
 extra="$(cd "$DIR" && find . \( -type f -o -type l \) ! -path './MANIFEST.sha256' | sed 's#^\./##' | sort)"
 listed="$(awk '{print $2}' "$MAN" | sort -u)"
-only_in_mirror="$(comm -23 <(printf '%s\n' "$extra") <(printf '%s\n' "$listed"))"
-[ -z "$only_in_mirror" ] || { echo "EXTRA (not in manifest):"; printf '%s\n' "$only_in_mirror" | head; fail=1; }
+
+# The VERIFIER ANCHOR SET is served by a mirror but is not in the manifest, and the distinction is load-bearing.
+# The manifest's contract is "rebuilds byte-identically twice"; these files are ceremony products that do not
+# rebuild at all. A mirror still has to carry them, because without the root-signed directory and the root keys an
+# offline verifier can check a conformance vector (self-contained) and NOT an issued credential (not). That gap
+# went undrilled until `make root-dark-drill`, while the project claimed root-dark verification generally.
+#
+# They are allow-listed BY EXACT PATH and each must be present — an anchor set that may be absent is not an anchor
+# set, and an allow-list by prefix would let anything be smuggled into that directory unlisted.
+anchor_dir="kits/verifier/sample-artifacts"
+anchors_required="$anchor_dir/directory.json
+$anchor_dir/roots.json
+$anchor_dir/bundle-valid.json
+$anchor_dir/bundle-revoked.json
+$anchor_dir/meta.json"
+while IFS= read -r a; do
+  [ -f "$DIR/$a" ] || { echo "MISSING ANCHOR: $a — a mirror without it cannot verify an issued credential"; fail=1; }
+done <<< "$anchors_required"
+
+allowed="$(printf '%s\n%s\n' "$listed" "$anchors_required" | sort -u)"
+only_in_mirror="$(comm -23 <(printf '%s\n' "$extra") <(printf '%s\n' "$allowed"))"
+[ -z "$only_in_mirror" ] || { echo "EXTRA (not in manifest or the anchor set):"; printf '%s\n' "$only_in_mirror" | head; fail=1; }
 
 [ "$fail" = 0 ] || { echo "verify-mirror FAILED ($DIR)"; exit 1; }
-echo "verify-mirror OK: $DIR is byte-identical to $MAN ($n files, no extras)"
+echo "verify-mirror OK: $DIR is byte-identical to $MAN ($n files), carries all 5 verifier anchors, and holds nothing else"

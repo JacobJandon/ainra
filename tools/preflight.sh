@@ -81,6 +81,7 @@ run "claim registry"     "every claim agrees everywhere"     node tools/claims.m
 run "doctrine"           "rules that were only memory, gated"  node tools/doctrine-check.mjs
 run "amendment path"     "constitution needs a record to change" node tools/amendment-check.mjs
 run "honest decay"       "record states its own staleness"     node tools/staleness-drill.mjs
+run "format legibility"  "primer alone parses the corpus"      node tools/legibility-drill.mjs
 run "policy parity"      "same policy, same reason, everywhere" make policy-parity
 run "soak ingest"        "declaration reads what the soak writes" node tools/soak-ingest-check.mjs
 run "no names in git"    "D-036: candidates stay out of the repo" node tools/names-check.mjs

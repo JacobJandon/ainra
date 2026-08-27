@@ -561,7 +561,10 @@ function cmdStatus() {
 function cmdReview() {
   const t = requireTracker();
   const kind = process.argv[3] && !process.argv[3].startsWith("--") ? process.argv[3] : null;
-  const pending = t.people.filter((p) => (p.status ?? "proposed") !== "approved" && (p.status ?? "proposed") !== "dropped")
+  // `drop` records a `dropped` FLAG and leaves `status` at "proposed" — it clears the personal fields rather than
+  // rewriting the status. Filtering on status alone therefore kept showing dropped people as undecided, which is
+  // the worst kind of list error: it asks for a decision that was already made.
+  const pending = t.people.filter((p) => (p.status ?? "proposed") !== "approved" && !p.dropped)
                          .filter((p) => !kind || p.kind === kind);
   if (!pending.length) { console.log(kind ? `no ${kind} candidates awaiting a decision.` : "nothing awaiting a decision."); return; }
 

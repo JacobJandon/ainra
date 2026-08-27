@@ -12,10 +12,23 @@ is the one outcome with no argument for it.
 <!-- `make campaign-status` reads the line below and lists this as BLOCKING while it says _undecided_.
      Replace it with the choice and the date, and record the reasoning underneath. -->
 
-- **Decision:** _undecided_
-- **Decided on:** —
+- **Decision:** wait — do not incorporate yet
+- **Decided on:** 2026-08-27
 - **Filed on:** —
-- **Reasoning:** —
+- **Reasoning:** Nothing in the next 90 days requires an entity to exist, which is the question this
+  memo reduces the decision to. Worked concretely: the best-fitting funder accepts individuals and
+  states in its own words that having no entity "is not an issue"; the package registries, CI tooling
+  and platform credits accept individuals or projects; the ceremony — the one item that genuinely
+  needs a legal counterparty for custodian paperwork — is unscheduled; and the regulator letter is an
+  introduction, not an application. Incorporating now would **forfeit** the programmes that gate on
+  non-commercial or natural-person status, which is a cost paid immediately for a benefit not yet
+  needed. The neutrality-optics problem is fixed by the organization move
+  ([`../docs/ORG-MOVE.md`](../docs/ORG-MOVE.md)), not by incorporating; conflating the two is the
+  error this table warns against. The decision is zero-cost and reversible: revisit the moment one
+  concrete item is blocked for want of an entity, and name that item here when it happens.
+
+  *Recorded per this memo's own instruction that a decision to wait is a decision, and that leaving
+  it undecided by default is the one outcome that is not acceptable.*
 
 Once decided, this becomes a governance fact rather than a strategy note: say plainly in
 [`GOVERNANCE.md`](../GOVERNANCE.md) which legal person operates the root today, because "who is the operator" is a

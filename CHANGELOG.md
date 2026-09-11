@@ -10,6 +10,59 @@ We **publicly own fixed security bugs** — hiding them would be the opposite of
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-09-12
+
+**BREAKING — the proof-of-possession wire format changed (D-049).** The PoP body was `{aud, nonce, ts}`: it named
+the audience, a nonce and a time, and nothing about the credential it travelled with. A proof captured from an
+honest presentation could therefore be forwarded with a **different** credential minted to the same instance key at
+the same audience — a wider one, or one from another lineage. The nonce cache the docs recommended did not help:
+the forwarded proof is fresh and its nonce has never been seen. The signed body is now `{aud, cred, nonce, ts}`,
+where `cred` is the SHA-256 of the credential's signing bytes. Any credential minted under 0.3.x must be re-minted.
+
+### Added — the fourth validity rung, and the gates that hold it
+
+- **D-047 (ADR-019) — instance credentials.** A running copy now carries a minutes-to-hours, audience-bound,
+  narrowed credential instead of the lineage key and a 366-day bearer token. A stolen container is bounded in time,
+  bounded in scope, and killable from outside.
+- **D-048 — `make policy-parity`.** API shape and default policy, the class the corpus structurally cannot reach: a
+  vector pins wire data and asserts a verdict, this pins *who decides*.
+- **D-057 — `make doctrine`.** Ten rules that were enforced only by memory, each proven ungated by committing the
+  violation and watching the board stay green. Specimen labelling, the one-way attribution mark, honest zeroes
+  **including by omission**, DoD rows against evidence on disk, extrapolation tags, claim provenance.
+- **D-056 — `make amendment-check`** + `GOVERNANCE-AMENDMENT.md`. Six unamendable prohibitions; a public diff, a
+  rationale and a dated record required for any constitutional or normative change. It binds the author first.
+- **D-058/D-059 — succession.** `docs/SUCCESSION.md`, a stated staleness horizon that makes an unmaintained site say
+  `UNMAINTAINED SINCE <date>` from the data, and `make succession-drill` — which found five real inheritance gaps.
+- **D-060/D-061 — durability drills.** Root-dark, mirror sufficiency, format legibility, crypto agility.
+
+### Fixed — security
+
+- **D-049** the PoP substitution above, **D-050** a 61-second presenter-positionable PoP window behind a constant
+  that read as 30, **D-051** `verify_wire` reading the audience off the wire under a comment saying a presenter
+  could not set it — and a browser page running two engines that disagreed on the same bytes.
+- **D-052** the Python SDK's delegation-expiry rule ran **inverted** against Rust and TS, accepting a passport that
+  outlived the grant authorising it. No vector could see it: the generator sets every hop's `exp` equal to the
+  passport's, and at equality both rules agree.
+- **D-053** `iid` was unbounded and reached the verifier's log before the verdict was known; capability arrays were
+  an unbounded O(n×m) amplifier.
+- **D-060** the published mirror carried **no trust anchors**, so "verification works offline" was true of the
+  self-contained corpus and false of an issued credential. The anchor set is now part of what a mirror serves.
+- **D-061** `WIRE-FORMAT-PRIMER.md` described the status bitmap as most-significant-bit-first when it is
+  least-significant-bit-first. The independent parser drill caught it: **twenty revoked credentials read as valid**.
+
+### Known — recorded, not closed
+
+- **D-054** non-canonical integer syntax (`2.6e3` vs `2600`) gets VALID from `ainra-core` and the TS SDK and invalid
+  from Python — a **verdict** divergence. Closing it requires both SDKs to consume bytes and lex numbers themselves.
+  `make number-syntax` pins the measured behaviour so it cannot drift.
+- **D-055** revocation is per lineage; sweeping every unexpired generation is a **registrar** requirement, proven for
+  the reference registrar and not yet probed against a third party.
+
+### Corpus
+
+1009 → 1153 vectors. Six new families, each carrying an attack or a bound rather than a variation.
+
+
 ### The settlers pass — five documented industry failure modes, closed before we walked into them
 
 `docs/SETTLERS.md` audited what comparable efforts were forced to admit publicly, and asked which of those arrows

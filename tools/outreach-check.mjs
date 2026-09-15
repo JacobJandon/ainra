@@ -62,9 +62,22 @@ for (const abs of files) {
     if (m[1].toLowerCase() !== WORDS[releases.length])
       fail(rel, `says "${m[0]}", but ${releases.length} board-proven release(s) exist`);
 
-  // 3. An install command for a package that is not published sends a stranger to an E404.
-  for (const m of body.matchAll(/(?:npm\s+(?:i|install)|pip\s+install|npx)\s+[^\n`]*?(@ainra\/[a-z-]+|\bainra\b)/gi))
-    fail(rel, `tells a reader to install "${m[1]}" — nothing is published to a registry yet, so this fails with E404`);
+  // 3. An install command must name a package that is ACTUALLY published.
+  //
+  // This rule used to forbid every install command, because nothing was on a registry. As of v0.4.0
+  // (2026-09-15) @ainra/sdk and @ainra/middleware are live on npm with provenance, so telling a reader to
+  // install them is now true and useful — the whole point of publishing. The rule inverts rather than
+  // disappears: the packages that are still unpublished must never appear in an install line, and that list
+  // is the thing to keep honest.
+  //
+  // @ainra/mcp stays unpublished until it is standalone-ready (RELEASING.md); PyPI `ainra` is unclaimed.
+  const UNPUBLISHED = [
+    { re: /(?:npm\s+(?:i|install)|npx)\s+[^\n`]*?(@ainra\/mcp)\b/gi, why: "@ainra/mcp is not published — it stays unpublished until standalone-ready (RELEASING.md)" },
+    { re: /pip\s+install\s+[^\n`]*?\bainra\b/gi, why: "the PyPI project `ainra` is not published yet — a reader following this gets an error" },
+  ];
+  for (const u of UNPUBLISHED)
+    for (const m of body.matchAll(u.re))
+      fail(rel, `tells a reader to install via "${m[0].trim()}" — ${u.why}`);
 
   // 4. A corpus count must be the corpus on disk.
   //

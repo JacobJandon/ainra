@@ -1,10 +1,10 @@
 <!-- SPDX-License-Identifier: Apache-2.0 OR MIT -->
 # Verifier kit — troubleshooting
 
-> **`@ainra/sdk` is not published to a registry yet.** The published-SDK route below will fail with
-> `E404` until it is. Use the in-repo route (`git clone` + `make verifier-kit-smoke`), which needs no
-> registry at all. Publishing is prepared and parked on the maintainer's credentials — see
-> [docs/_archive/plans/PLAN-M26.md](../../docs/_archive/plans/PLAN-M26.md) § PARKED.
+> **`@ainra/sdk` is published.** `npm i @ainra/sdk` installs v0.4.0 from the public registry, with a
+> Sigstore provenance attestation built on a GitHub-hosted runner — so you can verify where it was built
+> before you trust it: `npm audit signatures`. The in-repo route (`git clone` + `make verifier-kit-smoke`)
+> still works and still needs no registry, if you would rather read the source you are running.
 
 The ten failure modes strangers actually hit, and the fix. Every check here **fails closed**: if something is wrong
 the kit exits nonzero and writes no attestation — that is by design, not a bug.

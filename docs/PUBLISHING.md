@@ -1,21 +1,35 @@
 <!-- SPDX-License-Identifier: Apache-2.0 OR MIT -->
 # Publishing to npm and PyPI — everything that is done, and the two things that are not
 
-**Status: BLOCKED on a tag, then two web forms.** The packages are at **0.4.0** and the tree has moved well past
-`v0.3.3` — D-049 changed the proof-of-possession wire format, which is a breaking change, so the next release is a
-minor bump rather than a patch. `make publish-preflight` correctly refuses while the tree does not match a tag:
-publishing `0.3.3` from this tree would ship bytes the tag does not describe.
+**Status: PUBLISHED on npm (2026-09-15). PyPI outstanding.** v0.4.0 is tagged, board-proven, and
+`@ainra/sdk` + `@ainra/middleware` are live on the public registry **with Sigstore provenance** — built on a
+GitHub-hosted runner via `.github/workflows/publish.yml`, which is the only publish path because provenance
+cannot be retrofitted onto a version that is already public.
 
 ```
-packages            0.4.0 (sdk · middleware · mcp · PyPI ainra) — bumped, NOT yet tagged
-publish-preflight   BLOCK — "packages differ from tag v0.3.3"; needs a v0.4.0 tag or a checkout of one
-every other row     PASS — build, pack, tarball contents, install smoke (1153/1153), py wheel, twine check
-names               @ainra/sdk · @ainra/middleware · @ainra/mcp · PyPI ainra — all still unclaimed (404)
+packages            0.4.0 · sdk + middleware LIVE on npm, attestations YES
+                           mcp unpublished by design (standalone-ready gate, RELEASING.md)
+                           PyPI `ainra` NOT published — no account yet
+publish-preflight   READY — tag matches the package tree byte for byte
+install smokes      npm 1153/1153 · py wheel 1153/1153
 ```
 
-*Historical, and still true of what it describes:* the publish workflow's dry run was proven green from `v0.3.3`
-(8 files, 25.3 kB, provenance path proven, at the version current that day). That proved the **path**, and the path has not
-changed — only the version has.
+**What the first publish cost, recorded because the next maintainer will hit it.** Four workflow runs, each a
+different gate, and the order matters: (1) the token had no *bypass-2FA* capability — npm rejects CI publishes
+without it; (2) the `@ainra` **scope did not exist** — a scoped package needs an org, and npm reports this only
+*after* auth passes, so it stays hidden behind any auth error; (3) a replacement token fixed the scope and lost
+the 2FA bypass — both capabilities are needed at once; (4) the publish then **succeeded**, and the run still
+reported failure on its last step, *confirm the attestation is on the registry*, because npm's packument endpoint
+lags the version endpoint by about a minute. A red run is not proof that nothing published — check the registry
+before re-running, because republishing a live version hard-fails.
+
+**Still to do on npm:** configure a Trusted Publisher per package (GitHub Actions · `JacobJandon` · `ainra` ·
+`publish.yml` · environment **blank** — the npm job declares no environment), then **delete `NPM_TOKEN`** from
+both npm and the repo secrets. The workflow detects the absent secret and switches to OIDC on its own.
+
+**PyPI** needs an account first, then a pending publisher (project `ainra` · `JacobJandon` · `ainra` ·
+`publish.yml` · environment **`pypi`** — this job *does* declare one). A pending publisher works for a project
+that does not exist yet, so PyPI is token-free from its very first version.
 
 **The remaining sequence.** The first step is the maintainer's: `RELEASING.md` states that an agent never runs
 `git tag`, `npm publish` or `twine upload`.

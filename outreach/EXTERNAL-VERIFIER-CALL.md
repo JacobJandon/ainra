@@ -7,7 +7,8 @@ signed file. That's it.
 ## What you'd do
 1. We mint you a **challenge** (a small folder of fresh artifacts) and send it over. One challenge per person.
 2. You run one command (`make verify-as-external CHALLENGE=<folder>`) from a clone of the repo; it builds the
-   in-repo `@ainra/sdk`, the kit's only AINRA dependency. (`@ainra/sdk` is not published to a registry yet.)
+   in-repo `@ainra/sdk`, the kit's only AINRA dependency — so you verify the source you are running, not a
+   download. (It is also on npm as `@ainra/sdk@0.4.0`, with Sigstore provenance, if you prefer the registry.)
 3. It verifies — with the **root offline** — that a genuine passport is valid, a revoked one is rejected, a forged
    all-clear can't un-revoke it, and that your fresh challenge bundles get the right verdicts.
 4. You send back `verifier-attestation.json`. **Nothing else leaves your machine** (the kit makes no network calls;

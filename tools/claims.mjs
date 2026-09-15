@@ -139,6 +139,7 @@ const CLAIMS = [
     find: () => /@ainra\/sdk@(\d+\.\d+\.\d+)/g,
     gate: "node tools/status-consistency.mjs",
     where: ["docs/quickstarts/sdk.md", "docs/quickstarts/middleware.md", "site/llms.txt", "README.md",
+            "outreach/EXTERNAL-VERIFIER-CALL.md",
             "packages/sdk-ts/README.md", "docs/STATUS.md", "docs/PUBLISHING.md"],
   },
   {

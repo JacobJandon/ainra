@@ -9,7 +9,7 @@ from this repository — only `node:crypto`, `node:zlib` and `node:fs`. Every co
 prefixes, LSB-first bit order, the leaf-minus-`log` rule, the freshness bounds) is transcribed from the document,
 not from our source. The drill therefore tests the **document**: if the primer is wrong or incomplete, this fails.
 
-**Run.** 2026-08-27T17:09:21.710Z · 80 vectors from the published corpus.
+**Run.** 2026-09-15T14:21:57.883Z · 80 vectors from the published corpus.
 
 | Check | Result |
 |---|---|

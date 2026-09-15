@@ -24,7 +24,16 @@ the same code the CLI does — and `make wasm-diff` pushes the whole corpus thro
 browser, requiring agreement on verdict *and* named reason. Nothing is uploaded and no request leaves the page at
 verification time, either way.
 
-## Start here — two commands
+## Start here
+
+**Install the verifier** — published with provenance you can check before you trust it:
+
+```sh
+npm i @ainra/sdk        # or: pip install ainra
+npm audit signatures    # Sigstore provenance: proves which workflow built it
+```
+
+**Or run it from this repo, no install:**
 
 ```sh
 make verify        # verify a valid + a revoked credential with the real verifier, offline. No account, no server, no config.

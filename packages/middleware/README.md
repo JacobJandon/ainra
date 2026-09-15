@@ -10,6 +10,7 @@ with a machine-readable reason.
 
 ```sh
 npm install @ainra/middleware
+npm audit signatures    # optional: check the Sigstore provenance before you trust it
 ```
 
 ## Connect / Express

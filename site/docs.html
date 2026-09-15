@@ -201,6 +201,11 @@ nav .nav-links a[aria-current="page"],nav .ndocs[aria-current="page"]{text-decor
     <div class="codeblock"><span class="cap">terminal</span><pre>$ git clone https://github.com/JacobJandon/ainra && cd ainra
 $ make verify        <span class="c"># the real verifier: a valid + a revoked credential, named reasons</span>
 $ make issue-first   <span class="c"># a local registrar + your first issued, verified passport</span></pre></div>
+    <p><b>Or install the verifier from a registry.</b> Published with attestations that bind each artifact to the workflow that built it, so you can check its provenance before you trust it — which is the point of a verifier.</p>
+    <div class="codeblock"><span class="cap">terminal</span><pre>$ npm i @ainra/sdk        <span class="c"># v0.4.0 · Sigstore provenance</span>
+$ npm audit signatures    <span class="c"># proves which workflow built it</span>
+
+$ pip install ainra       <span class="c"># v0.4.0 · PEP 740 attestations, published token-free</span></pre></div>
     <p>Prefer no checkout? Download <a href="ainra-cli-v0.3.3.zip" style="color:var(--green);font-weight:600">the reference CLI (zip)</a> — zero dependencies, runs on any platform with just <code>node</code>. The <a href="https://github.com/JacobJandon/ainra/releases" rel="noopener" style="color:var(--green);font-weight:600">releases page</a> carries the signed artifacts (a Linux x86_64 binary, the CC0 vector corpus, provenance and SBOM) for anyone verifying the release itself.</p>
 
     <h2 id="verify">Verify in five lines</h2>

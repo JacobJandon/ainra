@@ -15,17 +15,17 @@ independent confirmation the standard is unambiguous and the reference is
 correct. If it disagreed, we would have found something. It agrees on
 **1153 passport + 17 delta + 9 directory** vectors.
 
-## Package name
-
-`ainra` — checked against PyPI on 2026-07-30 (`GET /pypi/ainra/json` → HTTP 404,
-i.e. the name is unregistered and available). It is **not** published to PyPI by
-this work; the name is reserved by intent and used for local installs only.
-
 ## Install
 
 ```
-pip install -e packages/sdk-py     # editable, from a checkout
+pip install ainra                  # v0.4.0 from PyPI
+pip install -e packages/sdk-py     # or editable, from a checkout
 ```
+
+Published to PyPI by **trusted publishing** — no API token is involved at any
+point. Each release carries PEP 740 attestations binding the artifact to the
+GitHub Actions workflow that built it, so you can check where it came from
+before you trust it.
 
 Requires Python ≥ 3.10 and `cryptography` ≥ 44 (already present on most systems;
 it ships Ed25519 and ML-DSA-65). SLH-DSA-SHA2-128s, SHA-256, and zlib need no

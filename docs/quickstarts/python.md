@@ -3,8 +3,14 @@
 
 `ainra` (`packages/sdk-py`) is the independent Python verifier — the **fourth column** of the conformance differential
 (`make diff`: core ↔ sdk ↔ cli ↔ py, agreeing byte-for-byte on every vector's verdict *and* reason). Verify-only,
-offline, fail-closed, zero telemetry. Install editable from a checkout: `pip install -e packages/sdk-py` (needs
-`cryptography>=44`).
+offline, fail-closed, zero telemetry.
+
+```sh
+pip install ainra              # v0.4.0 from PyPI, published by trusted publishing with PEP 740 attestations
+```
+
+Or editable from a checkout, if you would rather read the source you are running:
+`pip install -e packages/sdk-py` (needs `cryptography>=44`).
 
 ## Verify in ~5 lines
 

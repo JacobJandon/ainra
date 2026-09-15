@@ -10,6 +10,7 @@ merely ambiguous, the answer is `invalid` with a named reason. There is no "prob
 
 ```sh
 npm install @ainra/sdk
+npm audit signatures    # optional: check the Sigstore provenance before you trust it
 ```
 
 ## Verify a presentation

@@ -18,9 +18,9 @@ Public reference implementation (six signed, board-proven releases; current: v0.
 - [/docs.html#plan](docs.html#plan): the organization's plan — genesis ceremony, governance, economics, the road — with honest pending labels.
 - [/docs.html](docs.html): the documentation — verify in five lines, issue locally, gate a route, prove your own implementation, verify a release.
 
-- Install the verifier: `npm i @ainra/sdk` (v0.4.0, published with Sigstore provenance — `npm audit signatures`
-  checks where it was built). `@ainra/middleware` is the request-plumbing wedge. Verification runs locally; there
-  is deliberately no verification REST API.
+- Install the verifier: `npm i @ainra/sdk` (v0.4.0, Sigstore provenance — `npm audit signatures` checks where it
+  was built) or `pip install ainra` (v0.4.0, PEP 740 attestations). `@ainra/middleware` is the request-plumbing
+  wedge. Verification runs locally; there is deliberately no verification REST API.
 - [Source repository](https://github.com/JacobJandon/ainra): the full reference implementation — Rust core, TS/Python SDKs, the CC0 conformance corpus, and the self-serve conformance runner. Clone it and `make preflight`: every gate passes from a cold clone.
 
 - [/skills.md](skills.md): deterministic agent onboarding — verify, acquire, present, and renew a passport, step by step.

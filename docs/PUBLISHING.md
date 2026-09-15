@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: Apache-2.0 OR MIT -->
 # Publishing to npm and PyPI — everything that is done, and the two things that are not
 
-**Status: PUBLISHED on npm (2026-09-15). PyPI outstanding.** v0.4.0 is tagged, board-proven, and
+**Status: PUBLISHED — npm and PyPI, 2026-09-15.** v0.4.0 is tagged, board-proven, and
 `@ainra/sdk` + `@ainra/middleware` are live on the public registry **with Sigstore provenance** — built on a
 GitHub-hosted runner via `.github/workflows/publish.yml`, which is the only publish path because provenance
 cannot be retrofitted onto a version that is already public.
@@ -9,7 +9,7 @@ cannot be retrofitted onto a version that is already public.
 ```
 packages            0.4.0 · sdk + middleware LIVE on npm, attestations YES
                            mcp unpublished by design (standalone-ready gate, RELEASING.md)
-                           PyPI `ainra` NOT published — no account yet
+                           PyPI `ainra` LIVE — trusted publishing, PEP 740 attestations, no token
 publish-preflight   READY — tag matches the package tree byte for byte
 install smokes      npm 1153/1153 · py wheel 1153/1153
 ```
@@ -27,9 +27,11 @@ before re-running, because republishing a live version hard-fails.
 `publish.yml` · environment **blank** — the npm job declares no environment), then **delete `NPM_TOKEN`** from
 both npm and the repo secrets. The workflow detects the absent secret and switches to OIDC on its own.
 
-**PyPI** needs an account first, then a pending publisher (project `ainra` · `JacobJandon` · `ainra` ·
-`publish.yml` · environment **`pypi`** — this job *does* declare one). A pending publisher works for a project
-that does not exist yet, so PyPI is token-free from its very first version.
+**PyPI went token-free from its very first version**, which is the difference worth remembering: its pending
+publisher (project `ainra` · `JacobJandon` · `ainra` · `publish.yml` · environment **`pypi`** — this job *does*
+declare one, unlike the npm job) can be registered before the project exists. npm has no equivalent, which is the
+whole reason the first npm publish needed a token at all. PyPI published green on the first attempt once the
+publisher was registered; npm took four.
 
 **The remaining sequence.** The first step is the maintainer's: `RELEASING.md` states that an agent never runs
 `git tag`, `npm publish` or `twine upload`.

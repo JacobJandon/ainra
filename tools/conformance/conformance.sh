@@ -23,19 +23,28 @@ echo "proves the runner detects conformance AND nonconformance."
 echo ""
 
 # 1. The three genuine corpus-verdict implementations MUST pass clean (exit 0).
-clean() { # clean <label> <impl-command...>
-  local label="$1"; shift
+# Each implementation reports ITS OWN version, read from its own manifest — a single hardcoded number here
+# would be stale for three of the four the moment any one of them is released (it was: 0.3.0, for all of them).
+ver() { # ver <manifest-path> <pattern>
+  case "$1" in
+    *.toml) grep -m1 -E '^version *= *"' "$1" | sed -E 's/.*"([^"]+)".*/\1/' ;;
+    *.json) node -e 'console.log(JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")).version)' "$1" ;;
+  esac
+}
+clean() { # clean <label> <manifest> <impl-command...>
+  local label="$1"; local manifest="$2"; shift 2
+  local v; v="$(ver "$manifest")"; [ -n "$v" ] || v="unknown"
   printf '  %-26s ' "$label"
-  if $RUN --impl "$*" --name "$label" --version 0.3.0 --out "$TMP/$label.json" >"$TMP/$label.log" 2>&1; then
+  if $RUN --impl "$*" --name "$label" --version "$v" --out "$TMP/$label.json" >"$TMP/$label.log" 2>&1; then
     grep -E '→ PASS' "$TMP/$label.log" | sed 's/^/    /'
   else
     echo "FAILED (expected clean pass):"; sed 's/^/      /' "$TMP/$label.log"; FAIL=1
   fi
 }
 echo "clean adapters (must PASS, full corpus, 0 divergences):"
-clean "ainra-core"    bash tools/conformance/adapters/core.sh
-clean "ainra-sdk-ts"  node tools/conformance/adapters/sdk.mjs
-clean "ainra-sdk-py"  python3 tools/conformance/adapters/py.py
+clean "ainra-core"    Cargo.toml                        bash tools/conformance/adapters/core.sh
+clean "ainra-sdk-ts"  packages/sdk-ts/package.json      node tools/conformance/adapters/sdk.mjs
+clean "ainra-sdk-py"  packages/sdk-py/pyproject.toml    python3 tools/conformance/adapters/py.py
 echo ""
 
 # 2. The broken implementation MUST fail (nonzero) with named divergences — proof the runner catches nonconformance.

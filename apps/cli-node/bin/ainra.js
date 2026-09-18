@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /* SPDX-License-Identifier: Apache-2.0 OR MIT
- * AINRA reference implementation v0.3.0
+ * AINRA reference implementation — version is read from package.json, never restated here.
  * HYBRID Ed25519 + ML-DSA-65 signatures (both mandatory, both-or-invalid), real chain verification, real
  * revocation, hash-chained log. Parity with the Rust core + browser SDK. Suite-migration ready (Drill 01):
  * legacy Ed25519-only credentials are recognized, named, and fail closed as alg_downgrade under default policy.
@@ -8,6 +8,9 @@
  * (independent witnesses pending). For interop testing, not production. Node >= 18.
  */
 'use strict';
+
+// The one place a version number is allowed to live is the package manifest; everything else reads it.
+const CLI_VERSION = (() => { try { return require('../package.json').version; } catch { return '0.0.0-unknown'; } })();
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
@@ -341,7 +344,7 @@ function cmdVerifyNoExit(ref, opts) { // demo helper: same as verify but doesn't
   const realExit = process.exit; process.exit = () => {}; try { cmdVerify(ref, opts || {}); } finally { process.exit = realExit; }
 }
 function usage() {
-  console.log(`ainra — reference implementation v0.3.0 (hybrid Ed25519 + ML-DSA-65; interop testing; single-key root, local witnesses — labeled)
+  console.log(`ainra — reference implementation v${CLI_VERSION} (hybrid Ed25519 + ML-DSA-65; interop testing; single-key root, local witnesses — labeled)
 usage:
   ainra init                                   initialize root, witnesses, log (hybrid keys)
   ainra accredit <registrar>                   root accredits an independent registrar

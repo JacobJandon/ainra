@@ -16,7 +16,9 @@
   "files": [
     "src/"
   ],
-  "dependencies": {},
+  "dependencies": {
+    "@ainra/sdk": "file:../sdk-ts"
+  },
   "peerDependencies": {
     "@ainra/sdk": "*"
   },

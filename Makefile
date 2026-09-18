@@ -141,6 +141,7 @@ issue-first:
 # M16 — the MCP server's wrapper-fidelity differential: ainra_verify ≡ @ainra/sdk byte-for-byte over sampled vectors,
 # plus safety-annotation + confirm-gate checks. Proves the MCP verify tool stays a thin wrapper, never a fork.
 mcp-test: sdk-build
+	cd packages/mcp && [ -d node_modules ] || npm install --prefer-offline --no-audit --no-fund --silent
 	node --test packages/mcp/test/*.test.mjs
 
 # M16 — the one-verdict-event-shape differential: the `ainra` CLI (Rust), the middleware, and the MCP server all

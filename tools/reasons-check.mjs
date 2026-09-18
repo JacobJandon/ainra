@@ -80,9 +80,21 @@ for (const f of proseFiles) {
   }
 }
 
+// ── 5 · the shipped copy must be the canonical file ─────────────────────────────────────────────────────────────
+// `@ainra/mcp` is installed from a registry, where no `docs/` directory exists, so it carries its own copy of the
+// reason glosses inside the published tarball. A copy is a second source of truth unless something fails when the
+// two differ — an agent reading a stale gloss for a refusal is exactly the confusion the frozen list exists to end.
+const MCP_COPY = "packages/mcp/src/reasons.json";
+try {
+  if (read(MCP_COPY) !== read("docs/reasons.json"))
+    fail(`${MCP_COPY} differs from docs/reasons.json — refresh it: cp docs/reasons.json ${MCP_COPY}`);
+} catch {
+  fail(`${MCP_COPY} is missing — the published package would have no reason glosses: cp docs/reasons.json ${MCP_COPY}`);
+}
+
 if (bad) {
   console.error(`\nREASONS-CHECK FAILED — the contract and the implementations disagree.`);
   console.error(`Fix: add the reason to docs/reasons.json with a plain-words gloss, and update any prose count.`);
   process.exit(1);
 }
-console.log(`REASONS-CHECK OK: ${n} refusal reasons, identical in ainra-core, sdk-ts, sdk-py and docs/reasons.json; every documented count agrees.`);
+console.log(`REASONS-CHECK OK: ${n} refusal reasons, identical in ainra-core, sdk-ts, sdk-py, docs/reasons.json and the copy @ainra/mcp ships; every documented count agrees.`);

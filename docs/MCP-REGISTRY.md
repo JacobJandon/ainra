@@ -11,8 +11,14 @@ package itself must live on a package registry first. That is blocker one.
 ## Blocker 1 — `@ainra/mcp` is not published
 
 Verified against the public registry: `@ainra/mcp` returns *not found*. The registry entry would point at nothing.
-This clears the moment the npm publish runs (`.github/workflows/publish.yml`), which is itself waiting on the
-maintainer's credentials.
+
+**Two of the three reasons for that are gone.** Credentials are no longer one of them — `@ainra/sdk` and
+`@ainra/middleware` published from `.github/workflows/publish.yml` with provenance, and the same workflow now
+carries an `npm-mcp` target. Nor is packaging: the server used to resolve its sibling SDK, `docs/reasons.json` and
+the `ainra` CLI through repo-relative paths, and would not start outside a checkout; it is self-contained as of
+M33 (see `RELEASING.md`), proven by installing the packed tarball outside the repo and running it.
+
+What is left is a decision to publish, and it is gated on nothing technical.
 
 ## Blocker 2 — the namespace, and why we are not taking the easy one
 

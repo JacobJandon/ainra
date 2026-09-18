@@ -6,24 +6,55 @@
 //   AINRA_TARGET=genesis-out           → a LOCAL registrar dir (genesis-local / `ainra init` output) via the CLI
 //   AINRA_TARGET=http://127.0.0.1:8091 → a network the operator controls (lookup/status read-only; issue/renew/revoke
 //                                        need AINRA_STAGE_ISSUE_TOKEN — never touch a registrar you don't hold keys for)
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
-import { runVector, verdictEvent, serializeVerdictEvent } from "../../sdk-ts/dist/index.js";
+import { runVector, verdictEvent, serializeVerdictEvent } from "@ainra/sdk";  // file:../sdk-ts in a checkout; ^x.y.z when published
 export { verdictEvent, serializeVerdictEvent }; // one event shape across CLI, middleware, MCP (docs/PRESENTATION.md)
 
 const ROOT = fileURLToPath(new URL("../../../", import.meta.url));
-const REASONS = JSON.parse(readFileSync(ROOT + "docs/reasons.json", "utf8"));
+// Installed from a registry there is no monorepo around this file, so everything it needs at import time must
+// live inside the package. `src/reasons.json` is a committed copy of `docs/reasons.json`, held byte-identical by
+// `make reasons-check`; the canonical file still wins in a checkout so a working tree is never stale.
+const REASONS = JSON.parse(
+  readFileSync(
+    (() => {
+      const canonical = ROOT + "docs/reasons.json";
+      return existsSync(canonical) ? canonical : fileURLToPath(new URL("./reasons.json", import.meta.url));
+    })(),
+    "utf8",
+  ),
+);
 const TARGET = process.env.AINRA_TARGET || "genesis-out";
 const isUrl = (t) => /^https?:\/\//.test(t);
-const BIN = ROOT + "target/release/ainra";
+// The CLI is a compiled binary and cannot ship inside an npm tarball, so it is LOCATED, not bundled, in the order
+// an operator would expect: an explicit path, then whatever `ainra` is on PATH, then a monorepo build. Absent all
+// three the URL target still serves every read-only tool — only the local-dir and write paths need a binary.
+const CLI_SOURCES = [
+  ["AINRA_CLI", process.env.AINRA_CLI || null],
+  ["PATH", (() => {
+    // stdio: stderr ignored — `which` prints "no ainra in ..." on a miss, and a miss is an ordinary outcome here,
+    // not an error worth putting on an MCP server's stderr at startup.
+    try { return execFileSync(process.platform === "win32" ? "where" : "which", ["ainra"], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).split("\n")[0].trim() || null; }
+    catch { return null; }
+  })()],
+  ["checkout", ROOT + "target/release/ainra"],
+];
+const BIN = (CLI_SOURCES.find(([, p]) => p && existsSync(p)) || [null, null])[1];
 const gloss = (v) => (v.verdict === "valid" ? REASONS.valid : REASONS[v.reason] || "");
 
+const NO_CLI =
+  'no ainra CLI found. This tool drives a LOCAL registrar directory, which needs the binary. Provide it in any of ' +
+  'three ways: set AINRA_CLI=/path/to/ainra, put `ainra` on PATH, or build it in a checkout ' +
+  '(`cargo build --release -p ainra-cli-rs`). Reads against a URL target need no binary — set ' +
+  'AINRA_TARGET=https://<your-network> instead.';
+
 function cli(args) {
+  if (!BIN) throw new Error(`${NO_CLI}\n(AINRA_TARGET is currently "${TARGET}")`);
   try { return execFileSync(BIN, args, { encoding: "utf8", timeout: 15000 }); }
   catch (e) {
     const out = (e.stderr || e.stdout || e.message || "").toString().trim();
-    throw new Error(`${out}\n(the ainra CLI must be built: run \`cargo build --release -p ainra-cli-rs\`; and AINRA_TARGET must be a registrar dir you control — currently "${TARGET}")`);
+    throw new Error(`${out}\n(ran the CLI at ${BIN}; AINRA_TARGET must be a registrar dir you control — currently "${TARGET}")`);
   }
 }
 async function getJson(path) {

@@ -32,7 +32,7 @@ on:
         description: which registry to publish to
         required: true
         type: choice
-        options: [npm-sdk, npm-middleware, pypi, dry-run]
+        options: [npm-sdk, npm-middleware, npm-mcp, pypi, dry-run]
 permissions: {}          # least privilege: every job re-declares only what it needs
 
 jobs:
@@ -98,12 +98,17 @@ jobs:
             echo "::error::npm $have is too old for trusted publishing — provenance would be silently skipped"; exit 1; }
       - name: build the SDK (both packages ship dist/)
         run: cd packages/sdk-ts && npm ci --no-audit --no-fund && npm run build
-      - name: point middleware at the published SDK, not the local path
-        if: inputs.target == 'npm-middleware'
+      - name: point the dependent package at the published SDK, not the local path
+        if: inputs.target == 'npm-middleware' || inputs.target == 'npm-mcp'
         run: |
           # npm does NOT rewrite file: on publish — a published file: dep installs a dangling symlink.
-          npm --prefix packages/middleware pkg set dependencies.@ainra/sdk="^$(node -p "require('./packages/sdk-ts/package.json').version")"
-          cd packages/middleware && npm install --no-audit --no-fund && npm run build
+          # Both dependents carry `"@ainra/sdk": "file:../sdk-ts"` so the offline monorepo build resolves the
+          # sibling; the range goes in here, at publish time, and the checkout keeps its file: path.
+          PKG=$([ "${{ inputs.target }}" = "npm-mcp" ] && echo packages/mcp || echo packages/middleware)
+          npm --prefix "$PKG" pkg set dependencies.@ainra/sdk="^$(node -p "require('./packages/sdk-ts/package.json').version")"
+          cd "$PKG" && npm install --no-audit --no-fund
+          # mcp ships src/*.mjs and has no build step; middleware ships dist/.
+          [ "${{ inputs.target }}" = "npm-mcp" ] || npm run build
       # NODE_AUTH_TOKEN is the FIRST-publish path only, and it is empty whenever the secret is unset — in which
       # case npm falls through to OIDC, which is what we want for every release after the package exists. It does
       # not weaken provenance: `--provenance` attests to this workflow run either way, because the runner has an
@@ -116,13 +121,18 @@ jobs:
           case "${{ inputs.target }}" in
             npm-sdk)        cd packages/sdk-ts ;;
             npm-middleware) cd packages/middleware ;;
+            npm-mcp)        cd packages/mcp ;;
           esac
           if [ -n "$NODE_AUTH_TOKEN" ]; then echo "authenticating with NPM_TOKEN (first publish — the package does not exist yet, so OIDC is not available)";
           else echo "no NPM_TOKEN set — authenticating by OIDC trusted publishing"; fi
           npm publish --access public --provenance
       - name: confirm the attestation is on the registry
         run: |
-          P=$([ "${{ inputs.target }}" = "npm-sdk" ] && echo @ainra/sdk || echo @ainra/middleware)
+          case "${{ inputs.target }}" in
+            npm-sdk)        P=@ainra/sdk ;;
+            npm-middleware) P=@ainra/middleware ;;
+            npm-mcp)        P=@ainra/mcp ;;
+          esac
           sleep 20
           npm view "$P" version
           # fail the run if the published version carries no attestation

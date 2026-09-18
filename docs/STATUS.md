@@ -305,8 +305,12 @@ DECISIONS D-027/D-028, MTS ADR-017.
 - 711+24+17+9 vectors, not the 10 k GA target; broad but not the full combinatorial cross-product.
 - Services persist to local files, bind 127.0.0.1, single-key signers — a working reference, not the hardened
   multi-region deployment (M4–M8). The CLI's `registrar.secret` is a TEST-labeled dev keystore, not an HSM.
-- Holder keys are real and thumbprint-bound, but proof-of-possession (KB-JWT / RFC 9421 presentation) is not yet
-  exercised by the verifier — the schema carries real material for it; the possession check is later work.
+- Proof-of-possession holds at ONE of the two rungs, and the distinction matters. At the **instance** rung it is
+  enforced: an instance credential is audience-bound and holder-bound, and presenting one to the wrong audience is
+  refused by name as `instance_pop_invalid` (ADR-019 / D-047, with D-049 binding the proof to the credential it
+  accompanies). At the **passport** rung it is not: holder keys are real and thumbprint-bound, but the verifier does
+  not yet ask a presenter to prove possession of the passport key (KB-JWT / RFC 9421 presentation) — the schema
+  carries real material for it; that check is later work.
 - Benchmarks (`make bench` → BENCHMARKS.md) are single-host indicative numbers.
 
 ## Next

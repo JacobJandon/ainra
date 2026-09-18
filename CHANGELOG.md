@@ -10,6 +10,38 @@ We **publicly own fixed security bugs** — hiding them would be the opposite of
 
 ## [Unreleased]
 
+### Fixed — version strings that could disagree with the artifact they describe
+
+- **`ainra` (PyPI) reported the wrong version of itself.** The 0.4.0 wheel carried `__version__ == "0.3.0"`: its
+  metadata and its module disagreed, and a published artifact cannot be edited afterwards, only superseded. The
+  Python package is now **0.4.1**, and `packages/sdk-py/tests/test_version.py` fails whenever the module string and
+  `pyproject.toml` drift apart — proven by making them drift.
+- **`make conformance` stamped one hardcoded `0.3.0` onto all four implementations.** Each now reports its own
+  version, read from its own manifest, so a report says what was actually certified.
+- **The CLI banner restated its version as a literal** and had fallen three patches behind its own package. It
+  reads `package.json`.
+
+### Changed — `@ainra/mcp` can be installed, not only cloned
+
+- The MCP server resolved its sibling SDK build, `docs/reasons.json` and the `ainra` CLI through repo-relative
+  paths; outside a checkout it did not start at all, because the reason glosses are read at import time. It now
+  imports `@ainra/sdk` by name (`file:../sdk-ts` in the tree, rewritten to a range at publish, exactly as
+  `middleware` does), ships `src/reasons.json` held byte-identical to the canonical file by `make reasons-check`,
+  and **locates** the CLI rather than bundling it — `AINRA_CLI`, then `ainra` on PATH, then a checkout build —
+  since a compiled binary cannot ride in an npm tarball. Without one, every read-only tool still works against a
+  URL target and the write tools name all three ways to supply it. Verified by installing the packed tarball
+  outside the repository and running the server. `publish.yml` gains an `npm-mcp` target; publishing remains a
+  decision, not a blocker.
+
+### Documentation
+
+- **`docs/IDENTITY.md`** — what *identity* means here, in five parts, each with the command that shows it, plus
+  where mesh workload identity ends and a cross-organization passport begins. Mirrored on the site.
+- **`docs/STATUS.md`** separated the two proof-of-possession rungs: enforced at the instance rung
+  (`instance_pop_invalid`), still unenforced at the passport rung. One sentence had implied neither shipped.
+- **`campaign/TEMPLATES.md`** — the verifier ask is two messages. An unsolicited mail with an attachment asking you
+  to run something is the shape of a phishing attempt, and the people worth asking are trained to delete it.
+
 ## [0.4.0] — 2026-09-12
 
 **BREAKING — the proof-of-possession wire format changed (D-049).** The PoP body was `{aud, nonce, ts}`: it named

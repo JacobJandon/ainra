@@ -17,29 +17,46 @@ Six messages, each short enough to send from a phone. The prepared, per-party ve
 
 ---
 
-## 1 · Verifier ask
+## 1 · Verifier ask — two messages, never one
 
-**Subject:** Be one of the first three to verify a new public trust root
+**Why it is split.** The single-email version of this ask has the exact shape of a phishing attempt: an unsolicited
+message, from a stranger, with an attachment, asking you to run something. The people worth asking — the ones who
+audit logs and verify roots for a living — are precisely the people trained to delete that on sight. So the first
+message carries no attachment and asks only a question; the material travels only after a yes.
+
+### 1a · First contact — no attachment, one link
+
+**Subject:** A second pair of eyes on a new agent-identity root
 
 > *<Two sentences: why them. Their conformance work, their log, their tooling, the paper.>*
 >
-> I'm building AINRA — a neutral, non-profit root for AI-agent identity: passports an agent can prove, revocation
-> that fails closed, all of it verifiable offline. The engineering is finished and public. What it can't give itself
-> is the one thing that matters: independent verification.
+> I've built AINRA — a non-profit root for AI-agent identity: passports an agent can prove, revocation that fails
+> closed, all verifiable offline with no call home. The code and the whole record are public:
+> https://github.com/JacobJandon/ainra
 >
-> Everything is public and scripted — clone, one command, the board goes green or it doesn't:
-> https://github.com/JacobJandon/ainra · https://ainra.vercel.app/skills.md
+> What it cannot give itself is independent verification. Would you be willing to run the verifier kit and tell me
+> what you find? It is roughly an afternoon. If you say yes I'll send the material; if it fails, I want that public
+> too.
 >
-> The attached challenge folder is minted for you alone, so the result proves the run was yours and not a replay.
-> It's an afternoon at most, and with your consent you'd be named as one of the first three external verifiers of
-> the root. If it fails, I want that publicly too.
+> *<sign-off, with a real name and the account that owns the repository>*
+
+### 1b · After a yes — the material, with its provenance stated
+
+**Subject:** re: the verifier kit
+
+> Thank you. Attached is a challenge set minted for you alone, so a passing result proves the run was yours and
+> not a replay of someone else's.
+>
+> The archive holds JSON files and a short note — no programs. Every line of code you would run comes from the
+> public repository above, not from this message, and the kit is `kits/verifier/` there. If you would rather not
+> run it on your own machine, it works unchanged in a throwaway container; the README says how.
 >
 > *<sign-off>*
 
-**Attach:** the whole `outreach/ready/verifier-NN/` folder (challenge + one-pager). **Never** the answer key.
-The per-party draft in that folder is already written; this is the shape it follows.
+**Attach, in 1b only:** `outreach/ready/ainra-verifier-NN.zip` (challenge + one-pager). **Never** the answer key,
+and never the same challenge to two people — the whole point is that a result is attributable.
 
-If they'd rather go deeper than ten minutes, point at the conformance programme: the full CC0 vector corpus and a
+If they'd rather go deeper than an afternoon, point at the conformance programme: the full CC0 vector corpus and a
 language-agnostic runner, so they can build their own verifier and never trust ours at all.
 
 ## 2 · Interview ask

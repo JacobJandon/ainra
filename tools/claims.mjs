@@ -105,7 +105,7 @@ const CLAIMS = [
     value: () => String(TRUTH.reasons()),
     find: () => /(?:one of the|the)\s+(\d+)\s+(?:frozen\s+)?(?:INVALID\s+)?reason/gi,
     gate: "make reasons-check",
-    where: ["docs/reasons.json", "tools/conformance/CONTRACT.md", "docs/quickstarts/sdk.md",
+    where: ["docs/reasons.json", "packages/mcp/src/reasons.json", "tools/conformance/CONTRACT.md", "docs/quickstarts/sdk.md",
             "docs/quickstarts/python.md", "README.md", "docs/PRESENTATION.md", "docs/STATUS.md",
             "packages/sdk-py/README.md", "packages/sdk-py/ainra/reasons.py", "packages/sdk-py/ainra/__init__.py",
             "packages/sdk-py/tests/test_reasons.py", "packages/sdk-ts/src/index.ts",

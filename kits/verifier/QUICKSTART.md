@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: Apache-2.0 OR MIT -->
 # Become external verifier #N — 10-minute quickstart
 
-> **`@ainra/sdk` is published.** `npm i @ainra/sdk` installs v0.4.0 from the public registry, with a
+> **`@ainra/sdk` is published.** `npm i @ainra/sdk` installs v0.4.1 from the public registry, with a
 > Sigstore provenance attestation built on a GitHub-hosted runner — so you can verify where it was built
 > before you trust it: `npm audit signatures`. The in-repo route (`git clone` + `make verifier-kit-smoke`)
 > still works and still needs no registry, if you would rather read the source you are running.
@@ -14,7 +14,7 @@ to no one but the maintainer who hands you a challenge.
 ## 0. Prerequisites (2 min)
 - **Node 18+** (built-in `crypto`, `zlib` — nothing else).
 - The **`@ainra/sdk`** package (the only dependency). Inside this repo it's wired to the local build; as an outsider,
-  set `"@ainra/sdk": "^0.4.0"` in `kits/verifier/package.json` and `npm install`.
+  set `"@ainra/sdk": "^0.4.1"` in `kits/verifier/package.json` and `npm install`.
 
 ## 1. Get a challenge from the maintainer (1 min)
 Ask the AINRA maintainers to **mint you a challenge**. They send you a folder — call it `challenge/` — containing

@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: Apache-2.0 OR MIT -->
 # Verifier kit — troubleshooting
 
-> **`@ainra/sdk` is published.** `npm i @ainra/sdk` installs v0.4.0 from the public registry, with a
+> **`@ainra/sdk` is published.** `npm i @ainra/sdk` installs v0.4.1 from the public registry, with a
 > Sigstore provenance attestation built on a GitHub-hosted runner — so you can verify where it was built
 > before you trust it: `npm audit signatures`. The in-repo route (`git clone` + `make verifier-kit-smoke`)
 > still works and still needs no registry, if you would rather read the source you are running.
@@ -11,7 +11,7 @@ the kit exits nonzero and writes no attestation — that is by design, not a bug
 
 ### 1. `Cannot find package '@ainra/sdk'`
 The kit's only dependency isn't installed. Run `npm install` inside `kits/verifier/`. As an outsider, first set
-`"@ainra/sdk": "^0.4.0"` in `kits/verifier/package.json` (inside this repo it points at the local build, which you
+`"@ainra/sdk": "^0.4.1"` in `kits/verifier/package.json` (inside this repo it points at the local build, which you
 won't have). If you cloned the whole repo, run `make sdk-build` once at the root first.
 
 ### 2. `the directory is not trust-anchored by the given roots`

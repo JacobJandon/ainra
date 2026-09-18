@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: Apache-2.0 OR MIT -->
 # AINRA External Verifier Kit
 
-> **`@ainra/sdk` is published.** `npm i @ainra/sdk` installs v0.4.0 from the public registry, with a
+> **`@ainra/sdk` is published.** `npm i @ainra/sdk` installs v0.4.1 from the public registry, with a
 > Sigstore provenance attestation built on a GitHub-hosted runner — so you can verify where it was built
 > before you trust it: `npm audit signatures`. The in-repo route (`git clone` + `make verifier-kit-smoke`)
 > still works and still needs no registry, if you would rather read the source you are running.
@@ -84,7 +84,7 @@ The bundled `package.json` uses a local path dependency so the kit runs inside t
 with the published package and reinstall:
 
 ```json
-"dependencies": { "@ainra/sdk": "^0.4.0" }
+"dependencies": { "@ainra/sdk": "^0.4.1" }
 ```
 
 ## What the three sample checks mean

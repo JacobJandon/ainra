@@ -10,6 +10,11 @@ We **publicly own fixed security bugs** — hiding them would be the opposite of
 
 ## [Unreleased]
 
+## [0.4.1] — 2026-09-18
+
+A correctness release: three version strings that could disagree with the artifacts they describe, and the MCP
+server made installable. No wire-format change; credentials minted under 0.4.0 keep verifying.
+
 ### Fixed — version strings that could disagree with the artifact they describe
 
 - **`ainra` (PyPI) reported the wrong version of itself.** The 0.4.0 wheel carried `__version__ == "0.3.0"`: its

@@ -250,6 +250,23 @@ section{padding:88px 0}
 .pxa.d1{animation-delay:.85s}.pxa.d2{animation-delay:1.7s}.pxa.d3{animation-delay:2.55s}
 @media(prefers-reduced-motion:reduce){.pxa{animation:none}}
 @media(max-width:900px){.trip{grid-template-columns:1fr;gap:24px}.t-arrow{height:22px;transform:rotate(90deg)}}
+/* ── identity, in five parts: solid rows on paper, dark code rail, no glass ── */
+.idl{margin-top:30px;border:1px solid var(--line2);border-radius:14px;overflow:hidden;background:var(--card)}
+.idrow{display:grid;grid-template-columns:50px 1.22fr .78fr;gap:20px;padding:20px 22px;border-top:1px solid var(--line);align-items:start}
+.idrow:first-child{border-top:0}
+.idn{font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--green);padding-top:5px}
+.idrow h3{font-family:var(--px);font-size:18px;font-weight:700;margin:0 0 7px;letter-spacing:.01em}
+.idrow p{font-size:14.5px;color:var(--muted);margin:0}
+.idc{font-family:var(--mono);font-size:11.5px;line-height:1.85;color:#C6CDDA;background:var(--ink);border-radius:10px;
+  padding:12px 14px;white-space:pre;overflow-x:auto}
+.idc b{color:var(--green-br);font-weight:400}
+.idc i{color:#8a94a6;font-style:normal}
+.idsplit{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:22px}
+.idbox{border:1px solid var(--line2);border-radius:12px;padding:20px 22px;background:var(--card)}
+.idbox .k{font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--green);text-transform:uppercase;display:block;margin-bottom:9px}
+.idbox strong{display:block;font-family:var(--px);font-size:16.5px;font-weight:700;margin-bottom:7px}
+.idbox p{font-size:14px;color:var(--muted);margin:0}
+@media(max-width:900px){.idrow{grid-template-columns:32px 1fr;gap:14px}.idc{grid-column:1/-1;font-size:10.5px}.idsplit{grid-template-columns:1fr}}
 /* ── pixel merge (owner-directed, looks only): engraved-hands hero art, grain, pixel display type ── */
 body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:99;opacity:.045;mix-blend-mode:multiply;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E")}
@@ -708,6 +725,63 @@ nav .nav-links a[aria-current="page"],nav .ndocs[aria-current="page"]{text-decor
     </div>
     </div>
     <p class="field-note"><b>Accredit · anchor · revoke · log</b> — the root does four jobs and nothing else. It returns facts, never scores; every check runs on the verifier's own machine, and the decision stays theirs.</p>
+  </div>
+</section>
+<section id="identity" class="rv">
+  <div class="wrap">
+    <div class="sec-head" style="max-width:780px;margin:0 auto;text-align:center">
+      <span class="eyebrow">What identity has to mean</span>
+      <h2>Five parts, one passport.</h2>
+      <p class="lede">One word is doing five jobs. An agent needs all five at once &mdash; otherwise its identity is a label someone typed, not a thing you can check.</p>
+    </div>
+    <div class="idl">
+      <div class="idrow">
+        <div class="idn">01</div>
+        <div><h3>A passport it carries</h3><p>One signed document: who issued it, which agent it is, what version, what it may do, and where it sits in the log. Self-contained &mdash; and a single field can be shown without revealing the rest.</p></div>
+        <div class="idc">ainra:<b>registrar</b>:<b>operator</b>:<b>lineage</b>@<b>version</b>
+<i>lineage is permanent — the agent itself</i></div>
+      </div>
+      <div class="idrow">
+        <div class="idn">02</div>
+        <div><h3>Its own identity &mdash; not the developer&rsquo;s, not the user&rsquo;s</h3><p>Today an agent acts on a borrowed key or a signed-in session, so the agent itself is invisible: you cannot revoke it without revoking a human, and you cannot tell two agents of the same maker apart. Here the agent has its own. The company answers for it as a field on the passport; the person behind it is proven in zero knowledge, never stored.</p></div>
+        <div class="idc"><i>borrowed</i>  api key · user session
+<i>its own </i>  <b>lineage</b> + operator field
+           + human proven, not held</div>
+      </div>
+      <div class="idrow">
+        <div class="idn">03</div>
+        <div><h3>Proof, not a lookup</h3><p>Nothing is believed because a server said so. Every credential is signed, signatures are classical and post-quantum together &mdash; both or invalid &mdash; and the check runs on the verifier&rsquo;s own machine. There is no endpoint to ask, so there is nothing to meter you, stall you, or watch who you verify.</p></div>
+        <div class="idc">ainra verify &lt;name&gt;      <b>VALID</b>
+one byte changed      <b>sig_invalid</b></div>
+      </div>
+      <div class="idrow">
+        <div class="idn">04</div>
+        <div><h3>A short-lived key for every running copy</h3><p>The passport is the agent; it is not the container. Each running copy gets its own credential: an hour at most, powers only narrower than the passport&rsquo;s, locked to one audience and provable only by the holder. It does not make a stolen container harmless &mdash; it makes the theft bounded in time, bounded in scope, and killable from outside.</p></div>
+        <div class="idc">--aud shop  --caps read:orders  --ttl 900
+wrong audience   <b>instance_pop_invalid</b>
+passport revoked <b>every copy dies</b></div>
+      </div>
+      <div class="idrow">
+        <div class="idn">05</div>
+        <div><h3>A record that cannot be edited</h3><p>Accreditations, issuances and revocations go into a hash-chained log, and nothing is valid until it is logged. Each entry carries the hash of the one before it, so a later edit breaks the chain where it happened and every verifier sees it.</p></div>
+        <div class="idc">ainra log verify   <b>intact</b>
+one line edited    <i>log broken at seq 2:</i>
+                   <i>hash mismatch</i></div>
+      </div>
+    </div>
+    <div class="idsplit">
+      <div class="idbox">
+        <span class="k">Inside your own network</span>
+        <strong>Which process is this?</strong>
+        <p>Workload identity in your own mesh answers it well &mdash; and stops at your boundary. A credential your mesh mints means nothing to a company that does not run your mesh.</p>
+      </div>
+      <div class="idbox">
+        <span class="k">Between strangers</span>
+        <strong>Whose agent is this?</strong>
+        <p>That is this root&rsquo;s question. Part 04 is deliberately the same shape as mesh identity, so the two compose: your mesh proves the process, the passport proves the agent.</p>
+      </div>
+    </div>
+    <p class="field-note"><b>Identity proves who is acting</b> &mdash; it never judges what they say. The root returns facts, never scores.</p>
   </div>
 </section>
 <section id="why" class="rv">

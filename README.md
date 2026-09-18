@@ -53,6 +53,7 @@ This repository is the production-track reference implementation.
 | | |
 |---|---|
 | **[The Standard](docs/AINRA_I_The_Standard.md)** | what AINRA is, in public terms |
+| **[IDENTITY.md](docs/IDENTITY.md)** | what *identity* means here, in five parts — and where mesh workload identity ends and this begins |
 | **[Master Technical Specification](docs/AINRA_Master_Technical_Specification_v1.md)** | normative — **it wins conflicts** |
 | **[DECISIONS.md](docs/DECISIONS.md)** | every deliberate deviation, D-001…D-046, each with its reasoning |
 | **[STATUS.md](docs/STATUS.md)** | component-by-component state, honestly, including what is unbuilt |

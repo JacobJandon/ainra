@@ -70,12 +70,11 @@ for (const abs of files) {
   // disappears: the packages that are still unpublished must never appear in an install line, and that list
   // is the thing to keep honest.
   //
-  // As of v0.4.0 the only unpublished package is @ainra/mcp, which stays that way until it is standalone-ready
-  // (RELEASING.md). PyPI `ainra` went live 2026-09-15 via trusted publishing, so `pip install ainra` is now a
-  // true instruction and no longer belongs on this list.
-  const UNPUBLISHED = [
-    { re: /(?:npm\s+(?:i|install)|npx)\s+[^\n`]*?(@ainra\/mcp)\b/gi, why: "@ainra/mcp is not published — it stays unpublished until standalone-ready (RELEASING.md)" },
-  ];
+  // As of v0.4.1 NOTHING is unpublished: @ainra/sdk, @ainra/middleware, @ainra/mcp and PyPI `ainra` are all live,
+  // so every install line the packets can contain is now a true instruction. The list stays here, empty, because
+  // the next package to exist will be unpublished for a while and this is where it belongs on day one — deleting
+  // the mechanism because it currently has nothing to say is how the check would fail to exist when it matters.
+  const UNPUBLISHED = [];
   for (const u of UNPUBLISHED)
     for (const m of body.matchAll(u.re))
       fail(rel, `tells a reader to install via "${m[0].trim()}" — ${u.why}`);

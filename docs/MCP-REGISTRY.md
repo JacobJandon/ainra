@@ -6,19 +6,18 @@ prepared: `packages/mcp/server.json` is written and valid, and `packages/mcp/pac
 field the registry uses to verify ownership.
 
 The registry is free, self-serve, needs no legal entity and no approval. It also hosts **metadata only** — the
-package itself must live on a package registry first. That is blocker one.
+package itself must live on a package registry first. That was blocker one, and it is now cleared.
 
-## Blocker 1 — `@ainra/mcp` is not published
+## Blocker 1 — CLEARED, 2026-09-19
 
-Verified against the public registry: `@ainra/mcp` returns *not found*. The registry entry would point at nothing.
+`@ainra/mcp@0.4.1` is live on npm with a Sigstore provenance statement. `npm install @ainra/mcp` in an empty
+directory, followed by speaking JSON-RPC to `node_modules/@ainra/mcp/src/server.mjs`, answers `tools/list` with all
+six tools — the package is installable, not merely publishable.
 
-**Two of the three reasons for that are gone.** Credentials are no longer one of them — `@ainra/sdk` and
-`@ainra/middleware` published from `.github/workflows/publish.yml` with provenance, and the same workflow now
-carries an `npm-mcp` target. Nor is packaging: the server used to resolve its sibling SDK, `docs/reasons.json` and
-the `ainra` CLI through repo-relative paths, and would not start outside a checkout; it is self-contained as of
-M33 (see `RELEASING.md`), proven by installing the packed tarball outside the repo and running it.
-
-What is left is a decision to publish, and it is gated on nothing technical.
+Its first publish also found the fifth npm failure mode: the run went **red** on `confirm the attestation is on
+the registry` while the package was live with provenance, because that step resolved the version through
+`npm view` and a brand-new packument 404s. See [`PUBLISHING.md`](PUBLISHING.md); the step now reads the version
+from the manifest it published.
 
 ## Blocker 2 — the namespace, and why we are not taking the easy one
 

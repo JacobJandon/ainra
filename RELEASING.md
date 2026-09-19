@@ -106,7 +106,7 @@ Publish order matters: **`@ainra/sdk` first** (the other two resolve it by name)
       after 0.2.0: `npm --prefix packages/middleware pkg set dependencies.@ainra/sdk="^$(node -p "require('./packages/sdk-ts/package.json').version")"`,
       which is exactly what `.github/workflows/publish.yml` runs. Then put `file:../sdk-ts` back so the checkout
       keeps building. Do the same rewrite for any future package that depends on a sibling via `file:`.
-- [ ] **`@ainra/mcp` — standalone as of M33; publishing is now a decision, not a blocker.** It was operated from a
+- [x] **`@ainra/mcp` — standalone as of M33, and PUBLISHED at 0.4.1 (2026-09-19).** It was operated from a
       checkout only: `src/tools.mjs` resolved its sibling SDK build, `docs/reasons.json` and the `ainra` CLI by
       repo-relative paths, so the server would not even *start* outside the monorepo (the reasons file is read at
       import time). All three are fixed: the SDK is imported by name (`file:../sdk-ts` in the checkout, rewritten to
@@ -115,7 +115,8 @@ Publish order matters: **`@ainra/sdk` first** (the other two resolve it by name)
       `ainra` on PATH, then a checkout build — because a compiled binary cannot ride in an npm tarball. Absent all
       three the read-only tools still work against a URL target; only the local-dir and write paths need a binary,
       and they say so by name. Proven by packing the tarball and running the installed server outside the repo.
-      `publish.yml` has an `npm-mcp` target. What remains is your call on whether a standalone runtime is wanted.
+      `publish.yml` has an `npm-mcp` target, which is how it went out. The only thing still parked is the MCP
+      *registry* listing, on a domain that does not exist yet — [`docs/MCP-REGISTRY.md`](docs/MCP-REGISTRY.md).
 - [ ] **Build fresh, from a clean tree:** `cd packages/sdk-ts && npm ci && npm run build` (and the same for
       `middleware`); `@ainra/mcp` has no build step.
 - [ ] **Publish each, public scope, with provenance:**

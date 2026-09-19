@@ -224,7 +224,10 @@ cat <<EOF
     cd packages/middleware && npm publish --access public --provenance && cd ../..
     npm --prefix packages/middleware pkg set dependencies.@ainra/sdk=file:../sdk-ts
 
-    # @ainra/mcp stays unpublished until it is standalone-ready (RELEASING.md)
+    # @ainra/mcp — same rewrite, no build step (it ships src/*.mjs):
+    npm --prefix packages/mcp pkg set dependencies.@ainra/sdk=^$V_SDK
+    cd packages/mcp && npm publish --access public --provenance && cd ../..
+    npm --prefix packages/mcp pkg set dependencies.@ainra/sdk=file:../sdk-ts
 
   PyPI  (prefer a Trusted Publisher from CI; a token only from a trusted machine)
     python3 -m venv ~/.venvs/ainra-publish && ~/.venvs/ainra-publish/bin/pip install build twine

@@ -38,9 +38,28 @@ if (!(count >= 1)) { console.error("--count must be >= 1"); process.exit(2); }
 mkdirSync(outDir, { recursive: true });
 const sha256 = (s) => createHash("sha256").update(s).digest("hex");
 
+// The registrar's write endpoints are bearer-authenticated (docs/SECURITY-STAGING.md). This tool posted without a
+// token and failed with a bare 401, which reads like the network is down rather than like a missing credential —
+// so the operator procedure in OPERATOR.md could not be followed as written against a hardened staging network.
+// The token is read from the environment or from the file the stage writes, and is never printed or logged.
+function issueToken() {
+  if (process.env.AINRA_STAGE_ISSUE_TOKEN) return process.env.AINRA_STAGE_ISSUE_TOKEN.trim();
+  for (const f of ["stage/.issue-token", ".issue-token"]) {
+    try { const t = readFileSync(f, "utf8").trim(); if (t) return t; } catch { /* try the next location */ }
+  }
+  return null;
+}
+const ISSUE_TOKEN = issueToken();
+
 async function post(path, body) {
-  const r = await fetch(`${registrar}${path}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
-  if (!r.ok) throw new Error(`POST ${path} → ${r.status}`);
+  const headers = { "content-type": "application/json" };
+  if (ISSUE_TOKEN) headers.authorization = `Bearer ${ISSUE_TOKEN}`;
+  const r = await fetch(`${registrar}${path}`, { method: "POST", headers, body: JSON.stringify(body) });
+  if (!r.ok) {
+    if (r.status === 401 || r.status === 403)
+      throw new Error(`POST ${path} → ${r.status}: the registrar refused the write. Set AINRA_STAGE_ISSUE_TOKEN, or run from a tree where stage/.issue-token exists (make stage-up writes it). The token is never printed.`);
+    throw new Error(`POST ${path} → ${r.status}`);
+  }
   return r.json();
 }
 async function present(sub) {

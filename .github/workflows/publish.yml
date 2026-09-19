@@ -126,19 +126,28 @@ jobs:
           if [ -n "$NODE_AUTH_TOKEN" ]; then echo "authenticating with NPM_TOKEN (first publish — the package does not exist yet, so OIDC is not available)";
           else echo "no NPM_TOKEN set — authenticating by OIDC trusted publishing"; fi
           npm publish --access public --provenance
+      # The version comes from the manifest that was just published, NEVER from `npm view`. The read side lags the
+      # write side: after publishing 0.4.1 the packument still said 0.4.0, so this step confirmed the PREVIOUS
+      # release's attestation and went green — a check that passes without looking at what it just shipped. On a
+      # FIRST publish the same lag is a 404 and the step failed a run whose package was live with provenance, which
+      # is the more dangerous direction: it teaches you to ignore a red release run. Poll, with the version pinned.
       - name: confirm the attestation is on the registry
         run: |
           case "${{ inputs.target }}" in
-            npm-sdk)        P=@ainra/sdk ;;
-            npm-middleware) P=@ainra/middleware ;;
-            npm-mcp)        P=@ainra/mcp ;;
+            npm-sdk)        DIR=packages/sdk-ts ;;
+            npm-middleware) DIR=packages/middleware ;;
+            npm-mcp)        DIR=packages/mcp ;;
           esac
-          sleep 20
-          npm view "$P" version
-          # fail the run if the published version carries no attestation
-          npm audit signatures --registry=https://registry.npmjs.org || true
-          curl -sf "https://registry.npmjs.org/-/npm/v1/attestations/$P@$(npm view "$P" version)" >/dev/null \
-            && echo "attestation present ✓" || { echo "::error::published WITHOUT an attestation"; exit 1; }
+          P=$(node -p "require('./$DIR/package.json').name")
+          V=$(node -p "require('./$DIR/package.json').version")
+          echo "confirming $P@$V (the version this run published, not whatever the packument currently says)"
+          for i in $(seq 1 12); do
+            if curl -sf "https://registry.npmjs.org/-/npm/v1/attestations/$P@$V" >/dev/null; then
+              echo "attestation present ✓ for $P@$V (after ~$((i*10))s)"; exit 0
+            fi
+            sleep 10
+          done
+          echo "::error::$P@$V has no attestation on the registry after 2 minutes"; exit 1
 
   pypi:
     name: PyPI — trusted publishing + PEP 740 attestations

@@ -1,14 +1,14 @@
 <!-- SPDX-License-Identifier: Apache-2.0 OR MIT -->
 # Publishing to npm and PyPI — everything that is done, and the two things that are not
 
-**Status: PUBLISHED — npm and PyPI, 2026-09-15.** v0.4.0 is tagged, board-proven, and
-`@ainra/sdk` + `@ainra/middleware` are live on the public registry **with Sigstore provenance** — built on a
-GitHub-hosted runner via `.github/workflows/publish.yml`, which is the only publish path because provenance
-cannot be retrofitted onto a version that is already public.
+**Status: PUBLISHED — npm and PyPI. v0.4.0 on 2026-09-15, v0.4.1 on 2026-09-19.** All four artifacts are live on
+the public registries **with Sigstore provenance** — built on a GitHub-hosted runner via
+`.github/workflows/publish.yml`, which is the only publish path because provenance cannot be retrofitted onto a
+version that is already public. v0.4.1 added `@ainra/mcp`, published for the first time once it could be installed
+rather than cloned, and superseded a PyPI wheel that reported its own version wrongly.
 
 ```
-packages            0.4.0 · sdk + middleware LIVE on npm, attestations YES
-                           mcp unpublished by design (standalone-ready gate, RELEASING.md)
+packages            0.4.1 · sdk + middleware + mcp LIVE on npm, attestations YES
                            PyPI `ainra` LIVE — trusted publishing, PEP 740 attestations, no token
 publish-preflight   READY — tag matches the package tree byte for byte
 install smokes      npm 1153/1153 · py wheel 1153/1153
@@ -22,6 +22,14 @@ the 2FA bypass — both capabilities are needed at once; (4) the publish then **
 reported failure on its last step, *confirm the attestation is on the registry*, because npm's packument endpoint
 lags the version endpoint by about a minute. A red run is not proof that nothing published — check the registry
 before re-running, because republishing a live version hard-fails.
+
+**The fifth failure mode, found on v0.4.1, was the confirmation step itself.** It resolved the version with
+`npm view` and then asked whether *that* version had an attestation. Because the read side lags, the step
+confirmed **0.4.0's** attestation seconds after publishing 0.4.1 — a green check that never looked at what the run
+had just shipped. The same lag, on `@ainra/mcp`'s first publish, returned a 404 and turned a **successful**
+publish into a red run: `+ @ainra/mcp@0.4.1` and a Sigstore provenance statement are in that run's log. Failing
+green and failing red for the same reason is the signature of a check that asks the wrong source. It now reads the
+name and version from the manifest it just published and polls the attestation endpoint for two minutes.
 
 **Still to do on npm:** configure a Trusted Publisher per package (GitHub Actions · `JacobJandon` · `ainra` ·
 `publish.yml` · environment **blank** — the npm job declares no environment), then **delete `NPM_TOKEN`** from

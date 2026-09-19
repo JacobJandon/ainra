@@ -70,7 +70,11 @@ try {
         .sort((a, b) => b.localeCompare(a, undefined, { numeric: true }));
     } catch { /* no releases dir — skip rather than assert something unverifiable */ }
     if (tags.length) {
-      const words = { 1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six" };
+      // The map has to outrun the release count, or the gate becomes unpassable at the release that exceeds it:
+      // at seven boards `words[7]` was undefined, so "seven" and "six" would BOTH have been reported wrong and the
+      // only way out is editing the checker mid-release — the exact moment nobody should be editing a checker.
+      const words = { 1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six", 7: "seven", 8: "eight",
+                      9: "nine", 10: "ten", 11: "eleven", 12: "twelve" };
       // "Current version" and "how many releases have boards" are DIFFERENT facts and must be read from different
       // places, or the two surfaces contradict each other mid-release. tools/site.sh already mandates one source
       // for the version — every vX.Y.Z printed in a page must equal apps/cli-node/package.json — so llms.txt reads
@@ -106,7 +110,10 @@ try {
         const body = readFileSync(ROOT + f, "utf8");
         for (const m of body.matchAll(claim)) {
           claims++;
-          if (m[1].toLowerCase() !== words[tags.length])
+          const expected = words[tags.length];
+          if (!expected)
+            fail(`${tags.length} board-proven releases, but this check knows no word for that number — extend the words map in tools/status-consistency.mjs (it must never compare against undefined)`);
+          else if (m[1].toLowerCase() !== expected)
             fail(`${f}: says "${m[0]}", but ${tags.length} board-proven release(s) exist (${tags.join(", ")})`);
         }
       }

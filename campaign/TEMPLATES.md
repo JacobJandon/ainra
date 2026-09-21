@@ -53,7 +53,7 @@ message carries no attachment and asks only a question; the material travels onl
 >
 > *<sign-off>*
 
-**Attach, in 1b only:** `outreach/ready/ainra-verifier-NN.zip` (challenge + one-pager). **Never** the answer key,
+**Attach, in 1b only:** `outreach/ready/packets/zips/ainra-verifier-NN.zip` (challenge + one-pager). **Never** the answer key,
 and never the same challenge to two people — the whole point is that a result is attributable.
 
 If they'd rather go deeper than an afternoon, point at the conformance programme: the full CC0 vector corpus and a
@@ -91,8 +91,11 @@ only one that can tell you the product is wrong while there is still time to cha
 >
 > *<sign-off>*
 
-**Attach:** `outreach/ready/custodian-packet/INVITATION.md`. Background: `outreach/CEREMONY-CUSTODIAN-BRIEF.md`,
-`docs/genesis-day/RUNBOOK.md`, `GOVERNANCE.md`.
+**No attachment** — the same reason as the verifier ask: a file from a stranger is the wrong first impression on
+exactly the people whose judgement you want. The full invitation text is
+`outreach/ready/packets/custodian-packet/INVITATION.md`; put it in the body. The runbook, the rehearsal evidence
+and the governance are public and linked, which is stronger than anything attached. Background:
+`outreach/CEREMONY-CUSTODIAN-BRIEF.md`, `docs/genesis-day/RUNBOOK.md`, `GOVERNANCE.md`.
 
 ## 4 · Witness ask — the easier second yes
 

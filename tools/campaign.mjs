@@ -20,6 +20,7 @@
 //   node tools/campaign.mjs nudge <id>               record the one follow-up this person gets
 //   node tools/campaign.mjs reply <id> <yes|no|later>
 //   node tools/campaign.mjs interview <id>           record a COMPLETED interview (opens its notes file)
+//   node tools/campaign.mjs log                      render everyone + state + next step → outreach/ready/CONTACT-LOG.md
 //   node tools/campaign.mjs drop <id> [--reason ..]  stop tracking someone (also the delete-my-data path)
 //   node tools/campaign.mjs gates                    the gate register, read live from each gate's source
 //   node tools/campaign.mjs record <K1|K4> <continuing|met|missed> --reason "..."   a reading, in the open
@@ -236,7 +237,13 @@ function cmdDraft() {
   if (!head) die(`no template section for kind "${p.kind}" in campaign/TEMPLATES.md`);
   const start = head.index + head[0].length;
   const nextIdx = tpl.indexOf("\n## ", start);
-  const body = tpl.slice(start, nextIdx === -1 ? undefined : nextIdx);
+  const section = tpl.slice(start, nextIdx === -1 ? undefined : nextIdx);
+  // A section may hold a two-step ask: ### 1a first contact, ### 1b after a yes. A draft is ONLY ever the first
+  // message. Reading every quoted line in the section merged both into one letter — the unsolicited email with a
+  // challenge attached, which is precisely the shape the split exists to prevent, and it reached real inboxes.
+  const subs = [...section.matchAll(/^### .+$/gm)];
+  const body = subs.length >= 2 ? section.slice(subs[0].index, subs[1].index) : section;
+  const twoStep = subs.length >= 2;
 
   const subject = (body.match(/\*\*Subject:\*\*\s*(.+)/) || [, "(no subject line in template)"])[1].trim();
   // the quoted block is the letter; strip the leading "> " and drop the template's own placeholder line
@@ -256,7 +263,10 @@ ${letter}
 --
 Draft for ${p.id} (${p.kind}). The first paragraph is YOUR sentence, stored with the candidate; everything below
 it is campaign/TEMPLATES.md § ${SECTION[p.kind]}, unedited. Read it before sending — nothing here was invented.
-${p.kind === "verifier" ? "Attach: the whole outreach/ready/verifier-NN/ folder (challenge + one-pager). NEVER the answer key.\n" : ""}`);
+${twoStep ? `This is the FIRST message only. Send it WITHOUT any attachment.
+After a yes, the follow-up is campaign/TEMPLATES.md § ${SECTION[p.kind]} (second part)${p.kind === "verifier"
+  ? `, carrying ONLY this person's own zip from outreach/ready/packets/zips/. NEVER the answer key.` : "."}
+` : ""}`);
   console.log(`draft → ${out.replace(ROOT, "")}`);
   console.log(`  your sentence: "${p.why}"`);
   console.log(`  template:      campaign/TEMPLATES.md § ${SECTION[p.kind]}`);
@@ -606,11 +616,60 @@ function requireApproved(p, verb) {
         `  refusing to ${verb}.`);
 }
 
+// ── log: one readable record of everyone, regenerated from the tracker ──────────────────────────────────────────
+// The tracker is the source of truth and it is JSON; a person running outreach needs to SEE who was asked, what
+// they said, and what happens next, in one place. Written by hand, that record drifts from the tracker within a
+// week. So it is rendered, never edited, and it lands beside the send-files in the gitignored outreach folder —
+// it carries names, so it can never be inside the repository (D-036).
+const LOG = ROOT + "outreach/ready/CONTACT-LOG.md";
+function cmdLog() {
+  const t = requireTracker();
+  const live = t.people.filter((p) => !p.dropped);
+  const state = (p) => p.interview_done ? "INTERVIEWED"
+    : p.reply === "yes" ? "YES" : p.reply === "no" ? "declined" : p.reply === "later" ? "later"
+    : p.sent ? (p.nudged ? "sent · nudged · waiting" : "sent · waiting")
+    : p.starred ? "READY TO SEND" : p.status === "approved" ? "approved, not queued" : "proposed";
+  const order = { YES: 0, INTERVIEWED: 1, later: 2, "sent · nudged · waiting": 3, "sent · waiting": 4,
+                  "READY TO SEND": 5, declined: 6, "approved, not queued": 7, proposed: 8 };
+  const next = (p) => {
+    const s = state(p);
+    if (s === "YES") return p.kind === "verifier" ? "send email 2 with their own zip; certify their attestation" : "schedule it";
+    if (s === "later") return (p.note || "").match(/[Ff]ollow up[^.;]*/)?.[0] || "follow up once, when they said";
+    if (s.startsWith("sent · waiting")) return `one nudge, one sentence: node tools/campaign.mjs nudge ${p.id}`;
+    if (s.includes("nudged")) return "nothing — the one nudge is spent";
+    if (s === "READY TO SEND") return `send it, then: node tools/campaign.mjs send ${p.id}`;
+    if (s === "declined") return "nothing — do not ask twice";
+    return "—";
+  };
+  const cell = (v) => String(v ?? "").replace(/\|/g, "\\|").replace(/\n/g, " ");
+  const counts = {};
+  for (const p of live) { const s = state(p); counts[s] = (counts[s] || 0) + 1; }
+  let md = `# AINRA contact log\n\nRendered by \`node tools/campaign.mjs log\` from \`campaign/tracker.local.json\`. **Do not edit —\n` +
+    `re-run the command.** Holds names and addresses: gitignored, never commit (D-036).\n\n` +
+    `**${live.filter((p) => p.sent).length} contacted** of ${live.length} tracked · ` +
+    Object.entries(counts).sort((a, b) => (order[a[0]] ?? 9) - (order[b[0]] ?? 9)).map(([k, v]) => `${v} ${k}`).join(" · ") + "\n";
+  const TITLES = { verifier: "Verifiers — run the kit, confirm it works", custodian: "Custodians — hold one of nine key shares",
+                   interview: "Interviews — twenty minutes to learn what they need", witness: "Witnesses — cosign the log" };
+  for (const k of KINDS) {
+    const rows = live.filter((p) => p.kind === k)
+      .sort((a, b) => (order[state(a)] ?? 9) - (order[state(b)] ?? 9) || a.id.localeCompare(b.id));
+    if (!rows.length) continue;
+    md += `\n## ${TITLES[k] || k} (${rows.length})\n\n| State | Who | Org | Contact | Packet | Next | Notes |\n|---|---|---|---|---|---|---|\n`;
+    for (const p of rows)
+      md += `| **${state(p)}** | ${cell(p.name || p.id)} | ${cell(p.org)} | ${cell(p.contact)} | ${cell(p.packet)} | ${cell(next(p))} | ${cell(p.note)} |\n`;
+  }
+  const gone = t.people.filter((p) => p.dropped).length;
+  if (gone) md += `\n${gone} dropped candidate(s) are omitted; their personal fields were cleared when they were dropped.\n`;
+  mkdirSync(ROOT + "outreach/ready", { recursive: true });
+  writeFileSync(LOG, md);
+  console.log(`log → ${LOG.replace(ROOT, "")}  (${live.length} people · ${live.filter((p) => p.sent).length} contacted)`);
+}
+
 // ── dispatch ─────────────────────────────────────────────────────────────────────────────────────────────────────
 const cmd = process.argv[2] || "status";
 ({
   status: cmdStatus, init: cmdInit, step: cmdStep, add: cmdAdd, send: cmdSend, nudge: cmdNudge, reply: cmdReply,
   star: cmdStar, draft: cmdDraft, approve: cmdApprove, review: cmdReview,
-  interview: cmdInterview, drop: cmdDrop, gates: cmdGates, record: cmdRecord, check: cmdCheck,
+  interview: cmdInterview, drop: cmdDrop, gates: cmdGates, record: cmdRecord, check: cmdCheck, log: cmdLog,
   render: () => renderDocs(has("check")),
-}[cmd] || (() => die(`unknown command "${cmd}". Try: status | init | step | add | review | approve | draft | star | send | nudge | reply | interview | drop | gates | record | render | check`)))();
+}[cmd] || (() => die(`unknown command "${cmd}". Try: status | log | init | step | add | review | approve | draft | star | send | nudge | reply | interview | drop | gates | record | render | check`)))();

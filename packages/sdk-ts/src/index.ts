@@ -24,6 +24,15 @@ import {
 
 export { canonicalize } from "./canon.js";
 
+// RFC 9421 presentation signing and verification (D-062, PLAN-M34). Re-exported from the package root so an
+// integrator gets it with `@ainra/sdk` rather than a deep import: the point of this layer is that the request
+// itself is bound, and a binding nobody can find protects nobody.
+export {
+  signPresentation, verifyPresentation, signatureBase, contentDigest, coveredComponents,
+  SIG_LABEL, SIG_ALG, PRESENTATION_HEADER, MAX_AGE_SECS, MAX_FUTURE_SECS,
+} from "./presentation.js";
+export type { PresentationReason, PresentationCheck, SignableRequest, SigParams } from "./presentation.js";
+
 // ── Verdicts + the 20 frozen reasons ───────────────────────────────────────────────────────────────────────────
 export type Reason =
   | "sig_invalid"

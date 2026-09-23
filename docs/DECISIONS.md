@@ -1162,3 +1162,48 @@ structure, canonical JSON, the validity window, the RFC 6962 leaf and inclusion 
 its fail-closed out-of-range rule — is fully recoverable.
 
 *Status:* NEW. Primer + drill + report, in preflight.
+
+## D-062 — The presentation is signed by the running copy, not by the key it may not hold
+
+*Problem:* the Master Technical Specification names **T-P3, replay of presentation**, and states its mitigation as
+"RFC 9421 nonce+created, 5-min window, nonce cache". No implementation does any of it. A presentation is a bundle
+in an ordinary header, and a header is a bearer token. Probed against the shipped middleware with its own
+fixtures: the identical captured bundle was accepted three times out of three, and no field of the verdict bound
+any of them to a request — no method, no authority, no path, no nonce, no timestamp. Whoever observes one
+presentation can present it anywhere until the credential expires.
+
+*The contradiction found while fixing it, which had to be resolved first:* the Standard §5 said "the request
+signature names the **passport key**", while ADR-019 (D-047) says the passport's **control key** "never enters the
+container". A running copy cannot sign with a key it is forbidden to hold. The two normative sentences could not
+both be honoured for the only case that matters — an agent making a request in production — and nothing had
+noticed, because neither was implemented.
+
+*Decision:* **the instance key signs the request.** The signature's `keyid` names the instance credential; the
+instance credential names its passport; the passport chains to the registrar and the root, which the verifier
+already walks. The passport key signs only where a holder legitimately has it — issuance, minting, operator
+tooling — and never inside a container. ADR-019's property is preserved exactly: what a stolen container holds
+stays bounded in time, narrow in scope, and killable from outside.
+
+*The profile, stated exactly, because a signature is worth only what it covers:*
+
+- **Covered components:** `@method`, `@authority`, `@path`, the presentation header, and `content-digest` whenever
+  a body exists. Dropping any one leaves a signature that survives being moved to another host, verb or path —
+  which is the attack, not a detail.
+- **Parameters:** `created`, `nonce`, `keyid`, `alg`. Acceptance window five minutes, matching the stated
+  mitigation and the instance PoP tolerance.
+- **Single use is the caller's job, and is documented as such.** `ainra-core` is N7: it holds no state, so it
+  cannot keep a nonce cache. The verifier rejects a signature outside the window; a caller that does not keep a
+  cache remains exposed to replay *inside* it. This is the same honest limit ADR-019 already records for the
+  instance PoP nonce, and it is stated in the module doc rather than left to be inferred.
+- **Hybrid or invalid**, with no speed exception — the rung closest to the workload is not where to save
+  microseconds (D-047).
+- **Four new refusal reasons, none reused:** `presentation_unsigned`, `presentation_sig_invalid`,
+  `presentation_stale`, `presentation_replayed`. Reusing `sig_invalid` would tell an integrator the registrar's
+  signature was broken when the request signature was simply moved, and a reason string is a diagnostic contract
+  (D-047).
+
+*What this does NOT do:* it does not make a compromised container harmless, and it does not eliminate replay. It
+binds a presentation to one method, host and path inside a five-minute window, and it gives a caller the material
+to close that window entirely. That is a bound, not a cure, and it is written that way.
+
+*Status:* NEW. Amends the Standard §5 (see `docs/AMENDMENTS.md`); implementation tracked in `docs/PLAN-M34.md`.

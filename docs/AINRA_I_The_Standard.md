@@ -64,7 +64,7 @@ An SD-JWT verifiable credential; selective disclosure by field. Canonical schema
   "registrar_sig": "…", "registrar_cert": { "…chains to root…" }
 }
 ```
-Registry-record fields only; mandates and fleets live outside the document (0.5.v). Presentation rides **HTTP message signatures**: the request signature names the passport key, so the credential travels inside ordinary web traffic. Instance credentials: running copies carry minutes-scale credentials minted locally under the passport, bound to the connection (mTLS) — a stolen token expires before it matters (I1).
+Registry-record fields only; mandates and fleets live outside the document (0.5.v). Presentation rides **HTTP message signatures** (RFC 9421): the request signature is made by the **running copy's instance key** and its `keyid` names the instance credential, which names the passport — so the credential travels inside ordinary web traffic and cannot be replayed onto another host, verb or path. The passport key signs only where a holder legitimately has it (issuance, minting, operator tooling) and never inside a container. Instance credentials: running copies carry minutes-scale credentials minted locally under the passport, **audience-bound and holder-bound by proof-of-possession** — a stolen token is narrow, expires before it matters, and dies when the passport is revoked (I1, ADR-019, D-062).
 
 ## 6. Authority classes
 Every passport declares who stands behind it; delegation may only narrow; chains stay provable to their anchor at any depth from the credential alone.

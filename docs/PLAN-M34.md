@@ -115,3 +115,36 @@ one thing a builder currently cannot find: how a request proves itself at the ed
 - No new tier, no new class, no registrar feature, nothing that touches P1–P6.
 - No change to what the root does. The root still accredits, anchors, revokes and logs.
 - No DoD row moves. M34 makes a claim true; it does not make a stranger verify it.
+
+---
+
+## Task 7 — Found by the end-to-end drill: the network does not keep time
+
+`tools/identity-e2e.mjs` runs the whole identity the way a stranger's agent would — its own key, a passport from
+the public door, an instance credential, a signed request through a real server running the real gate — at the
+**real** clock. It fails, and the reasons are more important than anything else in this milestone:
+
+1. **Every staging delegate certificate expired on 2026-07-09.** The daemon creates each registrar with
+   `create_seeded(..., NBF - 3600, NBF, EXP)` where `NBF` is a constant (2026-04-11), so delegates are born on
+   2026-04-10 and die 90 days later — on every registrar, on every restart. `deploy/runbooks/key-rotation.md` says
+   rotation is "restart with fresh delegates"; for this daemon a restart re-mints the same expired window.
+2. **Nothing noticed**, because every check pins the clock: `tools/stage-smoke.sh` sets `NOW` to 2026-04-21, and
+   the daily stranger journeys run inside the same frozen window. The staging network has been dead at real time
+   for two and a half months while every board stayed green.
+3. **A passport outlives the checkpoint its presentation carries.** `present()` returns the checkpoint and
+   inclusion proof stored at issuance, signed by that day's delegate. Once the delegate expires (≤92 days), the
+   passport is `checkpoint_invalid` — although ADR-017 gives it 366. A presentation has to prove inclusion against
+   a CURRENT checkpoint signed by a CURRENT delegate, as Certificate Transparency does.
+4. **The write path signs what the read path refuses.** On 2026-09-19 challenge minting against registrar-07 at the
+   real clock made the daemon sign revocation deltas with a delegate that had expired two months earlier. It saved
+   them, and now refuses to load them (`delta replay: checkpoint_invalid`). Confirmed pre-existing: the binary from
+   before D-063 fails identically on a copy of the same state.
+5. **Every verifier challenge minted after 2026-07-09 contains no valid passport** — packets 01–08 hold only
+   `revoked` and `checkpoint_invalid`. The attestation still binds execution (the revocations are still a secret
+   coin flip), but a stranger running the kit sees eight invalid passports and zero valid ones. The certification
+   check compares an attestation to the answer key, not to what a challenge is supposed to contain, so the kit
+   agreed with itself.
+
+What this needs is its own milestone — the network keeps time: wall-clock operation, delegate rotation before
+expiry, presentations against the current checkpoint, a write path that refuses to sign outside its delegate
+window, a mint that refuses a challenge with no valid passport, and a board that checks at the real clock.

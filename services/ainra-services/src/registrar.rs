@@ -70,6 +70,89 @@ pub struct IssueSpec {
     /// ADR-017: current tier-audit evidence — REQUIRED for L3/L4 (see [`AuditEvidence`]); ignored below L3.
     #[serde(default)]
     pub audit: Option<AuditEvidence>,
+    /// D-063 — CSR-style issuance: the agent's OWN hybrid public key (base64url). When present the registrar
+    /// certifies THIS key and never holds a secret for it. When absent the reference engine generates a keypair
+    /// in-process and keeps only the public half — the path the vector corpus uses, kept byte-identical.
+    ///
+    /// Why it matters: a passport bound to a key nobody holds cannot prove possession, cannot mint instance
+    /// credentials (ADR-019), and so cannot sign a request (D-062). It is a label with a signature on it.
+    #[serde(default)]
+    pub holder_key: Option<HybridB64>,
+    /// Proof the submitter holds `holder_key`: a hybrid signature over [`holder_pop_message`]. Required whenever
+    /// `holder_key` is present — a public key without a proof is a claim about somebody else's key.
+    #[serde(default)]
+    pub holder_pop: Option<HybridB64>,
+}
+
+/// A hybrid key or signature as it travels on the wire: both halves, base64url.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+pub struct HybridB64 {
+    pub ed25519: String,
+    pub mldsa65: String,
+}
+
+/// The bytes a holder signs to prove it holds the key it is asking this registrar to certify (D-063).
+///
+/// It binds three things and deliberately no more: the PURPOSE (so the signature cannot be lifted from any other
+/// protocol that happens to sign canonical JSON), the REGISTRAR (so a proof shown to one registrar is refused by
+/// every other), and the KEY. It does not bind the operator, lineage or version: the public door chooses the
+/// version itself, and what an attacker gains by replaying a captured proof here is a passport bound to a key
+/// they cannot use — duplicate subjects are refused, and the door is rate-limited.
+pub fn holder_pop_message(registrar: &str, key: &HybridB64) -> Result<String, IssueError> {
+    canon::canonicalize(&json!({
+        "holder": { "ed25519": key.ed25519, "mldsa65": key.mldsa65 },
+        "purpose": "ainra-holder-pop-v1",
+        "registrar": registrar,
+    }))
+    .map_err(|e| IssueError::Malformed(format!("canon holder pop message: {e:?}")))
+}
+
+/// Decode and check a caller-supplied holder key and its proof. Strict base64url, exact lengths, and a hybrid
+/// signature that verifies under the key itself. Every failure is a refusal before anything is signed or logged.
+fn verify_holder(
+    registrar: &str,
+    key: &HybridB64,
+    pop: Option<&HybridB64>,
+) -> Result<(), IssueError> {
+    let refuse = |why: &str| Err(IssueError::HolderProof(why.to_string()));
+    let pop = match pop {
+        Some(p) => p,
+        None => {
+            return refuse("a holder key was supplied without a proof that the submitter holds it")
+        }
+    };
+    let dec = |s: &str| b64::decode(s).ok();
+    let (Some(ed), Some(ml)) = (dec(&key.ed25519), dec(&key.mldsa65)) else {
+        return refuse("holder key is not canonical base64url");
+    };
+    let ed: [u8; crypto::ED25519_PK] = match ed.as_slice().try_into() {
+        Ok(a) => a,
+        Err(_) => return refuse("holder ed25519 key has the wrong length"),
+    };
+    if ml.len() != crypto::MLDSA65_PK {
+        return refuse("holder ml-dsa-65 key has the wrong length");
+    }
+    let (Some(sed), Some(sml)) = (dec(&pop.ed25519), dec(&pop.mldsa65)) else {
+        return refuse("holder proof is not canonical base64url");
+    };
+    let msg = holder_pop_message(registrar, key)?;
+    let pk = crypto::HybridPublic {
+        ed25519: ed,
+        mldsa65: ml,
+    };
+    crypto::verify_hybrid(
+        &pk,
+        msg.as_bytes(),
+        &crypto::HybridSig {
+            ed25519: sed,
+            mldsa65: sml,
+        },
+    )
+    .map_err(|r| {
+        IssueError::HolderProof(format!(
+            "holder proof does not verify under the submitted key ({r:?})"
+        ))
+    })
 }
 
 /// The tier and authority-class vocabularies are CLOSED (MTS §15: L0..L4, A1..A4). Issuance refuses anything
@@ -290,6 +373,10 @@ pub enum IssueError {
     /// ADR-017: a revoked lineage attempted to renew — revocation is the kill switch; renewal is for lineages
     /// in good standing, so a reissue can never launder a revoked lineage into a fresh status index.
     LineageRevoked(String),
+    /// D-063: a caller-supplied holder key came without a valid proof of possession. Its own variant rather than
+    /// `Malformed`, because "you did not prove you hold this key" is a different thing to tell an integrator than
+    /// "your request was badly formed".
+    HolderProof(String),
     /// ADR-017: L3+ issuance/renewal requires current tier-audit evidence, and none was supplied.
     AuditRequired(String),
     /// ADR-017: the requested passport `exp` exceeds the tier audit's own expiry — "audited" must mean audited
@@ -306,6 +393,7 @@ impl core::fmt::Display for IssueError {
             IssueError::Io(s) => write!(f, "io: {s}"),
             IssueError::ReissueContinuity(s) => write!(f, "reissue continuity: {s}"),
             IssueError::LineageRevoked(s) => write!(f, "lineage revoked: {s}"),
+            IssueError::HolderProof(s) => write!(f, "holder proof refused: {s}"),
             IssueError::AuditRequired(s) => write!(f, "audit required: {s}"),
             IssueError::AuditStale(s) => write!(f, "audit stale: {s}"),
         }
@@ -684,10 +772,24 @@ impl RegistrarBox {
         // credential must never advertise fabricated key material). In a production flow the agent generates this
         // and submits the public half (CSR-style); the reference engine generates it in-process. `cnf.jkt` is a
         // real thumbprint: SHA-256 over the canonical JSON of the two public keys (JWK-thumbprint-style binding).
-        let holder = crypto::HybridKeypair::generate(rng);
-        let holder_pub = holder.public();
-        let holder_ed = b64::encode(&holder_pub.ed25519);
-        let holder_ml = b64::encode(&holder_pub.mldsa65);
+        //
+        // D-063: when the caller supplies its own key, certify THAT key — after proving the caller holds it — and
+        // generate nothing. The in-process branch below is left exactly as it was, byte for byte and RNG draw for RNG
+        // draw, because the vector corpus is generated through it and a single extra draw would shift every vector.
+        let (holder_ed, holder_ml) = match &spec.holder_key {
+            Some(k) => {
+                verify_holder(&self.id, k, spec.holder_pop.as_ref())?;
+                (k.ed25519.clone(), k.mldsa65.clone())
+            }
+            None => {
+                let holder = crypto::HybridKeypair::generate(rng);
+                let holder_pub = holder.public();
+                (
+                    b64::encode(&holder_pub.ed25519),
+                    b64::encode(&holder_pub.mldsa65),
+                )
+            }
+        };
         let jkt = {
             use sha2::{Digest, Sha256};
             let canon_key =
@@ -942,6 +1044,8 @@ impl RegistrarBox {
             scope_ceiling: old.scope_ceiling.clone(),
             hops: vec![],
             audit: audit.cloned(),
+            holder_key: None,
+            holder_pop: None,
         };
         let new_rec =
             self.issue_with(&spec, new_sub.clone(), window, Some(&head_leaf), &[], rng)?;
@@ -1351,6 +1455,8 @@ mod tests {
             scope_ceiling: vec!["read:invoices".into(), "sign:invoice".into()],
             hops: vec![],
             audit: None,
+            holder_key: None,
+            holder_pop: None,
         }
     }
 
@@ -1358,6 +1464,160 @@ mod tests {
         let mut rng = ChaCha20Rng::seed_from_u64(0x9E_11_A2_02);
         let now = NBF - 1000;
         RegistrarBox::create(dir, "registrar-07", 64, now, NBF, EXP, &mut rng).unwrap()
+    }
+
+    // ── D-063: the agent holds its own key ─────────────────────────────────────────────────────────────────────────
+    //
+    // Until D-063 every passport was bound to a key the registrar generated and immediately dropped, so nobody
+    // could ever prove possession of it. These tests assert the new path certifies the CALLER's key, and that each
+    // way of claiming a key you do not hold is refused before anything is signed or logged.
+
+    fn holder_csr(
+        registrar: &str,
+        rng: &mut ChaCha20Rng,
+    ) -> (crypto::HybridKeypair, HybridB64, HybridB64) {
+        let kp = crypto::HybridKeypair::generate(rng);
+        let p = kp.public();
+        let key = HybridB64 {
+            ed25519: b64::encode(&p.ed25519),
+            mldsa65: b64::encode(&p.mldsa65),
+        };
+        let msg = holder_pop_message(registrar, &key).unwrap();
+        let sig = kp.sign(msg.as_bytes()).unwrap();
+        let pop = HybridB64 {
+            ed25519: b64::encode(&sig.ed25519),
+            mldsa65: b64::encode(&sig.mldsa65),
+        };
+        (kp, key, pop)
+    }
+
+    fn holder_keys_of(rec: &IssuedRecord) -> serde_json::Value {
+        let v: serde_json::Value = serde_json::from_str(&rec.claims).unwrap();
+        v["keys"][0].clone()
+    }
+
+    #[test]
+    fn csr_issuance_certifies_the_callers_key_and_still_verifies() {
+        let tmp = std::env::temp_dir().join("ainra-rb-csr-ok");
+        let _ = std::fs::remove_dir_all(&tmp);
+        let mut rb = engine(&tmp);
+        let mut rng = ChaCha20Rng::seed_from_u64(5400 + 4);
+        let (_kp, key, pop) = holder_csr("registrar-07", &mut rng);
+        let mut s = spec("acme", "csr", "1.0.0");
+        s.holder_key = Some(key.clone());
+        s.holder_pop = Some(pop);
+        let rec = rb.issue(&s, &[], &mut rng).unwrap();
+        let k = holder_keys_of(&rec);
+        assert_eq!(
+            k["ed25519"], key.ed25519,
+            "the passport must carry the CALLER's ed25519 key"
+        );
+        assert_eq!(
+            k["mldsa65"], key.mldsa65,
+            "the passport must carry the CALLER's ml-dsa-65 key"
+        );
+        assert_eq!(
+            rb.verify_record(&rec.sub, VERIFY_NOW),
+            Verdict::Valid,
+            "and it must still verify"
+        );
+    }
+
+    #[test]
+    fn csr_without_a_proof_is_refused() {
+        let tmp = std::env::temp_dir().join("ainra-rb-csr-nopop");
+        let _ = std::fs::remove_dir_all(&tmp);
+        let mut rb = engine(&tmp);
+        let mut rng = ChaCha20Rng::seed_from_u64(5400 + 5);
+        let (_kp, key, _pop) = holder_csr("registrar-07", &mut rng);
+        let mut s = spec("acme", "nopop", "1.0.0");
+        s.holder_key = Some(key);
+        assert!(matches!(
+            rb.issue(&s, &[], &mut rng),
+            Err(IssueError::HolderProof(_))
+        ));
+    }
+
+    #[test]
+    fn a_proof_made_for_another_registrar_is_refused() {
+        let tmp = std::env::temp_dir().join("ainra-rb-csr-otherreg");
+        let _ = std::fs::remove_dir_all(&tmp);
+        let mut rb = engine(&tmp);
+        let mut rng = ChaCha20Rng::seed_from_u64(5400 + 6);
+        let (_kp, key, pop) = holder_csr("registrar-11", &mut rng);
+        let mut s = spec("acme", "otherreg", "1.0.0");
+        s.holder_key = Some(key);
+        s.holder_pop = Some(pop);
+        assert!(
+            matches!(rb.issue(&s, &[], &mut rng), Err(IssueError::HolderProof(_))),
+            "a proof shown to one registrar must be worthless at every other"
+        );
+    }
+
+    #[test]
+    fn claiming_someone_elses_key_is_refused() {
+        let tmp = std::env::temp_dir().join("ainra-rb-csr-theft");
+        let _ = std::fs::remove_dir_all(&tmp);
+        let mut rb = engine(&tmp);
+        let mut rng = ChaCha20Rng::seed_from_u64(5400 + 7);
+        let (_victim, victim_key, _) = holder_csr("registrar-07", &mut rng);
+        let (_attacker, _, attacker_pop) = holder_csr("registrar-07", &mut rng);
+        let mut s = spec("acme", "theft", "1.0.0");
+        s.holder_key = Some(victim_key);
+        s.holder_pop = Some(attacker_pop);
+        assert!(
+            matches!(rb.issue(&s, &[], &mut rng), Err(IssueError::HolderProof(_))),
+            "a proof by one key must not certify another"
+        );
+    }
+
+    #[test]
+    fn a_malformed_holder_key_is_refused_not_certified() {
+        let tmp = std::env::temp_dir().join("ainra-rb-csr-malformed");
+        let _ = std::fs::remove_dir_all(&tmp);
+        let mut rb = engine(&tmp);
+        let mut rng = ChaCha20Rng::seed_from_u64(5400 + 8);
+        let (_kp, key, pop) = holder_csr("registrar-07", &mut rng);
+        for bad in [
+            HybridB64 {
+                ed25519: key.ed25519[..20].to_string(),
+                mldsa65: key.mldsa65.clone(),
+            },
+            HybridB64 {
+                ed25519: key.ed25519.clone(),
+                mldsa65: key.mldsa65[..100].to_string(),
+            },
+            HybridB64 {
+                ed25519: "!!!not-base64!!!".into(),
+                mldsa65: key.mldsa65.clone(),
+            },
+        ] {
+            let mut s = spec("acme", "malformed", "1.0.0");
+            s.holder_key = Some(bad);
+            s.holder_pop = Some(pop.clone());
+            assert!(matches!(
+                rb.issue(&s, &[], &mut rng),
+                Err(IssueError::HolderProof(_))
+            ));
+        }
+    }
+
+    #[test]
+    fn a_refused_csr_leaves_nothing_behind() {
+        let tmp = std::env::temp_dir().join("ainra-rb-csr-nothing");
+        let _ = std::fs::remove_dir_all(&tmp);
+        let mut rb = engine(&tmp);
+        let mut rng = ChaCha20Rng::seed_from_u64(5400 + 9);
+        let before = rb.records().count();
+        let (_kp, key, _) = holder_csr("registrar-07", &mut rng);
+        let mut s = spec("acme", "leaves", "1.0.0");
+        s.holder_key = Some(key);
+        let _ = rb.issue(&s, &[], &mut rng);
+        assert_eq!(
+            rb.records().count(),
+            before,
+            "a refusal must not allocate a record, a status bit, or a log entry"
+        );
     }
 
     #[test]

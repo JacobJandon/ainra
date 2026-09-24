@@ -273,6 +273,8 @@ pub fn build(out_root: &std::path::Path) -> std::io::Result<serde_json::Value> {
                         expires: EXP,
                     }
                 }),
+                holder_key: None,
+                holder_pop: None,
             };
             let rec = rb
                 .issue(&spec, &[], &mut rng)

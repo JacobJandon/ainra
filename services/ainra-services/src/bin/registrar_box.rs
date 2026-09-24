@@ -23,7 +23,7 @@ use std::time::Instant;
 
 use ainra_core::{b64, Verdict};
 use ainra_services::http::{serve, Request};
-use ainra_services::registrar::{AuditEvidence, IssueSpec, RegistrarBox};
+use ainra_services::registrar::{AuditEvidence, HybridB64, IssueSpec, RegistrarBox};
 use ainra_services::status::{WireDelta, WireFreshHead};
 use rand_chacha::ChaCha20Rng;
 use rand_core::{RngCore, SeedableRng};
@@ -129,6 +129,8 @@ fn demo_spec(rng: &mut ChaCha20Rng, operator: &str, lineage: &str) -> IssueSpec 
         scope_ceiling: vec!["demo:specimen".to_string()],
         hops: vec![],
         audit: None,
+        holder_key: None,
+        holder_pop: None,
     }
 }
 /// `true` iff `sub` is a specimen THIS registrar minted through the public door (stamped `demo:specimen`) — the
@@ -309,7 +311,17 @@ fn main() {
                     .and_then(|x| x.as_str())
                     .unwrap_or("demo");
                 let State { rb, rng, .. } = &mut *st;
-                let spec = demo_spec(rng, operator, lineage);
+                let mut spec = demo_spec(rng, operator, lineage);
+                // D-063: a visitor's agent may bring its OWN key, with a proof it holds it. Then the specimen it
+                // receives is one it can actually use — prove possession of, and mint instance credentials under —
+                // instead of one bound to a key the registrar generated and threw away. Omit both and the door
+                // behaves exactly as before.
+                let hybrid = |k: &str| {
+                    body.get(k)
+                        .and_then(|v| serde_json::from_value::<HybridB64>(v.clone()).ok())
+                };
+                spec.holder_key = hybrid("holder_key");
+                spec.holder_pop = hybrid("holder_pop");
                 match rb.issue(&spec, &[], rng) {
                     Ok(rec) => {
                         persist(rb, &id);

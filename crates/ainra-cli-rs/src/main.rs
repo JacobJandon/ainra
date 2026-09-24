@@ -195,6 +195,8 @@ fn cmd_issue(a: &[String]) -> i32 {
                 reference: opt(a, "audit-ref").unwrap_or("audit-evidence").into(),
                 expires,
             }),
+        holder_key: None,
+        holder_pop: None,
     };
     let mut rb = match load(dir) {
         Ok(rb) => rb,
@@ -684,6 +686,8 @@ fn cmd_demo() -> i32 {
             reference: "audit-demo-invoicing".into(),
             expires: seed::EXP,
         }),
+        holder_key: None,
+        holder_pop: None,
     };
     let rec = match rb.issue(&spec, &[], &mut rng) {
         Ok(r) => r,

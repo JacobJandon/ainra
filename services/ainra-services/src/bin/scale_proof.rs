@@ -454,6 +454,8 @@ fn issuance_and_sharding() {
                 scope_ceiling: vec!["read:data".into()],
                 hops: vec![],
                 audit: None,
+                holder_key: None,
+                holder_pop: None,
             };
             rb.issue(&spec, &[], rng).expect("issue");
         }
@@ -526,6 +528,8 @@ fn issuance_and_sharding() {
                         scope_ceiling: vec!["read:data".into()],
                         hops: vec![],
                         audit: None,
+                        holder_key: None,
+                        holder_pop: None,
                     };
                     rb.issue(&spec, &[], &mut rng).expect("issue");
                 }

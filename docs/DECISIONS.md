@@ -1207,3 +1207,33 @@ binds a presentation to one method, host and path inside a five-minute window, a
 to close that window entirely. That is a bound, not a cure, and it is written that way.
 
 *Status:* NEW. Amends the Standard §5 (see `docs/AMENDMENTS.md`); implementation tracked in `docs/PLAN-M34.md`.
+
+## D-063 — A passport is bound to a key its agent actually holds
+
+*Problem:* every passport the reference registrar issued was bound to a key **nobody held**. `issue_with`
+generated a fresh hybrid keypair, put its public half in the claims and the `cnf.jkt` thumbprint, and dropped the
+secret. The code's own comment named the production design — "the agent generates this and submits the public half
+(CSR-style)" — and said the reference engine did not do it. The consequence ran all the way up the stack: nobody
+could prove possession at the passport rung, nobody could mint an instance credential under it (ADR-019 needs the
+control key), and so nobody could sign a request with it (D-062). A passport bound to an unheld key is a label with
+a signature on it.
+
+*Decision:* `IssueSpec` carries an optional `holder_key` (both public halves, base64url) and a `holder_pop` — a
+hybrid signature, by that key, over a canonical message binding the **purpose** (`ainra-holder-pop-v1`, so the
+signature cannot be lifted from another protocol that signs canonical JSON), the **registrar** (so a proof shown to
+one registrar is worthless at every other), and the **key**. The registrar verifies the proof, certifies that key,
+and generates and holds nothing. The public demo door accepts both.
+
+*What it deliberately does not bind:* operator, lineage and version. The public door chooses the version itself,
+and a captured proof replayed here yields a passport bound to a key the replayer cannot use — duplicate subjects are
+refused, and the door is rate-limited. Binding more would buy nothing and would break the door.
+
+*The corpus is untouched, and that was a constraint, not luck:* the in-process branch is byte-for-byte and
+draw-for-draw what it was, because every vector is generated through it and one extra RNG draw would shift all of
+them. `make vectors-check` reproduces 1153 passport, 17 delta and 9 directory vectors with zero change in `vectors/`.
+
+*Negative control:* with the proof check disabled, the five refusal tests fail — no proof, a proof for another
+registrar, a proof by a different key, malformed keys, and a refusal leaving state behind — while the positive test,
+which asserts the caller's key is certified **and** the passport still verifies, keeps passing.
+
+*Status:* NEW. Registrar + demo door. The client that generates the key and presents it is next (PLAN-M34).

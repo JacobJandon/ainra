@@ -1,3 +1,10 @@
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+//
+// M34 / D-062. The probe in PLAN-M34 showed a captured presentation being accepted three times out of three, with
+// nothing binding it to a request. These tests are that probe, inverted: each one moves exactly one thing about the
+// request and asserts the signature stops being valid. A test that only proves the happy path would not have caught
+// the defect this layer exists to close.
+
 import test from "node:test";
 import assert from "node:assert/strict";
 import { ml_dsa65 } from "@noble/post-quantum/ml-dsa";

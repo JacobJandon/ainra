@@ -8,11 +8,21 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 const SPDX = "SPDX-License-Identifier: Apache-2.0 OR MIT";
+// Every directory that ships or tests shipped code. The list used to stop at the SDK's src/, so a test file that
+// lost its header in an edit (packages/sdk-ts/test/presentation.test.mjs, M34) passed this check while every
+// neighbour carried one by habit. A rule enforced by habit is the kind M32 set out to remove.
 const DIRS = [
   "crates",
   "packages/sdk-ts/src",
+  "packages/sdk-ts/test",
+  "packages/middleware/src",
+  "packages/middleware/test",
+  "packages/mcp/src",
+  "packages/mcp/test",
   "packages/sdk-py/ainra",
   "packages/sdk-py/tests",
+  "apps/cli-node/bin",
+  "kits",
   "tools",
   "fuzz/fuzz_targets",
 ];

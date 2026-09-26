@@ -1237,3 +1237,53 @@ registrar, a proof by a different key, malformed keys, and a refusal leaving sta
 which asserts the caller's key is certified **and** the passport still verifies, keeps passing.
 
 *Status:* NEW. Registrar + demo door. The client that generates the key and presents it is next (PLAN-M34).
+
+## D-064 — The network keeps time (M35)
+
+*Problem:* PLAN-M34 Task 7. Every delegate certificate on the staging network expired on 2026-07-09, and every
+board stayed green because every check pinned the clock inside the 2026-04 window. At the real clock the network
+could not produce one verifiable passport. Underneath that were four more defects, each of which would have
+survived a naive "renew the certs" fix: a presentation carried the checkpoint stored at issuance, so a passport died
+with its first ≤92-day delegate although ADR-017 gives it 366 days; the write path signed revocation deltas with a
+lapsed delegate and saved state the read path then refused to load; the daemon's operational RNG was seeded from the
+registrar id, so a restart replayed the same draws and the demo door minted a name that already existed; and a
+registrar started without a write token accepted unauthenticated issuance and revocation.
+
+*Decision:*
+
+1. **Delegates renew at the wall clock.** `RegistrarBox::ensure_delegates(now)` re-certifies the log and status
+   delegates — the same keys, a fresh cert from the root — once a cert has not started, has lapsed, or is within
+   `DELEGATE_RENEW_LEAD` (14 days) of expiry. The daemon calls it at startup (and exits if it fails) and before every
+   request (and answers 503 if it fails). Nothing is rotated by hand, and a restart rotates nothing.
+2. **A presentation proves inclusion against the current checkpoint** — the Certificate Transparency model.
+   `present()` and `verify_record()` both use the current signed checkpoint, the current inclusion proof, and the
+   current proof for **every delegation hop**. The stored values stay on the record as the issuance receipt.
+3. **The write path refuses to sign outside its delegate window** (`IssueError::DelegateWindow`), before touching
+   state. On reload, the status delegate is re-certified to cover each saved delta's timestamp, so a registrar that
+   renewed can still read its own history.
+4. **The clock is explicit.** `AINRA_CLOCK=pinned` keeps the reproducible 2026-04 world, and says so, for the
+   hermetic drills and the staging network; the default is the wall clock. `make live-up` runs registrar-07 on the
+   wall clock with the public door open (TEST-ROOT, state in the gitignored `live/`).
+5. **Writes fail closed.** With no token, `/issue`, `/revoke` and `/renew` refuse (401). Open writes need
+   `AINRA_OPEN_WRITES=1`, which the daemon refuses on any address but loopback.
+6. **Operational randomness comes from the OS** unless the clock is pinned, and the demo door retries a duplicate
+   name a bounded number of times.
+7. **A challenge that tests nothing is refused.** `mint-challenge.mjs` fails if an un-revoked bundle does not verify
+   `valid`, and it waits out the registrar's write limit instead of dying on the first 429.
+
+*Evidence:* `make identity-e2e` passes at the real clock against `make live-up`: the agent's own key, a passport
+from the public door, an instance credential, a signed request let in — then refused moved, unsigned, replayed and
+revoked. `make live-status` reads the delegate window from a real presentation, not from the registrar's
+description of itself. Negative controls: each fix, removed on its own, fails only its own test —
+`a_passport_outlives_its_first_delegate_once_delegates_renew`, `renewal_fires_inside_the_lead_not_only_after_expiry`,
+`revoking_outside_the_delegate_window_is_refused_and_changes_nothing`,
+`a_registrar_that_renewed_still_reloads_its_own_snapshot`, and `a_delegated_passport_stays_valid_after_later_issuance`.
+The last one exists because the first version of (2) refreshed the passport's proof but not its hops' — every
+delegated passport came back `not_logged` after any later issuance. No unit test had a hop; `make
+presentation-diff` caught it. The corpus is unchanged: `make vectors-check` reproduces `vectors/` byte for byte.
+
+*What it does not fix:* the presentation still rides in request headers — 66.7 KiB, more than common proxies accept
+(8–32 KiB). Moving the bundle into the body, or behind a reference, is the next milestone. The eight verifier
+challenges minted before this fix hold no valid passport; they are to be re-minted on the live network, not repaired.
+
+*Status:* NEW. Registrar, daemon, drills, mint, runbook (`deploy/runbooks/key-rotation.md`).

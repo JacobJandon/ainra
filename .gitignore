@@ -118,3 +118,6 @@ campaign/tracker.local.json
 campaign/notes/
 deploy/systemd/env/
 campaign/sendbox/
+
+# M35: the wall-clock live network (tools/live.sh) — local state, never committed
+live/

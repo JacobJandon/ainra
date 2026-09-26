@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 //
-// STATUS (M34 Task 7): this drill FAILS today, correctly — the staging network does not keep time. See PLAN-M34.
+// STATUS: passes against the wall-clock live registrar (`make live-up`, M35). It FAILS against the pinned staging
+// network, correctly — that world is fixed at 2026-04-21 and says so.
 //
 // make identity-e2e — the whole working identity, end to end, the way a stranger's agent would do it.
 //
@@ -36,7 +37,7 @@ const load = async (m) => import(pathToFileURL(sdkRequire.resolve(m)).href);
 const { ml_dsa65 } = await load("@noble/post-quantum/ml-dsa");
 const { ed25519 } = await load("@noble/curves/ed25519");
 
-const REG = process.env.AINRA_REGISTRAR ?? "http://127.0.0.1:4907";
+const REG = process.env.AINRA_REGISTRAR ?? "http://127.0.0.1:4970";   // the wall-clock live registrar (make live-up)
 const ART = process.env.AINRA_ARTIFACTS ?? "http://127.0.0.1:8091";
 const AUD = "https://shop.example";
 const now = () => Math.floor(Date.now() / 1000);

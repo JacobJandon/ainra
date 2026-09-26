@@ -6,6 +6,11 @@
 # The positive run alone would prove nothing. A probe that always says COMPLIANT says COMPLIANT about a registrar
 # suppressing revocations too — so the four controls are the deliverable and the honest run is the baseline.
 set -euo pipefail
+# M35: this drill runs at the fixed genesis instant on purpose — it is HERMETIC, and a reproducible clock is
+# what makes it reproducible. The daemon now defaults to the wall clock, so pinning is stated, not assumed.
+export AINRA_CLOCK=pinned
+# Its registrars write with no token. The daemon now refuses that unless asked — and only on loopback.
+export AINRA_OPEN_WRITES=1
 cd "$(dirname "$0")/.."
 
 PORT="${AINRA_PROBE_PORT:-4951}"
@@ -26,7 +31,9 @@ cargo build --release -q -p ainra-services --bin registrar-box -p ainra-ceremony
 (cd kits/probe && npm install --prefer-offline --no-audit --no-fund --silent)
 
 echo "== stand up a real registrar (staging: the public door is open) + accredit it =="
-if curl -sf "http://127.0.0.1:$PORT/accreditation" >/dev/null 2>&1; then
+# ANY listener, not only a registrar: the staging witness holds 4991, and a /accreditation probe missed it — the
+# daemon then died on bind and the drill reported a crash instead of a collision.
+if (exec 3<>"/dev/tcp/127.0.0.1/$PORT") 2>/dev/null; then
   echo "FAIL: 127.0.0.1:$PORT already serving — kill the leftover daemon"; exit 1
 fi
 # A write token, so P0 has something real to be refused BY. Never passed to the probe. The variable name matters:

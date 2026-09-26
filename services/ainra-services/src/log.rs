@@ -102,6 +102,34 @@ impl Logd {
         Ok(self.tree.append(entry))
     }
 
+    /// The window the checkpoint delegate is certified for.
+    pub fn cert_window(&self) -> (u64, u64) {
+        (self.cert.nbf, self.cert.exp)
+    }
+
+    /// Re-certify the SAME delegate key for a fresh window `[now, now + validity]` (M35).
+    ///
+    /// Without this the delegate dies on a calendar: a registrar created at a fixed instant signs every checkpoint
+    /// with a cert that expires ≤92 days later, and from then on every passport it ever issued verifies as
+    /// `checkpoint_invalid` — which is how the staging network sat dead at the real clock for two and a half months
+    /// while every pinned-clock board stayed green. Renewing the cert, not the key, keeps every accreditation the
+    /// published directory already carries valid: the verifier chains the new cert to the same root.
+    pub fn renew_cert(
+        &mut self,
+        root: &crypto::TestRootSlh,
+        now: u64,
+        validity: u64,
+    ) -> Result<(), ainra_core::Error> {
+        self.cert = DelegateCert::issue_test_root(
+            root,
+            self.delegate.public(),
+            vec![ainra_core::checkpoint::SCOPE_CHECKPOINT.to_string()],
+            now,
+            now + validity,
+        )?;
+        Ok(())
+    }
+
     /// The current checkpoint, signed by the delegate (ADR-002 mode).
     pub fn signed_checkpoint(&self) -> Checkpoint {
         Checkpoint {

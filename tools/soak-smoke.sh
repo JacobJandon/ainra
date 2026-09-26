@@ -5,6 +5,11 @@
 # render the live page, emit a signed report, and independently verify the log + report. All latencies are MEASURED.
 # A real 14-day / 3-region run is the same instrument with --duration-sec and regional --registrar URLs (see README).
 set -euo pipefail
+# M35: this drill runs at the fixed genesis instant on purpose — it is HERMETIC, and a reproducible clock is
+# what makes it reproducible. The daemon now defaults to the wall clock, so pinning is stated, not assumed.
+export AINRA_CLOCK=pinned
+# Its registrars write with no token. The daemon now refuses that unless asked — and only on loopback.
+export AINRA_OPEN_WRITES=1
 cd "$(dirname "$0")/.."
 CYCLES="${1:-20}"
 PORT="${AINRA_SOAK_PORT:-4941}"
@@ -19,7 +24,9 @@ cargo build --release -q -p ainra-services --bin registrar-box -p ainra-ceremony
 (cd kits/soak && npm install --prefer-offline --no-audit --no-fund --silent)
 
 echo "== start a real registrar + accredit it (root dark for the vantage points) =="
-if curl -sf "http://127.0.0.1:$PORT/accreditation" >/dev/null 2>&1; then
+# ANY listener, not only a registrar: the staging witness holds 4991, and a /accreditation probe missed it — the
+# daemon then died on bind and the drill reported a crash instead of a collision.
+if (exec 3<>"/dev/tcp/127.0.0.1/$PORT") 2>/dev/null; then
   echo "FAIL: 127.0.0.1:$PORT already serving — kill the leftover daemon"; exit 1
 fi
 ./target/release/registrar-box "127.0.0.1:$PORT" registrar-07 "$WORK/rb" >/dev/null 2>"$WORK/rb.err" &

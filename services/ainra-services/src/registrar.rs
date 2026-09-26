@@ -32,6 +32,10 @@ use crate::status::Statusd;
 /// [`ainra_core::consts`]; the compile-time assert keeps this operational choice from ever drifting past it.
 const CERT_VALIDITY: u64 = 90 * 24 * 60 * 60;
 const _: () = assert!(CERT_VALIDITY <= ainra_core::consts::DELEGATE_CERT_MAX_SECS);
+/// Re-certify a delegate when fewer than this many seconds remain (M35). Two weeks: long enough that a registrar
+/// which is only occasionally restarted still renews well before its checkpoints stop verifying.
+pub const DELEGATE_RENEW_LEAD: u64 = 14 * 24 * 60 * 60;
+const _: () = assert!(DELEGATE_RENEW_LEAD < CERT_VALIDITY);
 
 /// A single delegation hop to author (pre-signing). `granted` MUST be ⊆ the delegator's effective set — the engine
 /// does not widen for you; a widening chain will simply verify to `chain_widening`.
@@ -377,6 +381,9 @@ pub enum IssueError {
     /// `Malformed`, because "you did not prove you hold this key" is a different thing to tell an integrator than
     /// "your request was badly formed".
     HolderProof(String),
+    /// M35: asked to sign at an instant outside the delegate's certified window. Refused rather than signed, because
+    /// the registrar would reject that signature itself on its next reload.
+    DelegateWindow(String),
     /// ADR-017: L3+ issuance/renewal requires current tier-audit evidence, and none was supplied.
     AuditRequired(String),
     /// ADR-017: the requested passport `exp` exceeds the tier audit's own expiry — "audited" must mean audited
@@ -394,6 +401,7 @@ impl core::fmt::Display for IssueError {
             IssueError::ReissueContinuity(s) => write!(f, "reissue continuity: {s}"),
             IssueError::LineageRevoked(s) => write!(f, "lineage revoked: {s}"),
             IssueError::HolderProof(s) => write!(f, "holder proof refused: {s}"),
+            IssueError::DelegateWindow(s) => write!(f, "outside the delegate window: {s}"),
             IssueError::AuditRequired(s) => write!(f, "audit required: {s}"),
             IssueError::AuditStale(s) => write!(f, "audit stale: {s}"),
         }
@@ -556,6 +564,21 @@ impl RegistrarBox {
                 let core = wire
                     .to_core()
                     .ok_or_else(|| IssueError::Malformed("delta decode".into()))?;
+                // M35: a registrar that renewed its delegate signed later deltas under a cert covering THEIR time,
+                // not the genesis window this reload re-creates. Re-certify the SAME delegate key so the window
+                // covers each delta before replaying it; `replay_delta` still verifies the delta's signatures under
+                // that key, so a forged or edited delta fails exactly as before. Without this, a registrar that had
+                // kept time correctly would lock itself out of its own snapshot on the next restart.
+                if let Some(cert) = me.status.delegate_cert() {
+                    if core.ts < cert.nbf || core.ts > cert.exp {
+                        let start = core.ts.saturating_sub(3600);
+                        me.status
+                            .renew_delegate(&me.root, start, CERT_VALIDITY)
+                            .map_err(|e| {
+                                IssueError::Malformed(format!("delta replay renewal: {e:?}"))
+                            })?;
+                    }
+                }
                 me.status
                     .replay_delta(core)
                     .map_err(|r| IssueError::Malformed(format!("delta replay: {r}")))?;
@@ -945,6 +968,7 @@ impl RegistrarBox {
         audit: Option<&AuditEvidence>,
         rng: &mut impl CryptoRngCore,
     ) -> Result<IssuedRecord, IssueError> {
+        self.refuse_outside_delegate_window(now)?;
         let head_leaf = self
             .records
             .get(sub)
@@ -1079,6 +1103,7 @@ impl RegistrarBox {
     /// version-bumped), so a freshly-renewed lineage cannot dodge revocation by presenting its still-valid
     /// predecessor during the overlap window.
     pub fn revoke(&mut self, sub: &str, now: u64) -> Result<status::StatusDelta, IssueError> {
+        self.refuse_outside_delegate_window(now)?;
         let rec = self
             .records
             .get(sub)
@@ -1125,15 +1150,66 @@ impl RegistrarBox {
     /// per-hop proofs, the current signed status list, and the log anchor (checkpoint + inclusion proof). The
     /// verifier supplies its OWN `now` + revocation set (from the directory), so those fields here are informational.
     /// `None` if the subject is unknown. `freshness` selects the status class the bundle advertises (default F3).
+    /// The window the checkpoint delegate is currently certified for.
+    pub fn delegate_window(&self) -> (u64, u64) {
+        self.log.cert_window()
+    }
+
+    /// Keep both delegates certified at the WALL CLOCK (M35). Re-certifies the same keys when the cert has not
+    /// started, has lapsed, or has fewer than [`DELEGATE_RENEW_LEAD`] seconds left. Returns whether it renewed.
+    ///
+    /// Pass the operator's real time, never a request's `now`: callers may present any instant they like (the core
+    /// has no clock by design), and if their `now` drove renewal the certs would flip between a pinned demo window
+    /// and today on alternate requests — signing at whichever instant the last caller happened to name.
+    pub fn ensure_delegates(&mut self, wall_now: u64) -> Result<bool, IssueError> {
+        let (nbf, exp) = self.log.cert_window();
+        if wall_now >= nbf && wall_now.saturating_add(DELEGATE_RENEW_LEAD) < exp {
+            return Ok(false);
+        }
+        // Back-date by an hour so a verifier whose clock runs slightly behind still sees the cert as started.
+        let start = wall_now.saturating_sub(3600);
+        let renew =
+            |e: ainra_core::Error| IssueError::Malformed(format!("delegate renewal: {e:?}"));
+        self.log
+            .renew_cert(&self.root, start, CERT_VALIDITY)
+            .map_err(renew)?;
+        self.status
+            .renew_delegate(&self.root, start, CERT_VALIDITY)
+            .map_err(renew)?;
+        Ok(true)
+    }
+
+    /// Refuse to sign at an instant the delegate is not certified for (M35).
+    ///
+    /// On 2026-09-19 revocations were minted against a registrar at the real clock while its delegate cert had
+    /// lapsed two months earlier. The registrar signed them, saved them, and then refused to load its own snapshot
+    /// (`delta replay: checkpoint_invalid`) — the write path producing state the read path rejects, which lost the
+    /// registrar. A signature the registrar will not accept tomorrow must not be made today.
+    fn refuse_outside_delegate_window(&self, now: u64) -> Result<(), IssueError> {
+        let (nbf, exp) = self.log.cert_window();
+        if now < nbf || now > exp {
+            return Err(IssueError::DelegateWindow(format!(
+                "cannot sign at {now}: the delegate is certified for {nbf}..{exp} — renew it, or sign at a time inside it"
+            )));
+        }
+        Ok(())
+    }
+
     pub fn present(&self, sub: &str, now: u64, freshness: &str) -> Option<serde_json::Value> {
         let rec = self.records.get(sub)?;
         let published = self.status.publish(now.saturating_sub(1));
+        // M35: prove inclusion against the CURRENT checkpoint, signed by the CURRENT delegate — the Certificate
+        // Transparency model. The checkpoint stored at issuance is signed by that day's delegate, whose cert lives at
+        // most 92 days, so presenting it made every passport `checkpoint_invalid` long before its 366-day validity
+        // ended (ADR-017). The stored values remain on the record as the issuance receipt; they are just no longer
+        // what a presentation proves against.
+        let cur = self.with_current_checkpoint(rec)?;
         let mut bundle = json!({
             "claims": b64::encode(rec.claims.as_bytes()),
             "issuer_sig": { "ed25519": rec.issuer_sig_ed25519, "mldsa65": rec.issuer_sig_mldsa65 },
             "now": now,
             "chain_keys": rec.chain_keys,
-            "hop_proofs": rec.hop_proofs,
+            "hop_proofs": cur.hop_proofs,
             "status_list": published.status_list_b64,
             "status_len": published.bit_len,
             "status_issued_at": published.issued_at,
@@ -1144,10 +1220,10 @@ impl RegistrarBox {
             "status_uri": published.uri,
             "status_sig_ed25519": published.sig_ed25519,
             "status_sig_mldsa65": published.sig_mldsa65,
-            "checkpoint": { "origin": rec.log_origin, "size": rec.checkpoint_size, "root": rec.checkpoint_root },
-            "checkpoint_sig": rec.checkpoint_sig,
+            "checkpoint": { "origin": cur.log_origin, "size": cur.checkpoint_size, "root": cur.checkpoint_root },
+            "checkpoint_sig": cur.checkpoint_sig,
             "leaf_index": rec.leaf_index,
-            "inclusion_proof": rec.inclusion_proof,
+            "inclusion_proof": cur.inclusion_proof,
             "mandate_revocations": [],
         });
         // M6 (D-021): the delegate-signed FRESH HEAD + its delegate cert. A currency-mode verifier verifies the head
@@ -1182,7 +1258,42 @@ impl RegistrarBox {
         let Some(rec) = self.records.get(sub) else {
             return Verdict::invalid(ainra_core::Reason::UnknownRegistrar);
         };
-        self.verify_reconstructed(rec, now, status::Freshness::F3)
+        // M35: the live check proves against the CURRENT checkpoint, exactly as `present()` does. Checked against the
+        // stored one, this endpoint called every passport invalid once its issuance-day delegate lapsed.
+        match self.with_current_checkpoint(rec) {
+            Some(fresh) => self.verify_reconstructed(&fresh, now, status::Freshness::F3),
+            None => self.verify_reconstructed(rec, now, status::Freshness::F3),
+        }
+    }
+
+    /// `rec`, with its checkpoint, checkpoint signature and inclusion proof replaced by ones against the CURRENT
+    /// log, signed by the CURRENT delegate (M35). The one place both `present()` and `verify_record()` get them, so
+    /// the bundle a verifier receives and the registrar's own verdict cannot diverge. The stored values stay on the
+    /// record untouched as the issuance receipt.
+    fn with_current_checkpoint(&self, rec: &IssuedRecord) -> Option<IssuedRecord> {
+        let cp = self.log.signed_checkpoint();
+        let signed = self.log.sign_checkpoint(&cp);
+        let proof = self.log.inclusion_proof(rec.leaf_index)?;
+        let mut r = rec.clone();
+        r.checkpoint_size = cp.tree_size;
+        r.checkpoint_root = b64::encode(&cp.root);
+        r.checkpoint_sig = WireCheckpointSig::from_core(&signed.sig);
+        r.inclusion_proof = proof.iter().map(|h| b64::encode(h)).collect();
+        // Every hop is proven against the same checkpoint as the passport. Moving only the passport's own proof left
+        // each hop proven against the OLD root, so a delegated passport presented after any later issuance came back
+        // `not_logged` — caught by `make presentation-diff`, missed here because no unit test had a hop.
+        r.hop_proofs = rec
+            .hop_proofs
+            .iter()
+            .map(|hp| {
+                let p = self.log.inclusion_proof(hp.leaf_index)?;
+                Some(WireHopProof {
+                    leaf_index: hp.leaf_index,
+                    proof: p.iter().map(|h| b64::encode(h)).collect(),
+                })
+            })
+            .collect::<Option<Vec<_>>>()?;
+        Some(r)
     }
 
     /// Verify an [`IssuedRecord`] (possibly loaded from disk) against this registrar's anchors + live status.
@@ -1617,6 +1728,187 @@ mod tests {
             rb.records().count(),
             before,
             "a refusal must not allocate a record, a status bit, or a log entry"
+        );
+    }
+
+    // ── M35: the network keeps time ────────────────────────────────────────────────────────────────────────────────
+
+    const DAY: u64 = 24 * 60 * 60;
+
+    #[test]
+    fn a_passport_outlives_its_first_delegate_once_delegates_renew() {
+        let tmp = std::env::temp_dir().join("ainra-rb-m35-outlives");
+        let _ = std::fs::remove_dir_all(&tmp);
+        let mut rb = engine(&tmp);
+        let mut rng = ChaCha20Rng::seed_from_u64(3501);
+        let rec = rb
+            .issue(&spec("acme", "outlives", "1.0.0"), &[], &mut rng)
+            .unwrap();
+        let (_, first_exp) = rb.delegate_window();
+        let later = first_exp + 30 * DAY; // past the first delegate, well inside the 366-day passport
+
+        // The defect, stated as a test: without renewal the honest answer is checkpoint_invalid.
+        assert_eq!(
+            rb.verify_record(&rec.sub, later),
+            Verdict::invalid(ainra_core::Reason::CheckpointInvalid),
+            "a lapsed delegate must not silently validate anything"
+        );
+        // The fix: the same delegate key re-certified at the wall clock, and the passport verifies again.
+        assert!(
+            rb.ensure_delegates(later).unwrap(),
+            "a lapsed delegate must be renewed"
+        );
+        assert_eq!(
+            rb.verify_record(&rec.sub, later),
+            Verdict::Valid,
+            "the passport lives its full validity"
+        );
+        // And the bundle a stranger receives agrees with the registrar's own verdict.
+        let b = rb.present(&rec.sub, later, "F3").unwrap();
+        // …and the bundle a stranger receives carries the RENEWED delegate, not the lapsed one — asserted, not assumed.
+        fn max_exp(v: &serde_json::Value) -> u64 {
+            match v {
+                serde_json::Value::Object(o) => o
+                    .iter()
+                    .map(|(k, x)| {
+                        if k == "exp" {
+                            x.as_u64().unwrap_or(0)
+                        } else {
+                            max_exp(x)
+                        }
+                    })
+                    .max()
+                    .unwrap_or(0),
+                _ => 0,
+            }
+        }
+        assert!(
+            max_exp(&b["checkpoint_sig"]) > first_exp,
+            "the presented checkpoint must be signed under the renewed delegate cert"
+        );
+        assert!(
+            !rb.ensure_delegates(later).unwrap(),
+            "a fresh delegate is left alone — renewal is idempotent"
+        );
+    }
+
+    #[test]
+    fn a_delegated_passport_stays_valid_after_later_issuance() {
+        let tmp = std::env::temp_dir().join("ainra-rb-m35-hops");
+        let _ = std::fs::remove_dir_all(&tmp);
+        let mut rb = engine(&tmp);
+        let mut rng = ChaCha20Rng::seed_from_u64(3504);
+        let mut s = spec("acme", "bot", "1.0.0");
+        s.hops = vec![
+            HopSpec {
+                from: "ainra:registrar-07:acme:owner@1.0.0".into(),
+                to: "ainra:registrar-07:acme:desk@1.0.0".into(),
+                granted: vec!["read:invoices".into(), "sign:invoice".into()],
+            },
+            HopSpec {
+                from: "ainra:registrar-07:acme:desk@1.0.0".into(),
+                to: "ainra:registrar-07:acme:bot@1.0.0".into(),
+                granted: vec!["read:invoices".into()],
+            },
+        ];
+        let rec = rb.issue(&s, &[], &mut rng).unwrap();
+        assert!(
+            !rec.hop_proofs.is_empty(),
+            "the fixture must actually carry hops"
+        );
+        // Grow the log, so the current checkpoint is no longer the one the delegated passport was issued under.
+        rb.issue(&spec("acme", "later", "1.0.0"), &[], &mut rng)
+            .unwrap();
+        let now = NBF + 10 * DAY;
+        assert_eq!(
+            rb.verify_record(&rec.sub, now),
+            Verdict::Valid,
+            "every hop must be proven against the checkpoint the passport is presented under"
+        );
+        let b = rb.present(&rec.sub, now, "F3").unwrap();
+        assert_ne!(
+            serde_json::to_value(&rec.hop_proofs).unwrap(),
+            b["hop_proofs"],
+            "the presented hop proofs must be recomputed, not carried over from issuance"
+        );
+    }
+
+    #[test]
+    fn renewal_fires_inside_the_lead_not_only_after_expiry() {
+        let tmp = std::env::temp_dir().join("ainra-rb-m35-lead");
+        let _ = std::fs::remove_dir_all(&tmp);
+        let mut rb = engine(&tmp);
+        let (_, exp) = rb.delegate_window();
+        assert!(
+            !rb.ensure_delegates(exp - DELEGATE_RENEW_LEAD - DAY)
+                .unwrap(),
+            "well before the lead: untouched"
+        );
+        assert!(
+            rb.ensure_delegates(exp - DELEGATE_RENEW_LEAD + DAY)
+                .unwrap(),
+            "inside the lead: renewed early"
+        );
+    }
+
+    #[test]
+    fn revoking_outside_the_delegate_window_is_refused_and_changes_nothing() {
+        let tmp = std::env::temp_dir().join("ainra-rb-m35-guard");
+        let _ = std::fs::remove_dir_all(&tmp);
+        let mut rb = engine(&tmp);
+        let mut rng = ChaCha20Rng::seed_from_u64(3502);
+        let rec = rb
+            .issue(&spec("acme", "guard", "1.0.0"), &[], &mut rng)
+            .unwrap();
+        let (_, exp) = rb.delegate_window();
+        let seq = rb.status_seq();
+        // Exactly what happened on 2026-09-19: a revocation at an instant the delegate is not certified for.
+        assert!(matches!(
+            rb.revoke(&rec.sub, exp + DAY),
+            Err(IssueError::DelegateWindow(_))
+        ));
+        assert_eq!(
+            rb.status_seq(),
+            seq,
+            "a refused revocation must not advance the head"
+        );
+        assert_eq!(
+            rb.verify_record(&rec.sub, VERIFY_NOW),
+            Verdict::Valid,
+            "and must not revoke anything"
+        );
+    }
+
+    #[test]
+    fn a_registrar_that_renewed_still_reloads_its_own_snapshot() {
+        // The write path must never produce state the read path refuses (PLAN-M34 Task 7, finding 4).
+        let tmp = std::env::temp_dir().join("ainra-rb-m35-reload");
+        let _ = std::fs::remove_dir_all(&tmp);
+        // create_seeded, as the daemon does: only a seeded registrar records what `load` needs to rebuild it.
+        let mut rb = RegistrarBox::create_seeded(
+            &tmp,
+            "registrar-07",
+            64,
+            0x5eed_0035,
+            NBF - 1000,
+            NBF,
+            EXP,
+        )
+        .unwrap();
+        let mut rng = ChaCha20Rng::seed_from_u64(3503);
+        let rec = rb
+            .issue(&spec("acme", "reload", "1.0.0"), &[], &mut rng)
+            .unwrap();
+        let (_, exp) = rb.delegate_window();
+        let later = exp + 30 * DAY;
+        rb.ensure_delegates(later).unwrap();
+        rb.revoke(&rec.sub, later).unwrap();
+        rb.save().unwrap();
+        let back = RegistrarBox::load(&tmp);
+        assert!(
+            back.is_ok(),
+            "a registrar must be able to reload what it signed: {:?}",
+            back.err()
         );
     }
 

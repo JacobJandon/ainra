@@ -46,10 +46,10 @@ install)
 
   # 2. per-instance environment. Addresses live here, not baked into units, so a port change is one file edit.
   mkdir -p "$ENVDIR"
-  { echo "REG_ADDR=$REG1_ADDR"; echo "AINRA_STAGE=1"; } > "$ENVDIR/$REG1_ID.env"
-  { echo "REG_ADDR=$REG2_ADDR"; echo "AINRA_STAGE=1"; } > "$ENVDIR/$REG2_ID.env"
-  { echo "WIT_ADDR=$WIT_ADDR";  echo "AINRA_STAGE=1"; } > "$ENVDIR/witness.env"
-  { echo "ART_PORT=$ART_PORT";  echo "AINRA_STAGE=1"; } > "$ENVDIR/artifacts.env"
+  { echo "REG_ADDR=$REG1_ADDR"; echo "AINRA_STAGE=1"; echo "AINRA_CLOCK=pinned"; } > "$ENVDIR/$REG1_ID.env"
+  { echo "REG_ADDR=$REG2_ADDR"; echo "AINRA_STAGE=1"; echo "AINRA_CLOCK=pinned"; } > "$ENVDIR/$REG2_ID.env"
+  { echo "WIT_ADDR=$WIT_ADDR";  echo "AINRA_STAGE=1"; echo "AINRA_CLOCK=pinned"; } > "$ENVDIR/witness.env"
+  { echo "ART_PORT=$ART_PORT";  echo "AINRA_STAGE=1"; echo "AINRA_CLOCK=pinned"; } > "$ENVDIR/artifacts.env"
   # the write token the doors require; generated once and kept out of git
   mkdir -p stage
   [ -s stage/.issue-token ] || head -c 32 /dev/urandom | base64 | tr -d '\n=' > stage/.issue-token

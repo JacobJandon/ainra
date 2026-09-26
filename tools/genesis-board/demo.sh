@@ -6,6 +6,9 @@
 # the soak row stays ⏳ (1 region, day 0 of 14 — the board will NOT fake it), and tampering an attestation drops the
 # verifier count. This is a demo of the MACHINERY; the real board runs on real strangers' evidence.
 set -euo pipefail
+# M35: this drill runs at the fixed genesis instant on purpose — it is HERMETIC, and a reproducible clock is
+# what makes it reproducible. The daemon now defaults to the wall clock, so pinning is stated, not assumed.
+export AINRA_CLOCK=pinned
 cd "$(dirname "$0")/../.."
 PORT="${AINRA_BOARD_PORT:-4983}"
 NOW=$((1775865600 + 10 * 24 * 3600))

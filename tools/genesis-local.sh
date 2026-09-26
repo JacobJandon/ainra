@@ -6,6 +6,11 @@
 # rejected → an injected log fork caught by the witness QUORUM (not us). Exits nonzero if any stage misbehaves;
 # nothing is asserted by narration — every verdict is the real tool's exit code.
 set -euo pipefail
+# M35: this drill runs at the fixed genesis instant on purpose — it is HERMETIC, and a reproducible clock is
+# what makes it reproducible. The daemon now defaults to the wall clock, so pinning is stated, not assumed.
+export AINRA_CLOCK=pinned
+# Its registrars write with no token. The daemon now refuses that unless asked — and only on loopback.
+export AINRA_OPEN_WRITES=1
 cd "$(dirname "$0")/.."
 
 for t in cargo node; do command -v "$t" >/dev/null 2>&1 || { echo "✗ missing '$t' — run 'make doctor' (see TOOLCHAIN.md)"; exit 1; }; done
@@ -37,7 +42,9 @@ echo "== 1. ceremony: TWO registrar classes → dual-root-signed directory (FROS
 # Pre-flight: refuse to run if anything already answers our ports — else a STALE leftover daemon would silently
 # serve the whole run and mask a regression in the freshly-built binary (M8 review MEDIUM: false green).
 for port in $P1 $P2; do
-  if curl -sf "http://127.0.0.1:$port/accreditation" >/dev/null 2>&1; then
+  # ANY listener, not only a registrar: the staging witness holds 4991, and a /accreditation probe missed it — the
+  # daemon then died on bind and the drill reported a crash instead of a collision.
+  if (exec 3<>"/dev/tcp/127.0.0.1/$port") 2>/dev/null; then
     echo "FAIL: 127.0.0.1:$port is already serving — kill the leftover daemon (this run must use THIS build)"; exit 1
   fi
 done

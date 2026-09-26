@@ -51,10 +51,23 @@ function issueToken() {
 }
 const ISSUE_TOKEN = issueToken();
 
+// The registrar caps writes at 30 a minute (registrar_box.rs WRITE_BURST). A challenge costs `count` issues plus about
+// half as many revokes, so three 8-bundle challenges in a row — or one of 24 — exceed it, and this tool died on the
+// first 429 as if the network had failed. The limit is the registrar doing its job; wait it out, never retry past it.
+const WRITE_WAIT_MS = 90_000;
+let saidWaiting = false;
 async function post(path, body) {
   const headers = { "content-type": "application/json" };
   if (ISSUE_TOKEN) headers.authorization = `Bearer ${ISSUE_TOKEN}`;
-  const r = await fetch(`${registrar}${path}`, { method: "POST", headers, body: JSON.stringify(body) });
+  const deadline = Date.now() + WRITE_WAIT_MS;
+  let r, delay = 2000;
+  for (;;) {
+    r = await fetch(`${registrar}${path}`, { method: "POST", headers, body: JSON.stringify(body) });
+    if (r.status !== 429 || Date.now() + delay > deadline) break;
+    if (!saidWaiting) { console.error("  registrar write limit reached — waiting for its window to reopen (this is the limiter, not a fault)"); saidWaiting = true; }
+    await new Promise((res) => setTimeout(res, delay));
+    delay = Math.min(delay * 2, 16000);
+  }
   if (!r.ok) {
     if (r.status === 401 || r.status === 403)
       throw new Error(`POST ${path} → ${r.status}: the registrar refused the write. Set AINRA_STAGE_ISSUE_TOKEN, or run from a tree where stage/.issue-token exists (make stage-up writes it). The token is never printed.`);
@@ -91,10 +104,19 @@ for (let i = 0; i < count; i++) {
   const bundle = await present(sub);
   // record GROUND TRUTH: what a correct root-dark verifier actually says at `now` (so a genuine stranger matches).
   const verdict = asStr(verifier.verify(bundle, now));
-  // sanity: the coin flip must have actually taken effect, else the answer key would be wrong.
-  const wantRevoked = revoke;
-  const isRevoked = verdict === "invalid:revoked";
-  if (wantRevoked !== isRevoked) { console.error(`FAIL: bundle ${i} coin flip (revoke=${revoke}) did not match verdict ${verdict}`); process.exit(1); }
+  // sanity: the coin flip decides the ONLY two answers a challenge may contain. A revoked bundle must say `revoked`,
+  // and an un-revoked one must say `valid`.
+  //
+  // This checked only the first half. Eight packets were minted — and handed to real verifiers — against a network
+  // whose delegate cert had lapsed, so every un-revoked bundle came back `checkpoint_invalid`. The attestation still
+  // bound execution, but each challenge held zero valid passports and tested nothing about validity, and the kit's
+  // own certification could not notice because it compares against this answer key. Refuse to mint instead.
+  const want = revoke ? "invalid:revoked" : "valid";
+  if (verdict !== want) {
+    console.error(`FAIL: bundle ${i}: the coin flip (revoke=${revoke}) requires "${want}", the verifier said "${verdict}".`);
+    if (!revoke) console.error("  An un-revoked passport that does not verify means the network is not producing verifiable passports at this\n  --now (a lapsed delegate is the usual cause — check `make live-status`). Refusing to mint a challenge that\n  tests nothing about validity.");
+    process.exit(1);
+  }
   const file = `bundle-${i}.json`;
   writeFileSync(`${outDir}/${file}`, JSON.stringify(bundle, null, 2) + "\n");
   bundles.push(file);

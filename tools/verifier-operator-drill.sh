@@ -6,8 +6,14 @@
 # CLEARLY-LABELLED DRY-RUN parties (they do NOT count as real external verifiers — real ones are real strangers on real
 # machines; see GENESIS-CHECKLIST §3). Also proves a hand-authored attestation is rejected and writes no evidence.
 set -euo pipefail
+# M35: this drill runs at the fixed genesis instant on purpose — it is HERMETIC, and a reproducible clock is
+# what makes it reproducible. The daemon now defaults to the wall clock, so pinning is stated, not assumed.
+export AINRA_CLOCK=pinned
+# Its registrar is spawned without a token and written to (mint-challenge POSTs /issue and /revoke). The daemon
+# refuses that unless asked — and only on loopback.
+export AINRA_OPEN_WRITES=1
 cd "$(dirname "$0")/.."
-PORT="${AINRA_OPERATOR_PORT:-4991}"
+PORT="${AINRA_OPERATOR_PORT:-4981}"   # 4991 is the staging witness (tools/stage-install.sh)
 NOW=$((1775865600 + 10 * 24 * 3600))
 
 echo "== build SDK + bins =="
@@ -20,7 +26,9 @@ trap 'kill "$RB" 2>/dev/null || true; rm -rf "$WORK"' EXIT
 OPS="$WORK/ops"; EV="$WORK/evidence"; mkdir -p "$OPS" "$EV"
 
 echo "== operator: stand up a registrar (the root the parties verify) =="
-if curl -sf "http://127.0.0.1:$PORT/accreditation" >/dev/null 2>&1; then echo "FAIL: port $PORT busy"; exit 1; fi
+# ANY listener, not only a registrar: the staging witness holds 4991, and a /accreditation probe missed it — the
+# daemon then died on bind and the drill reported a crash instead of a collision.
+if (exec 3<>"/dev/tcp/127.0.0.1/$PORT") 2>/dev/null; then echo "FAIL: port $PORT busy"; exit 1; fi
 ./target/release/registrar-box "127.0.0.1:$PORT" registrar-07 "$WORK/rb" >/dev/null 2>"$WORK/rb.err" &
 RB=$!
 for _ in $(seq 1 40); do curl -sf "http://127.0.0.1:$PORT/accreditation" >/dev/null 2>&1 && break; sleep 0.2; done

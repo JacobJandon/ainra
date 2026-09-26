@@ -7,6 +7,12 @@
 # the fresh bundles match our private answer key (a party who never verified must guess all K). Exits nonzero on any
 # failure. Regression for the M9 review: a hand-authored / conformance-only / wrong-answer attestation MUST be rejected.
 set -euo pipefail
+# M35: this drill runs at the fixed genesis instant on purpose — it is HERMETIC, and a reproducible clock is
+# what makes it reproducible. The daemon now defaults to the wall clock, so pinning is stated, not assumed.
+export AINRA_CLOCK=pinned
+# Its registrar is spawned without a token and written to (mint-challenge POSTs /issue and /revoke). The daemon
+# refuses that unless asked — and only on loopback.
+export AINRA_OPEN_WRITES=1
 cd "$(dirname "$0")/.."
 PORT="${AINRA_VERIFIER_PORT:-4951}"
 NOW=$((1775865600 + 10 * 24 * 3600))
@@ -27,7 +33,9 @@ SECRET="$WORK/challenge-secret.json"  # PRIVATE — the maintainer's answer key
 mkdir -p "$CHALDIR"
 
 echo "== maintainer: stand up a real registrar + accredit it (root dark) =="
-if curl -sf "http://127.0.0.1:$PORT/accreditation" >/dev/null 2>&1; then
+# ANY listener, not only a registrar: the staging witness holds 4991, and a /accreditation probe missed it — the
+# daemon then died on bind and the drill reported a crash instead of a collision.
+if (exec 3<>"/dev/tcp/127.0.0.1/$PORT") 2>/dev/null; then
   echo "FAIL: 127.0.0.1:$PORT already serving — kill the leftover daemon"; exit 1
 fi
 ./target/release/registrar-box "127.0.0.1:$PORT" registrar-07 "$WORK/rb" >/dev/null 2>"$WORK/rb.err" &

@@ -14,6 +14,9 @@
 # root EXISTS. What remains is the DISTRIBUTED real-world version — a publicly-recorded ceremony with independent
 # custodians, >=3 external verifiers, a 14-day 3-region soak. Placeholder operators only. Zero telemetry. State in stage/.
 set -uo pipefail
+# M35: this drill runs at the fixed genesis instant on purpose — it is HERMETIC, and a reproducible clock is
+# what makes it reproducible. The daemon now defaults to the wall clock, so pinning is stated, not assumed.
+export AINRA_CLOCK=pinned
 cd "$(dirname "$0")/.."
 
 STAGE=stage

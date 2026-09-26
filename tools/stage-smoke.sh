@@ -3,6 +3,9 @@
 # make stage-smoke — end-to-end against the LIVE staging deployment: issue → log → verify via the public artifact
 # contract (in the real SDK) → revoke → propagation, plus the ARTIFACTS.md contract header assertions. Real output.
 set -uo pipefail
+# M35: this drill runs at the fixed genesis instant on purpose — it is HERMETIC, and a reproducible clock is
+# what makes it reproducible. The daemon now defaults to the wall clock, so pinning is stated, not assumed.
+export AINRA_CLOCK=pinned
 cd "$(dirname "$0")/.."
 REG=127.0.0.1:4907 ; RID=registrar-07 ; ART=http://127.0.0.1:8091 ; NOW=$((1775865600 + 10*24*3600))
 TOKEN="$(cat stage/.issue-token 2>/dev/null)"

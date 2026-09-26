@@ -1,6 +1,6 @@
 # AINRA — the acceptance bar (MTS §28, brief §8): a stranger clones, runs `make test && make vectors && make diff`,
 # and everything is green in under 10 minutes on a laptop.
-.PHONY: root-dark-drill mirror-sufficiency legibility-drill cli-deps succession-drill staleness-drill amendment-check amendment-check-negative doctrine doctrine-negative number-syntax engine-parity one-decode-path bench-gate all test vectors vectors-check diff cli-check suite-migration-drill ceremony-rehearsal-multi witness-check push-advisory-check changelog-board-check fmt clippy fuzz-smoke bench sdk-build sdk-test ci clean status console samples drill explorer demo scale ceremony testbed wedge-build wedge-test repro mirror verify-mirror check-freeze freeze genesis-local verifier-kit-smoke ceremony-dry-run soak-smoke drill-networked preflight s7 license gitleaks audit verify-as-external verifier-triple-drill soak-verify genesis-status verify-transcript genesis-board-demo release doctor verifier-operator-drill site site-up site-down site-check stage-all stage-all-down explorer-up explorer-down ainrascan stage-up stage-down stage-status stage-smoke demo-walkthrough three-clients genesis-verify config-diff declaration genesis-rehearsal site-demo verify issue-first registrar-console mcp-test skills-replay presentation-diff conformance campaign-status campaign-init campaign-gates campaign-check publish-preflight stage-install stage-uninstall stage-health stranger probe-drill miri reasons-check corpus-check instance-gate claims-check claims claims-live policy-parity deploy-current site-net site-net-check lockfile-sync soak-ingest outreach-check names-check interop interop-negative
+.PHONY: live-up live-down live-status identity-e2e root-dark-drill mirror-sufficiency legibility-drill cli-deps succession-drill staleness-drill amendment-check amendment-check-negative doctrine doctrine-negative number-syntax engine-parity one-decode-path bench-gate all test vectors vectors-check diff cli-check suite-migration-drill ceremony-rehearsal-multi witness-check push-advisory-check changelog-board-check fmt clippy fuzz-smoke bench sdk-build sdk-test ci clean status console samples drill explorer demo scale ceremony testbed wedge-build wedge-test repro mirror verify-mirror check-freeze freeze genesis-local verifier-kit-smoke ceremony-dry-run soak-smoke drill-networked preflight s7 license gitleaks audit verify-as-external verifier-triple-drill soak-verify genesis-status verify-transcript genesis-board-demo release doctor verifier-operator-drill site site-up site-down site-check stage-all stage-all-down explorer-up explorer-down ainrascan stage-up stage-down stage-status stage-smoke demo-walkthrough three-clients genesis-verify config-diff declaration genesis-rehearsal site-demo verify issue-first registrar-console mcp-test skills-replay presentation-diff conformance campaign-status campaign-init campaign-gates campaign-check publish-preflight stage-install stage-uninstall stage-health stranger probe-drill miri reasons-check corpus-check instance-gate claims-check claims claims-live policy-parity deploy-current site-net site-net-check lockfile-sync soak-ingest outreach-check names-check interop interop-negative
 
 all: fmt clippy test vectors diff
 
@@ -159,7 +159,7 @@ skills-replay: sdk-build cli-deps
 registrar-console:
 	cargo build --release -q -p ainra-services --bin registrar-box
 	@echo "→ open the registrar console:  http://127.0.0.1:$(or $(PORT),4899)/console   (Ctrl-C to stop)"
-	@AINRA_STAGE=1 ./target/release/registrar-box 127.0.0.1:$(or $(PORT),4899) $(or $(ID),registrar-07) $(or $(DIR),stage/console-registrar)
+	@AINRA_STAGE=1 AINRA_CLOCK=pinned ./target/release/registrar-box 127.0.0.1:$(or $(PORT),4899) $(or $(ID),registrar-07) $(or $(DIR),stage/console-registrar)
 
 # The M4 genesis ceremony rehearsal: FROST 5-of-9 DKG + SLH-DSA dual root → signed directory → mint+verify a real
 # passport → revoke the delegate (passport goes checkpoint_invalid) → rotate (VALID again) → replayable transcript.
@@ -544,3 +544,14 @@ stage-uninstall: ## remove the units (state in stage/ is left alone)
 	@bash tools/stage-install.sh uninstall
 stage-health:    ## probe the public read contract + unit state; exits non-zero when degraded
 	@bash tools/stage-install.sh health
+
+# M35 — the network keeps time. `stage-*` is the reproducible world pinned to 2026-04-21; `live-*` is the same
+# registrar on the WALL CLOCK, renewing its delegates and presenting against the current checkpoint.
+live-up:         ## a wall-clock registrar with the public door open (TEST-ROOT, live/)
+	@bash tools/live.sh up
+live-down:
+	@bash tools/live.sh down
+live-status:     ## is a checkpoint issued NOW verifiable NOW?
+	@bash tools/live.sh status
+identity-e2e: sdk-build wedge-build live-up  ## a stranger's agent, end to end, at the real clock
+	@AINRA_REGISTRAR=http://127.0.0.1:4970 node tools/identity-e2e.mjs

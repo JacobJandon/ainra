@@ -93,6 +93,27 @@ impl Statusd {
         Ok(self)
     }
 
+    /// Re-certify the SAME delta/fresh-head delegate for `[now, now + validity]` (M35). See `Logd::renew_cert` for
+    /// why: a delegate born at a fixed instant signs revocation deltas that the registrar itself refuses to replay
+    /// once the cert has lapsed — the write path producing state the read path rejects.
+    pub fn renew_delegate(
+        &mut self,
+        root: &crypto::TestRootSlh,
+        now: u64,
+        validity: u64,
+    ) -> Result<(), ainra_core::Error> {
+        if let Some(signer) = self.delta_signer.as_mut() {
+            signer.cert = DelegateCert::issue_test_root(
+                root,
+                signer.delegate.public(),
+                vec![SCOPE_DELTA.to_string(), SCOPE_FRESH_HEAD.to_string()],
+                now,
+                now + validity,
+            )?;
+        }
+        Ok(())
+    }
+
     pub fn public(&self) -> crypto::HybridPublic {
         self.signer.public()
     }

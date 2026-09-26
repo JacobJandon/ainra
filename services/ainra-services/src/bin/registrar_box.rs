@@ -43,10 +43,68 @@ fn qparam(path: &str, key: &str) -> Option<String> {
         .find_map(|kv| kv.strip_prefix(&format!("{key}=")))
         .map(|s| s.to_string())
 }
+/// The operator's real time (M35). A request may name any `now` it likes — the core has no clock, by design — but a
+/// request that names none, and every delegate renewal, uses this. The default used to be `NBF + 10 days`, a fixed
+/// instant in April 2026, so the daemon's own clock was frozen along with everything that trusted it.
+fn wall_now() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0)
+}
+
+/// `AINRA_CLOCK=pinned` keeps a HERMETIC drill at the fixed genesis instant, exactly as every drill ran before M35.
+/// Anything else — including unset — is the wall clock. The default is the safe direction on purpose: forgetting the
+/// variable in production yields a registrar that keeps time; forgetting it in a drill yields a loud test failure.
+/// The reverse default is how the staging network sat dead at the real clock for months while every board was green.
+fn clock_pinned() -> bool {
+    std::env::var("AINRA_CLOCK").ok().as_deref() == Some("pinned")
+}
+
+/// The instant a request that names none is served at. Pinned mode reproduces the old defaults to the second.
+fn default_now() -> u64 {
+    if clock_pinned() {
+        NBF + 10 * 24 * 60 * 60
+    } else {
+        wall_now()
+    }
+}
+fn default_renew_now() -> u64 {
+    if clock_pinned() {
+        NBF + 5 * 24 * 3600
+    } else {
+        wall_now()
+    }
+}
+
+/// Per-request randomness: demo-door versions, and key material for any passport issued without a caller key.
+///
+/// It was seeded from the registrar id — a leftover from when the same generator also derived the registrar's
+/// identity keys (those now come from `create_seeded`). A seeded generator replays on every restart, so after a
+/// redeploy the public door re-drew versions it had already issued and refused its first visitors with `duplicate
+/// subject` — and would have re-drawn the same holder keys for any passport minted without one. The live registrar
+/// therefore reads the operating system's entropy, and refuses to run on a replayable seed if it cannot. Pinned,
+/// hermetic drills keep the seed: their transcripts are meant to reproduce.
+fn operational_rng(id_seed: u64, id: &str) -> ChaCha20Rng {
+    if clock_pinned() {
+        return ChaCha20Rng::seed_from_u64(id_seed);
+    }
+    let mut seed = [0u8; 32];
+    let read = std::fs::File::open("/dev/urandom").and_then(|mut f| {
+        use std::io::Read;
+        f.read_exact(&mut seed)
+    });
+    if let Err(e) = read {
+        eprintln!("registrar-box '{id}': no OS entropy ({e}) — refusing to run a live registrar on a replayable seed");
+        std::process::exit(2);
+    }
+    ChaCha20Rng::from_seed(seed)
+}
+
 fn qnow(path: &str) -> u64 {
     qparam(path, "now")
         .and_then(|s| s.parse().ok())
-        .unwrap_or(NBF + 10 * 24 * 60 * 60)
+        .unwrap_or_else(default_now)
 }
 
 struct State {
@@ -69,9 +127,16 @@ const WRITE_BURST: usize = 30;
 const WRITE_WINDOW: std::time::Duration = std::time::Duration::from_secs(60);
 
 /// `true` iff the request is authorized to write. Open when no token is configured; else requires the bearer token.
-fn write_authorized(req: &Request, token: &Option<String>) -> bool {
+/// May this request write (`/issue`, `/revoke`, `/renew`)?
+///
+/// FAIL CLOSED (M35). With no token configured this used to answer `true` — so a registrar started without one
+/// accepted unauthenticated issuance at any tier AND unauthenticated revocation of anyone's passport. It was only
+/// ever reachable on 127.0.0.1, but the live network exists to be deployed, and a door that opens by forgetting a
+/// variable is not a door. Unauthenticated writes now require `AINRA_OPEN_WRITES=1`, which `main` refuses to honour
+/// on any address but loopback. The public demo door is separate, rate-limited, and mints only specimens.
+fn write_authorized(req: &Request, token: &Option<String>, open_writes: bool) -> bool {
     match token {
-        None => true,
+        None => open_writes,
         Some(t) => req
             .headers
             .get("authorization")
@@ -170,7 +235,7 @@ fn main() {
         seed ^= u64::from(b);
         seed = seed.wrapping_mul(0x0000_0100_0000_01b3);
     }
-    let rng = ChaCha20Rng::seed_from_u64(seed);
+    let rng = operational_rng(seed, &id);
     // RELOAD BEFORE CREATE. This binary used to call `create` unconditionally, which meant the daemon started with
     // an EMPTY set of issued records on every single start — for the whole life of the systemd stage. The keys are
     // derived deterministically from the id above, so `/accreditation` always matched the published directory and
@@ -204,6 +269,24 @@ fn main() {
         RegistrarBox::create_seeded(data_dir, &id, 4096, seed, NBF - 3600, NBF, EXP)
             .expect("create registrar-box")
     };
+    // M35: certify the delegates at the WALL CLOCK before serving anything. A registrar reloaded from a snapshot —
+    // or created at the fixed genesis instant below — would otherwise sign with certs that lapsed long ago.
+    let mut rb = rb;
+    match if clock_pinned() {
+        Ok(false)
+    } else {
+        rb.ensure_delegates(wall_now())
+    } {
+        Ok(true) => {
+            let (nbf, exp) = rb.delegate_window();
+            eprintln!("registrar-box '{id}': delegates re-certified at the wall clock, valid {nbf}..{exp}");
+        }
+        Ok(false) => {}
+        Err(e) => {
+            eprintln!("registrar-box '{id}': could not re-certify delegates: {e:?}");
+            std::process::exit(2);
+        }
+    }
     let issue_token = std::env::var("AINRA_STAGE_ISSUE_TOKEN")
         .ok()
         .filter(|t| !t.is_empty());
@@ -222,15 +305,45 @@ fn main() {
         } else {
             ""
         },
+        // States the policy `write_authorized` actually enforces (M35). It used to print "OPEN — dev" whenever no
+        // token was set, which became false the moment writes started failing closed.
         if issue_token.is_some() {
             " [write-auth: bearer token]"
+        } else if std::env::var("AINRA_OPEN_WRITES").ok().as_deref() == Some("1") {
+            " [write-auth: OPEN — loopback drill only]"
         } else {
-            " [write-auth: OPEN — dev]"
+            " [write-auth: CLOSED — no token, every write refused]"
         }
     );
 
+    // Unauthenticated writes are a hermetic-drill convenience and nothing else. Refuse them anywhere a stranger could
+    // reach: a config copied from a drill into a deployment must fail at start, not open the registrar.
+    let open_writes = std::env::var("AINRA_OPEN_WRITES").ok().as_deref() == Some("1");
+    let loopback =
+        addr.starts_with("127.") || addr.starts_with("[::1]") || addr.starts_with("localhost:");
+    if open_writes && !loopback {
+        eprintln!("registrar-box '{id}': refusing AINRA_OPEN_WRITES=1 on {addr} — unauthenticated writes are loopback-only");
+        std::process::exit(2);
+    }
+    if issue_token.is_none() && !open_writes {
+        eprintln!("registrar-box '{id}': no AINRA_STAGE_ISSUE_TOKEN — /issue, /revoke and /renew will refuse every request");
+    }
+    if open_writes {
+        eprintln!("registrar-box '{id}': OPEN WRITES (AINRA_OPEN_WRITES=1, loopback only) — hermetic drills only, never a deployment");
+    }
     serve(&addr, move |req: &Request| {
         let mut st = state.lock().unwrap();
+        // Before anything can be signed: renew if the delegate is near or past its window. A cheap comparison on
+        // every request, so a registrar that stays up for months never signs with a lapsed cert — the write path
+        // must never produce state the read path will refuse (M35, PLAN-M34 Task 7 finding 4).
+        if !clock_pinned() {
+            if let Err(e) = st.rb.ensure_delegates(wall_now()) {
+                return (
+                    503,
+                    json!({ "error": format!("delegate renewal failed: {e}") }).to_string(),
+                );
+            }
+        }
         let route = req.path.split('?').next().unwrap_or("");
         match (req.method.as_str(), route) {
             // M16 Task 5 (D-034): the OPEN registrar console — neutral, unbranded, no pricing/accounts, zero telemetry.
@@ -255,7 +368,7 @@ fn main() {
             ("GET", "/accreditation") => ok(&st.rb.accreditation()),
 
             ("POST", "/issue") => {
-                if !write_authorized(req, &st.issue_token) {
+                if !write_authorized(req, &st.issue_token, open_writes) {
                     return (
                         401,
                         r#"{"error":"unauthorized (bearer token required)"}"#.to_string(),
@@ -322,7 +435,21 @@ fn main() {
                 };
                 spec.holder_key = hybrid("holder_key");
                 spec.holder_pop = hybrid("holder_pop");
-                match rb.issue(&spec, &[], rng) {
+                // The door's version space is 100 000, so two specimens under one lineage name collide by the birthday
+                // bound after a few hundred issuances even with perfect randomness. A collision is the door's problem,
+                // not the visitor's: draw again, a bounded number of times.
+                let mut attempt = rb.issue(&spec, &[], rng);
+                for _ in 0..8 {
+                    if !matches!(
+                        attempt,
+                        Err(ainra_services::registrar::IssueError::Duplicate(_))
+                    ) {
+                        break;
+                    }
+                    spec.version = format!("1.0.{}", rng.next_u32() % 100_000);
+                    attempt = rb.issue(&spec, &[], rng);
+                }
+                match attempt {
                     Ok(rec) => {
                         persist(rb, &id);
                         ok(&rec)
@@ -358,7 +485,7 @@ fn main() {
                 let now = v
                     .get("now")
                     .and_then(|x| x.as_u64())
-                    .unwrap_or(NBF + 10 * 24 * 60 * 60);
+                    .unwrap_or_else(default_now);
                 match st.rb.revoke(&sub, now) {
                     Ok(_) => {
                         persist(&st.rb, &id);
@@ -371,7 +498,7 @@ fn main() {
             // ADR-017 renewal over HTTP: reissue `sub` (fresh window, prev_leaf continuity). Body:
             // {sub, new_version?, now, audit?{reference,expires}}. Write endpoint (auth + rate limited).
             ("POST", "/renew") => {
-                if !write_authorized(req, &st.issue_token) {
+                if !write_authorized(req, &st.issue_token, open_writes) {
                     return (
                         401,
                         r#"{"error":"unauthorized (bearer token required)"}"#.to_string(),
@@ -388,7 +515,7 @@ fn main() {
                 let now = v
                     .get("now")
                     .and_then(|x| x.as_u64())
-                    .unwrap_or(NBF + 5 * 24 * 3600);
+                    .unwrap_or_else(default_renew_now);
                 let new_version = v.get("new_version").and_then(|x| x.as_str());
                 let audit = v.get("audit").and_then(|a| {
                     Some(AuditEvidence {
@@ -453,7 +580,7 @@ fn main() {
             }
 
             ("POST", "/revoke") => {
-                if !write_authorized(req, &st.issue_token) {
+                if !write_authorized(req, &st.issue_token, open_writes) {
                     return (
                         401,
                         r#"{"error":"unauthorized (bearer token required)"}"#.to_string(),
@@ -468,7 +595,7 @@ fn main() {
                 let now = v
                     .get("now")
                     .and_then(|x| x.as_u64())
-                    .unwrap_or(NBF + 10 * 24 * 60 * 60);
+                    .unwrap_or_else(default_now);
                 match sub {
                     Some(sub) => match st.rb.revoke(&sub, now) {
                         Ok(delta) => (

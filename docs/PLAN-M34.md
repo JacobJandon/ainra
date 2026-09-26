@@ -148,3 +148,9 @@ the public door, an instance credential, a signed request through a real server 
 What this needs is its own milestone — the network keeps time: wall-clock operation, delegate rotation before
 expiry, presentations against the current checkpoint, a write path that refuses to sign outside its delegate
 window, a mint that refuses a challenge with no valid passport, and a board that checks at the real clock.
+
+**Resolved by M35 (D-064).** The daemon renews its delegates at the wall clock, presents every passport and every
+hop against the current checkpoint, refuses to sign outside its delegate window, and fails closed on writes. `make
+live-up` runs the wall-clock network and `make identity-e2e` passes against it; `make live-status` is the real-clock
+check. The staging network stays pinned, on purpose and by name (`AINRA_CLOCK=pinned`). Still open: re-minting the
+eight challenges (finding 5), and the 66.7 KiB of request headers the end-to-end run measures.

@@ -7,6 +7,11 @@
 #   4. REVOKE the passport, re-fetch the bundle, verify again → INVALID (revoked) — the gate fails closed
 # Every artifact is real; nothing is asserted by narration. Exits nonzero if any step misbehaves.
 set -euo pipefail
+# M35: this drill runs at the fixed genesis instant on purpose — it is HERMETIC, and a reproducible clock is
+# what makes it reproducible. The daemon now defaults to the wall clock, so pinning is stated, not assumed.
+export AINRA_CLOCK=pinned
+# Its registrars write with no token. The daemon now refuses that unless asked — and only on loopback.
+export AINRA_OPEN_WRITES=1
 cd "$(dirname "$0")/.."
 
 PORT="${AINRA_TESTBED_PORT:-4903}"

@@ -14,6 +14,9 @@
 #   ⑤ PUBLISH                                          — the passport enters the public artifacts every verifier reads
 #   ⑥ an INDEPENDENT verifier checks it                — the real @ainra/sdk says VALID, trusting the SOURCE not the seller
 set -uo pipefail
+# M35: this drill runs at the fixed genesis instant on purpose — it is HERMETIC, and a reproducible clock is
+# what makes it reproducible. The daemon now defaults to the wall clock, so pinning is stated, not assumed.
+export AINRA_CLOCK=pinned
 cd "$(dirname "$0")/.."
 STAGE=stage; PUB="$STAGE/public"
 ID="${ID:-registrar-22}"; PORT="${PORT:-4922}"; ADDR="127.0.0.1:$PORT"

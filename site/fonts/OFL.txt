@@ -1,3 +1,9 @@
-Pixelify Sans — Copyright 2021 The Pixelify Sans Project Authors (https://github.com/eifetx/Pixelify-Sans)
-Licensed under the SIL Open Font License, Version 1.1 — https://openfontlicense.org
-Bundled locally (latin subset, weight 700) so the site makes zero external requests.
+Bricolage Grotesque — Copyright 2022 The Bricolage Grotesque Project Authors (https://github.com/ateliertriay/bricolage)
+Inter — Copyright 2016 The Inter Project Authors (https://github.com/rsms/inter)
+B612 Mono — Copyright 2012 The B612 Project Authors (https://github.com/polarsys/b612)
+All three licensed under the SIL Open Font License, Version 1.1 — https://openfontlicense.org
+
+Bundled locally (latin subsets; Bricolage + Inter variable-weight from @fontsource-variable 5.3.0, B612 Mono
+400 + 700 from @fontsource 5.3.0) so the site makes zero external requests. These are the display, body and mono
+faces docs/DESIGN.md specifies; until 2026-09-24 they were named in the CSS but never shipped, so every visitor
+saw their system default instead. fonts/faces.css declares them once for every page.

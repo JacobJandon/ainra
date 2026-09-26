@@ -1,0 +1,12 @@
+/* SPDX-License-Identifier: Apache-2.0 OR MIT */
+/* The three faces docs/DESIGN.md specifies — display, body, mono — served from this origin (licences: OFL.txt).
+   One file, linked by every page, so a page cannot name a face it never loads: until 2026-09-24 every page named
+   Bricolage Grotesque, Inter and B612 Mono and shipped none of them, so visitors saw their system defaults. */
+@font-face{font-family:'Bricolage Grotesque';font-style:normal;font-weight:200 800;font-display:swap;
+  src:url(bricolage-grotesque-latin-wght.woff2) format('woff2-variations'),url(bricolage-grotesque-latin-wght.woff2) format('woff2')}
+@font-face{font-family:'Inter';font-style:normal;font-weight:100 900;font-display:swap;
+  src:url(inter-latin-wght.woff2) format('woff2-variations'),url(inter-latin-wght.woff2) format('woff2')}
+@font-face{font-family:'B612 Mono';font-style:normal;font-weight:400;font-display:swap;
+  src:url(b612-mono-latin-400.woff2) format('woff2')}
+@font-face{font-family:'B612 Mono';font-style:normal;font-weight:700;font-display:swap;
+  src:url(b612-mono-latin-700.woff2) format('woff2')}

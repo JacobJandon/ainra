@@ -25,6 +25,7 @@
 
 import { b64uEncode, b64uDecode, verifyHybrid, sha256, ED25519_SIG, MLDSA65_SIG } from "./crypto.js";
 import type { HybridPublic, HybridSig } from "./crypto.js";
+import { canonicalize } from "./canon.js";
 
 /** The failure names this layer can return. Distinct from the frozen credential reasons on purpose: telling an
  *  integrator `sig_invalid` when the registrar's signature is fine and the REQUEST signature was merely moved to
@@ -33,7 +34,10 @@ export type PresentationReason =
   | "presentation_unsigned"
   | "presentation_sig_invalid"
   | "presentation_stale"
-  | "presentation_replayed";
+  | "presentation_replayed"
+  /** M36 (D-065): the request named a bundle by digest that this gate does not hold — never sent, evicted, or
+   *  expired. Not a judgement of the agent: the answer is to send the bundle again, not to distrust anyone. */
+  | "presentation_unknown";
 
 export type PresentationCheck = { ok: true; nonce: string; created: number } | { ok: false; reason: PresentationReason };
 
@@ -44,6 +48,55 @@ export const SIG_LABEL = "ainra";
 export const SIG_ALG = "ainra-hybrid-v1";
 /** The header a presentation bundle travels in — covered by the signature, so the bundle cannot be swapped. */
 export const PRESENTATION_HEADER = "x-ainra-passport";
+// ── M36 (D-065): the bundle is sent once, and named by digest after that ─────────────────────────────────────────
+//
+// A full bundle is ~60 KiB — post-quantum signatures, delegate certificates, a log proof, a status list — and it
+// rode in one request header. `make identity-e2e` measured 66.7 KiB of headers per request; common front ends
+// refuse a single header line over 8 KiB (Apache's LimitRequestFieldSize, nginx's large_client_header_buffers) and
+// Node refuses 16 KiB in total. The protocol worked only on a server told to accept 256 KiB.
+//
+// So the part of the bundle that stays the same for the credential's lifetime is sent ONCE, to PRIME_PATH, where
+// the gate verifies it in full and keeps it; each request then carries its digest in PRESENTATION_HEADER, the
+// per-request proof of possession in POP_HEADER, and the RFC 9421 signature. The signature still covers
+// PRESENTATION_HEADER, and a SHA-256 digest names exactly one bundle, so binding the digest binds the bundle.
+// The gate reassembles the full bundle and runs every check it always ran: nothing is verified less.
+
+/** Where a running copy sends its bundle once. */
+export const PRIME_PATH = "/.well-known/ainra-presentation";
+/** The per-request proof of possession. Its freshness window is 30 s (POP_MAX_SKEW_SECS), so it cannot be sent once
+ *  with the rest; it is small (one hybrid signature) and travels on its own. */
+export const POP_HEADER = "x-ainra-pop";
+
+const REF_RE = /^sha-256=:[A-Za-z0-9+/]{43}=:$/;
+
+/** Is this header value a digest reference (`sha-256=:<base64>:`, RFC 9530 syntax) rather than a bundle? */
+export function isPresentationRef(v: string): boolean {
+  return REF_RE.test(v.trim());
+}
+
+type Bundle = Record<string, unknown> & { instance?: Record<string, unknown> };
+
+/** Split a bundle into the part that holds for the credential's lifetime and the per-request proof of possession.
+ *  Neither input is modified. `pop` is null for a passport presented directly (no running-copy credential). */
+export function splitPresentation(bundle: Bundle): { stable: Bundle; pop: unknown | null } {
+  if (!bundle.instance || typeof bundle.instance !== "object") return { stable: { ...bundle }, pop: null };
+  const { pop, ...instance } = bundle.instance as Record<string, unknown>;
+  return { stable: { ...bundle, instance }, pop: pop ?? null };
+}
+
+/** The inverse of `splitPresentation`: the full bundle the verifier checks. */
+export function joinPresentation(stable: Bundle, pop: unknown | null): Bundle {
+  if (pop === null || pop === undefined || !stable.instance) return { ...stable };
+  return { ...stable, instance: { ...stable.instance, pop } };
+}
+
+/** The digest that names a bundle's stable part — over its canonical JSON, so key order and whitespace do not
+ *  matter, and with the proof of possession excluded, so it stays the same from one request to the next. */
+export function presentationRef(bundle: Bundle): string {
+  const { stable } = splitPresentation(bundle);
+  return `sha-256=:${b64std(sha256(enc.encode(canonicalize(stable))))}:`;
+}
+
 /** Acceptance window (MTS T-P3). A signature older than this is stale however valid it is. */
 export const MAX_AGE_SECS = 300;
 /** Tolerance for a signer whose clock runs ahead — the freshness tolerance of ADR-016, never a validity window. */

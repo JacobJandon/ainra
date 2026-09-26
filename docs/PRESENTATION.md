@@ -12,7 +12,7 @@ Present the passport bundle in a single request header:
 |---|---|
 | **Header** | `x-ainra-passport` |
 | **Encoding** | the presentation bundle as **base64url of its canonical JSON** (raw JSON is also accepted for local testing) |
-| **Size** | AINRA bundles are **tens of KB** (a measured sample is ~46 KB) — the post-quantum ML-DSA-65 key and signature dominate, and delegation chains add more. This is **over most default header limits** (nginx ~8 KB, many stacks 16 KB). So the header form suits small/edge cases; for the common case present the bundle in the request **body** field `ainra_passport` (same bytes, no header ceiling). Raise `large_client_header_buffers` only if you deliberately want it in the header. |
+| **Size** | AINRA bundles are **tens of KB** (`make identity-e2e` measures ~62 KB for a running copy) — the post-quantum signatures and delegate certificates dominate. That is **over every common header limit** (Apache refuses one header line over 8190 bytes, nginx over 8 KB, Node 16 KB in total), and a signed request (D-062) covers the header, so the body fallback cannot carry a signed presentation. **Send the bundle once and name it by digest** — next section. The full-bundle header still works for local tests. |
 | **Streaming-safe** | the header is set once, before the body streams; verification never needs the body |
 
 The middleware reads exactly this (`ainraGate` / `checkRequest`), defaulting to `x-ainra-passport` and falling back to
@@ -23,6 +23,25 @@ import { ainraGate, Verifier } from "@ainra/middleware";
 const verifier = Verifier.fromDirectoryB64(directory, roots.root_ed25519, roots.root_slh)!;
 app.use("/agent", ainraGate(verifier));   // every /agent request must carry a valid passport, or 403 fail-closed
 ```
+
+## Send once, name by digest (M36, D-065)
+
+The part of a bundle that holds for the credential's lifetime is sent **once**; every request after that names it.
+
+1. `POST /.well-known/ainra-presentation` with the full bundle (JSON body, a fresh proof of possession included).
+   The gate verifies it **in full** and keeps it only if it is VALID, answering `201 {"ref": "sha-256=:…:"}`.
+2. Each request carries three small things: `x-ainra-passport: <that ref>`, `x-ainra-pop: <base64url JSON of a
+   fresh proof of possession>`, and the RFC 9421 `signature-input` / `signature` (which cover `x-ainra-passport`,
+   so the signature binds the digest, and a SHA-256 digest names exactly one bundle).
+3. The gate puts the bundle back together and runs every check it always ran — at the current time, on every
+   request. A gate that does not hold the named bundle (never sent, evicted, expired) answers **428**
+   `presentation_unknown` with `link: </.well-known/ainra-presentation>; rel="ainra-prime"`: send it again, retry.
+
+Measured by `make identity-e2e`: **10.7 KiB of headers per request, the largest line 6.0 KiB**, on a server left at
+Node's default limits — which refuses the full-bundle header with **431**. The digest is over the bundle's canonical
+JSON without the proof of possession (`presentationRef` in `@ainra/sdk`), so it is the same from request to request.
+What caching does not change: a copy that keeps naming a bundle it sent before a revocation is judged exactly as if it
+re-sent that bundle in full — by the verifier's status-freshness policy (default F2, ≤ 5 min; F1 / currency ≤ 30 s).
 
 ## The verdict event
 

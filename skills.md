@@ -84,6 +84,11 @@ console.log("x-ainra-passport: " + header.slice(0, 48) + "…  (" + header.lengt
 '
 ```
 
+That full-bundle header is fine locally; behind a real front end it is too big (~60 KB against 8 KB line limits).
+In production, `POST` the bundle once to `/.well-known/ainra-presentation`, then send the returned `ref` in
+`x-ainra-passport`, a fresh proof of possession in `x-ainra-pop`, and the RFC 9421 signature — `docs/PRESENTATION.md`
+§"Send once, name by digest".
+
 Any AINRA-aware surface then emits one verdict event shape:
 `{status, reason, name, number, tier, freshness_age_s, instance_iid, instance_exp}`.
 The last two are `null` unless you present as a running copy — see §3b.

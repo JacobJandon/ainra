@@ -13,6 +13,8 @@ app.use("/agent", ainraGate(verifier));   // every /agent request needs a valid 
 ```
 
 The passport arrives in the `x-ainra-passport` header (or `req.body.ainra_passport`) — see [PRESENTATION.md](../PRESENTATION.md).
+In production a running copy sends its bundle once to `/.well-known/ainra-presentation` and names it by digest after
+that (`ainraPrime` + `createPresentationStore`, M36) — a full bundle is too big for a header behind a real front end.
 On allow, `req.ainra` carries the result and the response gets an `x-ainra-verdict` event header. On deny, it's `403`
 with `x-ainra-reason`.
 

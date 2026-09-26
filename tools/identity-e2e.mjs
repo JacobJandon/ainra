@@ -8,8 +8,9 @@
 //   1. the AGENT generates its own hybrid key; nothing ever sees the secret          (D-063)
 //   2. it asks the registrar's PUBLIC door for a passport, proving it holds the key  (D-063)
 //   3. it mints an instance credential for one running copy, under that key          (ADR-019)
-//   4. the running copy SIGNS an HTTP request with its instance key                  (D-062)
-//   5. a real HTTP server running the real gate lets it in
+//   4. the running copy sends its bundle ONCE, then names it by digest               (D-065)
+//   5. it SIGNS each HTTP request with its instance key; the real gate lets it in    (D-062)
+//      — on a server with Node's DEFAULT header limit, every header under 8 KiB
 //   6. the same request moved, replayed, unsigned, or after revocation is refused — each by name
 //
 // Nothing here is simulated. The registrar is the live staging daemon, the server is node:http, the gate is the
@@ -26,9 +27,15 @@ import { createRequire } from "node:module";
 import { pathToFileURL } from "node:url";
 import {
   Verifier, canonicalize, mintInstanceCredential, proveInstancePossession, signPresentation, PRESENTATION_HEADER,
+  PRIME_PATH, POP_HEADER, splitPresentation,
 } from "../packages/sdk-ts/dist/index.js";
 import { b64uEncode } from "../packages/sdk-ts/dist/crypto.js";
-import { ainraGate } from "../packages/middleware/dist/index.js";
+import { ainraGate, ainraPrime, createPresentationStore } from "../packages/middleware/dist/index.js";
+
+// The limits a request has to survive on the way to a real server. Apache refuses one header line over 8190 bytes
+// (LimitRequestFieldSize) and nginx over 8 KiB (large_client_header_buffers); Node refuses 16 KiB in total.
+const HEADER_LINE_MAX = 8190;
+const HEADERS_TOTAL_MAX = 16 * 1024;
 
 // Sign with the SDK's own copies of the libraries — the exact versions the verifier checks with — rather than
 // whatever a repo-root install happens to hold. They are resolved from the SDK, not from here.
@@ -110,10 +117,10 @@ const ic = await mintInstanceCredential({
 ok(`${ic.iid} · ${ic.exp - ic.nbf}s · audience ${ic.aud} · minted with the passport key, which stays outside`);
 
 const wireSig = (s) => ({ ed25519: b64uEncode(s.ed25519), mldsa65: b64uEncode(s.mldsa65) });
-async function presentationFor() {
+async function presentationFor(b = bundle) {
   const pop = await proveInstancePossession({ audience: AUD, credential: ic, nonce: "p-" + randomBytes(6).toString("hex"), now: now(), instanceSign });
   return {
-    ...bundle,
+    ...b,
     instance: {
       sub: ic.sub, iid: ic.iid, ikey: wireSig(ic.ikey), nbf: ic.nbf, exp: ic.exp, capabilities: ic.capabilities,
       aud: ic.aud, passport_leaf: b64uEncode(ic.passportLeaf), sig: wireSig(ic.sig),
@@ -124,38 +131,85 @@ async function presentationFor() {
 
 // ── 5 · a real server, the real gate ─────────────────────────────────────────────────────────────────────────────
 const seen = new Set();
+const store = createPresentationStore();
 const gate = ainraGate(verifier, {
-  now, requireSignature: true,
+  now, requireSignature: true, store,
   seenNonce: (n) => { const had = seen.has(n); seen.add(n); return had; },
 });
-const server = http.createServer({ maxHeaderSize: 256 * 1024 }, (req, res) => {
+const prime = ainraPrime(verifier, { store, now });
+// Node's DEFAULT header limit (16 KiB). Until M36 this server had to be told to accept 256 KiB, because the whole
+// bundle rode in one header — which no ordinary front end in the path would have let through.
+const server = http.createServer((req, res) => {
   const shim = {
     status(c) { res.statusCode = c; return shim; },
     json(b) { res.setHeader("content-type", "application/json"); res.end(JSON.stringify(b)); },
     setHeader: (k, v) => res.setHeader(k, v),
   };
+  if (req.method === "POST" && req.url === PRIME_PATH) {
+    let raw = ""; req.on("data", (c) => { raw += c; });
+    req.on("end", () => { try { req.body = JSON.parse(raw); } catch { req.body = undefined; } prime(req, shim); });
+    return;
+  }
   gate(req, shim, () => { res.statusCode = 200; res.end(JSON.stringify({ ok: true, as: req.ainra.event.name })); });
 });
 await new Promise((r) => server.listen(0, "127.0.0.1", r));
 const port = server.address().port;
 const authority = `127.0.0.1:${port}`;
 
-async function send({ path = "/orders", method = "POST", sign = true, pathOnWire, headersOverride, pres }) {
-  const p = pres ?? (await presentationFor());
-  const passport = Buffer.from(JSON.stringify(p)).toString("base64url");
-  const headers = { [PRESENTATION_HEADER]: passport, host: authority };
+// Send the bundle once. The gate verifies it in full and answers with the digest every request will name.
+async function primeBundle(b = bundle) {
+  const r = await fetch(`http://${authority}${PRIME_PATH}`, {
+    method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(await presentationFor(b)),
+  });
+  const body = await r.json().catch(() => ({}));
+  return { status: r.status, ref: body.ref, reason: r.headers.get("x-ainra-reason") };
+}
+const sizes = (h) => ({ total: Object.entries(h).reduce((n, [k, v]) => n + k.length + String(v).length + 4, 0),
+                        line: Math.max(...Object.entries(h).map(([k, v]) => k.length + String(v).length + 2)) });
+
+let REF = null;
+async function send({ path = "/orders", method = "POST", sign = true, pathOnWire, headersOverride, ref }) {
+  const { pop } = splitPresentation(await presentationFor());
+  const headers = {
+    [PRESENTATION_HEADER]: ref ?? REF, [POP_HEADER]: Buffer.from(JSON.stringify(pop)).toString("base64url"), host: authority,
+  };
   if (sign) Object.assign(headers, await signPresentation({
     req: { method, authority, path, headers }, keyid: ic.iid, nonce: "r-" + randomBytes(6).toString("hex"), created: now(), instanceSign,
   }));
   Object.assign(headers, headersOverride ?? {});
   const r = await fetch(`http://${authority}${pathOnWire ?? path}`, { method, headers });
-  return { status: r.status, reason: r.headers.get("x-ainra-reason"), bytes: JSON.stringify(headers).length, headers };
+  return { status: r.status, reason: r.headers.get("x-ainra-reason"), ...sizes(headers), headers };
 }
 
-step("4–5 · the running copy signs a request; the real gate lets it in");
+step("4 · the old way first: the whole bundle in one header, against a server on default limits");
+{
+  const whole = Buffer.from(JSON.stringify(await presentationFor())).toString("base64url");
+  let status;
+  try { status = (await fetch(`http://${authority}/orders`, { method: "POST", headers: { [PRESENTATION_HEADER]: whole } })).status; }
+  catch { status = "connection refused"; }
+  status === 431
+    ? ok(`${(whole.length / 1024).toFixed(1)} KiB in one header → ${status} Request Header Fields Too Large — why M36 exists`)
+    : fail(`expected 431 for a ${(whole.length / 1024).toFixed(1)} KiB header, got ${status}`);
+}
+{
+  const p = await primeBundle();
+  REF = p.ref;
+  p.status === 201 && REF
+    ? ok(`sent once to ${PRIME_PATH} → 201, named from now on by ${REF.slice(0, 22)}…`)
+    : fail(`priming failed: ${p.status} ${p.reason}`);
+}
+
+step("5 · the running copy signs each request; the real gate lets it in");
 const good = await send({});
 if (good.status !== 200) fail(`a correctly signed request was refused: ${good.status} ${good.reason}`);
-else ok(`200 · allowed · request headers ${(good.bytes / 1024).toFixed(1)} KiB`);
+else if (good.line > HEADER_LINE_MAX || good.total > HEADERS_TOTAL_MAX)
+  fail(`allowed, but too big for a real front end: largest header ${good.line} B, total ${good.total} B`);
+else ok(`200 · allowed · request headers ${(good.total / 1024).toFixed(1)} KiB, largest ${(good.line / 1024).toFixed(1)} KiB — under every common limit`);
+{
+  const r = await send({ ref: "sha-256=:" + Buffer.alloc(32).toString("base64") + ":" });
+  r.status === 428 && r.reason === "presentation_unknown"
+    ? ok(`a digest this gate was never sent → 428 ${r.reason} (send it, then retry)`) : fail(`unknown digest: ${r.status} ${r.reason}`);
+}
 
 step("6 · every way of misusing it is refused, by name");
 {
@@ -181,11 +235,24 @@ step("7 · revoke the passport — every running copy dies with it");
 const rv = await j(`${REG}/demo/revoke`, { method: "POST", body: JSON.stringify({ sub, now: now() }) });
 if (rv.status !== 200) fail(`revoke failed: ${rv.status} ${JSON.stringify(rv.body)}`);
 const fresh = (await j(`${REG}/present?sub=${encodeURIComponent(sub)}&now=${now()}`)).body;
-Object.assign(bundle, fresh);                      // the verifier now sees the post-revocation status list
+const before = { ...bundle };
+Object.assign(bundle, fresh);                      // the post-revocation status list
 {
-  const r = await send({});
-  r.status === 403 && r.reason === "revoked"
-    ? ok(`after revocation a correctly signed request → 403 ${r.reason}`) : fail(`after revoke: ${r.status} ${r.reason}`);
+  // An honest copy sends the bundle it now holds. The gate refuses to store a revoked credential at all.
+  const p = await primeBundle();
+  p.status === 403 && p.reason === "revoked"
+    ? ok(`sending the post-revocation bundle → 403 ${p.reason} — a revoked credential is never stored`)
+    : fail(`priming after revoke: ${p.status} ${p.reason}`);
+}
+{
+  // A copy that keeps naming the bundle it sent BEFORE revocation is judged exactly as if it had re-sent that old
+  // bundle in full: caching changes nothing about the status-freshness bound. Assert the equivalence, not a hope.
+  const viaRef = await send({});
+  const { checkRequest } = await import("../packages/middleware/dist/index.js");
+  const direct = checkRequest(verifier, await presentationFor(before), { now });
+  (viaRef.status === 200) === direct.allow
+    ? ok(`naming the pre-revocation bundle → ${viaRef.status}${viaRef.reason ? " " + viaRef.reason : ""}, the same answer as re-sending it in full (${direct.allow ? "allowed until its status list ages out — the freshness bound, unchanged by M36" : "refused"})`)
+    : fail(`the cached bundle and the same bundle sent in full disagree: ${viaRef.status} vs allow=${direct.allow}`);
 }
 
 server.close();

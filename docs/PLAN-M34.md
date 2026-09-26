@@ -153,4 +153,5 @@ window, a mint that refuses a challenge with no valid passport, and a board that
 hop against the current checkpoint, refuses to sign outside its delegate window, and fails closed on writes. `make
 live-up` runs the wall-clock network and `make identity-e2e` passes against it; `make live-status` is the real-clock
 check. The staging network stays pinned, on purpose and by name (`AINRA_CLOCK=pinned`). Still open: re-minting the
-eight challenges (finding 5), and the 66.7 KiB of request headers the end-to-end run measures.
+eight challenges (finding 5, done 2026-09-26), and the 66.7 KiB of request headers the end-to-end run measures
+(resolved by M36, D-065: send once, name by digest — 10.7 KiB, no line over 8 KiB).

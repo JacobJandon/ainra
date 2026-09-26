@@ -10,8 +10,46 @@
 
 import {
   Verifier, verdictEvent, serializeVerdictEvent, decodeInstance, verifyPresentation,
+  isPresentationRef, splitPresentation, joinPresentation, presentationRef, POP_HEADER, PRIME_PATH,
   type PresentationBundle, type Verdict, type VerdictEvent, type PresentationReason,
 } from "@ainra/sdk";
+
+// ── M36 (D-065): bundles sent once, named by digest after that ───────────────────────────────────────────────────
+
+/** Where the gate keeps bundles a running copy has sent once. Only bundles that verified VALID when they arrived
+ *  are ever stored, the key is the SHA-256 of the content, and every request re-verifies what it names — so the
+ *  store can lose entries (the client just sends again) but cannot make anything pass that would not. */
+export interface PresentationStore {
+  get(ref: string, now: number): Record<string, unknown> | undefined;
+  put(ref: string, stable: Record<string, unknown>, expiresAt: number): void;
+}
+
+/** The default store: in memory, bounded, oldest-first eviction, and nothing outlives the credential it holds.
+ *  Bounded because whoever can mint valid bundles can otherwise fill it; eviction costs them nothing but costs an
+ *  honest client one re-send, which is the right way round. One process only — behind several, share a store. */
+export function createPresentationStore(opts: { max?: number } = {}): PresentationStore {
+  const max = Math.max(1, opts.max ?? 1024);
+  const m = new Map<string, { stable: Record<string, unknown>; exp: number }>();
+  return {
+    get(ref, now) {
+      const e = m.get(ref);
+      if (!e) return undefined;
+      if (now >= e.exp) { m.delete(ref); return undefined; }
+      m.delete(ref); m.set(ref, e);            // most recently used last, so eviction takes the idlest
+      return e.stable;
+    },
+    put(ref, stable, exp) {
+      m.delete(ref);
+      m.set(ref, { stable, exp });
+      while (m.size > max) m.delete(m.keys().next().value as string);
+    },
+  };
+}
+
+/** How long a stored bundle may be named. A running copy's credential expires on its own (ADR-019, ≤ 1 h); a
+ *  passport presented directly carries a status list whose freshness is what matters, so it is kept briefly and
+ *  re-sent. Every use re-verifies at the current time regardless — this bounds memory, not trust. */
+const DIRECT_PASSPORT_TTL_SECS = 300;
 
 export interface GateOptions {
   /** Verifier's clock, unix seconds. Default: `Date.now()/1000`. Pass a fixed value for a demo/test window. */
@@ -36,6 +74,11 @@ export interface GateOptions {
    *  Without it, a captured signature stays usable against that exact target for five minutes. The cache cannot
    *  live in the SDK (`ainra-core` is N7 — no state), so it lives with the caller who has somewhere to put it. */
   seenNonce?: (nonce: string) => boolean;
+  /** M36 (D-065): where bundles sent to PRIME_PATH are kept, so requests can name them by digest. Pass the SAME
+   *  store to `ainraPrime`. Without one, a request that names a bundle by digest is refused `presentation_unknown`. */
+  store?: PresentationStore;
+  /** Header the per-request proof of possession arrives in when the bundle is named by digest. Default `x-ainra-pop`. */
+  popHeader?: string;
 }
 
 /** What `requireSignature` needs from the request, beyond the bundle. A framework-agnostic shape so an edge
@@ -89,10 +132,23 @@ function checkBinding(
 export function checkRequest(
   verifier: Verifier,
   bundle: unknown,
-  opts: GateOptions & { binding?: RequestBinding } = {},
+  opts: GateOptions & { binding?: RequestBinding; pop?: string } = {},
 ): GateResult {
   const now = (opts.now ?? (() => Math.floor(Date.now() / 1000)))();
   let parsed: PresentationBundle;
+  // M36 (D-065): the request names a bundle it sent earlier. Look it up and put the per-request proof of possession
+  // back where the verifier expects it — from here on it is the same bundle, checked the same way.
+  if (typeof bundle === "string" && isPresentationRef(bundle)) {
+    const stable = opts.store?.get(bundle.trim(), now);
+    if (!stable)
+      return { allow: false, reason: "presentation_unknown", verdict: DENY_SCHEMA, event: verdictEvent({}, DENY_SCHEMA, now) };
+    let pop: unknown = null;
+    if (opts.pop !== undefined) {
+      try { pop = JSON.parse(Buffer.from(opts.pop.trim(), "base64url").toString("utf8")); }
+      catch { return { allow: false, reason: "schema_violation", verdict: DENY_SCHEMA, event: verdictEvent({}, DENY_SCHEMA, now) }; }
+    }
+    bundle = joinPresentation(stable, pop);
+  }
   try {
     if (typeof bundle === "string") {
       // Accept raw JSON or base64url(JSON) — a header is easiest as the latter.
@@ -165,14 +221,17 @@ function bindingFromReq(req: ReqLike): RequestBinding {
  */
 export function ainraGate(verifier: Verifier, opts: GateOptions = {}) {
   const header = (opts.header ?? "x-ainra-passport").toLowerCase();
+  const popHeader = (opts.popHeader ?? POP_HEADER).toLowerCase();
   return (req: ReqLike, res: ResLike, next: Next): void => {
     const raw = req.headers[header] ?? (req.body as { ainra_passport?: unknown } | undefined)?.ainra_passport;
+    const popRaw = req.headers[popHeader];
     const result: GateResult =
       raw === undefined
         ? { allow: false, reason: "schema_violation", verdict: DENY_SCHEMA, event: verdictEvent({}, DENY_SCHEMA, (opts.now ?? (() => Math.floor(Date.now() / 1000)))()) }
         : checkRequest(verifier, Array.isArray(raw) ? raw[0] : raw, {
             ...opts,
             binding: opts.requireSignature ? bindingFromReq(req) : undefined,
+            pop: Array.isArray(popRaw) ? popRaw[0] : popRaw,
           });
     req.ainra = result;
     // Emit the canonical verdict event on every request (allow or deny) — one event shape everywhere (PRESENTATION.md).
@@ -183,8 +242,55 @@ export function ainraGate(verifier: Verifier, opts: GateOptions = {}) {
     }
     if (opts.onDeny) opts.onDeny(result.reason ?? "schema_violation");
     res.setHeader("x-ainra-reason", result.reason ?? "schema_violation");
+    if (result.reason === "presentation_unknown") {
+      // Not a refusal of the agent: this gate simply does not hold the bundle the request names. 428 tells a client
+      // to send it (again) and retry, rather than to give up.
+      res.setHeader("link", `<${PRIME_PATH}>; rel="ainra-prime"`);
+      res.status(428).json({ error: "ainra: send the presentation first", reason: result.reason, prime: PRIME_PATH });
+      return;
+    }
     res.status(403).json({ error: "ainra: passport not valid", reason: result.reason });
   };
 }
 
+/**
+ * M36 (D-065): the handler a running copy sends its bundle to, once. Mount it at `PRIME_PATH` with the same store
+ * as the gate. It verifies the bundle IN FULL — proof of possession included — and keeps only bundles that verify
+ * VALID, keyed by the digest of their stable part; it answers 201 with that digest. Sending a bundle grants nothing
+ * by itself: every request that names it must still verify, and, with `requireSignature`, be signed.
+ *
+ * ```ts
+ * const store = createPresentationStore();
+ * app.post(PRIME_PATH, express.json({ limit: "256kb" }), ainraPrime(verifier, { store }));
+ * app.use("/agent", ainraGate(verifier, { store, requireSignature: true, seenNonce }));
+ * ```
+ */
+export function ainraPrime(verifier: Verifier, opts: { store: PresentationStore; now?: () => number; onDeny?: (reason: string) => void }) {
+  return (req: ReqLike, res: ResLike): void => {
+    const now = (opts.now ?? (() => Math.floor(Date.now() / 1000)))();
+    let body: unknown = req.body;
+    if ((body === undefined || typeof body !== "object") && req.rawBody) {
+      try { body = JSON.parse(Buffer.from(req.rawBody).toString("utf8")); } catch { body = undefined; }
+    }
+    const deny = (reason: string) => {
+      if (opts.onDeny) opts.onDeny(reason);
+      res.setHeader("x-ainra-reason", reason);
+      res.status(403).json({ error: "ainra: presentation not stored", reason });
+    };
+    if (!body || typeof body !== "object" || Array.isArray(body)) return deny("schema_violation");
+    if ((req.method ?? "POST").toUpperCase() !== "POST") return deny("schema_violation");
+    const result = checkRequest(verifier, body, { now: () => now });
+    res.setHeader("x-ainra-verdict", serializeVerdictEvent(result.event));
+    if (!result.allow) return deny(result.reason ?? "schema_violation");
+    const bundle = body as Record<string, unknown> & { instance?: { exp?: unknown } };
+    const { stable } = splitPresentation(bundle);
+    const iexp = typeof bundle.instance?.exp === "number" ? bundle.instance.exp : undefined;
+    const expiresAt = iexp ?? now + DIRECT_PASSPORT_TTL_SECS;
+    const ref = presentationRef(bundle);
+    opts.store.put(ref, stable, expiresAt);
+    res.status(201).json({ ref, expires: expiresAt });
+  };
+}
+
 export { Verifier, verdictEvent, serializeVerdictEvent, type VerdictEvent } from "@ainra/sdk";
+export { PRIME_PATH, POP_HEADER, presentationRef, isPresentationRef } from "@ainra/sdk";

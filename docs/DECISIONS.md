@@ -1287,3 +1287,57 @@ presentation-diff` caught it. The corpus is unchanged: `make vectors-check` repr
 challenges minted before this fix hold no valid passport; they are to be re-minted on the live network, not repaired.
 
 *Status:* NEW. Registrar, daemon, drills, mint, runbook (`deploy/runbooks/key-rotation.md`).
+
+## D-065 — Send the bundle once, name it by digest (M36)
+
+*Problem:* a presentation only worked on a server told to accept 256 KiB of headers. `make identity-e2e` measured
+66.7 KiB per request, almost all of it one header carrying the whole bundle — post-quantum signatures, delegate
+certificates, a log proof, a status list. Apache refuses one header line over 8190 bytes, nginx over 8 KB, and Node
+refuses 16 KiB in total: every common front end between an agent and a service would have rejected every signed
+request. The documented escape — the bundle in the request body — never worked for a signed request, because the
+RFC 9421 signature (D-062) covers `x-ainra-passport`. With a server left at Node's defaults, the full-bundle header
+now gets the answer it would have got in production: **431 Request Header Fields Too Large**.
+
+*Decision:* the part of the bundle that holds for the credential's lifetime is sent **once**, to
+`POST /.well-known/ainra-presentation`; each request then names it by the SHA-256 of its canonical JSON
+(`sha-256=:…:`, RFC 9530 syntax) in the same `x-ainra-passport` header, carries the per-request proof of possession
+in `x-ainra-pop`, and signs as before.
+
+- **Nothing is verified less.** The gate reassembles the full bundle and runs every check it always ran, at the
+  current time, on every request. The signature profile is unchanged: it still covers `x-ainra-passport`, and a
+  SHA-256 digest names exactly one bundle, so binding the digest binds the bundle.
+- **The proof of possession stays per request.** Its freshness window is 30 s (ADR-019), so it cannot be sent once;
+  the digest excludes it, which is what makes the digest the same from one request to the next.
+- **Only VALID bundles are stored, keyed by content.** A forged bundle is refused at the door and stored nowhere;
+  one entry cannot overwrite another. Sending a bundle grants nothing by itself.
+- **The store is bounded and forgets.** In memory, oldest-idle-first eviction, nothing outlives the running copy's
+  credential (≤ 1 h) or, for a passport presented directly, five minutes. Eviction costs an honest client one
+  re-send — the right way round, since whoever can mint valid bundles could otherwise fill it.
+- **A gate that does not hold the named bundle says so as a precondition, not a verdict:** 428,
+  `presentation_unknown` (a fifth presentation reason — new, none reused, D-047), and
+  `link: </.well-known/ainra-presentation>; rel="ainra-prime"`. The event reports no credential, exactly like a
+  request that carried none.
+- **Offline is unchanged.** The gate calls nobody — not the registrar, not the root. What it keeps is state the
+  caller owns, like the nonce cache of D-062, which is why the store is a parameter and not a global.
+
+*The Standard needs no amendment:* §5 says the request signature is made by the running copy's instance key and
+that the credential travels inside ordinary web traffic. A priming request and a digest are ordinary web traffic,
+and the signature still binds the credential to one method, host and path.
+
+*Evidence:* `make identity-e2e` against the live registrar, on a server at Node's default limits — full bundle
+**431**; send once **201**; signed request **200 with 10.7 KiB of headers, the largest line 6.0 KiB**; an unknown
+digest **428**; moved, unsigned and replayed still **403** by name; a revoked credential is refused **at the door**
+(403 `revoked`, never stored). SDK: 7 new tests (the digest ignores the proof of possession and key order and moves
+with everything the verifier checks). Middleware: 9 new tests. Negative control: storing without verifying fails
+exactly `a bundle that does not verify is never stored`.
+
+*Found on the way, and not caused by this:* a copy that keeps naming a bundle it sent before its revocation is
+answered exactly as if it had re-sent that bundle in full — `make identity-e2e` asserts the two agree. Both are
+bounded only by the verifier's status-freshness policy: default F2 accepts a status snapshot up to 5 minutes old,
+F1 / currency mode 30 seconds. The site's "revocation <60s" is the soak's measured **publication** latency; it now
+says so ("REVOCATION PUBLISHED <60s"). A verifier that needs a revoked agent stopped within a minute everywhere has
+to run F1 or currency mode, and the SDK has always said this (`Verifier` freshness docs).
+
+*Status:* NEW. `@ainra/sdk` and `@ainra/middleware` (TypeScript), unreleased — the next publish carries it. The
+Python SDK and the Rust core do not verify request signatures yet (PLAN-M34 remaining work), so they have nothing
+to change here.

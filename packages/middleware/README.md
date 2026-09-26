@@ -30,6 +30,20 @@ app.post("/agent/order", (req, res) => {
 ```
 
 The passport arrives in the `x-ainra-passport` header (raw JSON or base64url of it), or in `body.ainra_passport`.
+
+**In production, send the bundle once** (M36, D-065). A full bundle is ~60 KB — over every common header limit —
+so a running copy posts it once and names it by digest after that:
+
+```ts
+import { ainraGate, ainraPrime, createPresentationStore, PRIME_PATH, Verifier } from "@ainra/middleware";
+const store = createPresentationStore();                         // bounded, in memory; share one behind a pool
+app.post(PRIME_PATH, express.json({ limit: "256kb" }), ainraPrime(verifier, { store }));   // 201 {ref}
+app.use("/agent", ainraGate(verifier, { store, requireSignature: true, seenNonce }));      // requests name the ref
+```
+
+Each request then carries `x-ainra-passport: <ref>`, `x-ainra-pop` and the RFC 9421 signature — ~11 KB in total,
+no line over 8 KB. A gate that does not hold the named bundle answers **428** `presentation_unknown`: send it again.
+Only bundles that verify VALID are stored, and every request re-verifies what it names.
 On refusal the gate answers **403** with `{ error, reason }`. Every response — allowed or refused — carries
 `x-ainra-verdict`, the canonical verdict event.
 

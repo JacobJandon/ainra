@@ -52,7 +52,7 @@
 /* §14 — the two signals beyond reduced-motion (the nav is solid now, so there is no translucent surface left): give a
    high-contrast reader darker text, and no moving field behind the words. */
 @media(prefers-reduced-transparency:reduce){#life-field{display:none}}
-@media(prefers-contrast:more){:root{--muted:#3A4250}.hero .sub,.hero .facts .row{color:#D7DCE5}#life-field{display:none}:focus-visible{outline-width:3px}}
+@media(prefers-contrast:more){:root{--muted:#3A4250}#life-field{display:none}:focus-visible{outline-width:3px}}
 body{font-family:var(--body);background:var(--paper);color:var(--ink);font-size:1rem;line-height:1.6;-webkit-font-smoothing:antialiased}
 ::selection{background:var(--green);color:#fff}
 a{color:inherit;text-decoration:none}
@@ -113,19 +113,17 @@ nav{position:sticky;top:0;z-index:60;background:var(--paper);border-bottom:1px s
   .nav-links.open{display:flex}
 }
 
-/* hero — one dark band (DESIGN: the ink ramp is for the hero), read left→right: the claim and the agent's first
-   step on the left, the passport it gets on the right. Solid surfaces; the grid is two hairline gradients. */
-.hero{position:relative;overflow:hidden;text-align:left;color:#E7EAF0;padding:76px 0 40px;
-  background:linear-gradient(#121C31 1px,transparent 1px) 0 0/56px 56px,
-             linear-gradient(90deg,#121C31 1px,transparent 1px) 0 0/56px 56px,
-             radial-gradient(1100px 620px at 80% 12%,#0E2A26 0%,var(--ink) 62%)}
+.hero{position:relative;overflow:hidden;text-align:left;padding:72px 0 40px;
+  background:radial-gradient(900px 420px at 50% -90px,rgba(26,107,78,.12),transparent 70%)}
+/* hero — read left→right: the claim and the agent's first step on the left, the passport it gets on the right.
+   Light, as the landing page always was (owner's call, 2026-09-26). */
 .hero-grid{display:grid;grid-template-columns:minmax(0,.94fr) minmax(0,1.06fr);gap:48px;align-items:center}
 .kick{display:inline-flex;align-items:center;gap:10px;font-family:var(--mono);font-size:10.5px;letter-spacing:.2em;font-weight:700;
-  color:#B9C1CF;background:var(--ink-2);border:1px solid #1d2a44;border-radius:99px;padding:7px 15px 7px 11px}
-.kick i{width:7px;height:7px;border-radius:50%;background:var(--green-br);box-shadow:0 0 0 3px #173A31;flex:none}
+  color:var(--green);background:var(--card);border:1px solid var(--line);border-radius:99px;padding:7px 15px 7px 11px}
+.kick i{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px rgba(26,107,78,.14);flex:none}
 .hero h1{font-family:var(--display);font-weight:720;font-size:clamp(2.7rem,5.6vw,4.75rem);line-height:.98;letter-spacing:-.042em;
-  color:#F5F6F3;margin:24px 0 0;max-width:11.5ch}
-.hero h1 .g{color:var(--green-br)}
+  color:var(--ink);margin:24px 0 0;max-width:11.5ch}
+.hero h1 .g{color:var(--green)}
 /* multi-method installer (M20) */
 .install{max-width:760px;margin:26px auto 0;background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:0 24px 56px -34px rgba(11,18,32,.24)}
 .itabs{display:flex;gap:2px;padding:8px;background:var(--paper);border-bottom:1px solid var(--line);overflow-x:auto}
@@ -143,30 +141,23 @@ nav{position:sticky;top:0;z-index:60;background:var(--paper);border-bottom:1px s
 .icopy{position:absolute;top:9px;right:12px;font-family:var(--mono);font-size:10.5px;color:rgba(255,255,255,.55);border:1px solid rgba(255,255,255,.18);border-radius:6px;padding:7px 11px;background:none;cursor:pointer;transition:color .15s,border-color .15s,background .1s ease-out}
 .icopy:active{background:rgba(255,255,255,.14);color:#fff}
 .icopy:hover{color:#fff;border-color:rgba(255,255,255,.4)}
-.hero .sub{margin:22px 0 0;max-width:33em;font-size:18px;line-height:1.6;color:#B9C1CF}
-.hero .sub b{color:#F5F6F3;font-weight:600}
-.hero .sub2{margin-top:14px;font-family:var(--mono);font-size:11.5px;letter-spacing:.06em;line-height:1.8;color:#8B94A6}
+.hero .sub{margin:22px 0 0;max-width:33em;font-size:18px;line-height:1.6;color:var(--muted)}
+.hero .sub b{color:var(--ink);font-weight:600}
+.hero .sub2{margin-top:14px;font-family:var(--mono);font-size:11.5px;letter-spacing:.06em;line-height:1.8;color:var(--muted)}
 .hero .sub2 span{white-space:nowrap}
 .hero .sub2 span+span::before{content:"· "}
 .hero .cta-row{justify-content:flex-start;margin-top:30px}
-.hero .btn-green{background:var(--green-br);color:var(--ink)}
-.hero .btn-green:hover{filter:none;background:#6fd0a2}
-.hero .btn-ghost{background:var(--ink-2);border-color:#1d2a44;color:#E7EAF0}
-.hero .btn-ghost:hover{border-color:#8B94A6}
 /* the agent's first step — one line to paste, the pattern agent-first products converge on */
-.agent-ask{margin-top:28px;max-width:560px;text-align:left;display:flex;align-items:stretch;background:#000002;border:1px solid #1d2a44;border-radius:12px;overflow:hidden}
+.agent-ask{margin-top:28px;max-width:560px;text-align:left;display:flex;align-items:stretch;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:0 14px 34px -26px rgba(11,18,32,.22)}
 .agent-ask>div{flex:1;min-width:0;padding:12px 16px 13px}
-.agent-ask .lbl{display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;color:#8B94A6;margin-bottom:5px}
-.agent-ask code{display:block;font-family:var(--mono);font-size:13px;line-height:1.55;color:#D7DCE5;word-break:break-word}
-.agent-ask button{flex:none;border-left:1px solid #1d2a44;padding:0 18px;font-family:var(--mono);font-size:11px;letter-spacing:.14em;font-weight:700;color:#B9C1CF}
-.agent-ask button:hover{color:#fff;background:var(--ink-2)}
+.agent-ask .lbl{display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;color:var(--muted);margin-bottom:5px}
+.agent-ask code{display:block;font-family:var(--mono);font-size:13px;line-height:1.55;color:var(--ink);word-break:break-word}
+.agent-ask button{flex:none;border-left:1px solid var(--line);padding:0 18px;font-family:var(--mono);font-size:11px;letter-spacing:.14em;font-weight:700;color:var(--green)}
+.agent-ask button:hover{background:rgba(26,107,78,.06)}
 .hero-card .pass-wrap{margin:0;justify-content:flex-end}
-.hero .passport{color:var(--ink);border-color:#1d2a44;box-shadow:0 40px 90px -40px #000002,0 0 0 1px #111B30}
-.hero .p-cap{text-align:right;color:#8B94A6}
-.hero .facts{margin-top:56px;padding-top:22px;border-top:1px solid #1d2a44;text-align:left}
-.hero .facts .row{justify-content:space-between;margin-top:0;color:#8B94A6}
-.hero .facts .row b{color:#F5F6F3}
-.hero .facts .row .g{color:var(--green-br)}
+.hero .p-cap{text-align:right}
+.hero .facts{margin-top:56px;padding-top:22px;border-top:1px solid var(--line);text-align:left}
+.hero .facts .row{justify-content:space-between;margin-top:0}
 @media(max-width:1000px){
   .hero{padding:56px 0 32px}
   .hero-grid{grid-template-columns:minmax(0,1fr);gap:44px}
@@ -179,7 +170,7 @@ nav{position:sticky;top:0;z-index:60;background:var(--paper);border-bottom:1px s
   .hero .facts .row{justify-content:center}
 }
 @media(max-width:600px){.hero .sub2 span{display:block;white-space:normal}.hero .sub2 span+span::before{content:none}}
-@media(max-width:480px){.hero .sub{font-size:16.5px}.kick .k3{display:none}.agent-ask{flex-direction:column}.agent-ask button{border-left:0;border-top:1px solid #1d2a44;padding:11px 0}.agent-ask code{font-size:12px}
+@media(max-width:480px){.hero .sub{font-size:16.5px}.kick .k3{display:none}.agent-ask{flex-direction:column}.agent-ask button{border-left:0;border-top:1px solid var(--line);padding:11px 0}.agent-ask code{font-size:12px}
   /* B612 Mono runs wider than the system mono it replaced: keep the card's machine text on one line at phone width */
   .hero .pass-head{font-size:8px;letter-spacing:.08em}.hero .dr{font-size:8.5px;letter-spacing:.02em;gap:8px}
   .hero .tier-chip{white-space:nowrap;font-size:9px}.hero .f .ok{font-size:9.5px}.hero .f label{letter-spacing:.08em}
@@ -473,21 +464,6 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:88px;back
 nav .nav-links a[aria-current="page"],nav .ndocs[aria-current="page"]{text-decoration:underline;text-underline-offset:6px;text-decoration-thickness:2px}
 @media(max-width:480px){.announce{font-size:11px;padding:8px 12px}}
 @media(max-width:1023px){nav .mean{display:none}}
-/* the top of the landing page is one dark band: announcement, nav, hero. Solid, never glass. Last, so it wins. */
-.announce{border-bottom:1px solid #111B30}
-nav{background:var(--ink);border-bottom:1px solid #1d2a44;color:#E7EAF0}
-nav .brand .wm{color:#F5F6F3}
-nav .brand .mean{border-left-color:#1d2a44;color:#8B94A6}
-nav .ndocs{color:#B9C1CF}
-nav .ndocs:hover{color:#fff;background:var(--ink-2)}
-nav .ndocs[aria-current="page"]{color:var(--green-br)}
-nav .btn-ghost{background:var(--ink-2);border-color:#1d2a44;color:#E7EAF0}
-nav .btn-ghost:hover{border-color:#8B94A6}
-nav .btn-ink{background:#F5F6F3;color:var(--ink)}
-nav .btn-ink:hover{background:#fff}
-nav .burger{background:var(--ink-2);border-color:#1d2a44;color:#E7EAF0}
-nav .burger[aria-expanded="true"]{background:#F5F6F3;color:var(--ink);border-color:#F5F6F3}
-@media(max-width:900px){nav .nav-links{background:var(--ink);border-bottom-color:#1d2a44;color:#B9C1CF}nav .nav-links a{border-top-color:#1d2a44}}
 </style>
 </head>
 <body id="top">
@@ -540,7 +516,7 @@ nav .burger[aria-expanded="true"]{background:#F5F6F3;color:var(--ink);border-col
 
 <nav><div class="wrap nav-in">
   <a class="brand" href="#top" aria-label="AINRA — Agent Identity and Naming Registry Authority">
-    <span class="sigil" aria-hidden="true"><svg viewBox="0 0 112 112"><use href="#ainra-sigil-lt"/></svg></span>
+    <span class="sigil" aria-hidden="true"><svg viewBox="0 0 112 112"><use href="#ainra-sigil"/></svg></span>
     <span class="wm">AINRA</span>
     <span class="mean">Agent Identity &amp; Naming<br>Registry Authority</span>
   </a>

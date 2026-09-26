@@ -43,4 +43,9 @@ regexes = [
   # source code referencing the PUBLIC-key field of verifier attestations (newer gitleaks generic-api-key
   # rules fire on the identifier itself — `… = body.verifier_pubkey_spki_b64` holds no secret)
   '''verifier_pubkey_spki_b64''',
+  # the web3.js documentation's signing example key (`web3.eth.accounts.sign('Some data', '0x4c08…2318')`), used in
+  # kits/personhood/test as an INDEPENDENT vector: the point of the test is that our EIP-191 hash, signature and
+  # recovery reproduce another implementation's published bytes. Published for years in that project's docs; it holds
+  # nothing and must never be funded. Matched exactly — any other key-shaped string still trips the scan.
+  '''4c0883a69102937d6231471b5dbb6204fe5129617082792ae468d01a3f362318''',
 ]

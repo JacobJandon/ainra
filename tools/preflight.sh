@@ -86,6 +86,7 @@ run "policy parity"      "same policy, same reason, everywhere" make policy-pari
 run "soak ingest"        "declaration reads what the soak writes" node tools/soak-ingest-check.mjs
 run "no names in git"    "D-036: candidates stay out of the repo" node tools/names-check.mjs
 run "cross-impl interop" "fresh sigs verify in TS + PY"   make interop
+run "personhood kit"    "a human behind the agent, offline" make personhood-test
 if command -v wasm-bindgen >/dev/null 2>&1 && node tools/wasm-differential.mjs --probe >/dev/null 2>&1; then
   run "browser verifier"   "whole corpus agrees in-browser" make wasm-diff
   run "engine parity"      "both page engines give one answer" node tools/engine-parity.mjs

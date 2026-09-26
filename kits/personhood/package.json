@@ -1,0 +1,14 @@
+{
+  "name": "ainra-personhood-kit",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Registrar-side: turn an on-chain proof-of-personhood registry lookup plus a wallet signature into an AINRA principal proof (D-066). The root never sees any of it.",
+  "license": "Apache-2.0 OR MIT",
+  "bin": { "ainra-personhood": "personhood.mjs" },
+  "scripts": { "test": "node --test test/", "live": "node live-drill.mjs" },
+  "dependencies": {
+    "@noble/curves": "^1.6.0",
+    "@noble/hashes": "^1.5.0"
+  }
+}

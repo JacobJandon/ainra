@@ -1341,3 +1341,45 @@ to run F1 or currency mode, and the SDK has always said this (`Verifier` freshne
 *Status:* NEW. `@ainra/sdk` and `@ainra/middleware` (TypeScript), unreleased — the next publish carries it. The
 Python SDK and the Rust core do not verify request signatures yet (PLAN-M34 remaining work), so they have nothing
 to change here.
+
+## D-066 — A human behind the agent: proof-of-personhood as a registrar-side principal proof
+
+*Problem:* an A1 (human-delegated) passport needs a principal proof — "a verified person, proven via zero-knowledge
+commitment" (Standard §6) — and the reference registrar accepts any opaque string there, because nothing produced a
+real one. Meanwhile on-chain proof-of-personhood registries now map agent wallets to anonymous, unique humans. The
+one in production — the AgentBook contract on World Chain, used by that network's agent toolkit — answers exactly
+the A1 question. Read in its deployed, verified source (not a proxy), it has no revoke, no unregister and no expiry:
+a stolen agent key stays "human-backed" forever, and its own SDK returns the same `null` for "not registered" and
+"the lookup failed".
+
+*Decision:* `kits/personhood` — **registrar-side, outside the root and the core** — turns a registry lookup plus a
+wallet signature into a principal proof:
+
+- **The chain of evidence is checked link by link.** The registry says a unique human backs the wallet (read with
+  `eth_call` pinned to a block, on a chain whose id is checked); the wallet signs an EIP-191 binding that names this
+  registrar, this agent key's thumbprint, the chain, a time and a nonce; the kit recovers the signer and requires it
+  to BE the wallet — otherwise anyone could name a human-backed wallet they do not control.
+- **The proof is opaque; the evidence stays at the registrar** (Standard §4). `principal_proof` is SHA-256 over the
+  canonical evidence: no wallet, no human id on the wire, reproducible by anyone holding the evidence.
+- **Registries are configuration, not code.** A chain, an RPC, a contract and a `lookup(address) → uint256` view. The
+  first configured one is the one that exists; nothing in the kit is specific to it, and none is built into AINRA.
+- **Every refusal is named**, and a failed lookup is `lookup_failed` — never folded into "not registered".
+- **What AINRA adds on top is exactly what the registry lacks:** expiry, one-bit revocation, operator and
+  capabilities, offline verification.
+
+*Neutrality:* this is a registrar's choice of evidence, like KYB for A2. The root names no registry, displays no one's
+mark (S7, P6), and treats an A1 passport established this way exactly like any other.
+
+*Evidence:* `make personhood-test` — 14 offline tests; the EIP-55 checksums, ERC-20 selectors and EIP-191 hash and
+recovery are checked against vectors from other implementations (the EIP-55 spec, web3.js's documented example), and
+each refusal is forced with a stub RPC. Negative control: dropping the signer-is-the-wallet check fails exactly the
+impersonation and edited-message tests. `make personhood-live` against the real chain (2026-09-26): a registration
+read from a public block explorer, and our own block-pinned `eth_call` returns the same human id — two independent
+sources, one answer; a fresh wallet is not human-backed; the binding path for it refuses `not_human_backed`; an
+unreachable RPC is `lookup_failed`.
+
+*Not proven, said plainly:* the positive binding path live. It needs the key of a wallet a verified human registered;
+no one here has one. It is proven offline only.
+
+*Status:* NEW. Kit + tests + live drill. The registrar still accepts any principal proof string; making A1 issuance
+REQUIRE a checked one is a registrar policy step for later, not a change to the core.

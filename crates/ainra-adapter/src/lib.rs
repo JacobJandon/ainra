@@ -354,6 +354,21 @@ fn presentation_parts(p: &WirePresentation) -> D<Decoded> {
 
 // ── the single vector → Presentation/TrustAnchors → Verdict path ───────────────────────────────────────────
 
+/// FIXTURE semantics: the freshness class and the revoked-delegate set come from the WIRE, because a conformance
+/// vector is self-contained (the TS SDK's `runVector` does the same). A GATE must not use this — a presenter would
+/// choose its own freshness (up to F3, 24 h) and bring an empty revocation list. Gates call [`verify_wire_policy`]
+/// with the verifier's class and the trusted directory's revocations (D-068).
+pub fn verify_wire(
+    p: &WirePresentation,
+    anchors: &verify::TrustAnchors,
+    now: u64,
+    audience: &str,
+) -> Verdict {
+    verify_wire_policy(p, anchors, now, audience, None, None)
+}
+
+/// Verify with the CALLER's policy: its clock, its audience, its freshness class, and the revoked delegates of the
+/// directory it trusts. `None` falls back to the wire's value — which only a self-contained fixture should ever do.
 /// Verify one decoded wire presentation against decoded anchors at `now`, **for the audience the caller names**.
 ///
 /// This is **the** conversion: every surface — the generator, the conformance runner, the CLI, the browser —
@@ -363,11 +378,13 @@ fn presentation_parts(p: &WirePresentation) -> D<Decoded> {
 /// corrected the two entry points above this one while leaving this layer reading the wire — so a third party
 /// calling the public function directly still got presenter-chosen audience binding, under a field comment that
 /// said a presenter could not set it. A parameter cannot be forgotten; a field can.
-pub fn verify_wire(
+pub fn verify_wire_policy(
     p: &WirePresentation,
     anchors: &verify::TrustAnchors,
     now: u64,
     audience: &str,
+    freshness: Option<status::Freshness>,
+    revoked_delegates: Option<&std::collections::BTreeSet<[u8; 32]>>,
 ) -> Verdict {
     let d = match presentation_parts(p) {
         Ok(d) => d,
@@ -382,7 +399,8 @@ pub fn verify_wire(
         hop_proofs: d.hop_proofs,
         status_list: d.status_list,
         status_issued_at: p.status_issued_at,
-        freshness: d.freshness,
+        // The VERIFIER's freshness class when it has one; the wire's only for a self-contained fixture.
+        freshness: freshness.unwrap_or(d.freshness),
         checkpoint: d.checkpoint,
         checkpoint_sig: d.checkpoint_sig,
         leaf_index: p.leaf_index,
@@ -390,7 +408,8 @@ pub fn verify_wire(
         mandate_path: Vec::new(),
         mandate_proofs: Vec::new(),
         mandate_revocations: d.mandate_revocations,
-        revoked_delegates: d.revoked_delegates,
+        // The trusted DIRECTORY's revocations when the caller holds one; the wire's only for a fixture.
+        revoked_delegates: revoked_delegates.cloned().unwrap_or(d.revoked_delegates),
         instance: d.instance,
         audience: audience.to_string(),
     };
@@ -563,49 +582,65 @@ pub fn directory_result(v: &serde_json::Value) -> serde_json::Value {
 /// seen. The result is `{"ok":true,"nonce","created"}` or `{"ok":false,"reason"}`, the shape every implementation's
 /// runner must reproduce.
 pub fn presentation_result(v: &serde_json::Value) -> serde_json::Value {
+    presentation_eval(v).expect("a well-formed presentation vector")
+}
+
+/// The same evaluation from JSON text, for hosts that must never panic (the WASM boundary): anything malformed is
+/// `{"ok":false,"reason":"schema_violation"}`.
+pub fn run_presentation_vector_json(vector_json: &str) -> String {
+    serde_json::from_str::<serde_json::Value>(vector_json)
+        .ok()
+        .and_then(|v| presentation_eval(&v))
+        .unwrap_or_else(|| json!({ "ok": false, "reason": "schema_violation" }))
+        .to_string()
+}
+
+fn presentation_eval(v: &serde_json::Value) -> Option<serde_json::Value> {
     use ainra_core::presentation::{verify_presentation, SignableRequest};
     let r = &v["request"];
     let headers: Vec<(String, String)> = r["headers"]
-        .as_array()
-        .expect("headers")
+        .as_array()?
         .iter()
         .map(|p| {
-            (
-                p[0].as_str().expect("name").to_string(),
-                p[1].as_str().expect("value").to_string(),
-            )
+            Some((
+                p.get(0)?.as_str()?.to_string(),
+                p.get(1)?.as_str()?.to_string(),
+            ))
         })
-        .collect();
-    let body = r["body_b64u"]
-        .as_str()
-        .map(|b| b64::decode(b).expect("body"));
+        .collect::<Option<_>>()?;
+    let body = match r["body_b64u"].as_str() {
+        Some(b) => Some(b64::decode(b).ok()?),
+        None => None,
+    };
     let req = SignableRequest {
-        method: r["method"].as_str().expect("method"),
-        authority: r["authority"].as_str().expect("authority"),
-        path: r["path"].as_str().expect("path"),
+        method: r["method"].as_str()?,
+        authority: r["authority"].as_str()?,
+        path: r["path"].as_str()?,
         headers: &headers,
         body: body.as_deref(),
     };
     let ik = &v["instance"]["ikey"];
     let ikey = crypto::HybridPublic {
-        ed25519: b64::decode_array::<32>(ik["ed25519"].as_str().expect("ed")).expect("ed25519"),
-        mldsa65: b64::decode(ik["mldsa65"].as_str().expect("ml")).expect("mldsa65"),
+        ed25519: b64::decode_array::<32>(ik["ed25519"].as_str()?).ok()?,
+        mldsa65: b64::decode(ik["mldsa65"].as_str()?).ok()?,
     };
     let seen: Vec<&str> = v["seen_nonces"]
         .as_array()
         .map(|a| a.iter().filter_map(|x| x.as_str()).collect())
         .unwrap_or_default();
-    match verify_presentation(
-        &req,
-        v["instance"]["iid"].as_str().expect("iid"),
-        &ikey,
-        v["now"].as_u64().expect("now"),
-        v["max_age_secs"].as_u64().expect("max_age_secs"),
-        |n| seen.contains(&n),
-    ) {
-        Ok((nonce, created)) => json!({ "ok": true, "nonce": nonce, "created": created }),
-        Err(reason) => json!({ "ok": false, "reason": reason.as_str() }),
-    }
+    Some(
+        match verify_presentation(
+            &req,
+            v["instance"]["iid"].as_str()?,
+            &ikey,
+            v["now"].as_u64()?,
+            v["max_age_secs"].as_u64()?,
+            |n| seen.contains(&n),
+        ) {
+            Ok((nonce, created)) => json!({ "ok": true, "nonce": nonce, "created": created }),
+            Err(reason) => json!({ "ok": false, "reason": reason.as_str() }),
+        },
+    )
 }
 
 // ── registrar-export → trust anchors ───────────────────────────────────────────────────────────────────────────
@@ -814,6 +849,208 @@ pub fn verify_bundle_json_aud(
     // The CALLER's audience is passed, never absorbed from the bundle — exactly as `now` is.
     let verdict = verify_wire(&p, &anchors, now_secs, audience);
     verdict_event(&p, &verdict, now_secs)
+}
+
+// ── the edge gate (PLAN-M34 Task 5) ─────────────────────────────────────────────────────────────────────────────
+
+/// The digest that names a bundle's stable part (D-065): the bundle with `instance.pop` removed, in the core's
+/// canonical JSON, under SHA-256 — `sha-256=:…:`. The same value `@ainra/sdk`'s `presentationRef` computes, because
+/// the two canonical encoders are held byte-identical by `make diff` (B). `None` for anything that is not JSON or
+/// cannot be canonicalised.
+pub fn presentation_ref_json(bundle_json: &str) -> Option<String> {
+    let mut v: serde_json::Value = serde_json::from_str(bundle_json).ok()?;
+    if let Some(inst) = v.get_mut("instance").and_then(|i| i.as_object_mut()) {
+        inst.remove("pop");
+    }
+    let c = ainra_core::canon::canonicalize_value(&v).ok()?;
+    Some(ainra_core::presentation::content_digest(c.as_bytes()))
+}
+
+/// A gate's trust, established ONCE: the directory must verify against BOTH ceremony roots (FROST Ed25519 and
+/// SLH-DSA), and what comes back is its anchors AND its revoked delegates — the verifier's, never the presenter's.
+/// Returns `{"ok":true,"trust":{"anchors":{…},"revoked_delegates":[…]},"epoch":n}` or `{"ok":false}`; a host
+/// that gets `ok:false` must not start. The trust object is what every [`gate_json`] call then receives.
+pub fn accredit_json(directory_json: &str, roots_json: &str) -> String {
+    let fail = || json!({ "ok": false }).to_string();
+    let (Ok(d), Ok(roots)) = (
+        serde_json::from_str::<ainra_core::directory::Directory>(directory_json),
+        serde_json::from_str::<serde_json::Value>(roots_json),
+    ) else {
+        return fail();
+    };
+    let (Some(ed), Some(slh)) = (roots["root_ed25519"].as_str(), roots["root_slh"].as_str()) else {
+        return fail();
+    };
+    let (Ok(ed), Ok(slh)) = (b64::decode_array::<32>(ed), b64::decode(slh)) else {
+        return fail();
+    };
+    let Ok(acc) = d.accredit(&ed, &slh) else {
+        return fail();
+    };
+    let anchors: serde_json::Map<String, serde_json::Value> = acc
+        .anchors
+        .registrars
+        .iter()
+        .map(|(id, r)| {
+            let w = WireRegistrar {
+                issuer_key: WireKey {
+                    ed25519: b64::encode(&r.issuer_key.ed25519),
+                    mldsa65: b64::encode(&r.issuer_key.mldsa65),
+                },
+                log_root_key: b64::encode(&r.log_root_key),
+                distrust_from_leaf: r.distrust_from_leaf,
+            };
+            (
+                id.clone(),
+                serde_json::to_value(w).unwrap_or(serde_json::Value::Null),
+            )
+        })
+        .collect();
+    let revoked: Vec<String> = acc
+        .revoked_delegates
+        .iter()
+        .map(|fp| b64::encode(fp))
+        .collect();
+    json!({ "ok": true, "trust": { "anchors": anchors, "revoked_delegates": revoked }, "epoch": acc.epoch })
+        .to_string()
+}
+
+/// Decode the trust object [`accredit_json`] produced. `None` — fail closed — for anything malformed.
+fn gate_trust(
+    trust_json: &str,
+) -> Option<(verify::TrustAnchors, std::collections::BTreeSet<[u8; 32]>)> {
+    let t: serde_json::Value = serde_json::from_str(trust_json).ok()?;
+    t.get("anchors")?.as_object()?;
+    let mut revoked = std::collections::BTreeSet::new();
+    for fp in t.get("revoked_delegates")?.as_array()? {
+        revoked.insert(b64::decode_array::<32>(fp.as_str()?).ok()?);
+    }
+    Some((anchors_from_json(&t), revoked))
+}
+
+fn freshness_of(s: &str) -> Option<status::Freshness> {
+    match s {
+        "F1" => Some(status::Freshness::F1),
+        "F2" => Some(status::Freshness::F2),
+        "F3" => Some(status::Freshness::F3),
+        _ => None,
+    }
+}
+
+/// The credential alone, under the gate's policy — what a send-once endpoint checks before it stores anything.
+/// Returns the canonical verdict event.
+pub fn credential_json(
+    bundle_json: &str,
+    trust_json: &str,
+    now_secs: u64,
+    audience: &str,
+    freshness: &str,
+) -> String {
+    let (Ok(p), Some((anchors, revoked)), Some(f)) = (
+        serde_json::from_str::<WirePresentation>(bundle_json),
+        gate_trust(trust_json),
+        freshness_of(freshness),
+    ) else {
+        return schema_violation_event();
+    };
+    let verdict = verify_wire_policy(&p, &anchors, now_secs, audience, Some(f), Some(&revoked));
+    verdict_event(&p, &verdict, now_secs)
+}
+
+/// The edge gate's one call: verify the CREDENTIAL under the gate's policy, then the REQUEST it arrived on (D-062).
+/// `trust_json` is the object [`accredit_json`] returned; `freshness` is the gate's class ("F1"/"F2"/"F3"), never
+/// the presenter's. `request_json` is `{method, authority, path, headers: [[name, value], …], body_b64u}`.
+///
+/// Returns `{"allow", "reason", "event", "nonce"}`. `nonce` is set only when everything verified: single use is the
+/// caller's to enforce (N7), and only now, after the signature held.
+pub fn gate_json(
+    bundle_json: &str,
+    trust_json: &str,
+    request_json: &str,
+    now_secs: u64,
+    audience: &str,
+    freshness: &str,
+) -> String {
+    use ainra_core::presentation::{verify_presentation, SignableRequest, MAX_AGE_SECS};
+    let out =
+        |allow: bool, reason: Option<&str>, event: serde_json::Value, nonce: Option<String>| {
+            json!({ "allow": allow, "reason": reason, "event": event, "nonce": nonce }).to_string()
+        };
+    let schema =
+        || serde_json::from_str(&schema_violation_event()).unwrap_or(serde_json::Value::Null);
+    let (Ok(p), Some((anchors, revoked)), Some(f)) = (
+        serde_json::from_str::<WirePresentation>(bundle_json),
+        gate_trust(trust_json),
+        freshness_of(freshness),
+    ) else {
+        return out(false, Some("schema_violation"), schema(), None);
+    };
+    let verdict = verify_wire_policy(&p, &anchors, now_secs, audience, Some(f), Some(&revoked));
+    let event: serde_json::Value = serde_json::from_str(&verdict_event(&p, &verdict, now_secs))
+        .unwrap_or(serde_json::Value::Null);
+    if let Verdict::Invalid { reason } = &verdict {
+        let r = serde_json::to_value(reason)
+            .ok()
+            .and_then(|x| x.as_str().map(String::from));
+        return out(
+            false,
+            Some(r.as_deref().unwrap_or("schema_violation")),
+            event,
+            None,
+        );
+    }
+    let Some(inst) = &p.instance else {
+        return out(false, Some("presentation_unsigned"), event, None);
+    };
+    let (Ok(ed), Ok(ml)) = (
+        b64::decode_array::<32>(&inst.ikey.ed25519),
+        b64::decode(&inst.ikey.mldsa65),
+    ) else {
+        return out(false, Some("schema_violation"), event, None);
+    };
+    let ikey = crypto::HybridPublic {
+        ed25519: ed,
+        mldsa65: ml,
+    };
+    let Ok(r) = serde_json::from_str::<serde_json::Value>(request_json) else {
+        return out(false, Some("schema_violation"), event, None);
+    };
+    let headers: Option<Vec<(String, String)>> = r["headers"].as_array().map(|a| {
+        a.iter()
+            .filter_map(|h| {
+                Some((
+                    h.get(0)?.as_str()?.to_string(),
+                    h.get(1)?.as_str()?.to_string(),
+                ))
+            })
+            .collect()
+    });
+    let body = match r["body_b64u"].as_str() {
+        None => None,
+        Some(b) => match b64::decode(b) {
+            Ok(v) => Some(v),
+            Err(_) => return out(false, Some("schema_violation"), event, None),
+        },
+    };
+    let (Some(method), Some(authority), Some(path), Some(headers)) = (
+        r["method"].as_str(),
+        r["authority"].as_str(),
+        r["path"].as_str(),
+        headers,
+    ) else {
+        return out(false, Some("schema_violation"), event, None);
+    };
+    let req = SignableRequest {
+        method,
+        authority,
+        path,
+        headers: &headers,
+        body: body.as_deref(),
+    };
+    match verify_presentation(&req, &inst.iid, &ikey, now_secs, MAX_AGE_SECS, |_| false) {
+        Ok((nonce, _)) => out(true, None, event, Some(nonce)),
+        Err(reason) => out(false, Some(reason.as_str()), event, None),
+    }
 }
 
 /// Run one conformance vector from its JSON text and return the verdict as JSON (`{"verdict":…}` / `…,"reason":…`).

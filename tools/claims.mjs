@@ -96,7 +96,10 @@ const CLAIMS = [
             // M30: the parity harness and its doc both cite the corpus size when explaining what the differential
             // does and does not cover. Registered rather than exempted — if the corpus grows, that explanation
             // has to grow with it, and this is what will say so.
-            "tools/policy-parity.mjs", "docs/POLICY-PARITY.md", "CONTRIBUTING.md", "docs/PLAN-M30.md"],
+            "tools/policy-parity.mjs", "docs/POLICY-PARITY.md", "CONTRIBUTING.md", "docs/PLAN-M30.md",
+            // M38: the edge gate's header states what the WASM build is held to — `make wasm-diff` runs the whole
+            // passport corpus through it. Registered so the sentence moves when the corpus does.
+            "packages/edge/src/index.mjs"],
   },
   {
     id: "reasons.count",

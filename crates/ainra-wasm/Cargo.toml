@@ -17,3 +17,9 @@ ainra-core = { path = "../ainra-core" }
 ainra-adapter = { path = "../ainra-adapter" }
 serde_json = { workspace = true, features = ["std"] }
 wasm-bindgen = "=0.2.126"   # MUST match the wasm-bindgen-cli version exactly
+
+[features]
+# The edge gate's bindings (PLAN-M34 Task 5): request signatures, directory accreditation, the gate itself. Off in
+# the browser build, so a page downloads only what verifying a bundle needs (tools/build-wasm.sh keeps its ceiling);
+# on in the edge build (tools/build-wasm-edge.sh), which a gate loads once per isolate.
+edge = []

@@ -2,7 +2,7 @@
 //! RFC 9421 HTTP Message Signatures for an AINRA presentation (D-062) — the core's statement of the profile.
 //!
 //! The TypeScript SDK implemented this first, which is the wrong way round for this repository: the corpus is what
-//! makes four implementations agree, and the core generates the corpus (PLAN-M34 Task 3–4). This module is the
+//! holds independent implementations to one answer, and the core generates the corpus (PLAN-M34 Task 3–4). This module is the
 //! profile stated in the core, so `vectors/v1-presentation` can say what the answer is and every implementation can
 //! be held to it.
 //!

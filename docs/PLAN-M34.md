@@ -97,6 +97,10 @@ policy that requires one.
 
 ## Task 5 — The payoff: the gate at the edge
 
+**Done (M38, D-068):** `@ainra/edge` — `ainra-core` in WebAssembly behind a web-standard `Request` → decision
+function; `make edge-test` (hermetic) and `make edge-e2e` (the live journey through it). Building it found the Rust
+wire path taking freshness and revoked delegates from the presenter; gates now use `verify_wire_policy`.
+
 Express and a Python gate cover origin servers. Agents are classified at the CDN edge, which is where most of the
 traffic is decided, and an edge gate that verifies a signed request is what makes AINRA present where the decision
 actually happens.

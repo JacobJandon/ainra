@@ -55,6 +55,68 @@ pub fn run_vector(vector_json: &str) -> String {
     ainra_adapter::run_vector_json(vector_json)
 }
 
+/// Verify a root-signed directory ONCE and return the gate's trust (anchors + revoked delegates), or `{"ok":false}`.
+#[cfg(feature = "edge")]
+#[wasm_bindgen]
+pub fn accredit(directory_json: &str, roots_json: &str) -> String {
+    ainra_adapter::accredit_json(directory_json, roots_json)
+}
+
+/// The credential alone, under the gate's policy (its trust, clock, audience and freshness class).
+#[cfg(feature = "edge")]
+#[wasm_bindgen]
+pub fn credential(
+    bundle_json: &str,
+    trust_json: &str,
+    now_secs: f64,
+    audience: &str,
+    freshness: &str,
+) -> String {
+    ainra_adapter::credential_json(
+        bundle_json,
+        trust_json,
+        clamp_secs(now_secs),
+        audience,
+        freshness,
+    )
+}
+
+/// The edge gate's one call (PLAN-M34 Task 5): the credential under the gate's policy, then the request it arrived
+/// on. Returns `{"allow","reason","event","nonce"}`; the host enforces single use of `nonce`.
+#[cfg(feature = "edge")]
+#[wasm_bindgen]
+pub fn gate(
+    bundle_json: &str,
+    trust_json: &str,
+    request_json: &str,
+    now_secs: f64,
+    audience: &str,
+    freshness: &str,
+) -> String {
+    ainra_adapter::gate_json(
+        bundle_json,
+        trust_json,
+        request_json,
+        clamp_secs(now_secs),
+        audience,
+        freshness,
+    )
+}
+
+/// The digest that names a bundle's stable part (D-065), or an empty string for anything unreadable.
+#[cfg(feature = "edge")]
+#[wasm_bindgen]
+pub fn presentation_ref(bundle_json: &str) -> String {
+    ainra_adapter::presentation_ref_json(bundle_json).unwrap_or_default()
+}
+
+/// Run one `vectors/v1-presentation` vector exactly as the core does — so the edge engine answers to the corpus.
+#[cfg(feature = "edge")]
+#[wasm_bindgen]
+pub fn run_presentation_vector(vector_json: &str) -> String {
+    ainra_adapter::run_presentation_vector_json(vector_json)
+}
+
 /// The build this module was compiled from, so a page can state which verifier answered it.
 #[wasm_bindgen]
 pub fn version() -> String {

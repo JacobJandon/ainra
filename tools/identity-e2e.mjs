@@ -31,6 +31,11 @@ import {
 } from "../packages/sdk-ts/dist/index.js";
 import { b64uEncode } from "../packages/sdk-ts/dist/crypto.js";
 import { ainraGate, ainraPrime, createPresentationStore } from "../packages/middleware/dist/index.js";
+import { readFileSync } from "node:fs";
+
+// `--edge`: the same journey, served by the EDGE gate (PLAN-M34 Task 5) — ainra-core compiled to WebAssembly behind a
+// web-standard Request → decision function — instead of the Node middleware. Same steps, same assertions.
+const EDGE = process.argv.includes("--edge");
 
 // The limits a request has to survive on the way to a real server. Apache refuses one header line over 8190 bytes
 // (LimitRequestFieldSize) and nginx over 8 KiB (large_client_header_buffers); Node refuses 16 KiB in total.
@@ -137,9 +142,34 @@ const gate = ainraGate(verifier, {
   seenNonce: (n) => { const had = seen.has(n); seen.add(n); return had; },
 });
 const prime = ainraPrime(verifier, { store, now });
+let edgeGate = null;
+if (EDGE) {
+  const edge = await import("../packages/edge/src/index.mjs");
+  await edge.initAinra(readFileSync(new URL("../packages/edge/wasm/ainra_wasm_bg.wasm", import.meta.url)));
+  // Trust from the PUBLISHED directory and roots, verified once; the gate's own F2 policy, not the presenter's.
+  edgeGate = await edge.createAinraEdgeGate({ directory, roots, audience: AUD, now });
+}
 // Node's DEFAULT header limit (16 KiB). Until M36 this server had to be told to accept 256 KiB, because the whole
 // bundle rode in one header — which no ordinary front end in the path would have let through.
+// The edge gate takes a standard Request; node:http gives an IncomingMessage. Convert — the whole body, the headers
+// as sent — and write the gate's Response back. The URL's host is what the client addressed, hence what it signed.
+async function edgeServe(req, res) {
+  const chunks = []; for await (const c of req) chunks.push(c);
+  const body = Buffer.concat(chunks);
+  const headers = new Headers();
+  for (let i = 0; i < req.rawHeaders.length; i += 2) {
+    const k = req.rawHeaders[i].toLowerCase();
+    if (!["host", "connection", "content-length", "transfer-encoding"].includes(k)) headers.append(k, req.rawHeaders[i + 1]);
+  }
+  const request = new Request(`http://${req.headers.host}${req.url}`, { method: req.method, headers, body: body.length ? body : undefined });
+  const g = await edgeGate(request);
+  if (g.allow) { res.statusCode = 200; res.end(JSON.stringify({ ok: true, as: g.event?.name })); return; }
+  res.statusCode = g.response.status;
+  g.response.headers.forEach((v, k) => res.setHeader(k, v));
+  res.end(Buffer.from(await g.response.arrayBuffer()));
+}
 const server = http.createServer((req, res) => {
+  if (EDGE) { edgeServe(req, res).catch((e) => { res.statusCode = 500; res.end(String(e)); }); return; }
   const shim = {
     status(c) { res.statusCode = c; return shim; },
     json(b) { res.setHeader("content-type", "application/json"); res.end(JSON.stringify(b)); },
@@ -258,5 +288,5 @@ Object.assign(bundle, fresh);                      // the post-revocation status
 server.close();
 console.log(bad
   ? "\nIDENTITY-E2E FAILED"
-  : "\nIDENTITY-E2E OK: an agent held its own key, got a passport for it, signed a request with a running copy's key, and the gate let it in — then refused it moved, unsigned, replayed and revoked. TEST-ROOT.");
+  : `\nIDENTITY-E2E OK${EDGE ? " (EDGE: ainra-core in WebAssembly behind a web-standard fetch gate)" : ""}: an agent held its own key, got a passport for it, signed a request with a running copy's key, and the gate let it in — then refused it moved, unsigned, replayed and revoked. TEST-ROOT.`);
 process.exit(bad);

@@ -38,6 +38,7 @@ jobs:
       - run: cargo run --release -q -p ainra-vector-gen -- --check vectors/v1 --min 500
       - run: cargo run --release -q -p ainra-vector-gen -- --check-delta vectors/v1-delta
       - run: cargo run --release -q -p ainra-vector-gen -- --check-directory vectors/v1-directory
+      - run: cargo run --release -q -p ainra-vector-gen -- --check-presentation vectors/v1-presentation
 
   differential:
     name: 4-way differential (core · sdk-ts · P0 · py)
@@ -66,7 +67,8 @@ jobs:
       - run: cargo run --release -q -p ainra-vector-gen -- --out vectors/v1 --min 500
       - run: cargo run --release -q -p ainra-vector-gen -- --delta-out vectors/v1-delta
       - run: cargo run --release -q -p ainra-vector-gen -- --directory-out vectors/v1-directory
-      - run: git diff --exit-code -- vectors/v1 vectors/v1-delta vectors/v1-directory || (echo "committed vectors differ from regenerated (nondeterminism?)" && exit 1)
+      - run: cargo run --release -q -p ainra-vector-gen -- --presentation-out vectors/v1-presentation
+      - run: git diff --exit-code -- vectors/v1 vectors/v1-delta vectors/v1-directory vectors/v1-presentation || (echo "committed vectors differ from regenerated (nondeterminism?)" && exit 1)
       - run: node tools/diff-harness/run.mjs
       # M24 Task 2 — the conformance programme, offline: the language-agnostic runner passes the 3 in-repo verdict
       # impls CLEAN over the full corpus (same corpus hash), FAILS a deliberately broken impl with named divergences,
@@ -133,6 +135,13 @@ jobs:
         run: make changelog-board-check
       - name: one decode path (no second bytes→core-types parser — L5)
         run: node tools/one-decode-path.mjs
+      # These two ran in `make preflight` but not here, so a public claim could be wrong on main with CI green: the
+      # M37 commit overstated how many implementations share the request-signature layer (it is three), and only a local
+      # preflight caught it (D-068). Both are node-only and need nothing built.
+      - name: every public claim agrees with its source of truth (claims registry)
+        run: node tools/claims.mjs
+      - name: stated corpus counts == vectors on disk
+        run: node tools/corpus-check.mjs
       - name: ainra-wasm binds only, never parses (L5)
         run: |
           # The browser surface must stay a thin binding. If it grows its own decoding, the differential can no

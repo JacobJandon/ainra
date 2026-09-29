@@ -1420,3 +1420,50 @@ is a versioned contract change, not a quiet addition. `make diff` is where this 
 store and send-once layer (D-065) is gate state, not verification, and has no vectors.
 
 *Status:* NEW. PLAN-M34 Tasks 3 and 4 done for core, TS and Python; the CLI and the edge gate (Task 5) remain.
+
+## D-068 — The gate at the edge runs the core itself, under the verifier's policy (M38)
+
+*Problem:* PLAN-M34 Task 5. Agents are classified at the CDN edge, and AINRA had no gate there: only the Node
+middleware and a Python gate for origin servers. Building one surfaced a second problem first. The Rust verify
+path the browser uses, `verify_wire`, took the **freshness class and the revoked-delegate set from the
+presentation**, while its own comment said "freshness and expiry are the verifier's policy, never the presenter's".
+The TypeScript verifier had fixed this in M30; the Rust wire path had not. For a self-contained conformance vector
+that is correct — the fixture carries its own policy. For a gate it is a downgrade: a presenter declares F3 (24 h)
+and brings an empty revocation list.
+
+*Decision:*
+
+- **`@ainra/edge`** — a web-standard `Request` → decision function (Request, Response, URL, atob, WebAssembly; no
+  Node `Buffer`), running the **core itself** compiled to WebAssembly. The only JavaScript is what the core cannot
+  hold (N7): the send-once store (D-065) and the nonce cache, both bounded, both per isolate.
+- **Trust is established once and fail-closed:** `accredit` verifies the published directory against BOTH ceremony
+  roots when the gate is created, or the gate refuses to exist. Each request then carries that verified trust — the
+  anchors and the directory's revoked delegates.
+- **Policy is the verifier's:** `verify_wire_policy` takes the caller's clock, audience, freshness class (default
+  F2, as `@ainra/sdk`) and revoked delegates. `verify_wire` keeps fixture semantics and now says so; it is what the
+  corpus runner uses, as TypeScript's `runVector` does.
+- **One call per request:** the credential under the gate's policy, then the RFC 9421 request signature against the
+  instance key the credential carries; the nonce is returned only after both hold, for the host to check once.
+- **Two WebAssembly builds.** The gate's bindings sit behind a `edge` feature: the browser verifier stays at 392 KiB
+  under its 460 KiB ceiling (with them it was 464 KiB — code a page never uses); the edge engine is 464 KiB under
+  its own 640 KiB ceiling (`tools/build-wasm-edge.sh`).
+
+*Evidence:* `make edge-test` — the WASM build answers all 33 request-signature vectors as the core recorded them;
+every credential verdict equals `@ainra/sdk`'s on the same bundle and clock (valid, revoked, an hour later); an F3
+bundle an hour later is `stale_status` under the gate's F2; a directory that does not verify stops the gate from
+existing; only verified bundles are stored. Negative control: letting the gate take the presenter's freshness fails
+exactly the D-068 test and the TypeScript-equivalence test. `make edge-e2e` — the live journey served by this gate:
+the full-bundle header 431, send-once 201, a signed request 200 at 10.7 KiB, an unknown digest 428, moved, unsigned
+and replayed refused by name, a revoked credential refused at the door.
+
+*Not changed, said plainly:* the site's "Try it" panel still verifies with fixture semantics — self-contained
+specimen records at a fixed clock, against anchors, which visitors tamper with to watch the reasons change. That is
+a demonstration of the verify function, not a gate; a verifier protecting anything uses `@ainra/sdk`, the
+middleware, or this gate, all of which apply the verifier's policy.
+
+*Found while closing this milestone:* CI never ran the claims registry or the corpus-count check, though its header
+says it mirrors `make preflight`. The M37 commit said "four implementations agree" of a layer three implementations
+share; CI stayed green and only a local preflight caught it. Both checks now run in CI's hygiene job, and the
+presentation corpus is checked and regenerated there like the other families.
+
+*Status:* NEW. PLAN-M34 Task 5 done. Task 6 (the texts) and a CLI presentation check remain.

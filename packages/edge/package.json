@@ -1,0 +1,23 @@
+{
+  "name": "@ainra/edge",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "The AINRA gate for the edge: ainra-core compiled to WebAssembly, behind a web-standard Request \u2192 decision function. Verifies the credential and the RFC 9421 request signature; runs in Workers, Deno and Node.",
+  "license": "Apache-2.0 OR MIT",
+  "main": "src/index.mjs",
+  "exports": {
+    ".": "./src/index.mjs",
+    "./wasm": "./wasm/ainra_wasm_bg.wasm"
+  },
+  "files": [
+    "src",
+    "wasm",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "bash ../../tools/build-wasm-edge.sh",
+    "test": "node --test test/"
+  },
+  "comment": "wasm/ is built by tools/build-wasm-edge.sh (ainra-wasm --features edge), never edited, and gitignored here."
+}

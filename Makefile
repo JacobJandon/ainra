@@ -219,7 +219,7 @@ edge-build:
 	bash tools/build-wasm-edge.sh
 edge-test: sdk-build edge-build
 	cd packages/middleware && { [ -d node_modules ] || npm install --prefer-offline --no-audit --no-fund --silent; } && npm run -s build
-	cd packages/edge && node --test test/
+	cd packages/edge && node --test test/*.test.mjs
 # The claim "runs in Deno, Bun, Node and the workerd runtime" is these four passing — each runtime's own Request, WebAssembly
 # and atob, no shims. A runtime not installed here is reported SKIPPED, never counted as passing.
 edge-runtimes: sdk-build edge-build
@@ -234,7 +234,7 @@ edge-e2e: sdk-build edge-build
 # D-066 — registrar-side principal proof from an on-chain proof-of-personhood registry (kits/personhood). Offline tests
 # check the Ethereum primitives against other implementations' vectors; the live drill reads the real chain.
 personhood-test:
-	cd kits/personhood && { [ -d node_modules ] || npm install --prefer-offline --no-audit --no-fund --silent; } && node --test test/
+	cd kits/personhood && { [ -d node_modules ] || npm install --prefer-offline --no-audit --no-fund --silent; } && node --test test/*.test.mjs
 personhood-live:
 	cd kits/personhood && { [ -d node_modules ] || npm install --prefer-offline --no-audit --no-fund --silent; } && node live-drill.mjs
 

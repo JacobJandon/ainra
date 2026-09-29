@@ -556,6 +556,58 @@ pub fn directory_result(v: &serde_json::Value) -> serde_json::Value {
     }
 }
 
+/// Evaluate one `vectors/v1-presentation` vector through the core's RFC 9421 profile (PLAN-M34 Task 3–4).
+///
+/// The vector is the request exactly as a gate would see it — method, authority, path, the header list IN ORDER,
+/// the body — plus the instance credential's id and key, the verifier's clock and the nonces its cache has already
+/// seen. The result is `{"ok":true,"nonce","created"}` or `{"ok":false,"reason"}`, the shape every implementation's
+/// runner must reproduce.
+pub fn presentation_result(v: &serde_json::Value) -> serde_json::Value {
+    use ainra_core::presentation::{verify_presentation, SignableRequest};
+    let r = &v["request"];
+    let headers: Vec<(String, String)> = r["headers"]
+        .as_array()
+        .expect("headers")
+        .iter()
+        .map(|p| {
+            (
+                p[0].as_str().expect("name").to_string(),
+                p[1].as_str().expect("value").to_string(),
+            )
+        })
+        .collect();
+    let body = r["body_b64u"]
+        .as_str()
+        .map(|b| b64::decode(b).expect("body"));
+    let req = SignableRequest {
+        method: r["method"].as_str().expect("method"),
+        authority: r["authority"].as_str().expect("authority"),
+        path: r["path"].as_str().expect("path"),
+        headers: &headers,
+        body: body.as_deref(),
+    };
+    let ik = &v["instance"]["ikey"];
+    let ikey = crypto::HybridPublic {
+        ed25519: b64::decode_array::<32>(ik["ed25519"].as_str().expect("ed")).expect("ed25519"),
+        mldsa65: b64::decode(ik["mldsa65"].as_str().expect("ml")).expect("mldsa65"),
+    };
+    let seen: Vec<&str> = v["seen_nonces"]
+        .as_array()
+        .map(|a| a.iter().filter_map(|x| x.as_str()).collect())
+        .unwrap_or_default();
+    match verify_presentation(
+        &req,
+        v["instance"]["iid"].as_str().expect("iid"),
+        &ikey,
+        v["now"].as_u64().expect("now"),
+        v["max_age_secs"].as_u64().expect("max_age_secs"),
+        |n| seen.contains(&n),
+    ) {
+        Ok((nonce, created)) => json!({ "ok": true, "nonce": nonce, "created": created }),
+        Err(reason) => json!({ "ok": false, "reason": reason.as_str() }),
+    }
+}
+
 // ── registrar-export → trust anchors ───────────────────────────────────────────────────────────────────────────
 /// Decode a registrar export's accreditation block into trust anchors.
 ///

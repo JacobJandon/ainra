@@ -8,7 +8,7 @@ spawns this once per corpus and asserts every line agrees with the vector's
 recorded ``expect`` (which is the Rust core's verdict), so the Python verifier
 joins the core / TS-SDK / JS-CLI differential as an independent fourth brain.
 
-Usage:  python -m ainra._vector_runner <passport|delta|directory> <dir>
+Usage:  python -m ainra._vector_runner <passport|delta|directory|presentation> <dir>
 """
 
 from __future__ import annotations
@@ -19,6 +19,7 @@ import sys
 
 from .delta import verify_delta_vector
 from .directory import verify_directory
+from .presentation import run_presentation_vector
 from .verify import verify as verify_passport
 
 
@@ -39,6 +40,8 @@ def run(kind: str, directory: str) -> int:
             result = verify_delta_vector(v)
         elif kind == "directory":
             result = verify_directory(v)
+        elif kind == "presentation":
+            result = run_presentation_vector(v)
         else:
             print(f"unknown kind: {kind}", file=sys.stderr)
             return 2

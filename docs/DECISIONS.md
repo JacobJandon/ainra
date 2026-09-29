@@ -1383,3 +1383,40 @@ no one here has one. It is proven offline only.
 
 *Status:* NEW. Kit + tests + live drill. The registrar still accepts any principal proof string; making A1 issuance
 REQUIRE a checked one is a registrar policy step for later, not a change to the core.
+
+## D-067 — The request-signature layer gets a corpus, and three implementations agree on it (M37)
+
+*Problem:* D-062's RFC 9421 profile existed in exactly one implementation, the TypeScript SDK, which is the order
+PLAN-M34 said not to use: "`ainra-core` first (it generates the vectors)". Everything else in AINRA is trusted
+because independently written implementations are held to one corpus and must agree on every verdict and every
+reason; this layer had no corpus, so nothing held the one implementation to anything.
+
+*Decision:* the profile is stated in the core (`ainra_core::presentation`), the core generates
+`vectors/v1-presentation`, and the TypeScript SDK and the Python SDK are held to it in `make diff`.
+
+- **33 vectors, 6 valid, 27 refusals** — PLAN-M34 Task 3's list and the edges around it: unsigned (three ways),
+  moved path, moved authority, altered method, altered body, body and digest both altered, swapped presentation,
+  wrong key, `keyid` naming another copy, a single-algorithm `alg`, `@path` left out, a body the signature never
+  covered, stale, from the future, the window edges (exactly 300 s old and 30 s ahead are valid), a 60-second
+  verifier policy, replayed, each hybrid half zeroed, truncated, not base64, an extra parameter, a nonce outside the
+  charset, header names in any case.
+- **Each vector declares what it exists to test, and the generator refuses to write one whose core verdict
+  disagrees** — a vector named "moved path" that fails for another reason tests nothing.
+- **The order of checks is part of the profile** and is tested as such: stale-and-moved must say `stale`
+  (freshness before signature); replayed-but-moved must say `sig_invalid` (the nonce is asked only after the
+  signature holds, so an unauthenticated caller cannot fill a replay cache).
+- **Reproducible:** a public TEST seed; regenerating writes byte-identical files. The existing 1,179 vectors are
+  unchanged.
+
+*Found by the corpus on its first run:* the TypeScript SDK accepted a signature whose base64 carried non-zero
+trailing bits (`p33-signature-noncanonical-base64`). The bytes are the same, so nothing is forged, but one signature
+then has several accepted spellings — what D-029 already forbids for every other field, and exactly the kind of
+split the differential exists to catch. The core (base64ct) and the Python verifier refuse it; the TypeScript
+decoder now round-trips like `strictB64u`. Negative controls: a lenient decoder in Python fails exactly p33.
+
+*Scope, said plainly:* the conformance programme's contract (`tools/conformance/CONTRACT.md`) is unchanged — outside
+implementers still attest over passport, delta and directory. Adding a family to what third parties sign against
+is a versioned contract change, not a quiet addition. `make diff` is where this family is enforced today. The
+store and send-once layer (D-065) is gate state, not verification, and has no vectors.
+
+*Status:* NEW. PLAN-M34 Tasks 3 and 4 done for core, TS and Python; the CLI and the edge gate (Task 5) remain.

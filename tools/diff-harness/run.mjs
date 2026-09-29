@@ -15,12 +15,13 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
-import { runVector, expectedVerdict, canonicalize, runDeltaVector, runDirectoryVector } from "../../packages/sdk-ts/dist/index.js";
+import { runVector, expectedVerdict, canonicalize, runDeltaVector, runDirectoryVector, runPresentationVector } from "../../packages/sdk-ts/dist/index.js";
 
 const ROOT = fileURLToPath(new URL("../../", import.meta.url));
 const VEC = path.join(ROOT, "vectors/v1");
 const VEC_DELTA = path.join(ROOT, "vectors/v1-delta");
 const VEC_DIR = path.join(ROOT, "vectors/v1-directory");
+const VEC_PRES = path.join(ROOT, "vectors/v1-presentation");
 const P0 = path.join(ROOT, "apps/cli-node/bin/ainra.js");
 let failures = 0;
 
@@ -201,6 +202,27 @@ pyPhase("delta diff  ", "delta", VEC_DELTA, (v) =>
 pyPhase("directory diff", "directory", VEC_DIR, (v) =>
   v.expect.accept ? { accept: true, registrars: v.expect.registrars } : { accept: false }
 );
+
+// ── (G) Presentation differential — RFC 9421 request signatures (PLAN-M34 Task 3–4) ─────────────────────────
+//     ainra-core generated every vector and recorded its answer, each checked against the case the vector exists to
+//     test; the TS SDK and the Python verifier must reproduce it, including WHICH reason wins when a request is wrong
+//     in several ways. The first run found the TS decoder accepting a non-canonical signature encoding (p33).
+if (fs.existsSync(VEC_PRES)) {
+  const pfiles = fs.readdirSync(VEC_PRES).filter((f) => f.endsWith(".json") && f !== "manifest.json");
+  let ppass = 0;
+  for (const f of pfiles) {
+    const v = JSON.parse(fs.readFileSync(path.join(VEC_PRES, f), "utf8"));
+    const got = stable(runPresentationVector(v));
+    const want = stable(v.expect);
+    if (got === want) ppass++;
+    else {
+      failures++;
+      console.error(`  PRESENTATION MISMATCH ${v.name}: core=${want} sdk=${got}`);
+    }
+  }
+  console.log(`(G) presentation diff core↔sdk : ${ppass}/${pfiles.length} agree`);
+  pyPhase("presentation diff", "presentation", VEC_PRES, (v) => v.expect);
+}
 
 if (failures) {
   console.error(`\nDIFF FAILED: ${failures} disagreement(s)`);

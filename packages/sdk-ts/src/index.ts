@@ -32,6 +32,8 @@ export {
   SIG_LABEL, SIG_ALG, PRESENTATION_HEADER, MAX_AGE_SECS, MAX_FUTURE_SECS,
   // M36 (D-065): send the bundle once, name it by digest after that
   PRIME_PATH, POP_HEADER, isPresentationRef, splitPresentation, joinPresentation, presentationRef,
+  // PLAN-M34 Task 3–4: hold this implementation to the core's presentation corpus
+  runPresentationVector,
 } from "./presentation.js";
 export type { PresentationReason, PresentationCheck, SignableRequest, SigParams } from "./presentation.js";
 

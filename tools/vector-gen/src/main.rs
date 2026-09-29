@@ -2512,6 +2512,623 @@ fn check_directory(dir: &str) {
     println!("checked {total} directory vectors: all reproduce their recorded expectation");
 }
 
+// ── v1-presentation — RFC 9421 request signatures (PLAN-M34 Task 3, D-062) ────────────────────────────────────
+//
+// The request exactly as a gate sees it, with the instance key that should have signed it. Every vector declares the
+// answer it exists to test (`want`), and the generator refuses to write one whose core verdict disagrees — a vector
+// named "moved path" that fails for some other reason tests nothing.
+
+const PRES_NOW: u64 = 1_775_866_600;
+const PRES_IID: &str = "i-5eed0001";
+
+struct PresReq {
+    method: String,
+    authority: String,
+    path: String,
+    headers: Vec<(String, String)>,
+    body: Option<Vec<u8>>,
+}
+
+// One argument per thing a signed request is made of; bundling them into a struct would only rename the list.
+#[allow(clippy::too_many_arguments)]
+fn pres_sign(
+    method: &str,
+    path: &str,
+    body: Option<&[u8]>,
+    pres: &str,
+    created: u64,
+    nonce: &str,
+    keyid: &str,
+    key: &crypto::HybridKeypair,
+) -> PresReq {
+    use ainra_core::presentation::{sign_presentation, SignableRequest, PRESENTATION_HEADER};
+    let mut headers = vec![(PRESENTATION_HEADER.to_string(), pres.to_string())];
+    let req = SignableRequest {
+        method,
+        authority: "shop.example",
+        path,
+        headers: &headers,
+        body,
+    };
+    let add = sign_presentation(&req, keyid, nonce, created, key).expect("sign");
+    headers.extend(add);
+    PresReq {
+        method: method.into(),
+        authority: "shop.example".into(),
+        path: path.into(),
+        headers,
+        body: body.map(|b| b.to_vec()),
+    }
+}
+
+fn pres_set(r: &mut PresReq, name: &str, value: &str) {
+    for h in r.headers.iter_mut() {
+        if h.0.eq_ignore_ascii_case(name) {
+            h.1 = value.into();
+            return;
+        }
+    }
+    r.headers.push((name.into(), value.into()));
+}
+fn pres_del(r: &mut PresReq, name: &str) {
+    r.headers.retain(|h| !h.0.eq_ignore_ascii_case(name));
+}
+fn pres_get(r: &PresReq, name: &str) -> String {
+    r.headers
+        .iter()
+        .find(|h| h.0.eq_ignore_ascii_case(name))
+        .map(|h| h.1.clone())
+        .expect("header")
+}
+
+fn presentation_vectors() -> Vec<Value> {
+    use ainra_core::presentation::{content_digest, PRESENTATION_HEADER};
+    let mut rng = ChaCha20Rng::seed_from_u64(0x4149_4E52_4100_9421); // "AINRA" ⊕ RFC 9421 — a public TEST seed
+    let key = crypto::HybridKeypair::generate(&mut rng);
+    let other = crypto::HybridKeypair::generate(&mut rng);
+    let pk = key.public();
+    // What PRESENTATION_HEADER carries: since D-065 usually a digest reference; one vector carries a bundle-shaped
+    // value, because the signature covers the header whatever it holds.
+    let pres_ref = content_digest(b"ainra presentation vector: the stable part of a bundle");
+    let pres_full = b64::encode(br#"{"claims":"eyJzdWIiOiJhaW5yYTpyZWdpc3RyYXItMDc6YWNtZTpib3RAMS4wLjAifQ","freshness":"F2"}"#);
+    let body: &[u8] = br#"{"sku":"A-1","qty":2}"#;
+    let sig = |r: &PresReq| pres_get(r, "signature");
+    let zero_half = |field: &str, ed: bool| -> String {
+        use base64ct::{Base64, Encoding};
+        let inner = field
+            .strip_prefix("ainra=:")
+            .unwrap()
+            .strip_suffix(':')
+            .unwrap();
+        let mut raw = Base64::decode_vec(inner).unwrap();
+        let range = if ed { 0..64 } else { 64..raw.len() };
+        for b in &mut raw[range] {
+            *b = 0;
+        }
+        format!("ainra=:{}:", Base64::encode_string(&raw))
+    };
+
+    struct Case {
+        name: &'static str,
+        what: &'static str,
+        req: PresReq,
+        max_age: u64,
+        seen: Vec<&'static str>,
+        want: &'static str,
+    }
+    let base = |m: &str, p: &str, b: Option<&[u8]>| {
+        pres_sign(m, p, b, &pres_ref, PRES_NOW, "r-0001", PRES_IID, &key)
+    };
+    let mut cases: Vec<Case> = Vec::new();
+    let mut add = |name, what, req, want| {
+        cases.push(Case {
+            name,
+            what,
+            req,
+            max_age: 300,
+            seen: vec![],
+            want,
+        })
+    };
+
+    add(
+        "p01-valid-get",
+        "a GET with no body, signed by the running copy",
+        base("GET", "/orders", None),
+        "ok",
+    );
+    add(
+        "p02-valid-post-with-body",
+        "a POST whose body is covered through content-digest",
+        base("POST", "/orders", Some(body)),
+        "ok",
+    );
+    add(
+        "p03-valid-bundle-in-header",
+        "the header carries a bundle rather than a digest reference",
+        pres_sign(
+            "GET", "/orders", None, &pres_full, PRES_NOW, "r-0003", PRES_IID, &key,
+        ),
+        "ok",
+    );
+    add(
+        "p04-valid-at-max-age",
+        "signed exactly 300 s ago: the window is inclusive",
+        pres_sign(
+            "GET",
+            "/orders",
+            None,
+            &pres_ref,
+            PRES_NOW - 300,
+            "r-0004",
+            PRES_IID,
+            &key,
+        ),
+        "ok",
+    );
+    add(
+        "p05-valid-at-max-future",
+        "signed 30 s in the future: the clock-skew tolerance is inclusive",
+        pres_sign(
+            "GET",
+            "/orders",
+            None,
+            &pres_ref,
+            PRES_NOW + 30,
+            "r-0005",
+            PRES_IID,
+            &key,
+        ),
+        "ok",
+    );
+    {
+        let mut r = base("GET", "/orders", None);
+        r.headers = r
+            .headers
+            .into_iter()
+            .map(|(k, v)| (k.to_uppercase(), v))
+            .collect();
+        add(
+            "p06-valid-header-names-any-case",
+            "header names match case-insensitively",
+            r,
+            "ok",
+        );
+    }
+    {
+        let mut r = base("GET", "/orders", None);
+        pres_del(&mut r, "signature");
+        pres_del(&mut r, "signature-input");
+        add(
+            "p07-unsigned",
+            "no signature at all, under a policy that requires one",
+            r,
+            "presentation_unsigned",
+        );
+    }
+    {
+        let mut r = base("GET", "/orders", None);
+        pres_del(&mut r, "signature");
+        add(
+            "p08-input-without-signature",
+            "signature-input present, signature missing",
+            r,
+            "presentation_unsigned",
+        );
+    }
+    {
+        let mut r = base("GET", "/orders", None);
+        pres_del(&mut r, "signature-input");
+        add(
+            "p09-signature-without-input",
+            "signature present, signature-input missing",
+            r,
+            "presentation_unsigned",
+        );
+    }
+    {
+        let mut r = base("POST", "/orders", Some(body));
+        r.path = "/admin/refunds".into();
+        add(
+            "p10-moved-path",
+            "the signed request replayed against another path",
+            r,
+            "presentation_sig_invalid",
+        );
+    }
+    {
+        let mut r = base("POST", "/orders", Some(body));
+        r.authority = "evil.example".into();
+        add(
+            "p11-moved-authority",
+            "the signed request replayed against another host",
+            r,
+            "presentation_sig_invalid",
+        );
+    }
+    {
+        let mut r = base("POST", "/orders", Some(body));
+        r.method = "PUT".into();
+        add(
+            "p12-altered-method",
+            "the method changed after signing",
+            r,
+            "presentation_sig_invalid",
+        );
+    }
+    {
+        let mut r = base("POST", "/orders", Some(body));
+        r.body = Some(br#"{"sku":"A-1","qty":200}"#.to_vec());
+        add(
+            "p13-altered-body",
+            "the body changed; the digest header still describes the old one",
+            r,
+            "presentation_sig_invalid",
+        );
+    }
+    {
+        let mut r = base("POST", "/orders", Some(body));
+        let nb = br#"{"sku":"A-1","qty":200}"#.to_vec();
+        pres_set(&mut r, "content-digest", &content_digest(&nb));
+        r.body = Some(nb);
+        add(
+            "p14-altered-body-and-digest",
+            "body and digest both changed consistently; the signature covered the old digest",
+            r,
+            "presentation_sig_invalid",
+        );
+    }
+    {
+        let mut r = base("GET", "/orders", None);
+        pres_set(
+            &mut r,
+            PRESENTATION_HEADER,
+            &content_digest(b"a different bundle"),
+        );
+        add(
+            "p15-swapped-presentation",
+            "another presentation under the same signature",
+            r,
+            "presentation_sig_invalid",
+        );
+    }
+    add(
+        "p16-wrong-key",
+        "signed by a key that is not this instance credential's",
+        pres_sign(
+            "GET", "/orders", None, &pres_ref, PRES_NOW, "r-0016", PRES_IID, &other,
+        ),
+        "presentation_sig_invalid",
+    );
+    add(
+        "p17-keyid-names-another-copy",
+        "keyid names a different instance credential",
+        pres_sign(
+            "GET",
+            "/orders",
+            None,
+            &pres_ref,
+            PRES_NOW,
+            "r-0017",
+            "i-5eed0002",
+            &key,
+        ),
+        "presentation_sig_invalid",
+    );
+    {
+        let mut r = base("GET", "/orders", None);
+        let i = pres_get(&r, "signature-input").replace("ainra-hybrid-v1", "ed25519");
+        pres_set(&mut r, "signature-input", &i);
+        add(
+            "p18-alg-not-hybrid",
+            "alg claims a single algorithm: hybrid or invalid",
+            r,
+            "presentation_sig_invalid",
+        );
+    }
+    {
+        let mut r = base("GET", "/orders", None);
+        let i = pres_get(&r, "signature-input").replace("\"@path\" ", "");
+        pres_set(&mut r, "signature-input", &i);
+        add(
+            "p19-path-not-covered",
+            "the covered set leaves out @path",
+            r,
+            "presentation_sig_invalid",
+        );
+    }
+    {
+        let mut r = base("POST", "/orders", None);
+        r.body = Some(body.to_vec());
+        add(
+            "p20-body-not-covered",
+            "a body arrives that the signature never covered",
+            r,
+            "presentation_sig_invalid",
+        );
+    }
+    {
+        let r = pres_sign(
+            "GET",
+            "/orders",
+            None,
+            &pres_ref,
+            PRES_NOW - 301,
+            "r-0021",
+            PRES_IID,
+            &key,
+        );
+        add(
+            "p21-stale",
+            "signed 301 s ago: one second outside the window",
+            r,
+            "presentation_stale",
+        );
+    }
+    {
+        let r = pres_sign(
+            "GET",
+            "/orders",
+            None,
+            &pres_ref,
+            PRES_NOW + 31,
+            "r-0022",
+            PRES_IID,
+            &key,
+        );
+        add(
+            "p22-from-the-future",
+            "signed 31 s ahead: beyond the skew tolerance",
+            r,
+            "presentation_stale",
+        );
+    }
+    {
+        let mut r = pres_sign(
+            "GET",
+            "/orders",
+            None,
+            &pres_ref,
+            PRES_NOW - 301,
+            "r-0023",
+            PRES_IID,
+            &key,
+        );
+        r.path = "/admin".into();
+        add(
+            "p23-stale-and-moved",
+            "both stale and moved: freshness is checked before the signature",
+            r,
+            "presentation_stale",
+        );
+    }
+    {
+        let mut r = base("GET", "/orders", None);
+        let s = sig(&r);
+        pres_set(&mut r, "signature", "ainra=:!!notbase64!!:");
+        let _ = s;
+        add(
+            "p25-signature-not-base64",
+            "the signature field is not a byte sequence",
+            r,
+            "presentation_sig_invalid",
+        );
+    }
+    {
+        let mut r = base("GET", "/orders", None);
+        let s = sig(&r);
+        let cut = format!("{}:", &s[..s.len() - 9]);
+        pres_set(&mut r, "signature", &cut);
+        add(
+            "p26-signature-truncated",
+            "the signature is shorter than both halves together",
+            r,
+            "presentation_sig_invalid",
+        );
+    }
+    {
+        let mut r = base("GET", "/orders", None);
+        let z = zero_half(&sig(&r), true);
+        pres_set(&mut r, "signature", &z);
+        add(
+            "p27-ed25519-half-zeroed",
+            "only the ML-DSA-65 half is valid",
+            r,
+            "presentation_sig_invalid",
+        );
+    }
+    {
+        let mut r = base("GET", "/orders", None);
+        let z = zero_half(&sig(&r), false);
+        pres_set(&mut r, "signature", &z);
+        add(
+            "p28-mldsa-half-zeroed",
+            "only the Ed25519 half is valid",
+            r,
+            "presentation_sig_invalid",
+        );
+    }
+    {
+        let mut r = base("GET", "/orders", None);
+        let i = format!("{};expires=1775867000", pres_get(&r, "signature-input"));
+        pres_set(&mut r, "signature-input", &i);
+        add(
+            "p29-extra-parameter",
+            "a parameter outside the profile: the parser accepts exactly one shape",
+            r,
+            "presentation_sig_invalid",
+        );
+    }
+    {
+        let mut r = base("GET", "/orders", None);
+        let i = pres_get(&r, "signature-input").replace("nonce=\"r-0001\"", "nonce=\"r 0001\"");
+        pres_set(&mut r, "signature-input", &i);
+        add(
+            "p30-nonce-outside-charset",
+            "a nonce with a space in it",
+            r,
+            "presentation_sig_invalid",
+        );
+    }
+    // Same bytes, non-canonical text: the last base64 character before the padding carries two data bits and four
+    // zero bits; flipping the lowest bit changes the text, not the bytes a lenient decoder returns. A trust root's
+    // front door accepts exactly one encoding of a signature.
+    {
+        let mut r = base("GET", "/orders", None);
+        let s0 = sig(&r);
+        let inner = s0
+            .strip_prefix("ainra=:")
+            .unwrap()
+            .strip_suffix(':')
+            .unwrap();
+        let body = inner.trim_end_matches('=');
+        let alpha = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+        let last = body.chars().last().unwrap();
+        let idx = alpha.find(last).unwrap() ^ 1;
+        let flipped = format!(
+            "{}{}{}",
+            &body[..body.len() - 1],
+            &alpha[idx..idx + 1],
+            &inner[body.len()..]
+        );
+        pres_set(&mut r, "signature", &format!("ainra=:{flipped}:"));
+        add(
+            "p33-signature-noncanonical-base64",
+            "the same signature bytes in a non-canonical encoding",
+            r,
+            "presentation_sig_invalid",
+        );
+    }
+    cases.push(Case {
+        name: "p24-replayed",
+        what: "a correctly signed request whose nonce the cache has already seen",
+        req: base("GET", "/orders", None),
+        max_age: 300,
+        seen: vec!["r-0001"],
+        want: "presentation_replayed",
+    });
+    {
+        let mut r = base("GET", "/orders", None);
+        r.path = "/admin".into();
+        cases.push(Case { name: "p31-replayed-but-moved", what: "a seen nonce on a moved request: the nonce is asked only after the signature holds",
+        req: r, max_age: 300, seen: vec!["r-0001"], want: "presentation_sig_invalid" });
+    }
+    cases.push(Case {
+        name: "p32-verifier-policy-60s",
+        what: "a verifier that accepts only 60 s refuses a 61 s-old signature",
+        req: pres_sign(
+            "GET",
+            "/orders",
+            None,
+            &pres_ref,
+            PRES_NOW - 61,
+            "r-0032",
+            PRES_IID,
+            &key,
+        ),
+        max_age: 60,
+        seen: vec![],
+        want: "presentation_stale",
+    });
+    cases.sort_by(|a, b| a.name.cmp(b.name));
+
+    let mut out = Vec::new();
+    for c in cases {
+        let mut v = json!({
+            "name": c.name,
+            "description": c.what,
+            "request": {
+                "method": c.req.method, "authority": c.req.authority, "path": c.req.path,
+                "headers": c.req.headers.iter().map(|(k, v)| json!([k, v])).collect::<Vec<_>>(),
+                "body_b64u": c.req.body.as_ref().map(|b| b64::encode(b)),
+            },
+            "instance": { "iid": PRES_IID, "ikey": { "ed25519": b64::encode(&pk.ed25519), "mldsa65": b64::encode(&pk.mldsa65) } },
+            "now": PRES_NOW,
+            "max_age_secs": c.max_age,
+            "seen_nonces": c.seen,
+        });
+        let got = presentation_result(&v);
+        let ok = if c.want == "ok" {
+            got["ok"] == json!(true)
+        } else {
+            got["reason"] == json!(c.want)
+        };
+        if !ok {
+            eprintln!(
+                "PRESENTATION VECTOR {} exists to test `{}` but the core says {got}",
+                c.name, c.want
+            );
+            std::process::exit(1);
+        }
+        v["expect"] = got;
+        out.push(v);
+    }
+    out
+}
+
+fn emit_presentation(dir: &str) {
+    let vectors = presentation_vectors();
+    std::fs::create_dir_all(dir).expect("create dir");
+    for v in &vectors {
+        std::fs::write(
+            Path::new(dir).join(format!("{}.json", v["name"].as_str().unwrap())),
+            serde_json::to_string_pretty(v).unwrap(),
+        )
+        .expect("write presentation vector");
+    }
+    let accept = vectors
+        .iter()
+        .filter(|v| v["expect"]["ok"] == json!(true))
+        .count();
+    let manifest = json!({
+        "version": "v1-presentation",
+        "count": vectors.len(),
+        "accept": accept,
+        "reject": vectors.len() - accept,
+        "note": "CC0 presentation conformance vectors: RFC 9421 request signatures by a running copy's instance key (D-062). Real hybrid signing; expect computed by ainra-core::presentation::verify_presentation, each checked against the case it exists to test. Regenerate with `make vectors`.",
+    });
+    std::fs::write(
+        Path::new(dir).join("manifest.json"),
+        serde_json::to_string_pretty(&manifest).unwrap(),
+    )
+    .expect("write manifest");
+    println!(
+        "wrote {} presentation vectors ({accept} accept) to {dir}",
+        vectors.len()
+    );
+}
+
+fn check_presentation(dir: &str) {
+    let mut entries: Vec<_> = std::fs::read_dir(dir)
+        .expect("read dir")
+        .filter_map(|e| e.ok())
+        .map(|e| e.path())
+        .filter(|p| {
+            p.extension().is_some_and(|x| x == "json")
+                && p.file_name().is_some_and(|f| f != "manifest.json")
+        })
+        .collect();
+    entries.sort();
+    let (mut total, mut fails) = (0, 0);
+    for path in entries {
+        let v: Value = serde_json::from_slice(&std::fs::read(&path).expect("read")).expect("parse");
+        let got = presentation_result(&v);
+        total += 1;
+        if got != v["expect"] {
+            eprintln!(
+                "PRESENTATION CHECK MISMATCH {}: expected {} got {got}",
+                v["name"], v["expect"]
+            );
+            fails += 1;
+        }
+    }
+    if fails > 0 {
+        eprintln!("{fails}/{total} presentation vectors mismatched");
+        std::process::exit(1);
+    }
+    println!("checked {total} presentation vectors: all reproduce their recorded expectation");
+}
+
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     let mut out_dir: Option<String> = None;
@@ -2520,6 +3137,8 @@ fn main() {
     let mut check_dir: Option<String> = None;
     let mut check_delta_dir: Option<String> = None;
     let mut check_directory_dir: Option<String> = None;
+    let mut presentation_out: Option<String> = None;
+    let mut check_presentation_dir: Option<String> = None;
     let mut canon_file: Option<String> = None;
     let mut emit_kind: Option<String> = None;
     let mut min: usize = 0;
@@ -2532,6 +3151,8 @@ fn main() {
             "--check" => check_dir = it.next().cloned(),
             "--check-delta" => check_delta_dir = it.next().cloned(),
             "--check-directory" => check_directory_dir = it.next().cloned(),
+            "--presentation-out" => presentation_out = it.next().cloned(),
+            "--check-presentation" => check_presentation_dir = it.next().cloned(),
             "--canon" => canon_file = it.next().cloned(),
             "--emit" => emit_kind = it.next().cloned(),
             "--bench" => {} // handled after parsing
@@ -2561,6 +3182,14 @@ fn main() {
     }
     if let Some(dir) = directory_out {
         emit_directory(&dir);
+        return;
+    }
+    if let Some(dir) = presentation_out {
+        emit_presentation(&dir);
+        return;
+    }
+    if let Some(dir) = check_presentation_dir {
+        check_presentation(&dir);
         return;
     }
     if let Some(dir) = check_delta_dir {

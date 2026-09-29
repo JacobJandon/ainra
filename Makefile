@@ -18,15 +18,18 @@ vectors:
 	cargo run --release -q -p ainra-vector-gen -- --out vectors/v1 --min 500
 	cargo run --release -q -p ainra-vector-gen -- --delta-out vectors/v1-delta
 	cargo run --release -q -p ainra-vector-gen -- --directory-out vectors/v1-directory
+	cargo run --release -q -p ainra-vector-gen -- --presentation-out vectors/v1-presentation
 	@echo "vectors present:" && ls vectors/v1/*.json 2>/dev/null | wc -l
 	@echo "delta vectors:" && ls vectors/v1-delta/*.json 2>/dev/null | wc -l
 	@echo "directory vectors:" && ls vectors/v1-directory/*.json 2>/dev/null | wc -l
+	@echo "presentation vectors:" && ls vectors/v1-presentation/*.json 2>/dev/null | wc -l
 
 # Replay every vector back through ainra-core (the generator holding itself honest).
 vectors-check:
 	cargo run --release -q -p ainra-vector-gen -- --check vectors/v1 --min 500
 	cargo run --release -q -p ainra-vector-gen -- --check-delta vectors/v1-delta
 	cargo run --release -q -p ainra-vector-gen -- --check-directory vectors/v1-directory
+	cargo run --release -q -p ainra-vector-gen -- --check-presentation vectors/v1-presentation
 
 # 3-way differential: same vectors through ainra-core, sdk-ts, and the P0 cli-node. Nonzero unless 100% agreement.
 diff: sdk-build

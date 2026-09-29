@@ -38,6 +38,7 @@ pub mod mandate;
 pub mod merkle;
 pub mod name;
 pub mod passport;
+pub mod presentation;
 pub mod status;
 pub mod verdict;
 pub mod verify;

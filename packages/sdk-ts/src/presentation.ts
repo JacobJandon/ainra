@@ -135,7 +135,14 @@ function b64std(bytes: Uint8Array): string {
 }
 function b64stdDecode(s: string): Uint8Array | null {
   if (!/^[A-Za-z0-9+/]+={0,2}$/.test(s)) return null;
-  try { return b64uDecode(s.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "")); } catch { return null; }
+  const u = s.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  try {
+    const raw = b64uDecode(u);
+    // Canonical only (D-029): Buffer.from drops non-zero trailing bits, so the same signature bytes could arrive in
+    // several spellings. ainra-core (base64ct) and the Python verifier refuse those; vector
+    // p33-signature-noncanonical-base64 found this decoder accepting them.
+    return b64uEncode(raw) === u ? raw : null;
+  } catch { return null; }
 }
 
 /** `sha-256=:<base64>:` — RFC 9530, the digest a signature covers so a body cannot be swapped under it.
@@ -270,4 +277,33 @@ export function verifyPresentation(args: {
   // caller fill someone else's cache.
   if (args.seenNonce && args.seenNonce(nonce)) return { ok: false, reason: "presentation_replayed" };
   return { ok: true, nonce, created };
+}
+
+/** Run one `vectors/v1-presentation` vector (PLAN-M34 Task 3–4): the request exactly as a gate sees it, the
+ *  instance key that should have signed it, the verifier's clock and the nonces its cache has seen. Returns the
+ *  shape `ainra-core` records — `{ok:true,nonce,created}` or `{ok:false,reason}` — so `make diff` can hold this
+ *  implementation to the core's answer on every case. */
+export function runPresentationVector(v: {
+  request: { method: string; authority: string; path: string; headers: [string, string][]; body_b64u: string | null };
+  instance: { iid: string; ikey: { ed25519: string; mldsa65: string } };
+  now: number;
+  max_age_secs: number;
+  seen_nonces: string[];
+}): { ok: true; nonce: string; created: number } | { ok: false; reason: PresentationReason } {
+  const headers: Record<string, string> = {};
+  for (const [k, val] of v.request.headers) if (!(k in headers)) headers[k] = val;
+  const r = verifyPresentation({
+    req: {
+      method: v.request.method,
+      authority: v.request.authority,
+      path: v.request.path,
+      headers,
+      body: v.request.body_b64u === null ? undefined : b64uDecode(v.request.body_b64u),
+    },
+    instance: { iid: v.instance.iid, ikey: { ed25519: b64uDecode(v.instance.ikey.ed25519), mldsa65: b64uDecode(v.instance.ikey.mldsa65) } },
+    now: v.now,
+    maxAgeSecs: v.max_age_secs,
+    seenNonce: (n) => v.seen_nonces.includes(n),
+  });
+  return r.ok ? { ok: true, nonce: r.nonce, created: r.created } : { ok: false, reason: r.reason };
 }

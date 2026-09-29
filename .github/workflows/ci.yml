@@ -74,6 +74,9 @@ jobs:
       # impls CLEAN over the full corpus (same corpus hash), FAILS a deliberately broken impl with named divergences,
       # and round-trips a self-attestation. Needs python3 for the Python adapter (present on ubuntu-latest).
       - run: make conformance
+      # Moved here from the wedge job: the Python column verifies full passports, SLH-DSA included, which needs this
+      # job's OpenSSL >= 3.5 container. On ubuntu-latest it failed at import (2026-09-29, first CI run of the row).
+      - run: make policy-parity
       # The downloadable CLI meets the same hybrid bar: Ed25519 + ML-DSA-65 both-or-invalid, legacy(alg_downgrade,
       # overlap-only) vs tampered(sig_invalid, always closed). Runs the shipped source; @noble via the SDK install.
       - run: node tools/cli-hybrid-check.mjs
@@ -99,7 +102,6 @@ jobs:
       - run: cd packages/middleware && npm install && npm run build && npm test
       # Preflight rows that need the built SDK and were missing here (2026-09-29 audit).
       - run: make instance-gate
-      - run: make policy-parity
       - run: make mcp-test
       - run: make presentation-diff
       - run: make skills-replay
@@ -220,6 +222,11 @@ jobs:
           fi
           echo "negative control OK: a flipped signature bit is caught"
       - run: cd packages/sdk-ts && npm ci && npm run build
+      # number-syntax-check compares the Python SDK's number parsing; importing the SDK loads ML-DSA, which needs
+      # cryptography >= 49 — the distro python here has an older one (it failed at import, 2026-09-29).
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with: { python-version: "3.12" }
+      - run: python3 -m pip install -q 'cryptography>=49'
       - name: both page engines give one answer; number syntax divergence stays bounded (D-054)
         run: |
           node tools/engine-parity.mjs

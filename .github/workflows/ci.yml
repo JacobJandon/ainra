@@ -84,9 +84,9 @@ jobs:
       - run: node tools/push-advisory-threat.mjs
 
   wedge:
-    name: verifier wedge (@ainra/middleware fail-closed)
+    name: verifier wedge (@ainra/middleware fail-closed) · gates over the built SDK
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - uses: dtolnay/rust-toolchain@1.96.1
@@ -97,6 +97,13 @@ jobs:
       # Build the SDK, install + build the middleware (file: dep on the SDK), run the fail-closed gate tests.
       - run: cd packages/sdk-ts && npm ci && npm run build
       - run: cd packages/middleware && npm install && npm run build && npm test
+      # Preflight rows that need the built SDK and were missing here (2026-09-29 audit).
+      - run: make instance-gate
+      - run: make policy-parity
+      - run: make mcp-test
+      - run: make presentation-diff
+      - run: make skills-replay
+      - run: make personhood-test
 
   # The publish gate a contributor cannot regress: `make audit` = S7 (fixtures + prose + EVERY commit message) +
   # license headers + gitleaks over full history. Needs the whole history for the commit-message scan + gitleaks.
@@ -142,6 +149,22 @@ jobs:
         run: node tools/claims.mjs
       - name: stated corpus counts == vectors on disk
         run: node tools/corpus-check.mjs
+      # The rest of the node-only preflight rows. CI said it mirrored `make preflight`; a 2026-09-29 audit found 18
+      # rows it never ran. Each one here runs on a bare checkout (verified on a fresh clone before adding it).
+      - name: doctrine (rules that were only memory, gated)
+        run: node tools/doctrine-check.mjs
+      - name: amendment path (the constitution needs a record to change)
+        run: node tools/amendment-check.mjs
+      - name: reason contract (docs name every reason the implementations return)
+        run: node tools/reasons-check.mjs
+      - name: no names in git (D-036)
+        run: node tools/names-check.mjs
+      - name: honest decay (the record states its own staleness)
+        run: node tools/staleness-drill.mjs
+      - name: format legibility (the primer alone parses the corpus)
+        run: node tools/legibility-drill.mjs
+      - name: soak ingest (the declaration reads what the soak writes)
+        run: node tools/soak-ingest-check.mjs
       - name: ainra-wasm binds only, never parses (L5)
         run: |
           # The browser surface must stay a thin binding. If it grows its own decoding, the differential can no
@@ -160,9 +183,9 @@ jobs:
         run: cd packages/sdk-ts && npm ci && npm audit --audit-level=high
 
   wasm-surface:
-    name: browser verifier (whole corpus through the real artifact)
+    name: browser verifier + edge gate (whole corpus through the real artifacts)
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       # Pinned to 1.96.1 like every other job. @stable installs the target for the STABLE toolchain, but
@@ -196,6 +219,18 @@ jobs:
             echo "NEGATIVE CONTROL DID NOT FAIL — the differential is not checking anything"; exit 1
           fi
           echo "negative control OK: a flipped signature bit is caught"
+      - run: cd packages/sdk-ts && npm ci && npm run build
+      - name: both page engines give one answer; number syntax divergence stays bounded (D-054)
+        run: |
+          node tools/engine-parity.mjs
+          node tools/number-syntax-check.mjs
+      # PLAN-M34 Task 5 / D-068: the edge engine (ainra-wasm --features edge), its tests, and the gate run INSIDE
+      # the workerd runtime. Deno and Bun are not installed here; `make edge-runtimes` reports them SKIPPED.
+      - name: the edge gate — build, test, and run it inside workerd
+        run: |
+          (cd packages/middleware && npm install && npm run build)
+          make edge-test
+          make edge-runtimes
 
   fuzz-smoke:
     name: fuzz smoke (parsers never panic)
@@ -208,9 +243,9 @@ jobs:
       - run: ./tools/fuzz-smoke.sh
 
   integration:
-    name: end-to-end (drill · testbed · genesis-local)
+    name: end-to-end (drill · testbed · genesis-local · probes · soak · verifier kit)
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - uses: dtolnay/rust-toolchain@1.96.1
@@ -228,6 +263,13 @@ jobs:
       - run: make ceremony-rehearsal-multi
       # M23 Task 4: witness kit v2 — one-file config, self-declared /meta, /root alias, back-compat, fork still refused.
       - run: make witness-check
+      # Preflight rows that were never in CI (2026-09-29 audit): the compliance probe, the soak instrument, the
+      # verifier kit a stranger runs, the ceremony dry-run, and the networked witness-quorum drill.
+      - run: bash tools/probe-drill.sh
+      - run: bash tools/soak-smoke.sh 12
+      - run: bash tools/verifier-kit-smoke.sh
+      - run: bash tools/ceremony-dry-run.sh 5
+      - run: bash tools/drill-networked.sh
 
   reproducibility:
     name: reproducible builds + mirror byte-verify (M7)

@@ -45,6 +45,8 @@ A presenter can't loosen any of these (D-068).
 - **`make edge-test`:** the WASM build answers all 33 request-signature vectors as the core recorded them. Every
   credential verdict equals what the independently written `@ainra/sdk` gives on the same bundle and clock. An `F3`
   bundle checked an hour later is `stale_status` under the gate's `F2`. Only verified bundles are stored.
+- **`make edge-runtimes`:** the same checks under Deno, Bun, Node and inside the workerd runtime itself (the WASM
+  loaded as a compiled module, like a deployed worker). A runtime that isn't installed is reported SKIPPED.
 - **`make edge-e2e`:** the whole journey against the live registrar, served by this gate:
   - the agent's own key, a passport, an instance credential;
   - send-once 201;

@@ -1,6 +1,6 @@
 # AINRA — the acceptance bar (MTS §28, brief §8): a stranger clones, runs `make test && make vectors && make diff`,
 # and everything is green in under 10 minutes on a laptop.
-.PHONY: edge-build edge-test edge-e2e personhood-test personhood-live live-up live-down live-status identity-e2e root-dark-drill mirror-sufficiency legibility-drill cli-deps succession-drill staleness-drill amendment-check amendment-check-negative doctrine doctrine-negative number-syntax engine-parity one-decode-path bench-gate all test vectors vectors-check diff cli-check suite-migration-drill ceremony-rehearsal-multi witness-check push-advisory-check changelog-board-check fmt clippy fuzz-smoke bench sdk-build sdk-test ci clean status console samples drill explorer demo scale ceremony testbed wedge-build wedge-test repro mirror verify-mirror check-freeze freeze genesis-local verifier-kit-smoke ceremony-dry-run soak-smoke drill-networked preflight s7 license gitleaks audit verify-as-external verifier-triple-drill soak-verify genesis-status verify-transcript genesis-board-demo release doctor verifier-operator-drill site site-up site-down site-check stage-all stage-all-down explorer-up explorer-down ainrascan stage-up stage-down stage-status stage-smoke demo-walkthrough three-clients genesis-verify config-diff declaration genesis-rehearsal site-demo verify issue-first registrar-console mcp-test skills-replay presentation-diff conformance campaign-status campaign-init campaign-gates campaign-check publish-preflight stage-install stage-uninstall stage-health stranger probe-drill miri reasons-check corpus-check instance-gate claims-check claims claims-live policy-parity deploy-current site-net site-net-check lockfile-sync soak-ingest outreach-check names-check interop interop-negative
+.PHONY: edge-build edge-test edge-e2e edge-runtimes personhood-test personhood-live live-up live-down live-status identity-e2e root-dark-drill mirror-sufficiency legibility-drill cli-deps succession-drill staleness-drill amendment-check amendment-check-negative doctrine doctrine-negative number-syntax engine-parity one-decode-path bench-gate all test vectors vectors-check diff cli-check suite-migration-drill ceremony-rehearsal-multi witness-check push-advisory-check changelog-board-check fmt clippy fuzz-smoke bench sdk-build sdk-test ci clean status console samples drill explorer demo scale ceremony testbed wedge-build wedge-test repro mirror verify-mirror check-freeze freeze genesis-local verifier-kit-smoke ceremony-dry-run soak-smoke drill-networked preflight s7 license gitleaks audit verify-as-external verifier-triple-drill soak-verify genesis-status verify-transcript genesis-board-demo release doctor verifier-operator-drill site site-up site-down site-check stage-all stage-all-down explorer-up explorer-down ainrascan stage-up stage-down stage-status stage-smoke demo-walkthrough three-clients genesis-verify config-diff declaration genesis-rehearsal site-demo verify issue-first registrar-console mcp-test skills-replay presentation-diff conformance campaign-status campaign-init campaign-gates campaign-check publish-preflight stage-install stage-uninstall stage-health stranger probe-drill miri reasons-check corpus-check instance-gate claims-check claims claims-live policy-parity deploy-current site-net site-net-check lockfile-sync soak-ingest outreach-check names-check interop interop-negative
 
 all: fmt clippy test vectors diff
 
@@ -220,6 +220,14 @@ edge-build:
 edge-test: sdk-build edge-build
 	cd packages/middleware && { [ -d node_modules ] || npm install --prefer-offline --no-audit --no-fund --silent; } && npm run -s build
 	cd packages/edge && node --test test/
+# The claim "runs in Deno, Bun, Node and the workerd runtime" is these four passing — each runtime's own Request, WebAssembly
+# and atob, no shims. A runtime not installed here is reported SKIPPED, never counted as passing.
+edge-runtimes: sdk-build edge-build
+	cd packages/edge && { [ -d node_modules ] || npm install --no-audit --no-fund --silent; } && \
+	  node runtimes/check.mjs && \
+	  { command -v deno >/dev/null && deno run --allow-read runtimes/check.mjs || echo "  SKIPPED deno (not installed)"; } && \
+	  { command -v bun >/dev/null && bun runtimes/check.mjs || echo "  SKIPPED bun (not installed)"; } && \
+	  node runtimes/workerd.mjs
 edge-e2e: sdk-build edge-build
 	AINRA_REGISTRAR=http://127.0.0.1:4970 node tools/identity-e2e.mjs --edge
 

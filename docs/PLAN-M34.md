@@ -112,6 +112,10 @@ built on. Today AINRA meets them with a bespoke header; after M34 it meets them 
 
 ## Task 6 — The texts tell the truth again
 
+**Done (M39, D-069):** `docs/STATUS.md` states possession rung by rung and the freshness bound; the Standard already
+says what the code does (§5, amended by D-062); the docs page gains "Prove the request, not just the agent". The
+CLI gains `ainra verify-request` (Task 4's last implementation), proven in `make identity-e2e` step 5b.
+
 `docs/STATUS.md` loses the passport-rung limitation. The Standard says what the code does. The site gains the
 one thing a builder currently cannot find: how a request proves itself at the edge.
 

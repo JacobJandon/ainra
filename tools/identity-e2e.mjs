@@ -31,7 +31,10 @@ import {
 } from "../packages/sdk-ts/dist/index.js";
 import { b64uEncode } from "../packages/sdk-ts/dist/crypto.js";
 import { ainraGate, ainraPrime, createPresentationStore } from "../packages/middleware/dist/index.js";
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdtempSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import os from "node:os";
+import pathMod from "node:path";
 
 // `--edge`: the same journey, served by the EDGE gate (PLAN-M34 Task 5) — ainra-core compiled to WebAssembly behind a
 // web-standard Request → decision function — instead of the Node middleware. Same steps, same assertions.
@@ -239,6 +242,28 @@ else ok(`200 · allowed · request headers ${(good.total / 1024).toFixed(1)} KiB
   const r = await send({ ref: "sha-256=:" + Buffer.alloc(32).toString("base64") + ":" });
   r.status === 428 && r.reason === "presentation_unknown"
     ? ok(`a digest this gate was never sent → 428 ${r.reason} (send it, then retry)`) : fail(`unknown digest: ${r.status} ${r.reason}`);
+}
+
+step("5b · an operator asks the CLI why: `ainra verify-request` on the exact request a gate saw");
+{
+  // The same decision, offline, from files — what an operator runs when a gate refused something and they need to
+  // know why. It must agree with the gate on the request it allowed, and name the reason on a moved copy.
+  execFileSync("cargo", ["build", "--release", "-q", "-p", "ainra-cli-rs"], { cwd: new URL("../", import.meta.url) });
+  const cli = new URL("../target/release/ainra", import.meta.url).pathname;
+  const dir = mkdtempSync(pathMod.join(os.tmpdir(), "ainra-verify-request-"));
+  const full = await presentationFor();
+  const { pop } = splitPresentation(full);
+  const headers = { [PRESENTATION_HEADER]: REF, [POP_HEADER]: Buffer.from(JSON.stringify(pop)).toString("base64url"), host: authority };
+  Object.assign(headers, await signPresentation({
+    req: { method: "POST", authority, path: "/orders", headers }, keyid: ic.iid, nonce: "cli-" + randomBytes(6).toString("hex"), created: now(), instanceSign,
+  }));
+  const write = (n, o) => { const f = pathMod.join(dir, n); writeFileSync(f, JSON.stringify(o)); return f; };
+  const files = ["--bundle", write("bundle.json", full), "--directory", write("directory.json", directory), "--roots", write("roots.json", roots), "--audience", AUD];
+  const run = (req) => { try { return execFileSync(cli, ["verify-request", ...files, "--request", write("request.json", req)], { encoding: "utf8" }); } catch (e) { return e.stdout ?? String(e); } };
+  const good = run({ method: "POST", authority, path: "/orders", headers: Object.entries(headers), body_b64u: null });
+  good.startsWith("ALLOW") ? ok(`ainra verify-request → ${good.split("\n")[0].slice(0, 70)}`) : fail(`the CLI refused a request the gate allowed: ${good.split("\n")[0]}`);
+  const moved = run({ method: "POST", authority, path: "/admin/refunds", headers: Object.entries(headers), body_b64u: null });
+  moved.startsWith("DENY  presentation_sig_invalid") ? ok(`the same request moved → ${moved.split("\n")[0].slice(0, 70)}`) : fail(`moved: ${moved.split("\n")[0]}`);
 }
 
 step("6 · every way of misusing it is refused, by name");

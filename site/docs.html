@@ -171,6 +171,7 @@ nav .nav-links a[aria-current="page"],nav .ndocs[aria-current="page"]{text-decor
     <h5>Use it</h5>
     <a href="#verify">Verify in five lines</a>
     <a href="#gate">Gate a route</a>
+    <a href="#request">Prove the request</a>
     <a href="#cli">The CLI lifecycle</a>
     <a href="#agents">For agents</a>
     <h5>Prove it</h5>
@@ -226,6 +227,23 @@ verdict = v.verify(bundle, now)
     <div class="codeblock"><span class="cap">node · @ainra/middleware</span><pre><span class="w">import</span> { ainraGate, Verifier } <span class="w">from</span> <span class="g">"@ainra/middleware"</span>;
 
 app.use(<span class="g">"/agent"</span>, ainraGate(verifier));</pre></div>
+
+    <h2 id="request">Prove the request, not just the agent</h2>
+    <p>A valid passport says an agent exists. It says nothing about <em>this</em> request, and a header on its own can be copied and replayed. So a running copy signs each request with its own short-lived key (RFC 9421), and the gate binds the passport to one method, one host and one path, inside five minutes.</p>
+    <ol>
+      <li><b>Send the passport once.</b> <code>POST /.well-known/ainra-presentation</code> with the bundle. The gate checks it in full and answers <code>201</code> with a digest, <code>sha-256=:…:</code>. It keeps only bundles that verify.</li>
+      <li><b>Then sign each request.</b> It carries the digest in <code>x-ainra-passport</code>, a fresh proof of possession in <code>x-ainra-pop</code>, and the <code>signature-input</code> / <code>signature</code> pair, which covers the method, host, path, body digest and that header. That comes to about 11 KB of headers, well under common server limits. The whole passport in one header would not fit.</li>
+      <li><b>The gate says why when it refuses.</b> <code>presentation_unsigned</code> · <code>presentation_sig_invalid</code> (moved, altered or wrong key) · <code>presentation_stale</code> · <code>presentation_replayed</code> · and <code>428 presentation_unknown</code> if it doesn't hold the bundle yet, meaning "send it, then retry".</li>
+    </ol>
+    <div class="codeblock"><span class="cap">node · @ainra/middleware</span><pre><span class="w">const</span> store = createPresentationStore();
+app.post(PRIME_PATH, express.json({ limit: <span class="g">"256kb"</span> }), ainraPrime(verifier, { store }));
+app.use(<span class="g">"/agent"</span>, ainraGate(verifier, { store, requireSignature: <span class="w">true</span>, seenNonce }));</pre></div>
+    <p><b>At the edge.</b> <code>@ainra/edge</code> is the same gate for Workers, Deno and Node's fetch. It's a <code>Request</code> → decision function running <code>ainra-core</code> itself, compiled to WebAssembly. It trusts only a directory signed by both ceremony roots, and it applies its own freshness policy, not the presenter's. It lives in the repository (<code>packages/edge</code>) and isn't on npm yet.</p>
+    <div class="codeblock"><span class="cap">edge · @ainra/edge</span><pre><span class="w">const</span> gate = <span class="w">await</span> createAinraEdgeGate({
+  directory, roots, audience: <span class="g">"https://shop.example"</span> });
+<span class="w">const</span> g = <span class="w">await</span> gate(request);
+<span class="w">return</span> g.allow ? fetch(request) : g.response;</pre></div>
+    <p>How it's checked: the request profile is stated once in <code>ainra-core</code>, and three implementations (Rust, TypeScript, Python) must agree on its conformance vectors. <code>make identity-e2e</code> and <code>make edge-e2e</code> run the whole journey against a live registrar.</p>
 
     <h2 id="cli">The CLI lifecycle</h2>
     <p>The whole lifecycle, locally, no server — a persistent registrar in a directory you own.</p>
@@ -454,6 +472,7 @@ $ make repro                          <span class="c"># byte-exact rebuild — t
     <a href="#install">Get the reference</a>
     <a href="#verify">Verify in five lines</a>
     <a href="#gate">Gate a route</a>
+    <a href="#request">Prove the request</a>
     <a href="#cli">The CLI lifecycle</a>
     <a href="#agents">For agents</a>
     <a href="#conformance">Your own implementation</a>

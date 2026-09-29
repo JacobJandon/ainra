@@ -302,18 +302,23 @@ DECISIONS D-027/D-028, MTS ADR-017.
 
 ## Known limitations honestly stated
 
-- 711+24+17+9 vectors, not the 10 k GA target; broad but not the full combinatorial cross-product.
+- 1153 passport + 17 delta + 9 directory vectors, plus 33 request-signature vectors (`vectors/v1-presentation`,
+  D-067) — not the 10 k GA target; broad but not the full combinatorial cross-product.
 - Services persist to local files, bind 127.0.0.1, single-key signers — a working reference, not the hardened
   multi-region deployment (M4–M8). The CLI's `registrar.secret` is a TEST-labeled dev keystore, not an HSM.
-- Proof-of-possession holds at ONE of the two rungs, and the distinction matters. At the **instance** rung it is
-  enforced: an instance credential is audience-bound and holder-bound, and presenting one to the wrong audience is
-  refused by name as `instance_pop_invalid` (ADR-019 / D-047, with D-049 binding the proof to the credential it
-  accompanies). At the **passport** rung it is not: holder keys are real and thumbprint-bound, but the verifier does
-  not yet ask a presenter to prove possession of the passport key (KB-JWT / RFC 9421 presentation) — the schema
-  carries real material for it; that check is later work.
+- Proof of possession, rung by rung. At **issuance**, the registrar certifies only a key the agent proves it holds
+  (D-063). At the **instance** rung, a running copy's credential is audience-bound and holder-bound
+  (`instance_pop_invalid`, ADR-019 / D-047 / D-049), and every request it makes can be signed with its instance key
+  (RFC 9421, D-062) — a profile held to 33 vectors by three implementations (D-067) and enforced by the Node
+  middleware and the edge gate (`@ainra/edge`, D-068). What remains, by design: a passport presented DIRECTLY, with
+  no instance credential, cannot sign a request — the passport key never enters a container — so a gate that
+  requires signed requests admits running copies only. And a copy that keeps presenting a status snapshot from
+  before its revocation passes until that snapshot is older than the verifier's freshness class (F2 ≤ 5 min by
+  default, F1 ≤ 30 s); "revocation published < 60 s" is the network's publication latency, not that window.
 - Benchmarks (`make bench` → BENCHMARKS.md) are single-host indicative numbers.
 
 ## Next
 
-M4 per MTS §27: FROST integration end-to-end + public rehearsal ceremony; delegate rotation; verifier middleware +
-explorer on a live testbed (M5). See `_archive/plans/PLAN-M3.md`.
+The recorded public genesis ceremony (custodians being recruited), external verifiers running the kit against
+challenges minted on the wall-clock network (M35), and releasing the M36–M38 layers (send-once presentations, the
+request-signature corpus, `@ainra/edge`) to npm. Live proofs today: `make identity-e2e` and `make edge-e2e`.

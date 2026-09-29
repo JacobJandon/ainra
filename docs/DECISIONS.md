@@ -1467,3 +1467,29 @@ share; CI stayed green and only a local preflight caught it. Both checks now run
 presentation corpus is checked and regenerated there like the other families.
 
 *Status:* NEW. PLAN-M34 Task 5 done. Task 6 (the texts) and a CLI presentation check remain.
+
+## D-069 — The texts catch up, and an operator can ask the CLI why (M39)
+
+*Problem:* PLAN-M34 Task 6 and the last line of Task 4. `docs/STATUS.md` still said the verifier never asks a
+presenter to prove possession of anything at the passport rung, and quoted a vector count months old; a builder
+reading the site could not find how a request proves itself; and when a gate refused a request, the only way to
+learn why was to read the gate's response header on a live system.
+
+*Decision:*
+
+- `docs/STATUS.md` states possession rung by rung — issuance (D-063), the instance rung and signed requests
+  (D-062, D-067, D-068) — and what remains by design: a passport presented directly cannot sign a request, because
+  the passport key never enters a container; and a pre-revocation status snapshot passes until it is older than the
+  verifier's freshness class ("revocation published < 60 s" is publication latency, not that window).
+- The Standard needs no change: §5, amended by D-062, already says the running copy's instance key signs.
+- `site/docs.html` gains "Prove the request, not just the agent": send once, sign each request, the refusals by
+  name, the Node and edge gates, and a plain statement that `@ainra/edge` is not on npm yet.
+- `ainra verify-request` runs exactly what the edge gate runs — the directory against both roots, the credential
+  under the gate's policy, the request signature — on files, and prints ALLOW or the reason. It cannot judge single
+  use from one request, so it prints the nonce rather than pretending to.
+
+*Evidence:* `make identity-e2e` step 5b writes the exact bundle and request a gate allowed and runs the CLI on them:
+ALLOW; the same request moved to another path: `DENY presentation_sig_invalid`. Both e2e runs (Node middleware and
+`--edge`) green against the live registrar.
+
+*Status:* NEW. PLAN-M34 is complete except releasing M36–M39 to npm, which needs the owner's credentials.

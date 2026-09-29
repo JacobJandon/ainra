@@ -37,6 +37,7 @@ fn main() {
         "seed" => cmd_seed(rest),
         "reverify" => cmd_reverify(rest),
         "events" => cmd_events(rest),
+        "verify-request" => cmd_verify_request(rest),
         "demo" => cmd_demo(),
         "help" | "-h" | "--help" => {
             print_help();
@@ -778,6 +779,12 @@ REGISTRAR LIFECYCLE (operate on a local data dir)
   deltas <dir> [--since S]                    the signed delta stream since head S
   export <dir> [--now T]                      full export (records + live verdicts) for the explorer
 
+GATE (D-062 / D-068)
+  verify-request --bundle B --directory D --roots R --request Q --audience A [--now T] [--freshness F2]
+        why did a gate refuse this request? The same check @ainra/edge makes: the directory must verify
+        against both roots; the credential under the GATE's policy; then the RFC 9421 request signature.
+        Q is {{method, authority, path, headers: [[name, value], …], body_b64u}}. Prints ALLOW or the reason.
+
 REGISTRY
   seed [out-dir]                              build the fictional multi-registrar registry (+ self-check)
   reverify <registry.json>                    re-verify an export with the pure core verifier
@@ -785,4 +792,88 @@ REGISTRY
 
 Time is explicit (the core has no clock): pass --now <unix-seconds>; the default sits inside the demo window."#
     );
+}
+
+// ── verify-request: the gate's decision on one captured request (D-062, D-068) ────────────────────────────────────
+
+/// Why did a gate refuse this request? Runs exactly what `@ainra/edge` runs — the directory against both roots,
+/// the credential under the gate's policy, then the request signature — and prints the decision with its reason.
+/// Single use cannot be judged from one request, so the nonce is printed for the operator to compare, not cached.
+fn cmd_verify_request(a: &[String]) -> i32 {
+    let usage = "usage: ainra verify-request --bundle B --directory D --roots R --request Q --audience A [--now T] [--freshness F2]";
+    let (Some(b), Some(d), Some(r), Some(q), Some(aud)) = (
+        opt(a, "bundle"),
+        opt(a, "directory"),
+        opt(a, "roots"),
+        opt(a, "request"),
+        opt(a, "audience"),
+    ) else {
+        eprintln!("{usage}");
+        return 2;
+    };
+    let read = |p: &str| std::fs::read_to_string(p).map_err(|e| format!("cannot read {p}: {e}"));
+    let (bundle, directory, roots, request) = match (read(b), read(d), read(r), read(q)) {
+        (Ok(b), Ok(d), Ok(r), Ok(q)) => (b, d, r, q),
+        (b, d, r, q) => {
+            for e in [b.err(), d.err(), r.err(), q.err()].into_iter().flatten() {
+                eprintln!("{e}");
+            }
+            return 1;
+        }
+    };
+    // A bundle arriving in a header is base64url(JSON); accept that as well as raw JSON, as the gates do.
+    let bundle = if bundle.trim_start().starts_with('{') {
+        bundle
+    } else {
+        match ainra_core::b64::decode(bundle.trim())
+            .ok()
+            .and_then(|v| String::from_utf8(v).ok())
+        {
+            Some(s) => s,
+            None => {
+                eprintln!("the bundle is neither JSON nor base64url(JSON)");
+                return 1;
+            }
+        }
+    };
+    let now = opt(a, "now")
+        .and_then(|s| s.parse().ok())
+        .unwrap_or_else(|| {
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_secs())
+                .unwrap_or(0)
+        });
+    let freshness = opt(a, "freshness").unwrap_or("F2");
+    let acc: serde_json::Value =
+        serde_json::from_str(&ainra_adapter::accredit_json(&directory, &roots)).unwrap_or_default();
+    if acc["ok"] != serde_json::json!(true) {
+        println!(
+            "DENY  the directory does not verify against the roots — a gate would refuse to start"
+        );
+        return 1;
+    }
+    let trust = acc["trust"].to_string();
+    let out: serde_json::Value = serde_json::from_str(&ainra_adapter::gate_json(
+        &bundle, &trust, &request, now, aud, freshness,
+    ))
+    .unwrap_or_default();
+    let name = out["event"]["name"].as_str().unwrap_or("?");
+    if out["allow"] == serde_json::json!(true) {
+        println!(
+            "ALLOW {name} · nonce {} (single use is the gate's to enforce)",
+            out["nonce"].as_str().unwrap_or("?")
+        );
+        println!("{out}");
+        0
+    } else {
+        println!(
+            "DENY  {} · credential {} ({})",
+            out["reason"].as_str().unwrap_or("schema_violation"),
+            out["event"]["status"].as_str().unwrap_or("unread"),
+            name
+        );
+        println!("{out}");
+        1
+    }
 }

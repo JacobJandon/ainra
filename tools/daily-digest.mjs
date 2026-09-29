@@ -33,7 +33,7 @@ else {
   const soon = Q.filter((x) => x.not_before > today && x.not_before <= inDays(7));
   const how = { reply: "reply in thread", email: "new email", form: "contact form", link: "message or booking", slack: "Slack DM" };
   lines.push(`## Emails — ${due.length} ready, ${soon.length} unlock this week`, "");
-  lines.push("Open `outreach/ready/automation/COMPOSE.html`; it paces you (25–45 min apart, 4 a day). Best window: Tue–Thu, 9–11 their time.", "");
+  lines.push("Open **http://127.0.0.1:7777** (the AINRA desk — it saves every click to the tracker and paces you). Best window: Tue–Thu, 9–11 their time.", "");
   if (due.length) { lines.push("**Ready now**", ""); for (const x of due) lines.push(`- ${x.who} (${x.org}) — ${how[x.channel] ?? x.channel}`); lines.push(""); }
   if (soon.length) { lines.push("**Unlocking this week**", ""); for (const x of soon) lines.push(`- ${x.not_before} · ${x.who} — ${how[x.channel] ?? x.channel}`); lines.push(""); }
 }

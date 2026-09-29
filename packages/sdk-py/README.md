@@ -187,3 +187,20 @@ The default empty audience is fail-closed — a service that has not said who it
 
 Minting lives on the operator's side and takes a signing callback, so no key material enters this package:
 `mint_instance_credential`, `prove_instance_possession`.
+
+## Signed requests and send-once (D-062, D-065)
+
+`AinraGate` matches `@ainra/middleware`. Every option is off by default, so existing integrations behave as before:
+
+```python
+from ainra import AinraGate, PresentationStore
+app = AinraGate(app, verifier, require_signature=True, seen_nonce=cache.seen, store=PresentationStore())
+```
+
+- `require_signature=True`: the request must be signed by the running copy's instance key (RFC 9421). Otherwise it
+  is refused as `presentation_unsigned`, `presentation_sig_invalid`, `presentation_stale` or
+  `presentation_replayed`.
+- `store=`: a running copy `POST`s its bundle once to `/.well-known/ainra-presentation` (`201 {"ref"}`) and names it
+  by digest after that. A digest the gate doesn't hold is `428 presentation_unknown`.
+- The request-signature profile is the one `ainra-core` generates `vectors/v1-presentation` from, and this package
+  agrees with it on every vector (`make diff`).

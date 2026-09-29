@@ -32,7 +32,7 @@ from .instance import (
     pop_signing_bytes,
     prove_instance_possession,
 )
-from .middleware import AinraGate, ainra_gate
+from .middleware import AinraGate, PresentationStore, ainra_gate, check_binding
 from .verdict import Verdict
 from .verifier import Verifier
 from .verify import verify
@@ -53,6 +53,8 @@ __all__ = [
     "verify_head",
     "verify_directory",
     "AinraGate",
+    "PresentationStore",
+    "check_binding",
     "ainra_gate",
     "reasons",
 ]

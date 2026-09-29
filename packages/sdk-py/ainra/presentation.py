@@ -150,3 +150,38 @@ def run_presentation_vector(v: dict) -> dict:
         ikey_mldsa65=_b64.decode(ik["mldsa65"]) or b"", now=v["now"], max_age_secs=v["max_age_secs"],
         seen=lambda n: n in seen,
     )
+
+
+# ── D-065: send the bundle once, name it by digest ────────────────────────────────────────────────────────────────
+# The same convention as @ainra/sdk and the edge gate: the stable part of a bundle (everything but the per-request
+# proof of possession) in canonical JSON under SHA-256, written `sha-256=:…:`.
+
+PRIME_PATH = "/.well-known/ainra-presentation"
+POP_HEADER = "x-ainra-pop"
+_REF = re.compile(r"sha-256=:[A-Za-z0-9+/]{43}=:")
+
+
+def is_presentation_ref(value: str) -> bool:
+    return isinstance(value, str) and _REF.fullmatch(value.strip()) is not None
+
+
+def split_presentation(bundle: dict) -> tuple[dict, object]:
+    """``(stable, pop)`` — the bundle without ``instance.pop``, and that pop (None for a passport presented directly)."""
+    inst = bundle.get("instance")
+    if not isinstance(inst, dict):
+        return dict(bundle), None
+    stable_inst = {k: v for k, v in inst.items() if k != "pop"}
+    return {**bundle, "instance": stable_inst}, inst.get("pop")
+
+
+def join_presentation(stable: dict, pop: object) -> dict:
+    if pop is None or not isinstance(stable.get("instance"), dict):
+        return dict(stable)
+    return {**stable, "instance": {**stable["instance"], "pop": pop}}
+
+
+def presentation_ref(bundle: dict) -> str:
+    from ._canon import canon_bytes
+
+    stable, _ = split_presentation(bundle)
+    return content_digest(canon_bytes(stable))

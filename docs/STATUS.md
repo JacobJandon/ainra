@@ -302,15 +302,16 @@ DECISIONS D-027/D-028, MTS ADR-017.
 
 ## Known limitations honestly stated
 
-- 1153 passport + 17 delta + 9 directory vectors, plus 33 request-signature vectors (`vectors/v1-presentation`,
-  D-067) — not the 10 k GA target; broad but not the full combinatorial cross-product.
+- 1153 passport + 17 delta + 9 directory vectors, plus 46 request-signature vectors (`vectors/v1-presentation`,
+  D-067, D-070) — not the 10 k GA target; broad but not the full combinatorial cross-product.
 - Services persist to local files, bind 127.0.0.1, single-key signers — a working reference, not the hardened
   multi-region deployment (M4–M8). The CLI's `registrar.secret` is a TEST-labeled dev keystore, not an HSM.
 - Proof of possession, rung by rung. At **issuance**, the registrar certifies only a key the agent proves it holds
   (D-063). At the **instance** rung, a running copy's credential is audience-bound and holder-bound
   (`instance_pop_invalid`, ADR-019 / D-047 / D-049), and every request it makes can be signed with its instance key
-  (RFC 9421, D-062) — a profile held to 33 vectors by three implementations (D-067) and enforced by the Node
-  middleware and the edge gate (`@ainra/edge`, D-068). What remains, by design: a passport presented DIRECTLY, with
+  (RFC 9421, D-062) — a profile held to its own corpus by three implementations (D-067) and enforced by the Node
+  middleware and the edge gate (`@ainra/edge`, D-068), beside a signature agent's signature on the same request when
+  there is one (D-070). What remains, by design: a passport presented DIRECTLY, with
   no instance credential, cannot sign a request — the passport key never enters a container — so a gate that
   requires signed requests admits running copies only. And a copy that keeps presenting a status snapshot from
   before its revocation passes until that snapshot is older than the verifier's freshness class (F2 ≤ 5 min by
@@ -321,4 +322,5 @@ DECISIONS D-027/D-028, MTS ADR-017.
 
 The recorded public genesis ceremony (custodians being recruited), external verifiers running the kit against
 challenges minted on the wall-clock network (M35), and releasing the M36–M38 layers (send-once presentations, the
-request-signature corpus, `@ainra/edge`) to npm. Live proofs today: `make identity-e2e` and `make edge-e2e`.
+request-signature corpus, `@ainra/edge`, reading beside a signature agent) to npm. Live proofs today: `make
+identity-e2e`, `make edge-e2e` and `make signature-agent-e2e`.

@@ -31,6 +31,9 @@ const real = {
   passport: countJson("vectors/v1"),
   delta: countJson("vectors/v1-delta"),
   directory: countJson("vectors/v1-directory"),
+  // The request-signature corpus (D-067) grew from 33 to 46 in D-070 while STATUS went on saying 33: this gate had no
+  // opinion about it, because it only knew the credential corpora.
+  presentation: countJson("vectors/v1-presentation"),
 };
 real.total = real.passport + real.delta + real.directory;
 if (real.passport === 0) { console.error("corpus-check: vectors/v1 is empty or missing — refusing to check against nothing"); process.exit(2); }
@@ -40,7 +43,8 @@ const LIVE = [
   "README.md", "ROADMAP.md", "CONTRIBUTING.md", "RELEASING.md", "SECURITY.md", "skills.md",
   "docs/STATUS.md", "docs/ARTIFACTS.md", "docs/SETTLERS.md", "docs/BEST-PRACTICES.md", "docs/WASM-DEMO.md",
   "docs/quickstarts/conformance.md", "docs/quickstarts/sdk.md", "docs/quickstarts/python.md",
-  "packages/sdk-ts/README.md", "packages/sdk-py/README.md", "packages/middleware/README.md",
+  "packages/sdk-ts/README.md", "packages/sdk-py/README.md", "packages/middleware/README.md", "packages/edge/README.md",
+  "kits/signature-agent/README.md", "docs/PRESENTATION.md", "docs/SIGNATURE-AGENTS.md",
   "tools/conformance/CONTRACT.md", "tools/preflight.sh",
   "site/index.html", "site/verify.html", "site/foundation.html", "site/docs.html",
   "campaign/SPONSORS.md", "campaign/TEMPLATES.md", "campaign/FREE-INFRASTRUCTURE.md",
@@ -59,6 +63,7 @@ const CLAIMS = [
   { re: /"total"\s*:\s*(\d{3,4})/g, want: () => real.total, what: "corpus total (json)" },
   { re: /"(?:checked|passed)"\s*:\s*(\d{3,4})/g, want: () => real.total, what: "corpus total (json totals)" },
   { re: /\b(\d{3,4})\s*\+\s*17\s*\+\s*9\b/g, want: () => real.passport, what: "passport in the 3-part sum" },
+  { re: /\b(\d{1,4})\s+(?:request-signature|presentation)\s+vectors?\b/gi, want: () => real.presentation, what: "request-signature vectors" },
 ];
 
 let bad = 0;
@@ -102,8 +107,8 @@ for (const f of LIVE) {
 
 if (bad) {
   console.error(`\nCORPUS-CHECK FAILED — a stated count disagrees with vectors/ on disk.`);
-  console.error(`Real: passport ${real.passport} · delta ${real.delta} · directory ${real.directory} · total ${real.total}`);
+  console.error(`Real: passport ${real.passport} · delta ${real.delta} · directory ${real.directory} · total ${real.total} · request-signature ${real.presentation}`);
   console.error(`Fix the number, or better, state the claim without one ("the whole corpus") where it is not load-bearing.`);
   process.exit(1);
 }
-console.log(`CORPUS-CHECK OK: ${LIVE.length} live surface(s) agree with the corpus on disk — passport ${real.passport} · delta ${real.delta} · directory ${real.directory} · total ${real.total}.`);
+console.log(`CORPUS-CHECK OK: ${LIVE.length} live surface(s) agree with the corpus on disk — passport ${real.passport} · delta ${real.delta} · directory ${real.directory} · total ${real.total} · request-signature ${real.presentation}.`);

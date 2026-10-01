@@ -2,7 +2,7 @@
 //
 // PLAN-M34 Task 5 — the edge gate, hermetically, with web-standard Request objects.
 //
-// What these prove: the engine IS the core (all 33 request-signature vectors, answered by the WASM build); the gate
+// What these prove: the engine IS the core (every request-signature vector, answered by the WASM build); the gate
 // trusts only a directory that verifies against both roots; every credential verdict equals what @ainra/sdk — an
 // independently written verifier — gives the same bundle at the same time; the PRESENTER cannot choose its own
 // freshness class (D-068); send-once stores only what verified and names it by the digest the TS SDK computes; a

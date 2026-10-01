@@ -110,6 +110,7 @@ jobs:
       - run: make presentation-diff
       - run: make skills-replay
       - run: make personhood-test
+      - run: make signature-agent-check
 
   # The publish gate a contributor cannot regress: `make audit` = S7 (fixtures + prose + EVERY commit message) +
   # license headers + gitleaks over full history. Needs the whole history for the commit-message scan + gitleaks.

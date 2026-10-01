@@ -6,7 +6,8 @@ same answers by ``vectors/v1-presentation`` in ``make diff`` (PLAN-M34 Task 4).
 
 The request signature is made by the RUNNING COPY's instance key; ``keyid`` names the instance credential. Covered,
 exactly and in order: ``@method``, ``@authority``, ``@path``, ``content-digest`` when there is a body, and
-``x-ainra-passport``. The parser accepts exactly the shape AINRA emits.
+``x-ainra-passport``. The parser accepts exactly the shape AINRA emits. Other signers' members in the same fields
+(a signature agent's, D-070) are left to their own verifiers: only the ``ainra`` member is read.
 
 The order of checks is part of the profile — it decides the reason a request wrong in several ways gets: signature
 headers present → signature-input shape → alg → keyid → covered set → freshness → body digest → signature field →
@@ -38,10 +39,57 @@ _SIG = re.compile(r"ainra=:([A-Za-z0-9+/]+={0,2}):")
 
 
 def _header(headers: Sequence[tuple[str, str]], name: str) -> str | None:
-    for k, v in headers:
-        if k.lower() == name:
-            return v.strip()
-    return None
+    # RFC 9421 §2.1 / RFC 9110 §5.3: a field sent on several lines is one value — each line trimmed, joined by ", ".
+    lines = [v.strip() for k, v in headers if k.lower() == name]
+    return ", ".join(lines) if lines else None
+
+
+_KEY = re.compile(r"[a-z*][a-z0-9_.*-]*")
+
+
+def _member_key(m: str) -> str:
+    cut = [i for i in (m.find("="), m.find(";")) if i >= 0]
+    return m[: min(cut)] if cut else m
+
+
+def _members(field: str) -> list[str] | None:
+    """Split a ``signature-input`` or ``signature`` value into its dictionary members (RFC 9651 §3.2, D-070): at
+    commas outside quoted strings and inner lists, each member trimmed of SP/HTAB. ``None`` when the field cannot be
+    split without guessing. Only the structure is checked; members that are not AINRA's are not interpreted."""
+    out: list[str] = []
+    start, depth, quoted, escaped = 0, 0, False, False
+    for i, c in enumerate(field):
+        if quoted:
+            if escaped:
+                escaped = False
+            elif c == "\\":
+                escaped = True
+            elif c == '"':
+                quoted = False
+            continue
+        if c == '"':
+            quoted = True
+        elif c == "(":
+            if depth:
+                return None
+            depth = 1
+        elif c == ")":
+            if not depth:
+                return None
+            depth = 0
+        elif c == "," and not depth:
+            out.append(field[start:i].strip(" \t"))
+            start = i + 1
+    if quoted or depth:
+        return None
+    out.append(field[start:].strip(" \t"))
+    return out if all(_KEY.fullmatch(_member_key(m)) for m in out) else None
+
+
+def _own_member(ms: list[str]) -> str | None | bool:
+    """AINRA's member of a split field: ``None`` when it has none, ``False`` when it has more than one."""
+    own = [m for m in ms if _member_key(m) == SIG_LABEL]
+    return False if len(own) > 1 else (own[0] if own else None)
 
 
 def content_digest(body: bytes) -> str:
@@ -104,7 +152,16 @@ def verify_presentation(*, method: str, authority: str, path: str, headers: Sequ
                         seen: Callable[[str], bool] | None = None) -> dict:
     """Verify the signature over a request. Returns ``{"ok": True, "nonce", "created"}`` or
     ``{"ok": False, "reason"}``. Never raises."""
-    inp, sig = _header(headers, "signature-input"), _header(headers, "signature")
+    inp_field, sig_field = _header(headers, "signature-input"), _header(headers, "signature")
+    if inp_field is None or sig_field is None:
+        return {"ok": False, "reason": "presentation_unsigned"}
+    # D-070: the fields may carry other signers' members. Read AINRA's — exactly one in each — and leave the rest.
+    inputs, signatures = _members(inp_field), _members(sig_field)
+    if inputs is None or signatures is None:
+        return {"ok": False, "reason": "presentation_sig_invalid"}
+    inp, sig = _own_member(inputs), _own_member(signatures)
+    if inp is False or sig is False:
+        return {"ok": False, "reason": "presentation_sig_invalid"}
     if inp is None or sig is None:
         return {"ok": False, "reason": "presentation_unsigned"}
     m = _INPUT.fullmatch(inp)

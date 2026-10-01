@@ -42,7 +42,7 @@ A presenter can't loosen any of these (D-068).
 
 ## Proof
 
-- **`make edge-test`:** the WASM build answers all 33 request-signature vectors as the core recorded them. Every
+- **`make edge-test`:** the WASM build answers every request-signature vector as the core recorded it. Every
   credential verdict equals what the independently written `@ainra/sdk` gives on the same bundle and clock. An `F3`
   bundle checked an hour later is `stale_status` under the gate's `F2`. Only verified bundles are stored.
 - **`make edge-runtimes`:** the same checks under Deno, Bun, Node and inside the workerd runtime itself (the WASM
@@ -54,3 +54,6 @@ A presenter can't loosen any of these (D-068).
   - an unknown digest answered 428;
   - moved, unsigned and replayed requests refused by name;
   - a revoked credential refused at the door.
+- **`make signature-agent-e2e`:** the same gate with a signature agent's signature on the same request (D-070). Each
+  verifier reads its own label, in either order, and after revocation this gate refuses a request the operator
+  signed. See [`docs/SIGNATURE-AGENTS.md`](../../docs/SIGNATURE-AGENTS.md).

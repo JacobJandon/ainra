@@ -243,7 +243,8 @@ app.use(<span class="g">"/agent"</span>, ainraGate(verifier, { store, requireSig
   directory, roots, audience: <span class="g">"https://shop.example"</span> });
 <span class="w">const</span> g = <span class="w">await</span> gate(request);
 <span class="w">return</span> g.allow ? fetch(request) : g.response;</pre></div>
-    <p>How it's checked: the request profile is stated once in <code>ainra-core</code>, and three implementations (Rust, TypeScript, Python) must agree on its conformance vectors. <code>make identity-e2e</code> and <code>make edge-e2e</code> run the whole journey against a live registrar.</p>
+    <p><b>Beside a signature agent.</b> If an operator already signs its agents' requests as a signature agent (the Web Bot Auth profile of RFC 9421, keys in a directory at its origin), keep that signature. The running copy adds its own beside it, and each verifier reads only its own label. That profile defines no revocation: a withdrawn key keeps verifying until a verifier fetches the directory again. AINRA revokes the passport itself, and a gate refuses it once its status snapshot is fresh, within the gate's freshness class (five minutes by default). <a href="https://github.com/JacobJandon/ainra/blob/main/docs/SIGNATURE-AGENTS.md" rel="noopener" style="color:var(--green);font-weight:600">How to run both</a>.</p>
+    <p>How it's checked: the request profile is stated once in <code>ainra-core</code>, and three implementations (Rust, TypeScript, Python) must agree on its conformance vectors. An independent open-source signature-agent verifier checks the vectors that carry both signatures. <code>make identity-e2e</code>, <code>make edge-e2e</code> and <code>make signature-agent-e2e</code> run the whole journey against a live registrar.</p>
 
     <h2 id="cli">The CLI lifecycle</h2>
     <p>The whole lifecycle, locally, no server — a persistent registrar in a directory you own.</p>

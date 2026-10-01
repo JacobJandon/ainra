@@ -148,3 +148,32 @@ test("a malformed signature field is refused, never accepted by accident", async
     assert.equal(r.ok, false, `must refuse: ${bad}`);
   }
 });
+
+// D-070. Another signer — a signature agent — may sign the same request, before or after the running copy. The
+// signer must keep its members (a header SET would otherwise erase them), and the verifier must read only AINRA's.
+const AGENT_INPUT = 'sig1=("@authority" "signature-agent";key="sig1");created=1800000000;expires=1800003600;keyid="op";alg="ed25519";tag="web-bot-auth"';
+const AGENT_SIG = "sig1=:" + Buffer.alloc(64, 7).toString("base64") + ":";
+
+test("D-070: the signer appends to another signer's fields, and the verifier reads only AINRA's member", async () => {
+  const req = { ...baseReq(), headers: { ...baseReq().headers, "signature-input": AGENT_INPUT, signature: AGENT_SIG } };
+  const h = await signPresentation({ req, keyid: instance.iid, nonce: "n-0070", created: NOW, instanceSign });
+  assert.ok(h["signature-input"].startsWith(`${AGENT_INPUT}, ainra=(`), "the other signer's input must survive");
+  assert.ok(h.signature.startsWith(`${AGENT_SIG}, ainra=:`), "the other signer's signature must survive");
+  const r = verifyPresentation({ req: { ...req, headers: { ...req.headers, ...h } }, instance, now: NOW });
+  assert.equal(r.ok, true);
+  assert.equal(r.nonce, "n-0070");
+  // The same members on separate header lines (an array, as Node keeps repeated fields) read the same way.
+  const [ai, aiOwn] = [AGENT_INPUT, h["signature-input"].slice(AGENT_INPUT.length + 2)];
+  const [as, asOwn] = [AGENT_SIG, h.signature.slice(AGENT_SIG.length + 2)];
+  const lines = { ...req.headers, "signature-input": [ai, aiOwn], signature: [as, asOwn] };
+  assert.equal(verifyPresentation({ req: { ...req, headers: lines }, instance, now: NOW }).ok, true);
+});
+
+test("D-070: never a second ainra member, never half of someone else's signature", async () => {
+  const once = await signed();
+  await assert.rejects(signPresentation({ req: once, keyid: instance.iid, nonce: "n-2", created: NOW, instanceSign }), /already carries an ainra signature/);
+  const half = { ...baseReq(), headers: { ...baseReq().headers, "signature-input": AGENT_INPUT } };
+  await assert.rejects(signPresentation({ req: half, keyid: instance.iid, nonce: "n-3", created: NOW, instanceSign }), /half of another signature/);
+  const onlyAgent = { ...baseReq(), headers: { ...baseReq().headers, "signature-input": AGENT_INPUT, signature: AGENT_SIG } };
+  assert.equal(verifyPresentation({ req: onlyAgent, instance, now: NOW }).reason, "presentation_unsigned");
+});

@@ -2541,8 +2541,36 @@ fn pres_sign(
     keyid: &str,
     key: &crypto::HybridKeypair,
 ) -> PresReq {
+    pres_sign_over(
+        method,
+        path,
+        body,
+        pres,
+        created,
+        nonce,
+        keyid,
+        key,
+        Vec::new(),
+    )
+}
+
+/// `pres_sign` on a request that already carries other headers — another signer's signature among them (D-070). The
+/// signer's output REPLACES fields of the same name, which is how it appends its member to someone else's.
+#[allow(clippy::too_many_arguments)]
+fn pres_sign_over(
+    method: &str,
+    path: &str,
+    body: Option<&[u8]>,
+    pres: &str,
+    created: u64,
+    nonce: &str,
+    keyid: &str,
+    key: &crypto::HybridKeypair,
+    prior: Vec<(String, String)>,
+) -> PresReq {
     use ainra_core::presentation::{sign_presentation, SignableRequest, PRESENTATION_HEADER};
-    let mut headers = vec![(PRESENTATION_HEADER.to_string(), pres.to_string())];
+    let mut headers = prior;
+    headers.push((PRESENTATION_HEADER.to_string(), pres.to_string()));
     let req = SignableRequest {
         method,
         authority: "shop.example",
@@ -2551,7 +2579,10 @@ fn pres_sign(
         body,
     };
     let add = sign_presentation(&req, keyid, nonce, created, key).expect("sign");
-    headers.extend(add);
+    for (n, v) in add {
+        headers.retain(|(k, _)| !k.eq_ignore_ascii_case(&n));
+        headers.push((n, v));
+    }
     PresReq {
         method: method.into(),
         authority: "shop.example".into(),
@@ -2581,11 +2612,62 @@ fn pres_get(r: &PresReq, name: &str) -> String {
         .expect("header")
 }
 
+// ── the other reader (D-070) ───────────────────────────────────────────────────────────────────────────────────
+// A signature-agent's signature as the Web Bot Auth profile makes one: Ed25519, `tag="web-bot-auth"`, `created` and
+// `expires`, `keyid` the RFC 8037 JWK thumbprint, covering `@authority` and its own `signature-agent` member. The
+// generator builds it by hand; `make signature-agent-check` has an independent implementation of that profile verify
+// it, so a mistake here cannot hide behind AINRA ignoring the member.
+const AGENT_LABEL: &str = "sig1";
+const AGENT_URI: &str = "https://signer.example";
+
+fn agent_jwk(op: &crypto::HybridKeypair) -> (Value, String) {
+    use sha2::{Digest, Sha256};
+    let x = b64::encode(&op.public().ed25519);
+    let thumb = b64::encode(&Sha256::digest(
+        format!(r#"{{"crv":"Ed25519","kty":"OKP","x":"{x}"}}"#).as_bytes(),
+    ));
+    (json!({ "kty": "OKP", "crv": "Ed25519", "x": x }), thumb)
+}
+
+/// Sign `r` as the signature agent, covering `@authority`, its `signature-agent` member, then `more` — each a
+/// (serialized component identifier, value) pair. Returns the (signature-input, signature) members.
+fn agent_member(
+    r: &PresReq,
+    more: &[(String, String)],
+    created: u64,
+    op: &crypto::HybridKeypair,
+) -> (String, String) {
+    use base64ct::{Base64, Encoding};
+    let (_, kid) = agent_jwk(op);
+    let mut lines = vec![
+        ("\"@authority\"".to_string(), r.authority.clone()),
+        (
+            format!("\"signature-agent\";key=\"{AGENT_LABEL}\""),
+            format!("\"{AGENT_URI}\""),
+        ),
+    ];
+    lines.extend(more.iter().cloned());
+    let ids: Vec<&str> = lines.iter().map(|(c, _)| c.as_str()).collect();
+    let params = format!(
+        "({});created={created};expires={};keyid=\"{kid}\";alg=\"ed25519\";tag=\"web-bot-auth\"",
+        ids.join(" "),
+        created + 3600
+    );
+    let mut base: Vec<String> = lines.iter().map(|(c, v)| format!("{c}: {v}")).collect();
+    base.push(format!("\"@signature-params\": {params}"));
+    let sig = op.sign(base.join("\n").as_bytes()).expect("sign").ed25519;
+    (
+        format!("{AGENT_LABEL}={params}"),
+        format!("{AGENT_LABEL}=:{}:", Base64::encode_string(&sig)),
+    )
+}
+
 fn presentation_vectors() -> Vec<Value> {
     use ainra_core::presentation::{content_digest, PRESENTATION_HEADER};
     let mut rng = ChaCha20Rng::seed_from_u64(0x4149_4E52_4100_9421); // "AINRA" ⊕ RFC 9421 — a public TEST seed
     let key = crypto::HybridKeypair::generate(&mut rng);
     let other = crypto::HybridKeypair::generate(&mut rng);
+    let op = crypto::HybridKeypair::generate(&mut rng); // the signature agent's key (its Ed25519 half), D-070
     let pk = key.public();
     // What PRESENTATION_HEADER carries: since D-065 usually a digest reference; one vector carries a bundle-shaped
     // value, because the signature covers the header whatever it holds.
@@ -2615,6 +2697,8 @@ fn presentation_vectors() -> Vec<Value> {
         max_age: u64,
         seen: Vec<&'static str>,
         want: &'static str,
+        /// D-070: what the signature agent's own verifier must conclude about its member, when the vector has one.
+        other: Option<bool>,
     }
     let base = |m: &str, p: &str, b: Option<&[u8]>| {
         pres_sign(m, p, b, &pres_ref, PRES_NOW, "r-0001", PRES_IID, &key)
@@ -2628,6 +2712,7 @@ fn presentation_vectors() -> Vec<Value> {
             max_age: 300,
             seen: vec![],
             want,
+            other: None,
         })
     };
 
@@ -2999,6 +3084,276 @@ fn presentation_vectors() -> Vec<Value> {
             "presentation_sig_invalid",
         );
     }
+    // ── D-070: one request, two readers ──────────────────────────────────────────────────────────────────────────
+    // A signature agent signs first; the running copy appends its own member. Neither signature covers the other.
+    let agent_signed = |m: &str, p: &str, b: Option<&[u8]>, nonce: &str| -> PresReq {
+        let mut r = PresReq {
+            method: m.into(),
+            authority: "shop.example".into(),
+            path: p.into(),
+            headers: vec![(
+                "signature-agent".into(),
+                format!("{AGENT_LABEL}=\"{AGENT_URI}\""),
+            )],
+            body: None,
+        };
+        let (i, sg) = agent_member(&r, &[], PRES_NOW, &op);
+        r.headers.push(("signature-input".into(), i));
+        r.headers.push(("signature".into(), sg));
+        pres_sign_over(
+            m, p, b, &pres_ref, PRES_NOW, nonce, PRES_IID, &key, r.headers,
+        )
+    };
+    let mut extra: Vec<Case> = Vec::new();
+    let mut both = |name, what, req, want, other| {
+        extra.push(Case {
+            name,
+            what,
+            req,
+            max_age: 300,
+            seen: vec![],
+            want,
+            other: Some(other),
+        })
+    };
+    both(
+        "p34-beside-a-signature-agent",
+        "a signature agent signed first and the running copy appended its member: each reader reads its own",
+        agent_signed("GET", "/orders", None, "r-0034"),
+        "ok",
+        true,
+    );
+    {
+        // The same two signatures, each signer's fields on lines of their own: one field, its lines joined.
+        let r0 = agent_signed("POST", "/orders", Some(body), "r-0035");
+        let mut r = PresReq {
+            headers: Vec::new(),
+            ..r0
+        };
+        for (k, v) in agent_signed("POST", "/orders", Some(body), "r-0035").headers {
+            if k == "signature-input" || k == "signature" {
+                let (agent, own) = v.split_once(", ").expect("two members");
+                r.headers.push((k.clone(), agent.into()));
+                r.headers.push((k, own.into()));
+            } else {
+                r.headers.push((k, v));
+            }
+        }
+        both(
+            "p35-beside-a-signature-agent-own-lines",
+            "the same with a body, each signer's members on header lines of their own",
+            r,
+            "ok",
+            true,
+        );
+    }
+    {
+        // The running copy signed first; the signature agent appended after it.
+        let mut r = base("GET", "/orders", None);
+        r.headers.insert(
+            0,
+            (
+                "signature-agent".into(),
+                format!("{AGENT_LABEL}=\"{AGENT_URI}\""),
+            ),
+        );
+        let (i, sg) = agent_member(&r, &[], PRES_NOW, &op);
+        let fi = format!("{}, {i}", pres_get(&r, "signature-input"));
+        let fs = format!("{}, {sg}", pres_get(&r, "signature"));
+        pres_set(&mut r, "signature-input", &fi);
+        pres_set(&mut r, "signature", &fs);
+        both(
+            "p36-ainra-member-first",
+            "AINRA's member first, the signature agent's after it",
+            r,
+            "ok",
+            true,
+        );
+    }
+    {
+        // Each signature stands alone: one that fails its own verifier does not change the other's answer.
+        let mut r = agent_signed("GET", "/orders", None, "r-0037");
+        let s0 = pres_get(&r, "signature");
+        let (agent, own) = s0.split_once(", ").unwrap();
+        let flipped = {
+            use base64ct::{Base64, Encoding};
+            let inner = agent
+                .strip_prefix("sig1=:")
+                .unwrap()
+                .strip_suffix(':')
+                .unwrap();
+            let mut raw = Base64::decode_vec(inner).unwrap();
+            raw[0] ^= 1;
+            format!("sig1=:{}:", Base64::encode_string(&raw))
+        };
+        pres_set(&mut r, "signature", &format!("{flipped}, {own}"));
+        both(
+            "p37-signature-agent-signature-broken",
+            "the signature agent's signature is broken; AINRA's still holds, and each verifier says so of its own",
+            r,
+            "ok",
+            false,
+        );
+    }
+    {
+        let mut r = agent_signed("GET", "/orders", None, "r-0038");
+        let (i, _) = pres_get(&r, "signature-input")
+            .split_once(", ")
+            .map(|(a, b)| (a.to_string(), b.to_string()))
+            .unwrap();
+        let (sg, _) = pres_get(&r, "signature")
+            .split_once(", ")
+            .map(|(a, b)| (a.to_string(), b.to_string()))
+            .unwrap();
+        pres_set(&mut r, "signature-input", &i);
+        pres_set(&mut r, "signature", &sg);
+        both(
+            "p38-signature-agent-only",
+            "signed by the signature agent alone: unsigned as far as AINRA is concerned",
+            r,
+            "presentation_unsigned",
+            true,
+        );
+    }
+    {
+        let mut r = agent_signed("GET", "/orders", None, "r-0039");
+        let (sg, _) = pres_get(&r, "signature")
+            .split_once(", ")
+            .map(|(a, b)| (a.to_string(), b.to_string()))
+            .unwrap();
+        pres_set(&mut r, "signature", &sg);
+        add(
+            "p39-ainra-input-without-ainra-signature",
+            "signature-input names an ainra member; signature carries only the signature agent's",
+            r,
+            "presentation_unsigned",
+        );
+    }
+    {
+        let mut r = base("GET", "/orders", None);
+        let i = pres_get(&r, "signature-input");
+        pres_set(&mut r, "signature-input", &format!("{i}, {i}"));
+        add(
+            "p40-two-ainra-members",
+            "two ainra members: which one is AINRA's is a guess, and a trust root does not guess",
+            r,
+            "presentation_sig_invalid",
+        );
+    }
+    {
+        let mut r = base("GET", "/orders", None);
+        let i = pres_get(&r, "signature-input");
+        pres_set(
+            &mut r,
+            "signature-input",
+            &format!("other=(\"@authority\");note=\"open, {i}"),
+        );
+        add(
+            "p41-unterminated-quote",
+            "another member opens a quoted string that never closes",
+            r,
+            "presentation_sig_invalid",
+        );
+    }
+    {
+        let mut r = base("GET", "/orders", None);
+        let i = pres_get(&r, "signature-input");
+        pres_set(&mut r, "signature-input", &format!("{i},"));
+        add(
+            "p42-empty-member",
+            "a trailing comma: an empty dictionary member",
+            r,
+            "presentation_sig_invalid",
+        );
+    }
+    {
+        let mut r = base("GET", "/orders", None);
+        let (i, sg) = (pres_get(&r, "signature-input"), pres_get(&r, "signature"));
+        pres_set(
+            &mut r,
+            "signature-input",
+            &format!("other=(\"@authority\");note=\"a, ainra=(\\\"x\\\")\", {i}"),
+        );
+        pres_set(&mut r, "signature", &format!("other=:AAAA:, {sg}"));
+        add(
+            "p43-comma-inside-another-members-string",
+            "a comma (and the text ainra=) inside another member's quoted string is not a member boundary",
+            r,
+            "ok",
+        );
+    }
+    {
+        // The signature agent signs LAST and covers AINRA's signature: its inputs, its value, and every component
+        // AINRA's covered (the union the signature-agent profile requires of an outer signer).
+        let mut r = base("GET", "/orders", None);
+        r.headers.insert(
+            0,
+            (
+                "signature-agent".into(),
+                format!("{AGENT_LABEL}=\"{AGENT_URI}\""),
+            ),
+        );
+        let ai = pres_get(&r, "signature-input");
+        let asg = pres_get(&r, "signature");
+        let more = vec![
+            ("\"@method\"".to_string(), r.method.clone()),
+            ("\"@path\"".to_string(), r.path.clone()),
+            (
+                format!("\"{PRESENTATION_HEADER}\""),
+                pres_get(&r, PRESENTATION_HEADER),
+            ),
+            (
+                "\"signature-input\";key=\"ainra\"".to_string(),
+                ai.strip_prefix("ainra=").unwrap().to_string(),
+            ),
+            (
+                "\"signature\";key=\"ainra\"".to_string(),
+                asg.strip_prefix("ainra=").unwrap().to_string(),
+            ),
+        ];
+        let (i, sg) = agent_member(&r, &more, PRES_NOW, &op);
+        pres_set(&mut r, "signature-input", &format!("{ai}, {i}"));
+        pres_set(&mut r, "signature", &format!("{asg}, {sg}"));
+        both(
+            "p44-signature-agent-covers-ainra",
+            "the signature agent's outer signature covers AINRA's: evidence it was present, which AINRA neither needs nor reads",
+            r,
+            "ok",
+            true,
+        );
+    }
+    {
+        let mut r = base("GET", "/orders", None);
+        let (i, sg) = (pres_get(&r, "signature-input"), pres_get(&r, "signature"));
+        pres_set(
+            &mut r,
+            "signature-input",
+            &i.replacen("ainra=", "ainra2=", 1),
+        );
+        pres_set(&mut r, "signature", &sg.replacen("ainra=", "ainra2=", 1));
+        add(
+            "p45-label-ainra2",
+            "the right signature under the label ainra2: the label is matched exactly, not by prefix",
+            r,
+            "presentation_unsigned",
+        );
+    }
+    {
+        let mut r = base("GET", "/orders", None);
+        let (i, sg) = (pres_get(&r, "signature-input"), pres_get(&r, "signature"));
+        pres_set(
+            &mut r,
+            "signature-input",
+            &i.replacen("ainra=", "AINRA=", 1),
+        );
+        pres_set(&mut r, "signature", &sg.replacen("ainra=", "AINRA=", 1));
+        add(
+            "p46-label-uppercase",
+            "dictionary keys are lowercase; AINRA= is not a key, so the field does not parse",
+            r,
+            "presentation_sig_invalid",
+        );
+    }
     cases.push(Case {
         name: "p24-replayed",
         what: "a correctly signed request whose nonce the cache has already seen",
@@ -3006,12 +3361,13 @@ fn presentation_vectors() -> Vec<Value> {
         max_age: 300,
         seen: vec!["r-0001"],
         want: "presentation_replayed",
+        other: None,
     });
     {
         let mut r = base("GET", "/orders", None);
         r.path = "/admin".into();
         cases.push(Case { name: "p31-replayed-but-moved", what: "a seen nonce on a moved request: the nonce is asked only after the signature holds",
-        req: r, max_age: 300, seen: vec!["r-0001"], want: "presentation_sig_invalid" });
+        req: r, max_age: 300, seen: vec!["r-0001"], want: "presentation_sig_invalid", other: None });
     }
     cases.push(Case {
         name: "p32-verifier-policy-60s",
@@ -3029,7 +3385,10 @@ fn presentation_vectors() -> Vec<Value> {
         max_age: 60,
         seen: vec![],
         want: "presentation_stale",
+        other: None,
     });
+
+    cases.extend(extra);
     cases.sort_by(|a, b| a.name.cmp(b.name));
 
     let mut out = Vec::new();
@@ -3047,6 +3406,12 @@ fn presentation_vectors() -> Vec<Value> {
             "max_age_secs": c.max_age,
             "seen_nonces": c.seen,
         });
+        if let Some(valid) = c.other {
+            v["other_signer"] = json!({
+                "label": AGENT_LABEL, "signature_agent": AGENT_URI, "jwk": agent_jwk(&op).0, "valid": valid,
+                "note": "the signature agent's own signature (Web Bot Auth profile); AINRA does not read it — `make signature-agent-check` has an independent implementation verify it",
+            });
+        }
         let got = presentation_result(&v);
         let ok = if c.want == "ok" {
             got["ok"] == json!(true)
@@ -3085,7 +3450,7 @@ fn emit_presentation(dir: &str) {
         "count": vectors.len(),
         "accept": accept,
         "reject": vectors.len() - accept,
-        "note": "CC0 presentation conformance vectors: RFC 9421 request signatures by a running copy's instance key (D-062). Real hybrid signing; expect computed by ainra-core::presentation::verify_presentation, each checked against the case it exists to test. Regenerate with `make vectors`.",
+        "note": "CC0 presentation conformance vectors: RFC 9421 request signatures by a running copy's instance key (D-062). Real hybrid signing; expect computed by ainra-core::presentation::verify_presentation, each checked against the case it exists to test. Vectors with `other_signer` also carry a signature agent's signature (D-070), which AINRA does not read; `make signature-agent-check` has an independent implementation verify it. Regenerate with `make vectors`.",
     });
     std::fs::write(
         Path::new(dir).join("manifest.json"),

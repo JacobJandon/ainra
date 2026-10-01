@@ -43,6 +43,16 @@ JSON without the proof of possession (`presentationRef` in `@ainra/sdk`), so it 
 What caching does not change: a copy that keeps naming a bundle it sent before a revocation is judged exactly as if it
 re-sent that bundle in full — by the verifier's status-freshness policy (default F2, ≤ 5 min; F1 / currency ≤ 30 s).
 
+## Next to other signatures (D-070)
+
+`signature-input` and `signature` are dictionaries: one request can carry a signature agent's signature (the Web Bot
+Auth profile, label `sig1` by convention) and the running copy's (`ainra`) side by side. Every AINRA gate reads the
+`ainra` member only and leaves the rest to their own verifiers. A field sent on several lines is one field. The
+fields must split cleanly into members, with exactly one `ainra` member in each. A request signed only by someone else
+is `presentation_unsigned`; two `ainra` members, or a field that does not split, is `presentation_sig_invalid`.
+`signPresentation` appends to another signer's fields and never overwrites them. How to run both:
+[SIGNATURE-AGENTS.md](SIGNATURE-AGENTS.md).
+
 ## The verdict event
 
 Every surface emits the same event when it reports a verdict. Fields, in this fixed order:

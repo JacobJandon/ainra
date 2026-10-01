@@ -1,7 +1,7 @@
 {
-  "accept": 6,
-  "count": 33,
-  "note": "CC0 presentation conformance vectors: RFC 9421 request signatures by a running copy's instance key (D-062). Real hybrid signing; expect computed by ainra-core::presentation::verify_presentation, each checked against the case it exists to test. Regenerate with `make vectors`.",
-  "reject": 27,
+  "accept": 12,
+  "count": 46,
+  "note": "CC0 presentation conformance vectors: RFC 9421 request signatures by a running copy's instance key (D-062). Real hybrid signing; expect computed by ainra-core::presentation::verify_presentation, each checked against the case it exists to test. Vectors with `other_signer` also carry a signature agent's signature (D-070), which AINRA does not read; `make signature-agent-check` has an independent implementation verify it. Regenerate with `make vectors`.",
+  "reject": 34,
   "version": "v1-presentation"
 }

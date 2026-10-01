@@ -117,14 +117,48 @@ export interface SignableRequest {
 const enc = new TextEncoder();
 
 function headerValue(h: SignableRequest["headers"], name: string): string | null {
+  // RFC 9421 §2.1 / RFC 9110 §5.3: a field sent on several lines is one value — each line trimmed, joined by ", ".
+  const lines: string[] = [];
   for (const k of Object.keys(h)) {
     if (k.toLowerCase() !== name) continue;
     const v = h[k];
-    if (v === undefined) return null;
-    // RFC 9421 §2.1: multiple field lines combine with ", "; values are trimmed of leading/trailing whitespace.
-    return (Array.isArray(v) ? v.join(", ") : String(v)).trim();
+    if (v === undefined) continue;
+    for (const line of Array.isArray(v) ? v : [v]) lines.push(String(line).trim());
   }
-  return null;
+  return lines.length ? lines.join(", ") : null;
+}
+
+/** Split a `signature-input` or `signature` value into its dictionary members (RFC 9651 §3.2, D-070): at commas
+ *  outside quoted strings and inner lists, each member trimmed of SP/HTAB. `null` when the field cannot be split
+ *  without guessing — an open quote, an unbalanced or nested parenthesis, an empty member, or a member that does not
+ *  begin with a key. Only the structure is checked; members that are not AINRA's are not interpreted. */
+function members(field: string): string[] | null {
+  const out: string[] = [];
+  let start = 0, depth = 0, quoted = false, escaped = false;
+  for (let i = 0; i < field.length; i++) {
+    const c = field[i];
+    if (quoted) {
+      if (escaped) escaped = false;
+      else if (c === "\\") escaped = true;
+      else if (c === '"') quoted = false;
+      continue;
+    }
+    if (c === '"') quoted = true;
+    else if (c === "(") { if (depth) return null; depth = 1; }
+    else if (c === ")") { if (!depth) return null; depth = 0; }
+    else if (c === "," && !depth) { out.push(trimOws(field.slice(start, i))); start = i + 1; }
+  }
+  if (quoted || depth) return null;
+  out.push(trimOws(field.slice(start)));
+  return out.every((m) => /^[a-z*][a-z0-9_.*-]*$/.test(memberKey(m))) ? out : null;
+}
+const trimOws = (s: string) => s.replace(/^[ \t]+|[ \t]+$/g, "");
+const memberKey = (m: string) => m.slice(0, m.search(/[=;]/) < 0 ? m.length : m.search(/[=;]/));
+
+/** AINRA's own member of a split field: `null` when it has none, `undefined` when it has more than one. */
+function ownMember(ms: string[]): string | null | undefined {
+  const own = ms.filter((m) => memberKey(m) === SIG_LABEL);
+  return own.length > 1 ? undefined : (own[0] ?? null);
 }
 
 /** Standard base64, which is what an RFC 8941 byte sequence carries — not the base64url used everywhere else in
@@ -193,6 +227,18 @@ export async function signPresentation(args: {
   created: number;
   instanceSign: (msg: Uint8Array) => Promise<HybridSig> | HybridSig;
 }): Promise<Record<string, string>> {
+  // D-070: another signer may have signed first. Keep its members and append AINRA's; never overwrite, and never
+  // add a second `ainra` member — a verifier would have to guess which one is AINRA's.
+  const priorInput = headerValue(args.req.headers, "signature-input");
+  const priorSig = headerValue(args.req.headers, "signature");
+  if ((priorInput === null) !== (priorSig === null))
+    throw new Error("cannot sign: the request carries half of another signature");
+  if (priorInput !== null && priorSig !== null) {
+    const im = members(priorInput), sm = members(priorSig);
+    if (!im || !sm) throw new Error("cannot sign: the request's signature fields do not split into members");
+    if (ownMember(im) !== null || ownMember(sm) !== null)
+      throw new Error("cannot sign: the request already carries an ainra signature");
+  }
   const out: Record<string, string> = {};
   const headers = { ...args.req.headers };
   if (args.req.body && args.req.body.length) {
@@ -209,8 +255,11 @@ export async function signPresentation(args: {
   const joined = new Uint8Array(ED25519_SIG + MLDSA65_SIG);
   joined.set(sig.ed25519, 0);
   joined.set(sig.mldsa65, ED25519_SIG);
-  out["signature-input"] = `${SIG_LABEL}=(${components.map((c) => `"${c}"`).join(" ")});created=${p.created};keyid="${p.keyid}";alg="${SIG_ALG}";nonce="${p.nonce}"`;
-  out["signature"] = `${SIG_LABEL}=:${b64std(joined)}:`;
+  const input = `${SIG_LABEL}=(${components.map((c) => `"${c}"`).join(" ")});created=${p.created};keyid="${p.keyid}";alg="${SIG_ALG}";nonce="${p.nonce}"`;
+  const signature = `${SIG_LABEL}=:${b64std(joined)}:`;
+  // Returned fields REPLACE any of the same name on the request: with a prior signer they carry its members too.
+  out["signature-input"] = priorInput === null ? input : `${priorInput}, ${input}`;
+  out["signature"] = priorSig === null ? signature : `${priorSig}, ${signature}`;
   return out;
 }
 
@@ -234,8 +283,14 @@ export function verifyPresentation(args: {
   maxAgeSecs?: number;
   seenNonce?: (nonce: string) => boolean;
 }): PresentationCheck {
-  const input = headerValue(args.req.headers, "signature-input");
-  const signature = headerValue(args.req.headers, "signature");
+  const inputField = headerValue(args.req.headers, "signature-input");
+  const signatureField = headerValue(args.req.headers, "signature");
+  if (inputField === null || signatureField === null) return { ok: false, reason: "presentation_unsigned" };
+  // D-070: the fields may carry other signers' members. Read AINRA's — exactly one in each — and leave the rest.
+  const inputs = members(inputField), signatures = members(signatureField);
+  if (!inputs || !signatures) return { ok: false, reason: "presentation_sig_invalid" };
+  const input = ownMember(inputs), signature = ownMember(signatures);
+  if (input === undefined || signature === undefined) return { ok: false, reason: "presentation_sig_invalid" };
   if (input === null || signature === null) return { ok: false, reason: "presentation_unsigned" };
 
   const m = INPUT_RE.exec(input);
@@ -290,8 +345,9 @@ export function runPresentationVector(v: {
   max_age_secs: number;
   seen_nonces: string[];
 }): { ok: true; nonce: string; created: number } | { ok: false; reason: PresentationReason } {
-  const headers: Record<string, string> = {};
-  for (const [k, val] of v.request.headers) if (!(k in headers)) headers[k] = val;
+  // Every line kept, as a server sees them: a field sent on several lines is one field (D-070).
+  const headers: Record<string, string[]> = {};
+  for (const [k, val] of v.request.headers) (headers[k.toLowerCase()] ??= []).push(val);
   const r = verifyPresentation({
     req: {
       method: v.request.method,

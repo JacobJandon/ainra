@@ -72,6 +72,17 @@ class TestBinding(unittest.TestCase):
         self.assertEqual(check_binding(_scope(v), _body(v), _instance(v), v["now"], seen=lambda n: True),
                          "presentation_replayed")
 
+    def test_another_signers_signature_is_left_to_its_own_verifier(self):
+        # D-070, through the ASGI wiring: p35 arrives as separate header lines per signer, which only a gate that
+        # joins a field's lines reads correctly; p38 is signed by the signature agent alone.
+        for name in ("p34-beside-a-signature-agent", "p35-beside-a-signature-agent-own-lines",
+                     "p36-ainra-member-first", "p44-signature-agent-covers-ainra"):
+            v = _pv(name)
+            with self.subTest(name):
+                self.assertIsNone(check_binding(_scope(v), _body(v), _instance(v), v["now"]))
+        v = _pv("p38-signature-agent-only")
+        self.assertEqual(check_binding(_scope(v), _body(v), _instance(v), v["now"]), "presentation_unsigned")
+
     def test_no_instance_credential_means_nothing_to_check_a_signature_against(self):
         v = _pv("p01-valid-get")
         self.assertEqual(check_binding(_scope(v), b"", {}, v["now"]), "presentation_unsigned")

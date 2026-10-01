@@ -1493,3 +1493,65 @@ ALLOW; the same request moved to another path: `DENY presentation_sig_invalid`. 
 `--edge`) green against the live registrar.
 
 *Status:* NEW. PLAN-M34 is complete except releasing M36–M39 to npm, which needs the owner's credentials.
+
+## D-070 — One request, two readers: AINRA's signature beside a signature agent's (M40)
+
+*Problem:* The request-signature layer the market settled on is RFC 9421 with a signature agent: an operator signs
+its agents' requests with Ed25519 keys published in a directory at its origin, under the Web Bot Auth profile
+(`draft-ietf-webbotauth-httpsig-protocol-00`, September 2026), and payment networks build on the same shape. That
+profile "defines no revocation", by its own words: removing a key from the directory is the only remedy, and it
+reaches each verifier at its next refresh. AINRA's place is beneath that layer, not instead of it — but an AINRA gate
+could not even sit beside it. `signature-input` and `signature` are dictionaries, and the profile and RFC 9421 both
+expect several signatures on one request under different labels. All three of AINRA's implementations parsed each
+field as if it held only AINRA's member: a request the operator had signed and the running copy had also signed was
+refused as `presentation_sig_invalid` — every one of them, before any key was looked at. And the signers SET the two
+fields, so a running copy signing after its operator erased the operator's signature.
+
+*Decision:*
+
+- **Read only your own member.** AINRA reads the member labelled `ainra` and leaves every other member to the verifier
+  it belongs to; it neither checks nor trusts them. A field sent on several lines is one field, its lines joined by
+  ", " (RFC 9110 §5.3; RFC 9421 §2.1 already said so for covered fields, and the core and Python took the first line
+  only).
+- **Three new steps, before the existing order.** The fields must split cleanly into members — at commas outside
+  quoted strings and inner lists, each member beginning with a lowercase key — or `presentation_sig_invalid`. At most
+  one `ainra` member in each, or `presentation_sig_invalid`: a trust root does not guess which one is its own. One in
+  each, or `presentation_unsigned`: a request signed only by someone else is unsigned as far as AINRA is concerned.
+  Only the structure of other members is checked; their content is not interpreted. Then the existing order runs,
+  unchanged, on AINRA's member.
+- **Signers append.** `sign_presentation` (core) and `signPresentation` (TypeScript) keep another signer's members
+  and add AINRA's; they refuse a request that already holds an `ainra` member, or only half of another signature,
+  rather than overwrite it.
+- **No wire change for AINRA's own member.** Label, algorithm, covered set and parameters are exactly D-062's. The 33
+  existing vectors regenerate byte-identically.
+- **The two layers stay independent.** An operator may cover AINRA's signature with its own (the profile's §5.2.2
+  union of `"signature-input";key="ainra"`, `"signature";key="ainra"` and every component AINRA covered); that is
+  evidence AINRA's was present, which AINRA neither needs nor reads. A site that requires both runs both verifiers.
+
+*Evidence:*
+
+- `vectors/v1-presentation` grows from 33 to 46: the operator's signature before or after AINRA's, on its own header
+  lines, broken, alone, covering AINRA's; two `ainra` members; an open quote; an empty member; a comma inside another
+  member's string; `ainra2`; `AINRA`. Six of them carry a REAL signature-agent signature, built by the generator from
+  a seeded Ed25519 key, with what that signature's own verifier must conclude recorded under `other_signer`.
+- `make diff`: core ≡ TypeScript ≡ Python on all 46. Negative control: run before the TypeScript and Python changes,
+  18 disagreements — both refused every request carrying a second signature.
+- `make signature-agent-check` (CI): an independent open-source implementation of the signature-agent profile, pinned
+  in `kits/signature-agent/package-lock.json`, verifies the `sig1` member of every vector that carries one and reaches
+  the recorded answer on 6/6, valid where the generator signed and invalid where it broke the signature; AINRA's
+  verdict on the same requests is unchanged. Its negative control flips one byte of each and sees all five valid
+  signatures refused, AINRA unmoved.
+- `make signature-agent-e2e`, at the real clock against `make live-up`, through `@ainra/middleware` and `@ainra/edge`:
+  an operator publishes a key directory; one request carries both signatures, in either order, at 11.0 KiB of
+  headers; each verifier reads its own; either signature broken or missing leaves the other's answer where it was; the
+  same request moved to another path is refused by AINRA (`presentation_sig_invalid`) while the operator's signature,
+  which covers `@authority` and not the path, still verifies. After the passport is revoked, a request the operator
+  signed carries the revoked bundle: the signature agent says valid, AINRA says `revoked`. Withdrawing the operator's
+  key keeps verifying from cache and stops after the directory is fetched again.
+- `make corpus-check` now holds the request-signature count too: it found STATUS and the edge README still saying 33.
+
+*Not changed, said plainly:* AINRA does not verify, interpret or vouch for a signature agent's signature, and the
+signature agent's verifier does not read AINRA's; composing them is the site's policy. The drill's directory is
+served over http on 127.0.0.1, where the profile requires https. Nothing here is evidence that any operator runs it.
+
+*Status:* NEW. Ships in 0.5.0 with M36–M39.

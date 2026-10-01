@@ -1,0 +1,16 @@
+{
+  "name": "ainra-signature-agent-kit",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "One request, two readers (D-070): a signature agent's signature (the Web Bot Auth profile) and an AINRA running copy's signature on the same request, each checked by its own verifier. The other reader is an independent open-source implementation, pinned.",
+  "license": "Apache-2.0 OR MIT",
+  "scripts": {
+    "check": "node check.mjs",
+    "e2e": "node e2e.mjs"
+  },
+  "devDependencies": {
+    "http-message-sig": "0.3.0",
+    "web-bot-auth": "0.2.0"
+  }
+}

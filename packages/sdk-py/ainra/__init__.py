@@ -11,7 +11,7 @@ primitives.
 Quickstart::
 
     from ainra import Verifier
-    v = Verifier(anchors)               # anchors: {registrar_id: {...keys...}}
+    v = Verifier.from_directory(directory, root_ed25519, root_slh)   # None unless both roots signed it
     verdict = v.verify(bundle, now)     # caller supplies `now`; no I/O
     if verdict.valid:
         ...

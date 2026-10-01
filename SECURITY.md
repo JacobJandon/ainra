@@ -196,6 +196,13 @@ class and audience, and returns a `decision`. Replaying a vector is a separate m
 and decides nothing; the old calling convention is refused with an explanation rather than answered. **The pinning
 vectors are `vectors/v1-gate`** — the tool is held to all 27 gate vectors in `make mcp-test`.
 
+**The same class, once more (D-075).** The Python package's plain constructor, `ainra.Verifier(anchors)`, skipped
+status authentication whenever the anchors carried no status key — on PyPI through 0.4.x. It was documented as a
+"trusted-input mode"; it was also the constructor the quickstart opened with. `Verifier.from_directory`, the
+documented production path, was not affected. The plain constructor now fails closed, and believing the bundle has to
+be asked for by name. If you build a Python verifier from raw anchors, move to `from_directory` or add the status key
+to the anchors.
+
 **What you should do.** If you run `@ainra/mcp` 0.4.1 and rely on `ainra_verify` for a trust decision:
 upgrade to 0.5.0 when it is published, and until then verify with `@ainra/sdk`'s `Verifier` directly.
 

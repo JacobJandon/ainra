@@ -225,7 +225,10 @@ else:
     # make policy-parity would NOT have caught the M29 audience defect it was written to stop recurring. Proven by
     # sabotage - with the override removed, audience binding was defeated end to end and this file still printed
     # OK. A harness that supplies the value under test is measuring itself.
-    ga = Verifier(c["anchors"]) if aud is None else Verifier(c["anchors"], [], aud)
+    # A corpus vector's status is an unsigned fixture input, so this path names that (D-075): the plain
+    # constructor would now refuse every one of them as stale_status before the policy under test was reached.
+    ga = (Verifier(c["anchors"], unauthenticated_status=True) if aud is None
+          else Verifier(c["anchors"], [], aud, unauthenticated_status=True))
     r = ga.verify(c["bundle"], c["now"])
 print("valid" if r.valid else r.reason)
 `;

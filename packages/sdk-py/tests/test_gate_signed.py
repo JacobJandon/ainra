@@ -121,7 +121,7 @@ class TestGate(unittest.TestCase):
     def setUp(self):
         self.v = json.loads((V1 / "valid-0000.json").read_text())
         self.now = self.v["presentation"]["now"]
-        self.verifier = Verifier(self.v["anchors"])
+        self.verifier = Verifier(self.v["anchors"], unauthenticated_status=True)  # a vector: its status is an input
 
     def test_require_signature_refuses_an_unsigned_request_by_name(self):
         gate = AinraGate(_ok, self.verifier, now=self.now, require_signature=True)

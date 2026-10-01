@@ -34,36 +34,40 @@ extra dependency (see below).
 ## Quickstart
 
 ```python
-import json, base64
+import json
 from ainra import Verifier
 
-vec = json.load(open("vectors/v1/valid-0000.json"))
+S = "kits/verifier/sample-artifacts/"
+load = lambda f: json.load(open(S + f))
+directory, roots, now = load("directory.json"), load("roots.json"), load("meta.json")["now"]
 
-# 1) Build an offline verifier from the trust anchors.
-verifier = Verifier(vec["anchors"])
+# 1) Build a verifier from a directory that verifies against both ceremony roots (None if it does not).
+verifier = Verifier.from_directory(directory, roots["root_ed25519"], roots["root_slh"])
 
 # 2) Verify a bundle. The caller supplies `now`; there is no I/O.
-verdict = verifier.verify(vec["presentation"], now=1500)
+verdict = verifier.verify(load("bundle-valid.json"), now)
 print("valid :", verdict.valid, "| reason:", verdict.reason)
 print("event :", json.dumps(verdict.event()))
 
 # 3) A revoked lineage fails closed with a named reason.
-rvk = json.load(open("vectors/v1/revoked-0000.json"))
-rv = Verifier(rvk["anchors"]).verify(rvk["presentation"], rvk["presentation"]["now"])
+rv = verifier.verify(load("bundle-revoked.json"), now)
 print("revoked ->", rv.valid, "| reason:", rv.reason)
 
-# 4) The verifier owns the clock: forward-dating past `exp` cannot dodge expiry.
-exp = json.loads(base64.urlsafe_b64decode(vec["presentation"]["claims"] + "=="))["exp"]
-print("at exp ->", verifier.verify(vec["presentation"], exp).reason)
+# 4) The verifier owns the clock and the status. An hour later the same bundle is stale; and a status list the
+#    registrar did not sign is no status, so a revoked passport cannot bring its own all-clear.
+print("an hour later ->", verifier.verify(load("bundle-valid.json"), now + 3600).reason)
+forged = dict(load("bundle-revoked.json"), status_list=load("bundle-valid.json")["status_list"], status_issued_at=now)
+print("forged status ->", verifier.verify(forged, now).reason)
 ```
 
 Real output (run from the repo root):
 
 ```
 valid : True | reason: None
-event : {"status": "valid", "reason": null, "name": "ainra:registrar-01:acme:invoicing@1.0.0", "number": "did:ainra:registrar-01:acme:invoicing", "tier": "L1", "freshness_age_s": 10}
+event : {"status": "valid", "reason": null, "name": "ainra:registrar-07:acme:invoicing@1.0.0", "number": "did:ainra:registrar-07:acme:invoicing", "tier": "L3", "freshness_age_s": 1}
 revoked -> False | reason: revoked
-at exp -> expired
+an hour later -> stale_status
+forged status -> stale_status
 ```
 
 The verdict event is the M16 shape every AINRA surface emits
@@ -169,9 +173,11 @@ v = Verifier.from_directory(directory, roots["root_ed25519"], roots["root_slh"],
 key**, its **status URI**, and any **graduated-distrust cutoff** into the verifier — so revocations are
 authenticated (D-020) and a distrusted registrar is refused (D-044).
 
-The raw `Verifier(anchors, …)` constructor exists for callers embedding anchors they already trust. It **cannot**
-authenticate revocations, because anchors supplied that way carry no status key. Use `from_directory` in
-production; the difference is recorded in [`docs/POLICY-PARITY.md`](../../docs/POLICY-PARITY.md).
+The plain `Verifier(anchors, …)` constructor is for anchors you pin yourself. Since 0.5.0 it **fails closed**
+(D-075): give each registrar's anchor its `status_ed25519`, `status_mldsa65` and `status_uri` and revocations are
+authenticated as above; leave them out and every passport is `stale_status`. Through 0.4.x it silently believed the
+bundle's status list in that case. To replay a conformance vector, whose status is an unsigned input by design, say
+so: `Verifier(vec["anchors"], unauthenticated_status=True)` — never for anything that decides access.
 
 ## Verify a running copy (ADR-019)
 

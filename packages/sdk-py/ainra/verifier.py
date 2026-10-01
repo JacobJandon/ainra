@@ -88,6 +88,8 @@ class Verifier:
         revoked_delegates: list | None = None,
         audience: str = "",
         freshness: str = "F2",
+        *,
+        unauthenticated_status: bool = False,
     ) -> None:
         self._anchors = dict(anchors or {})
         self._revoked = list(revoked_delegates or [])
@@ -99,16 +101,18 @@ class Verifier:
         #: snapshot stays acceptable, so letting the bundle pick it lets a holder of a pre-revocation snapshot
         #: stretch the revocation window from 30 seconds to 24 hours.
         self._freshness = str(freshness or "F2")
-        #: True when these anchors came from an authenticated directory (`from_directory`), which always publishes
-        #: a status key per registrar. Then D-020 authentication is MANDATORY and a missing key fails closed,
-        #: matching the TS SDK exactly.
-        #:
-        #: False for the raw constructor, where the caller supplied anchors it already trusts — the pre-D-020
-        #: trusted-input mode the frozen `verify()` primitive documents. The TS SDK has no equivalent constructor,
-        #: which is why this distinction has to be made explicit here rather than inherited. It is recorded as a
-        #: known asymmetry in docs/POLICY-PARITY.md: a Python integrator CAN build a verifier over anchors nobody
-        #: signed, and such a verifier cannot authenticate revocations. Use `from_directory` in production.
+        #: True when these anchors came from an authenticated directory (`from_directory`).
         self._anchors_authenticated = False
+        #: D-020 status authentication is MANDATORY unless the caller turned it off by name (D-075). A registrar
+        #: whose anchor carries no status key then fails closed (`stale_status`), exactly as in the TS SDK.
+        #:
+        #: Until 0.4.x this constructor skipped the check whenever the anchors had no status key — "the trusted-input
+        #: mode" — so the most obvious way to build a verifier in this package was one that believed any status
+        #: list a presenter handed it. It was documented, and it was a default that accepts. Anchors that carry
+        #: `status_ed25519`, `status_mldsa65` and `status_uri` are authenticated against, as before;
+        #: `unauthenticated_status=True` is for conformance vectors and other fixtures, whose status is an input,
+        #: and for nothing that decides access.
+        self._status_mandatory = not unauthenticated_status
 
     @classmethod
     def from_directory(
@@ -182,7 +186,7 @@ class Verifier:
         # have a REVOKED passport verify VALID. Demonstrated in the M30 review against the shipped middleware.
         # The frozen 9-step verify still receives status bits as a trusted input (exactly like `now`) — the
         # authentication belongs here in the GA layer, which is where TS puts it too.
-        bad = _authenticate_status(self._anchors, pres, self._anchors_authenticated)
+        bad = _authenticate_status(self._anchors, pres, self._status_mandatory)
         if bad is not None:
             return invalid(bad)
         return _verify(self._anchors, pres, now)

@@ -22,6 +22,11 @@ npm are 0.4.1.
   clock, class and audience — and returns a `decision`. Replaying a vector needs `anchors` with `fixture: true` and
   decides nothing; the old calling convention is refused with an explanation. **If you call `ainra_verify` from
   0.4.1 to decide whether to trust another party, upgrade.**
+- **`ainra.Verifier(anchors)` in the Python package skipped status authentication — published, through 0.4.x**
+  (D-075). The plain constructor believed the bundle's status list whenever the anchors carried no status key, which
+  is how anchors are normally written; `from_directory` was not affected. It now fails closed (`stale_status`).
+  **Breaking:** pass each registrar's status key in the anchors, or use `from_directory`; to replay a conformance
+  vector pass `unauthenticated_status=True`.
 - **The Rust gate path believed any status list a presenter handed it** (D-072). `@ainra/edge` and `ainra
   verify-request` never checked the registrar's signature over the status list, so a revoked agent could present its
   pre-revocation list re-dated to "now" — or an all-clear list of its own — and be let in, for as long as it liked.

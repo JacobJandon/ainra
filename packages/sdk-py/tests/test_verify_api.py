@@ -20,7 +20,7 @@ def _vec(name):
 class TestVerifierAPI(unittest.TestCase):
     def test_valid_five_line(self):
         v = _vec("valid-0000")
-        verifier = Verifier(v["anchors"])
+        verifier = Verifier(v["anchors"], unauthenticated_status=True)
         verdict = verifier.verify(v["presentation"], v["presentation"]["now"])
         self.assertTrue(verdict.valid)
         self.assertIsNone(verdict.reason)
@@ -32,7 +32,7 @@ class TestVerifierAPI(unittest.TestCase):
 
     def test_revoked(self):
         v = _vec("revoked-0000")
-        verifier = Verifier(v["anchors"])
+        verifier = Verifier(v["anchors"], unauthenticated_status=True)
         verdict = verifier.verify(v["presentation"], v["presentation"]["now"])
         self.assertFalse(verdict.valid)
         self.assertEqual(verdict.reason, "revoked")
@@ -41,7 +41,7 @@ class TestVerifierAPI(unittest.TestCase):
         # A bundle valid at its own `now` is EXPIRED when the caller supplies a
         # `now` at/after `exp` — the presenter cannot forward-date to dodge it.
         v = _vec("valid-0000")
-        verifier = Verifier(v["anchors"])
+        verifier = Verifier(v["anchors"], unauthenticated_status=True)
         import base64
 
         claims = json.loads(

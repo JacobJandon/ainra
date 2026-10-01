@@ -60,7 +60,7 @@ class TestMiddleware(unittest.TestCase):
     def setUp(self):
         self.v = _vec("valid-0000")
         self.now = self.v["presentation"]["now"]
-        self.verifier = Verifier(self.v["anchors"])
+        self.verifier = Verifier(self.v["anchors"], unauthenticated_status=True)  # a vector: its status is an input
 
     def _gate(self):
         return AinraGate(_ok_app, self.verifier, now=self.now)
@@ -73,7 +73,7 @@ class TestMiddleware(unittest.TestCase):
 
     def test_deny_revoked(self):
         rv = _vec("revoked-0000")
-        verifier = Verifier(rv["anchors"])
+        verifier = Verifier(rv["anchors"], unauthenticated_status=True)
         gate = AinraGate(_ok_app, verifier, now=rv["presentation"]["now"])
         b64 = base64.urlsafe_b64encode(
             json.dumps(rv["presentation"]).encode()

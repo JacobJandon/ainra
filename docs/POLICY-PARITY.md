@@ -5,7 +5,7 @@ The conformance corpus proves the implementations agree on **verdicts over wire 
 on **who supplies a value**, **what a default constructor trusts**, or **what happens when a caller omits an
 argument** — and two implementations can pass all 1153 vectors while disagreeing completely about those.
 
-That gap is not theoretical. It has produced five defects:
+That gap is not theoretical. It has produced six defects:
 
 | when | defect | why the corpus could not catch it |
 |---|---|---|
@@ -13,6 +13,7 @@ That gap is not theoretical. It has produced five defects:
 | M30 | `sdk-py` let the **presenter choose the freshness class** — an hour-stale status accepted at `F3` | same: the class is a pinned input on the wire |
 | M30 | `sdk-py` **required `act_chain`** where `ainra-core` marks it `#[serde(default)]` | the generator always emits the field, so the omitted case never reaches the corpus |
 | M44 | the **published MCP tool** `ainra_verify` (`@ainra/mcp` 0.4.1) replayed the bundle through the corpus runner: the bundle's own **clock, freshness class and status list** were believed (D-074) | its fidelity test held it byte-identical to `runVector` — the right test of the wrong function; and it was not a column of this harness |
+| M45 | `sdk-py`'s plain **`Verifier(anchors)` skipped status authentication** whenever the anchors carried no status key — the documented "trusted-input mode", and the first constructor anyone reaches for (D-075) | it was written down as a known asymmetry, which is how a default that accepts stayed a default |
 | M42 | the **Rust gate path** (`@ainra/edge`, `ainra verify-request`) took the **status list and its issue time from the presenter** and never checked the registrar's signature over them — a revoked agent could present its old list re-dated to now and be let in (D-072) | a vector's status is a fixture input with no signature; and the Rust path was not a column of this harness |
 
 `make policy-parity` runs each decision below against every implementation, called the way an integrator would —
@@ -38,8 +39,11 @@ only what both happen to support, which is how the divergences above survived.
 
 - **Directory authentication at construction.** `Verifier.fromDirectory` (TS) **requires** a root-signed directory
   and returns `null` if it does not verify. Python's `Verifier(anchors, …)` accepts **raw anchors** with no
-  directory authentication, so a Python integrator can build a verifier over anchors nobody signed. Python's
-  `from_directory` does authenticate; the raw constructor is the loose door.
+  directory authentication, so a Python integrator can build a verifier over anchors it pinned itself. Python's
+  `from_directory` does authenticate the directory. Until D-075 the raw constructor was also a loose door for
+  STATUS: with no status key in the anchors it skipped D-020 and believed the bundle's list. It now fails closed —
+  `stale_status` — unless the anchors carry the status key or the caller passes `unauthenticated_status=True`, which
+  exists for conformance vectors.
 - **Currency mode (D-021).** TS has it (fresh-head binding + monotonic sequence, closing genuine-snapshot replay
   to sub-window). Python has no equivalent, so a Python integrator cannot obtain that protection.
 - **`ainra-core` (Rust) has no defaults to get wrong — and that is not the same as its gate path having none.**

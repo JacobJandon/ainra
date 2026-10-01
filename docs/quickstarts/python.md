@@ -15,36 +15,49 @@ Or editable from a checkout, if you would rather read the source you are running
 
 ## Verify in ~5 lines
 
-You hold trust anchors (the root can be dark) and verify a presentation bundle **at your own clock** — there is no I/O.
+You hold a directory that both ceremony roots signed (the root can be dark) and verify a presentation bundle **at
+your own clock** — there is no I/O.
 
 ```python
-import json, base64
+import json
 from ainra import Verifier
 
-vec = json.load(open("vectors/v1/valid-0000.json"))
-verifier = Verifier(vec["anchors"])                       # offline anchors; the root can be dark
-v = verifier.verify(vec["presentation"], now=1500)
-print("valid  :", v.valid, "| event:", json.dumps(v.event()))
+S = "kits/verifier/sample-artifacts/"
+load = lambda f: json.load(open(S + f))
+directory, roots, now = load("directory.json"), load("roots.json"), load("meta.json")["now"]
 
-rvk = json.load(open("vectors/v1/revoked-0000.json"))
-rv = Verifier(rvk["anchors"]).verify(rvk["presentation"], rvk["presentation"]["now"])
-print("revoked:", rv.valid, "| reason:", rv.reason)
+# 1) Build a verifier from a directory that verifies against both ceremony roots (None if it does not).
+verifier = Verifier.from_directory(directory, roots["root_ed25519"], roots["root_slh"])
 
-# The verifier owns the clock: forward-dating past exp cannot dodge expiry.
-exp = json.loads(base64.urlsafe_b64decode(vec["presentation"]["claims"] + "=="))["exp"]
-print("at exp :", verifier.verify(vec["presentation"], exp).reason)
+# 2) Verify a bundle. The caller supplies `now`; there is no I/O.
+verdict = verifier.verify(load("bundle-valid.json"), now)
+print("valid :", verdict.valid, "| reason:", verdict.reason)
+print("event :", json.dumps(verdict.event()))
+
+# 3) A revoked lineage fails closed with a named reason.
+rv = verifier.verify(load("bundle-revoked.json"), now)
+print("revoked ->", rv.valid, "| reason:", rv.reason)
+
+# 4) The verifier owns the clock and the status. An hour later the same bundle is stale; and a status list the
+#    registrar did not sign is no status, so a revoked passport cannot bring its own all-clear.
+print("an hour later ->", verifier.verify(load("bundle-valid.json"), now + 3600).reason)
+forged = dict(load("bundle-revoked.json"), status_list=load("bundle-valid.json")["status_list"], status_issued_at=now)
+print("forged status ->", verifier.verify(forged, now).reason)
 ```
 
 Real output (from the repo root):
 
 ```
-valid  : True | event: {"status": "valid", "reason": null, "name": "ainra:registrar-01:acme:invoicing@1.0.0", "number": "did:ainra:registrar-01:acme:invoicing", "tier": "L1", "freshness_age_s": 10}
-revoked: False | reason: revoked
-at exp : expired
+valid : True | reason: None
+event : {"status": "valid", "reason": null, "name": "ainra:registrar-07:acme:invoicing@1.0.0", "number": "did:ainra:registrar-07:acme:invoicing", "tier": "L3", "freshness_age_s": 1}
+revoked -> False | reason: revoked
+an hour later -> stale_status
+forged status -> stale_status
 ```
 
-- **The verifier owns the clock.** `now` is *your* argument; any `now` inside the presentation is ignored, so a
-  presenter cannot forward-date past `exp` to dodge expiry (the `at exp → expired` line above).
+- **The verifier owns the clock, the freshness class and the status.** `now` is *your* argument, and the status list
+  counts only if the registrar signed it: the last two lines above are the same bundle an hour later, and a revoked
+  passport carrying a list of its own.
 - `.verify()` **never raises** — any malformed bundle is a `Verdict(valid=False, reason=…)`, one of the 20 in
   [`reasons.json`](../reasons.json).
 - `verdict.event()` is the M16 verdict event ([`PRESENTATION.md`](../PRESENTATION.md)): `status`, `reason`, `name`,
@@ -86,8 +99,9 @@ v = Verifier.from_directory(directory, roots["root_ed25519"], roots["root_slh"],
 v.verify(bundle, now)
 ```
 
-Use `from_directory`, not the raw `Verifier(anchors, …)`: only the directory path carries the registrar's status
-key, so only it can **authenticate** revocations rather than trust the presenter's copy of them.
+Use `from_directory`. The plain `Verifier(anchors, …)` is for anchors you pin yourself, and since 0.5.0 it fails
+closed (D-075): without each registrar's status key in the anchors, every passport is `stale_status`. To replay a
+conformance vector, pass `unauthenticated_status=True` — never for anything that decides access.
 
 The empty default is fail-closed: no audience, no instance credential accepted. Minting is
 `mint_instance_credential` with a signing callback, run where the control key lives.

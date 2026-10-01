@@ -63,15 +63,18 @@ class TestInstanceRung(unittest.TestCase):
         `revoked_delegates`, so `audience` came straight off the wire.
         """
         lying = dict(self.pres, audience=self.aud)  # a presenter asserting the target audience
-        v = Verifier(self.anchors, [], "https://somewhere-else.example")
+        v = Verifier(self.anchors, [], "https://somewhere-else.example", unauthenticated_status=True)
         self.assertFalse(v.verify(lying, self.now).valid)
         self.assertEqual(v.verify(lying, self.now).reason, "instance_pop_invalid")
         # …and the correctly-configured verifier accepts the very same bytes.
-        self.assertTrue(Verifier(self.anchors, [], self.aud).verify(lying, self.now).valid)
+        self.assertTrue(Verifier(self.anchors, [], self.aud, unauthenticated_status=True).verify(lying, self.now).valid)
 
     def test_default_verifier_is_fail_closed(self):
+        # Twice over since D-075: no audience, and — the plain default — no status it can authenticate.
         v = Verifier(self.anchors)
         self.assertFalse(v.verify(self.pres, self.now).valid)
+        v = Verifier(self.anchors, unauthenticated_status=True)
+        self.assertEqual(v.verify(self.pres, self.now).reason, "instance_pop_invalid")
 
     def test_each_refusal_keeps_its_own_reason(self):
         """No instance failure may collapse into a reason that would mislead a debugging integrator."""

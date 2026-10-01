@@ -77,10 +77,8 @@ class TestStatusCannotBeForged(unittest.TestCase):
     def test_an_all_clear_forgery_is_refused_by_a_directory_built_verifier(self):
         """Same declared length, every bit clear — the M5 bypass.
 
-        Driven through `from_directory`, because that is the documented production path and the only one where
-        the registrar's status key is available to check against. (The raw `Verifier(anchors)` constructor is the
-        pre-D-020 trusted-input mode: the caller supplied anchors it already trusts, and no status key means no
-        authentication is possible. That asymmetry is deliberate, and recorded in docs/POLICY-PARITY.md.)
+        Driven through `from_directory`, the documented production path. The plain constructor is covered by
+        `TestThePlainConstructorFailsClosed` below (D-075).
         """
         directory = json.loads((ART / "directory.json").read_text())
         roots = json.loads((ART / "roots.json").read_text())
@@ -95,6 +93,51 @@ class TestStatusCannotBeForged(unittest.TestCase):
         r = v.verify(forged, now)
         self.assertFalse(r.valid, "an all-clear forgery was accepted — the M5 bypass is open")
         self.assertEqual(r.reason, "stale_status")
+
+
+class TestThePlainConstructorFailsClosed(unittest.TestCase):
+    """D-075 — `Verifier(anchors)` used to skip status authentication whenever the anchors carried no status key.
+
+    It was called the trusted-input mode and it was documented; it was also the first constructor anyone reaches
+    for, and a verifier built that way believed whatever status list a presenter handed over. Now the default
+    authenticates or refuses, and believing the bundle has to be asked for by name.
+
+    WITNESS — could these fail? Pass `self._anchors_authenticated` to `_authenticate_status` again, as before
+    D-075, and the first test goes red: both bundles read `valid`.
+    """
+
+    def setUp(self) -> None:
+        self.directory = json.loads((ART / "directory.json").read_text())
+        self.valid = json.loads((ART / "bundle-valid.json").read_text())
+        self.revoked = json.loads((ART / "bundle-revoked.json").read_text())
+        self.now = json.loads((ART / "meta.json").read_text())["now"]
+        e = self.directory["entries"][0]
+        self.bare = {e["registrar"]: {"issuer_key": {"ed25519": e["issuer_ed25519"], "mldsa65": e["issuer_mldsa65"]},
+                                      "log_root_key": e["log_root_slh"]}}
+        self.pinned = {e["registrar"]: dict(self.bare[e["registrar"]], status_ed25519=e["status_ed25519"],
+                                            status_mldsa65=e["status_mldsa65"], status_uri=e["status_uri"])}
+
+    def test_anchors_with_no_status_key_refuse_every_passport(self):
+        v = Verifier(self.bare)
+        self.assertEqual(v.verify(self.valid, self.now).reason, "stale_status")
+        vec = json.loads((V1 / "valid-0000.json").read_text())
+        r = Verifier(vec["anchors"]).verify(vec["presentation"], vec["presentation"]["now"])
+        self.assertEqual(r.reason, "stale_status", "a vector's status is unsigned: the default must not believe it")
+
+    def test_believing_the_bundle_has_to_be_asked_for_by_name(self):
+        vec = json.loads((V1 / "valid-0000.json").read_text())
+        v = Verifier(vec["anchors"], unauthenticated_status=True)
+        self.assertTrue(v.verify(vec["presentation"], vec["presentation"]["now"]).valid)
+
+    def test_pinned_anchors_that_carry_the_status_key_authenticate(self):
+        v = Verifier(self.pinned)
+        self.assertTrue(v.verify(self.valid, self.now).valid)
+        self.assertEqual(v.verify(self.revoked, self.now).reason, "revoked")
+        redated = dict(self.revoked, status_list=self.valid["status_list"], status_issued_at=self.now)
+        self.assertEqual(v.verify(redated, self.now).reason, "stale_status")
+        # ... and the opt-out does not switch authentication off where a key IS present.
+        loose = Verifier(self.pinned, unauthenticated_status=True)
+        self.assertEqual(loose.verify(redated, self.now).reason, "stale_status")
 
 
 class TestDirectoryPolicyIsCarried(unittest.TestCase):

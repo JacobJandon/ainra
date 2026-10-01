@@ -1779,3 +1779,39 @@ and are as trustworthy as that target. Clients A and C of `make three-clients` s
 say so; they demonstrate three independent stacks, not a gate.
 
 *Status:* NEW. Ships in 0.5.0.
+
+## D-075 — The Python package's plain constructor fails closed (M45)
+
+*Problem:* The third place the D-072 class lived, and the second published one. `ainra.Verifier(anchors)` — the plain
+constructor, the one the package's own quickstart opened with — authenticated the status list only if the anchors
+happened to carry a status key. Anchors built the obvious way (`issuer_key` + `log_root_key`, the shape every
+conformance vector and every export uses) carry none, and then the check was skipped: the bundle's own status list
+was believed. It was called "the trusted-input mode", it was documented in the README, and `docs/POLICY-PARITY.md`
+listed it as a known asymmetry. The same document's first rule for a default is that it "must fail closed — a
+default that accepts is a default that ships". This one shipped, on PyPI, through 0.4.x.
+
+*Decision:*
+
+- Status authentication is **mandatory by default** in `Verifier.__init__`, as it always was in `from_directory`. A
+  registrar whose anchor carries no status key is `stale_status`, exactly as in the TypeScript SDK.
+- Anchors a caller pins itself authenticate when they carry `status_ed25519`, `status_mldsa65` and `status_uri`.
+- Believing the bundle is asked for by name: `Verifier(anchors, unauthenticated_status=True)`. That is for
+  conformance vectors and other fixtures, whose status is an unsigned input by design. The flag does not switch
+  authentication off where a status key IS present.
+- The quickstart in the README and in `docs/quickstarts/python.md` now opens with `from_directory` on the signed
+  sample, and shows the two things a verifier owns: an hour later the bundle is stale, and a revoked passport
+  carrying a list of its own is refused. Output shown is the real output.
+
+*Evidence:* `tests/test_status_authentication.py::TestThePlainConstructorFailsClosed` — bare anchors refuse the
+signed sample and a corpus vector (`stale_status`); the named flag restores the vector replay; pinned anchors with the
+status key accept the valid sample, refuse the revoked one, and refuse the re-dated forgery, with or without the
+flag. Passing the old condition to `_authenticate_status` turns the first test red. `make py-test`: 58 tests.
+`make diff`, `make policy-parity` and `make conformance` unchanged (the corpus paths use the verify primitive or name
+the flag).
+
+*Not changed, said plainly:* this is a breaking change for callers of the plain constructor, who now get
+`stale_status` until they pass a status key or use `from_directory` — which is the point. `ainra` 0.4.x on PyPI keeps
+the old behaviour until 0.5.0 is published. The raw constructor still does not authenticate the DIRECTORY; it never
+could, it takes anchors.
+
+*Status:* NEW. Ships in 0.5.0.

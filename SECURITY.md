@@ -169,6 +169,36 @@ requests, the same status and reason required from each (`make gate-parity`). It
 * What authentication does not close is written into the corpus rather than left to be assumed: a genuine earlier
   publication of the same passport is accepted until it is older than the verifier's freshness class (`g18`, `g19`).
 
+## Post-mortem: the published MCP tool believed the bundle (D-074, fixed in 0.5.0)
+
+**What it was.** `ainra_verify` in `@ainra/mcp` 0.4.1 ran the conformance corpus's runner (`runVector`) over
+the bundle it was handed. A conformance vector is self-contained on purpose: it carries its own clock, freshness
+class, status list and revoked-delegate list, and the runner believes them. The tool overrode only the audience.
+
+**What it allowed.** An agent asking the tool whether to trust a counterparty got the counterparty's own answer. On
+the signed sample bundles: the revoked one carrying an all-clear status list with no signature read `valid`; a
+status an hour old advertising the laxest freshness class read `valid`; and the tool had no clock of its own, so a
+bundle stayed "fresh" — and unexpired — for as long as it said so.
+
+**Blast radius, stated honestly.** This one is published: npm `@ainra/mcp` 0.4.1, the only version there, since
+2026-09-19. Anyone who used
+`ainra_verify` on a presentation received from another party, to decide anything, was exposed for the whole of that
+time. `@ainra/sdk`'s `Verifier`, `@ainra/middleware` and the Python package were not affected. We have no telemetry
+(by design), so we cannot say whether anyone was.
+
+**Why nothing caught it.** `make mcp-test` proved the tool byte-identical to the SDK on the corpus — and it was. The
+test held the tool to the wrong function. "The wrapper agrees with the thing it wraps" says nothing when the thing
+wrapped is a test runner. It was found the same day as D-072, by asking of every published surface the question D-072
+had just taught: who supplies the clock, the class and the status?
+
+**What changed.** The tool takes a signed directory and roots and decides as a gate does, with the caller's clock,
+class and audience, and returns a `decision`. Replaying a vector is a separate mode that must be asked for by name
+and decides nothing; the old calling convention is refused with an explanation rather than answered. **The pinning
+vectors are `vectors/v1-gate`** — the tool is held to all 27 gate vectors in `make mcp-test`.
+
+**What you should do.** If you run `@ainra/mcp` 0.4.1 and rely on `ainra_verify` for a trust decision:
+upgrade to 0.5.0 when it is published, and until then verify with `@ainra/sdk`'s `Verifier` directly.
+
 ## Verifying what you run
 You do not have to trust us: the SDK is byte-differential-tested against the Rust core over the public CC0 vectors
 (`make diff`), every published artifact is byte-reproducible from source (`make repro`), and any mirror is

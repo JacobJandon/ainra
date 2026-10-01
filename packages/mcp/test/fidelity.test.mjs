@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 // Wrapper-fidelity differential: the MCP `ainra_verify` tool is a WRAPPER over @ainra/sdk — prove it stays one.
-// Over a sampled vector set, the tool's {verdict, reason} must be BYTE-IDENTICAL to runVector() AND to the vector's
-// own expected verdict. Plus: safety annotations are correct, and write tools refuse without confirm.
+// Over a sampled vector set, the tool's {verdict, reason} in FIXTURE mode must be BYTE-IDENTICAL to runVector() AND
+// to the vector's own expected verdict. Plus: safety annotations are correct, and write tools refuse without confirm.
+// Fixture mode replays a vector and decides nothing (D-074); what the tool DECIDES is held to vectors/v1-gate in
+// gate.test.mjs.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
@@ -16,7 +18,7 @@ const files = readdirSync(VDIR).filter((f) => f.endsWith(".json") && f !== "mani
 const sample = files.filter((_, i) => i % 7 === 0);
 const norm = (v) => JSON.stringify({ verdict: v.verdict, reason: v.reason ?? null });
 
-test(`ainra_verify ≡ @ainra/sdk over ${sample.length} sampled vectors (byte-identical)`, () => {
+test(`ainra_verify ≡ @ainra/sdk over ${sample.length} sampled vectors (byte-identical)`, async () => {
   const verify = TOOL_BY_NAME.ainra_verify.handler;
   let checked = 0;
   for (const f of sample) {
@@ -24,7 +26,9 @@ test(`ainra_verify ≡ @ainra/sdk over ${sample.length} sampled vectors (byte-id
     const sdk = runVector(vec);                                            // the reference
     // The caller supplies the audience, exactly as it supplies the clock — `ainra_verify` never takes it off the
     // bundle (ADR-019). Here the test IS the caller, and the corpus pins the audience a vector was minted for.
-    const mcp = verify({ anchors: vec.anchors, presentation: vec.presentation, audience: vec.presentation.audience ?? "" }); // the wrapper
+    const mcp = await verify({ anchors: vec.anchors, fixture: true, presentation: vec.presentation, audience: vec.presentation.audience ?? "" }); // the wrapper
+    assert.equal(mcp.mode, "fixture");
+    assert.equal(mcp.decision, null, "a replayed vector is never a decision");
     assert.equal(norm(mcp), norm(sdk), `MCP disagrees with SDK on ${f}`);  // wrapper fidelity
     assert.equal(norm(mcp), norm(vec.expect), `MCP disagrees with expected on ${f}`); // and both match the frozen expectation
     checked++;

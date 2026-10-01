@@ -27,6 +27,10 @@ export function run_vector(vector_json) {
  *
  * Returns the canonical verdict event — `{status, reason, name, number, tier, freshness_age_s}` — the same shape
  * the CLI, the middleware and the MCP server emit, so one log format covers every surface.
+ *
+ * NOT A GATE (D-072): the directory is taken as given and the bundle's own freshness class and status list are
+ * believed — fixture semantics, for the page's demonstration on specimen records. To decide access, use the edge
+ * build's `accredit` + `gate`.
  * @param {string} bundle_json
  * @param {string} directory_json
  * @param {number} now_secs

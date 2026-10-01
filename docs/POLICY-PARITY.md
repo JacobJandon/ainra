@@ -5,13 +5,14 @@ The conformance corpus proves the implementations agree on **verdicts over wire 
 on **who supplies a value**, **what a default constructor trusts**, or **what happens when a caller omits an
 argument** — and two implementations can pass all 1153 vectors while disagreeing completely about those.
 
-That gap is not theoretical. It has produced four defects:
+That gap is not theoretical. It has produced five defects:
 
 | when | defect | why the corpus could not catch it |
 |---|---|---|
 | M28→M29 | `sdk-py` took the **audience** off the presentation bundle instead of the verifier's own identity | vectors pin the audience as an input, exactly as they pin `now` |
 | M30 | `sdk-py` let the **presenter choose the freshness class** — an hour-stale status accepted at `F3` | same: the class is a pinned input on the wire |
 | M30 | `sdk-py` **required `act_chain`** where `ainra-core` marks it `#[serde(default)]` | the generator always emits the field, so the omitted case never reaches the corpus |
+| M44 | the **published MCP tool** `ainra_verify` (`@ainra/mcp` 0.4.1) replayed the bundle through the corpus runner: the bundle's own **clock, freshness class and status list** were believed (D-074) | its fidelity test held it byte-identical to `runVector` — the right test of the wrong function; and it was not a column of this harness |
 | M42 | the **Rust gate path** (`@ainra/edge`, `ainra verify-request`) took the **status list and its issue time from the presenter** and never checked the registrar's signature over them — a revoked agent could present its old list re-dated to now and be let in (D-072) | a vector's status is a fixture input with no signature; and the Rust path was not a column of this harness |
 
 `make policy-parity` runs each decision below against every implementation, called the way an integrator would —
@@ -25,7 +26,7 @@ That gap is not theoretical. It has produced four defects:
 | **who chooses the freshness class** | the VERIFIER's own (default `F2`), never the bundle's | the class bounds how long a genuine but **superseded** status snapshot stays usable — letting the presenter choose lets a holder of a pre-revocation snapshot stretch revocation from 30 s to 24 h | sdk-ts · sdk-py |
 | **who supplies the mandate-revocation set** | the verifier's, empty in GA (no dynamic feed) | a presenter must not be able to drop a revocation | sdk-ts · sdk-py |
 | **who supplies the revoked-delegate set** | the trusted directory, never the bundle | same reason | sdk-ts · sdk-py |
-| **who signs the status** | the REGISTRAR, under the status key the signed directory publishes. A list, a length, an issue time or a URI the signature does not cover is `stale_status` | the status list is the revocation; taken on the presenter's word, revocation is optional | sdk-ts · sdk-py · core-gate |
+| **who signs the status** | the REGISTRAR, under the status key the signed directory publishes. A list, a length, an issue time or a URI the signature does not cover is `stale_status` | the status list is the revocation; taken on the presenter's word, revocation is optional | sdk-ts · sdk-py · core-gate · mcp |
 | **who supplies `now`** | the caller, always | freshness and expiry are the receiving side's policy | all |
 | **what a default constructor trusts** | nothing that grants access. Defaults must fail closed | a default that accepts is a default that ships | sdk-ts · sdk-py |
 | **omitted parameters** | fail closed with the correct named reason, identically everywhere | a debugging integrator must land on the right layer in every language | sdk-ts · sdk-py |
@@ -48,7 +49,8 @@ only what both happen to support, which is how the divergences above survived.
   by `@ainra/edge` and `ainra verify-request` — filled the status list and its issue time from the wire. This
   paragraph used to end at "the Rust core is not a row in the harness", and the Rust gate path was therefore
   compared with nothing (D-072). It is now the `core-gate` column: driven through `ainra verify-request`, on every
-  row that a signed directory can express. The SDK-constructor and minting rows do not apply to it.
+  row that a signed directory can express. The SDK-constructor and minting rows do not apply to it. The MCP tool is
+  the `mcp` column on the same rows (D-074).
 
 ## What the differential covers, and what it structurally cannot
 

@@ -259,9 +259,25 @@ function runCore(sc) {
   return event.status === "valid" ? "valid" : event.reason;
 }
 
+// The MCP tool an agent calls (D-074). Until 0.4.1 it replayed the bundle through the corpus runner and believed
+// the bundle's own clock, class and status; it was not a column here either. Driven as an agent drives it: the
+// signed directory and roots, the caller's clock and audience, and whatever the presenter put in the bundle.
+async function runMcp(sc) {
+  if (!sc.viaSample) return null;
+  const { TOOL_BY_NAME } = await import(join(ROOT, "packages/mcp/src/tools.mjs"));
+  const baseNow = sample("meta.json").now;
+  const args = {
+    presentation: sc.sampleBundle(sample("bundle-valid.json"), baseNow),
+    directory: sample("directory.json"), roots: sample("roots.json"), now: baseNow + (sc.clockSkew ?? 0),
+  };
+  if (sc.audience !== null) args.audience = sc.audience();
+  const r = await TOOL_BY_NAME.ainra_verify.handler(args);
+  return r.verdict === "valid" ? "valid" : r.reason;
+}
+
 // ── run ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 execFileSync("cargo", ["build", "--release", "-q", "-p", "ainra-cli-rs"], { cwd: ROOT, stdio: "inherit" });
-const IMPLS = [["sdk-ts", runTs], ["sdk-py", (sc) => runPy(sc)], ["core-gate", (sc) => runCore(sc)]];
+const IMPLS = [["sdk-ts", runTs], ["sdk-py", (sc) => runPy(sc)], ["core-gate", (sc) => runCore(sc)], ["mcp", runMcp]];
 let bad = 0;
 console.log("policy parity — API shape and default policy, across implementations");
 console.log("─".repeat(96));

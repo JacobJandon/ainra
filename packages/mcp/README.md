@@ -33,8 +33,17 @@ There is no hosted default and no fallback. If the target isn't reachable the to
 
 ## Tools
 
-**Read-only** — `ainra_verify` runs the real `@ainra/sdk` verifier over a bundle and returns the verdict plus the
-named reason in plain words (the same code that agrees byte-for-byte in the four-way conformance differential);
+**Read-only** — `ainra_verify` decides whether a presentation someone handed you verifies, and says why in plain
+words. It takes the signed `directory` and the `roots` you trust (or fetches a URL target's own), checks the one
+against the other, authenticates the status list against the registrar's status key, and uses **your** clock,
+freshness class and audience. Nothing a presenter put in the bundle is believed. The result carries
+`decision: "accept" | "refuse"` and the policy that decided.
+
+> **In 0.4.1 this tool did not do that.** It replayed the bundle through the fixture-semantics verifier with the
+> bundle's own clock, freshness class and status list, so a revoked or expired presenter could be reported `valid`
+> (D-074). Upgrade. Replaying a conformance vector is still possible and is now a separate, labelled mode:
+> `anchors` plus `fixture: true`, which returns `decision: null`.
+
 `ainra_lookup` resolves a name to its public record; `ainra_status` reports the target's head — network, root label,
 registrar count, freshness window.
 

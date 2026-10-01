@@ -15,6 +15,13 @@ npm are 0.4.1.
 
 ### Security — fixed, and owned
 
+- **`ainra_verify` in `@ainra/mcp` believed the bundle — published, in 0.4.1** (D-074). The MCP tool ran
+  the conformance corpus's runner over whatever it was handed: the bundle's own clock, freshness class and status
+  list. A revoked presenter carrying an all-clear status list of its own was reported `valid`; so was a stale status
+  advertising `F3`. It now verifies as a gate does — signed directory and roots, status authenticated, the caller's
+  clock, class and audience — and returns a `decision`. Replaying a vector needs `anchors` with `fixture: true` and
+  decides nothing; the old calling convention is refused with an explanation. **If you call `ainra_verify` from
+  0.4.1 to decide whether to trust another party, upgrade.**
 - **The Rust gate path believed any status list a presenter handed it** (D-072). `@ainra/edge` and `ainra
   verify-request` never checked the registrar's signature over the status list, so a revoked agent could present its
   pre-revocation list re-dated to "now" — or an all-clear list of its own — and be let in, for as long as it liked.

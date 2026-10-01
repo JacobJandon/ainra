@@ -1732,3 +1732,50 @@ that found D-072 needs a running network, so it ran only when someone had starte
 run in its image locally and has not yet run on the hosted runner.
 
 *Status:* NEW. Ships in 0.5.0.
+
+## D-074 — The published MCP tool believed the bundle (M44)
+
+*Problem:* After D-072 the question was whether anything already PUBLISHED had the same weakness. One thing does.
+`ainra_verify` in `@ainra/mcp` — on npm as 0.4.1, its only published version (2026-09-19) — ran `runVector` over the bundle it
+was handed. The published tarball was unpacked and read to confirm it. That is
+the fixture-semantics path: the conformance corpus's runner, which believes the bundle's own clock, its own freshness
+class, its own status list and its own revoked-delegate list, because a self-contained vector must carry them. The
+tool overrode exactly one of those, the audience (D-051). Measured on the signed sample bundles, in-process:
+
+- the revoked bundle, carrying the earlier all-clear status list with no signature → `valid`;
+- a status an hour old, the bundle advertising `F3` → `valid`;
+- the tool takes no clock from its caller, so the sample — whose status was published in April 2026 — read `valid`
+  in October, and would have read `valid` after the passport expired.
+
+The tool's description called this "the real @ainra/sdk verifier", and `make mcp-test` proved it was byte-identical
+to `runVector`. It was. The test pinned the tool to the wrong function: fidelity to the corpus runner is not
+fidelity to a verifier. An agent that asked this tool whether to trust a counterparty got the counterparty's own
+answer.
+
+*Decision:*
+
+- `ainra_verify` **decides as a gate decides.** It takes the signed `directory` and the `roots`; with a URL target
+  and neither passed, it fetches that network's own and says so in the result. It builds the GA `Verifier` — the
+  directory checked against both roots, the status against the registrar's status key — with the CALLER's audience,
+  freshness class (default F2) and clock (`now`, default the server's). The result carries
+  `decision: "accept" | "refuse"`, `mode: "gate"`, and the policy that decided.
+- **Replaying a vector is a separate mode, asked for by name:** `anchors` with `fixture: true`. It returns
+  `mode: "fixture"`, `decision: null`, and a warning that the bundle was believed. `anchors` without
+  `fixture: true` is an error that says why and that nothing was verified — an agent on the old calling convention
+  is stopped, not told `valid`.
+- A directory that does not verify, half a trust pair, or no trust at all is an error, never a verdict.
+
+*Evidence:* `packages/mcp/test/gate.test.mjs` — the tool decides all 27 gate vectors as `ainra-core` recorded them
+(the corpus that pins D-072, D-073); the three measured cases above each now refuse (`stale_status`); a call with no
+`now` refuses the months-old sample on the server's clock; the caller may choose `F3` and the bundle may not; fixture
+mode needs its flag and returns no decision. The fidelity test still holds fixture mode byte-identical to `runVector`
+over the sampled corpus. `make three-clients`: the MCP client now passes the staging directory and roots, 3/3 green.
+`make policy-parity` has an `mcp` column on the rows a signed directory can express: 14 decisions, four
+implementations.
+
+*Not changed, said plainly:* `@ainra/mcp` 0.4.1 remains on npm and cannot be edited; the fix reaches users when
+0.5.0 is published, which needs the owner. `ainra_lookup` and `ainra_status` read the configured target's own record
+and are as trustworthy as that target. Clients A and C of `make three-clients` still replay through `runVector` and
+say so; they demonstrate three independent stacks, not a gate.
+
+*Status:* NEW. Ships in 0.5.0.

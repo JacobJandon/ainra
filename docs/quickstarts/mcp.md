@@ -35,8 +35,10 @@ export `AINRA_STAGE_ISSUE_TOKEN` (in `stage/.issue-token`) to enable the write t
    }
    ```
 
-That's it. The agent now sees the six tools. `ainra_verify` returns the real verdict + the named reason in plain
-words; it is byte-identical to `@ainra/sdk` (proven by `make mcp-test`).
+That's it. The agent now sees the six tools. `ainra_verify` decides whether a presentation verifies and returns
+`decision`, the verdict and the named reason in plain words. Give it the signed `directory` and the `roots` you trust
+(with a URL target it fetches that network's own); the clock, the freshness class and the audience are yours, never
+the bundle's (D-074). It is held to the gate corpus, `vectors/v1-gate`, by `make mcp-test`.
 
 ## A real session (live staging registrar)
 
@@ -54,7 +56,7 @@ no-confirm   → ERROR: ainra_revoke is a WRITE operation … Re-call with `conf
 
 | Tool | Kind | What it does |
 |---|---|---|
-| `ainra_verify` | read-only | Verify a presentation bundle → verdict + named reason (the real `@ainra/sdk`). |
+| `ainra_verify` | read-only | Decide on a presentation: signed directory + roots in, `decision` + verdict + named reason out. `anchors` + `fixture: true` replays a conformance vector and decides nothing. |
 | `ainra_lookup` | read-only | Resolve a name to its public record (tier, authority, standing). |
 | `ainra_status` | read-only | The target's head: network/root label, counts, verification window. |
 | `ainra_issue` | write · `confirm` | Issue a passport on a registrar you control. |
@@ -67,7 +69,9 @@ Write tools refuse without `confirm: true` and never target a registrar you don'
 
 ```
 $ make mcp-test
-✔ ainra_verify ≡ @ainra/sdk over 107 sampled vectors (byte-identical)
+✔ ainra_verify ≡ @ainra/sdk over sampled vectors, in fixture mode (byte-identical)
+✔ the gate corpus: ainra_verify decides every vectors/v1-gate entry as ainra-core recorded it
+✔ the bundle does not choose its status, its clock, or its freshness class
 ✔ safety annotations: read-only vs destructive are marked correctly
 ✔ write tools fail closed without explicit confirm
 ```

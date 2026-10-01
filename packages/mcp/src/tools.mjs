@@ -9,7 +9,7 @@
 import { readFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
-import { runVector, verdictEvent, serializeVerdictEvent } from "@ainra/sdk";  // file:../sdk-ts in a checkout; ^x.y.z when published
+import { runVector, Verifier, verdictEvent, serializeVerdictEvent } from "@ainra/sdk";  // file:../sdk-ts in a checkout; ^x.y.z when published
 export { verdictEvent, serializeVerdictEvent }; // one event shape across CLI, middleware, MCP (docs/PRESENTATION.md)
 
 const ROOT = fileURLToPath(new URL("../../../", import.meta.url));
@@ -100,47 +100,96 @@ export const TOOLS = [
   {
     name: "ainra_verify",
     title: "Verify an AINRA passport",
-    description: "Run the real @ainra/sdk verifier over a presentation bundle (with its trust anchors) and return the verdict plus the named reason in plain words. Read-only, offline, deterministic — the same code that agrees byte-for-byte in the conformance differential. If the bundle carries an ADR-019 instance credential (a RUNNING COPY of an agent rather than the agent itself), pass your own `audience`: it is never taken from the bundle, and an empty audience refuses every instance credential.",
+    description: "Decide whether a presentation someone handed you verifies. Pass the `presentation` with the signed `directory` and the two `roots` you trust (omit them and a URL target's own are fetched): the directory is checked against both roots, the status list against the registrar's status key, and the clock, the freshness class and the audience are YOURS — nothing a presenter put in the bundle is believed. Returns `decision` (accept or refuse), the verdict, and the named reason in plain words. Read-only. If the bundle carries an ADR-019 instance credential (a RUNNING COPY of an agent), pass your own `audience`; an empty audience refuses every instance credential. To replay a conformance VECTOR instead — which carries its own anchors, clock and status on purpose — pass `anchors` with `fixture: true`; that mode believes the bundle and decides nothing.",
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     inputSchema: {
       type: "object",
       properties: {
-        anchors: { type: "object", description: "Trust anchors keyed by registrar id (issuer_key + log_root_key), as published in a directory/export." },
-        presentation: { type: "object", description: "The presentation bundle to verify." },
+        presentation: { type: "object", description: "The presentation bundle to verify, exactly as the presenter sent it." },
+        directory: { type: "object", description: "The dual-root-signed directory (directory.json) of the network you trust." },
+        roots: { type: "object", description: "The two ceremony root keys, { root_ed25519, root_slh } (roots.json). Obtain them out of band — never from the presenter." },
         audience: { type: "string", description: "YOUR audience (ADR-019), e.g. https://api.example. Required to accept an instance credential; a presenter can never supply it. Omit for plain passport bundles." },
+        freshness: { type: "string", enum: ["F1", "F2", "F3"], description: "How old a status publication you accept: F1 30 s, F2 5 min (default), F3 24 h. Yours, never the bundle's." },
+        now: { type: "integer", description: "Your clock, unix seconds. Defaults to this server's clock. Never read from the bundle." },
+        anchors: { type: "object", description: "FIXTURE MODE ONLY: a conformance vector's own trust anchors (issuer_key + log_root_key per registrar). Requires `fixture: true`." },
+        fixture: { type: "boolean", description: "Replay a conformance vector with fixture semantics: the bundle's own clock, freshness class and status list are believed. Decides nothing about a real presenter." },
       },
-      required: ["anchors", "presentation"],
+      required: ["presentation"],
     },
-    handler(input) {
-      // The audience is the CALLER's, exactly as `now` is. It is spliced over whatever the bundle claimed, which
-      // is the same override the TS Verifier and the Python Verifier apply — a presenter naming its own audience
-      // would defeat audience binding entirely.
-      const presentation = { ...input.presentation, audience: input.audience ?? "" };
-      const v = runVector({ name: "mcp", expect: {}, anchors: input.anchors, presentation });
-      const event = verdictEvent(presentation, v, presentation?.now ?? 0);
+    async handler(input) {
+      const INSTANCE_REASONS = ["instance_expired", "instance_scope_exceeds", "instance_sig_invalid", "instance_pop_invalid"];
       // Report the instance layer DISTINCTLY: an agent reading this must be able to tell "the running copy is not
       // entitled" from "the lineage is not trusted", because the two have different remedies — renew the copy, or
       // stop using the passport.
-      const INSTANCE_REASONS = ["instance_expired", "instance_scope_exceeds", "instance_sig_invalid", "instance_pop_invalid"];
-      const inst = presentation.instance ?? null;
+      const instanceReport = (presentation, v, audience) => {
+        const inst = presentation.instance ?? null;
+        if (!inst) return { presented: false };
+        const atInstance = Boolean(v.reason && INSTANCE_REASONS.includes(v.reason));
+        return {
+          presented: true,
+          iid: inst.iid ?? null,
+          expires: inst.exp ?? null,
+          audience: audience || null,
+          layer: atInstance ? "instance" : v.verdict === "valid" ? "ok" : "passport",
+          note: atInstance
+            ? "the RUNNING COPY is not entitled — the passport may be fine; mint a fresh instance credential"
+            : v.verdict === "valid" ? null
+            : "the failure is at the passport layer, not the running copy — the lineage itself did not verify",
+        };
+      };
+
+      // ── fixture mode: a conformance vector, replayed. Explicit, labelled, and never a decision (D-074). ──────
+      if (input.anchors !== undefined && input.directory === undefined && input.roots === undefined) {
+        if (input.fixture !== true)
+          throw new Error(
+            "ainra_verify with `anchors` replays a conformance vector: it believes the bundle's own clock, freshness " +
+            "class and status list, so a revoked or expired presenter could make it say valid. To decide whether to " +
+            "trust a presentation, pass the signed `directory` and the `roots` instead. To replay a vector on " +
+            "purpose, add `fixture: true`. Nothing was verified.");
+        // The audience is the CALLER's even here; everything else is the vector's, which is what a vector is for.
+        const presentation = { ...input.presentation, audience: input.audience ?? "" };
+        const v = runVector({ name: "mcp", expect: {}, anchors: input.anchors, presentation });
+        return {
+          mode: "fixture",
+          decision: null,
+          warning: "FIXTURE SEMANTICS: the bundle's own clock, freshness class and status list were believed. This replays a conformance vector; it does not decide whether to trust a presenter.",
+          verdict: v.verdict,
+          reason: v.reason ?? null,
+          explanation: gloss(v),
+          event: verdictEvent(presentation, v, presentation?.now ?? 0),
+          instance: instanceReport(presentation, v, presentation.audience),
+        };
+      }
+
+      // ── gate mode: what a verifier decides. The directory against both roots; the status against the registrar's
+      // status key; the clock, the class and the audience from the CALLER. ─────────────────────────────────────────
+      let { directory, roots } = input;
+      let trust = "the directory and roots you passed";
+      if (directory === undefined && roots === undefined) {
+        if (!isUrl(TARGET))
+          throw new Error("ainra_verify needs the trust to verify against: pass the signed `directory` and the `roots`, or set AINRA_TARGET to the URL of a network that publishes /directory.json and /roots.json. Nothing was verified.");
+        [directory, roots] = [await getJson("/directory.json"), await getJson("/roots.json")];
+        trust = `directory.json and roots.json fetched from AINRA_TARGET (${TARGET})`;
+      }
+      if (!directory || !roots || typeof roots.root_ed25519 !== "string" || typeof roots.root_slh !== "string")
+        throw new Error("ainra_verify needs BOTH `directory` and `roots` ({ root_ed25519, root_slh }). Nothing was verified.");
+      const freshness = input.freshness ?? "F2";
+      if (!["F1", "F2", "F3"].includes(freshness)) throw new Error("freshness must be F1, F2 or F3. Nothing was verified.");
+      const audience = input.audience ?? "";
+      const verifier = Verifier.fromDirectoryB64(directory, roots.root_ed25519, roots.root_slh, freshness, false, audience);
+      if (!verifier)
+        throw new Error("the directory does not verify against the roots — nothing in it can be trusted, so nothing was verified.");
+      const now = Number.isInteger(input.now) ? input.now : Math.floor(Date.now() / 1000);
+      const v = verifier.verify(input.presentation, now);
       return {
+        mode: "gate",
+        decision: v.verdict === "valid" ? "accept" : "refuse",
         verdict: v.verdict,
         reason: v.reason ?? null,
         explanation: gloss(v),
-        event,
-        instance: inst
-          ? {
-              presented: true,
-              iid: inst.iid ?? null,
-              expires: inst.exp ?? null,
-              audience: presentation.audience || null,
-              layer: v.reason && INSTANCE_REASONS.includes(v.reason) ? "instance" : v.verdict === "valid" ? "ok" : "passport",
-              note: v.reason && INSTANCE_REASONS.includes(v.reason)
-                ? "the RUNNING COPY is not entitled — the passport may be fine; mint a fresh instance credential"
-                : v.verdict === "valid" ? null
-                : "the failure is at the passport layer, not the running copy — the lineage itself did not verify",
-            }
-          : { presented: false },
+        event: verdictEvent(input.presentation, v, now),
+        policy: { now, freshness, audience: audience || null, trust },
+        instance: instanceReport(input.presentation, v, audience),
       };
     },
   },

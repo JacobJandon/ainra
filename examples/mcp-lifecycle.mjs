@@ -21,13 +21,15 @@ console.log("2. ainra_lookup:", JSON.stringify(await call("ainra_lookup", { name
 console.log("3. ainra_revoke:", JSON.stringify(await call("ainra_revoke", { sub, confirm: true })));  // the kill-switch
 console.log("4. ainra_lookup:", JSON.stringify(await call("ainra_lookup", { name: sub })));           // standing: revoked
 
-// The pure verdict tool (ainra_verify) turns a presented bundle + its anchors into a verdict + named reason + the
-// event shape. A conformance vector carries both, so we verify one straight off:
+// ainra_verify DECIDES when you give it the signed directory and the roots you trust (see docs/quickstarts/mcp.md).
+// Here it replays a conformance vector instead — which carries its own anchors, clock and status on purpose — so
+// the call says so by name: `fixture: true`. That mode shows the verdict + named reason + event shape; it believes
+// the bundle and is never a decision about a real presenter.
 const { readdirSync, readFileSync } = await import("node:fs");
 const vdir = ROOT + "vectors/v1";
 const vfile = readdirSync(vdir).find((f) => { try { return JSON.parse(readFileSync(vdir + "/" + f, "utf8")).expect?.verdict === "valid"; } catch { return false; } });
 const vec = JSON.parse(readFileSync(vdir + "/" + vfile, "utf8"));
-console.log("5. ainra_verify:", JSON.stringify(await call("ainra_verify", { anchors: vec.anchors, presentation: vec.presentation })));
+console.log("5. ainra_verify:", JSON.stringify(await call("ainra_verify", { anchors: vec.anchors, presentation: vec.presentation, fixture: true })));
 
 execFileSync("rm", ["-rf", DIR]);
 console.log("\nMCP-driven lifecycle complete: a valid credential was issued, its standing checked, revoked, and re-checked — all through agent-callable tools, with revoke requiring confirm:true.");

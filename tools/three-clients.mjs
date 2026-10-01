@@ -64,11 +64,15 @@ function mcpSession() {
   return { call, close: () => child.stdin.end() };
 }
 async function clientMCP() {
-  const A = await anchors();
+  // The MCP tool DECIDES (D-074): it takes the signed directory and the roots, checks the one against the other,
+  // and authenticates the status — where clients A and C replay the bundle through the fixture-semantics verifier.
+  // `now` is this drill's pinned clock, passed as the caller's; the tool never reads one off the bundle.
+  const ART = process.env.AINRA_ARTIFACTS || "http://127.0.0.1:8091";
+  const [directory, roots] = await Promise.all(["/directory.json", "/roots.json"].map(async (f) => (await fetch(ART + f)).json()));
   const m = mcpSession();
   await m.call("initialize", {});
   const verify = async (sub) => {
-    const r = await m.call("tools/call", { name: "ainra_verify", arguments: { anchors: A, presentation: await present(sub) } });
+    const r = await m.call("tools/call", { name: "ainra_verify", arguments: { directory, roots, now: NOW, presentation: await present(sub) } });
     const text = r.result?.content?.map((c) => c.text).join("") ?? JSON.stringify(r.result);
     const j = JSON.parse(text);
     return { verdict: j.verdict, reason: j.reason ?? null };

@@ -12,7 +12,7 @@
 //! service only sequences and serves.
 
 use ainra_core::checkpoint::{DelegateCert, SCOPE_DELTA, SCOPE_FRESH_HEAD};
-use ainra_core::{b64, canon, crypto, status};
+use ainra_core::{b64, crypto, status};
 use serde::{Deserialize, Serialize};
 
 /// The online delegate that countersigns deltas and signs fresh heads (ADR-002). Present iff the publisher was
@@ -45,14 +45,6 @@ pub struct SignedStatusList {
     pub issued_at: u64,
     pub sig_ed25519: String,
     pub sig_mldsa65: String,
-}
-
-#[derive(Serialize)]
-struct StatusSigning<'a> {
-    bit_len: u64,
-    issued_at: u64,
-    status_list: &'a str,
-    uri: &'a str,
 }
 
 impl Statusd {
@@ -243,13 +235,8 @@ impl Statusd {
         let compressed = list.encode().expect("encode status list");
         let status_list_b64 = b64::encode(&compressed);
         let bit_len = self.bits.len() as u64;
-        let signing = canon::canonicalize(&StatusSigning {
-            bit_len,
-            issued_at: now,
-            status_list: &status_list_b64,
-            uri: &self.uri,
-        })
-        .expect("canon status signing");
+        let signing = status::publication_signing_bytes(&self.uri, bit_len, now, &status_list_b64)
+            .expect("canon status signing");
         let sig = self
             .signer
             .sign(signing.as_bytes())
@@ -274,12 +261,12 @@ pub fn verify_publication(
     freshness: status::Freshness,
     idx: u64,
 ) -> Result<status::LineageStatus, status::Freshness> {
-    let signing = canon::canonicalize(&StatusSigning {
-        bit_len: published.bit_len,
-        issued_at: published.issued_at,
-        status_list: &published.status_list_b64,
-        uri: &published.uri,
-    })
+    let signing = status::publication_signing_bytes(
+        &published.uri,
+        published.bit_len,
+        published.issued_at,
+        &published.status_list_b64,
+    )
     .expect("canon");
     let sig = crypto::HybridSig {
         ed25519: b64::decode(&published.sig_ed25519).unwrap_or_default(),

@@ -152,6 +152,29 @@ class TestGate(unittest.TestCase):
         self.assertEqual(out["headers"]["x-ainra-reason"], "presentation_unknown")
         self.assertEqual(out["headers"]["link"], f'<{PRIME_PATH}>; rel="ainra-prime"')
 
+    def test_a_field_sent_on_two_lines_is_one_field(self):
+        # D-072: this gate kept only the LAST `x-ainra-passport` line, so a request carrying the header twice was
+        # allowed here and refused by the Node and edge gates, which see the two lines joined. One rule everywhere:
+        # the joined value is neither a digest reference nor a bundle.
+        gate = AinraGate(_ok, self.verifier, now=self.now)
+        b64 = base64.urlsafe_b64encode(json.dumps(self.v["presentation"]).encode()).rstrip(b"=").decode()
+        self.assertEqual(asyncio.run(_call(gate, headers={HEADER: b64}))["status"], 200, "the control: once is fine")
+        scope = {"type": "http", "method": "GET", "path": "/agent", "raw_path": b"/agent", "query_string": b"",
+                 "headers": [(HEADER.encode(), b"not-a-presentation"), (HEADER.encode(), b64.encode())]}
+        out = {"status": None, "headers": {}}
+
+        async def receive():
+            return {"type": "http.request", "body": b"", "more_body": False}
+
+        async def send(m):
+            if m["type"] == "http.response.start":
+                out["status"] = m["status"]
+                out["headers"] = {k.decode().lower(): v.decode() for k, v in m["headers"]}
+
+        asyncio.run(gate(scope, receive, send))
+        self.assertEqual(out["status"], 403)
+        self.assertEqual(out["headers"]["x-ainra-reason"], "schema_violation")
+
     def test_the_store_is_bounded_and_forgets(self):
         s = PresentationStore(max_entries=2)
         s.put("a", {"n": 1}, 10)

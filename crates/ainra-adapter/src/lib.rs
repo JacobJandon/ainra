@@ -106,6 +106,17 @@ pub struct WirePresentation {
     /// reintroduce a read of it from any other path.
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub audience: String,
+    /// The registrar's signature over this status publication (D-020), and the URI it was published under. A
+    /// conformance vector has none — its status is a fixture input — so they are optional and omitted there. A GATE
+    /// requires them: [`verify_gate`] authenticates the list against the directory's status key before it believes
+    /// a bit of it (D-072). Until then this struct did not declare them, serde dropped them, and the Rust path
+    /// trusted whatever status a presenter supplied.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status_uri: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status_sig_ed25519: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status_sig_mldsa65: Option<String>,
 }
 
 /// The instance credential + its proof-of-possession, as they travel.
@@ -369,6 +380,9 @@ pub fn verify_wire(
 
 /// Verify with the CALLER's policy: its clock, its audience, its freshness class, and the revoked delegates of the
 /// directory it trusts. `None` falls back to the wire's value — which only a self-contained fixture should ever do.
+///
+/// NOT A GATE. The status list and its issue time are taken from the wire as given; this function does not
+/// authenticate them. A gate calls [`verify_gate`], which does, and then calls this (D-072).
 /// Verify one decoded wire presentation against decoded anchors at `now`, **for the audience the caller names**.
 ///
 /// This is **the** conversion: every surface — the generator, the conformance runner, the CLI, the browser —
@@ -414,6 +428,98 @@ pub fn verify_wire_policy(
         audience: audience.to_string(),
     };
     verify::verify(&pres, anchors)
+}
+
+/// What a gate trusts, taken from a directory that verified against both ceremony roots ([`accredit_json`]).
+pub struct GateTrust {
+    pub anchors: verify::TrustAnchors,
+    pub revoked_delegates: std::collections::BTreeSet<[u8; 32]>,
+    /// registrar → the key that signs its status publications and the URI they are published under. A registrar
+    /// with no entry cannot have its revocations authenticated, so its passports fail closed (`stale_status`).
+    pub status: BTreeMap<String, StatusAuthority>,
+}
+
+/// One registrar's status-signing key and status URI, from the signed directory.
+pub struct StatusAuthority {
+    pub key: crypto::HybridPublic,
+    pub uri: String,
+}
+
+/// Authenticate the presented status list against the registrar's directory-published status key (D-020) — the
+/// Rust statement of what `@ainra/sdk`'s `Verifier` and the Python `Verifier` do, in the same order and with the
+/// same reasons. The presenter supplies the compressed list and `status_issued_at`; they mean nothing until this
+/// proves the registrar signed exactly those values. Everything fails closed to `stale_status`: status that cannot
+/// be authenticated is status that is not available.
+///
+///   (a) the bundle carries a hybrid status signature and a `status_uri`;
+///   (b) the passport's claimed status URI, the bundle's, and the directory's all agree — so another registrar's
+///       all-clear list cannot be spliced in;
+///   (c) the signature verifies over [`status::publication_signing_bytes`] under the registrar's status key.
+///
+/// It reads the claims and the status TEXT only: nothing is decompressed before the signature holds.
+fn authenticate_status(p: &WirePresentation, trust: &GateTrust) -> Result<(), Reason> {
+    let claims = bad(b64::decode(&p.claims))?;
+    let passport = ainra_core::passport::Passport::parse_checked(&claims)?;
+    let (registrar, _, _) =
+        ainra_core::name::AinraName::parse_did(&passport.iss).map_err(|_| Reason::NameMalformed)?;
+    if !trust.anchors.registrars.contains_key(&registrar) {
+        return Err(Reason::UnknownRegistrar);
+    }
+    let authority = trust.status.get(&registrar).ok_or(Reason::StaleStatus)?;
+    let (Some(uri), Some(ed), Some(ml)) =
+        (&p.status_uri, &p.status_sig_ed25519, &p.status_sig_mldsa65)
+    else {
+        return Err(Reason::StaleStatus);
+    };
+    if *uri != authority.uri || passport.status.status_list.uri != authority.uri {
+        return Err(Reason::StaleStatus);
+    }
+    let (Ok(ed25519), Ok(mldsa65)) = (b64::decode(ed), b64::decode(ml)) else {
+        return Err(Reason::StaleStatus);
+    };
+    let signing =
+        status::publication_signing_bytes(uri, p.status_len, p.status_issued_at, &p.status_list)
+            .map_err(|_| Reason::StaleStatus)?;
+    crypto::verify_hybrid(
+        &authority.key,
+        signing.as_bytes(),
+        &crypto::HybridSig { ed25519, mldsa65 },
+    )
+    .map_err(|_| Reason::StaleStatus)
+}
+
+/// Verify a presentation AS A GATE (D-072): everything a presenter could otherwise choose is the verifier's.
+///
+///   * the status list is authenticated against the directory's status key before it is decompressed or read;
+///   * the freshness class is the gate's (D-068);
+///   * the revoked delegates are the directory's (D-068);
+///   * the mandate-revocation set is empty — there is no dynamic mandate feed, so nothing a presenter sends can be
+///     one (static mandates inside the signed passport are still enforced);
+///   * the clock and the audience are the caller's.
+///
+/// This is the function `@ainra/edge` and `ainra verify-request` reach. [`verify_wire_policy`] is NOT a gate: it
+/// applies the caller's freshness and revocations to status it has not authenticated, which is right for a fixture
+/// and for nothing else.
+pub fn verify_gate(
+    p: &WirePresentation,
+    trust: &GateTrust,
+    now: u64,
+    audience: &str,
+    freshness: status::Freshness,
+) -> Verdict {
+    if let Err(reason) = authenticate_status(p, trust) {
+        return Verdict::invalid(reason);
+    }
+    let mut q = p.clone();
+    q.mandate_revocations.clear();
+    verify_wire_policy(
+        &q,
+        &trust.anchors,
+        now,
+        audience,
+        Some(freshness),
+        Some(&trust.revoked_delegates),
+    )
 }
 
 /// Run one conformance vector. A vector pins its own `now` on purpose — determinism is the point of the corpus.
@@ -827,6 +933,11 @@ pub fn verify_bundle_json(bundle_json: &str, directory_json: &str, now_secs: u64
 
 /// Verify a presented bundle at the caller's clock AND the caller's audience (ADR-019).
 ///
+/// NOT A GATE (D-068, D-072). The directory is taken as given, not checked against the roots, and the freshness
+/// class and the status list are the bundle's own: this is the fixture-semantics path the browser demonstration
+/// uses on specimen records. Anything deciding access calls [`accredit_json`] once and [`gate_json`] /
+/// [`credential_json`] per request, which authenticate all three.
+///
 /// The audience is a PARAMETER, never read from the bundle. It was read from the bundle until the M30 adversarial
 /// review: `WirePresentation.audience` exists so the conformance corpus can pin audience cases deterministically —
 /// exactly as it pins `now` — and `verify_bundle_json` had no audience parameter at all, so the presenter's value
@@ -911,21 +1022,51 @@ pub fn accredit_json(directory_json: &str, roots_json: &str) -> String {
         .iter()
         .map(|fp| b64::encode(fp))
         .collect();
-    json!({ "ok": true, "trust": { "anchors": anchors, "revoked_delegates": revoked }, "epoch": acc.epoch })
+    // Each accredited registrar's status key and URI, from the directory that just verified (D-072). An entry with
+    // no status key gets no authority here, and its passports then fail closed at the gate.
+    let status: serde_json::Map<String, serde_json::Value> = d
+        .entries
+        .iter()
+        .filter(|e| !e.status_ed25519.is_empty() && !e.status_mldsa65.is_empty())
+        .map(|e| {
+            (
+                e.registrar.clone(),
+                json!({ "key": { "ed25519": e.status_ed25519, "mldsa65": e.status_mldsa65 }, "uri": e.status_uri }),
+            )
+        })
+        .collect();
+    json!({ "ok": true, "trust": { "anchors": anchors, "revoked_delegates": revoked, "status": status }, "epoch": acc.epoch })
         .to_string()
 }
 
 /// Decode the trust object [`accredit_json`] produced. `None` — fail closed — for anything malformed.
-fn gate_trust(
-    trust_json: &str,
-) -> Option<(verify::TrustAnchors, std::collections::BTreeSet<[u8; 32]>)> {
+fn gate_trust(trust_json: &str) -> Option<GateTrust> {
     let t: serde_json::Value = serde_json::from_str(trust_json).ok()?;
     t.get("anchors")?.as_object()?;
-    let mut revoked = std::collections::BTreeSet::new();
+    let mut revoked_delegates = std::collections::BTreeSet::new();
     for fp in t.get("revoked_delegates")?.as_array()? {
-        revoked.insert(b64::decode_array::<32>(fp.as_str()?).ok()?);
+        revoked_delegates.insert(b64::decode_array::<32>(fp.as_str()?).ok()?);
     }
-    Some((anchors_from_json(&t), revoked))
+    // `status` is REQUIRED: a trust object without it predates D-072, and a gate built from one would have nothing
+    // to authenticate status with. Fail closed rather than fall back to believing the presenter.
+    let mut status = BTreeMap::new();
+    for (id, a) in t.get("status")?.as_object()? {
+        status.insert(
+            id.clone(),
+            StatusAuthority {
+                key: crypto::HybridPublic {
+                    ed25519: b64::decode_array::<32>(a["key"]["ed25519"].as_str()?).ok()?,
+                    mldsa65: b64::decode(a["key"]["mldsa65"].as_str()?).ok()?,
+                },
+                uri: a["uri"].as_str()?.to_string(),
+            },
+        );
+    }
+    Some(GateTrust {
+        anchors: anchors_from_json(&t),
+        revoked_delegates,
+        status,
+    })
 }
 
 fn freshness_of(s: &str) -> Option<status::Freshness> {
@@ -946,14 +1087,14 @@ pub fn credential_json(
     audience: &str,
     freshness: &str,
 ) -> String {
-    let (Ok(p), Some((anchors, revoked)), Some(f)) = (
+    let (Ok(p), Some(trust), Some(f)) = (
         serde_json::from_str::<WirePresentation>(bundle_json),
         gate_trust(trust_json),
         freshness_of(freshness),
     ) else {
         return schema_violation_event();
     };
-    let verdict = verify_wire_policy(&p, &anchors, now_secs, audience, Some(f), Some(&revoked));
+    let verdict = verify_gate(&p, &trust, now_secs, audience, f);
     verdict_event(&p, &verdict, now_secs)
 }
 
@@ -978,14 +1119,14 @@ pub fn gate_json(
         };
     let schema =
         || serde_json::from_str(&schema_violation_event()).unwrap_or(serde_json::Value::Null);
-    let (Ok(p), Some((anchors, revoked)), Some(f)) = (
+    let (Ok(p), Some(trust), Some(f)) = (
         serde_json::from_str::<WirePresentation>(bundle_json),
         gate_trust(trust_json),
         freshness_of(freshness),
     ) else {
         return out(false, Some("schema_violation"), schema(), None);
     };
-    let verdict = verify_wire_policy(&p, &anchors, now_secs, audience, Some(f), Some(&revoked));
+    let verdict = verify_gate(&p, &trust, now_secs, audience, f);
     let event: serde_json::Value = serde_json::from_str(&verdict_event(&p, &verdict, now_secs))
         .unwrap_or(serde_json::Value::Null);
     if let Verdict::Invalid { reason } = &verdict {

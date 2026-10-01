@@ -154,6 +154,36 @@ impl StatusList {
     }
 }
 
+/// The bytes a registrar's status key signs for one publication (D-020): the canonical JSON of `{bit_len, issued_at,
+/// status_list, uri}`, where `status_list` is the base64url TEXT of the compressed list. Signing the text is what
+/// lets a verifier authenticate a presented list before it decompresses a byte of it.
+///
+/// One definition, here, for the service that signs and for every verifier that checks (D-072). It used to live,
+/// privately, in the service — so the Rust verify path had nothing to authenticate a presented list with, and did
+/// not: a gate built on it believed whatever status a presenter handed over.
+pub fn publication_signing_bytes(
+    uri: &str,
+    bit_len: u64,
+    issued_at: u64,
+    status_list_b64: &str,
+) -> Result<alloc::string::String> {
+    canon::canonicalize(&PublicationSigning {
+        bit_len,
+        issued_at,
+        status_list: status_list_b64,
+        uri,
+    })
+}
+
+/// Field names are frozen: they are signed, and three implementations build the same object.
+#[derive(Serialize)]
+struct PublicationSigning<'a> {
+    bit_len: u64,
+    issued_at: u64,
+    status_list: &'a str,
+    uri: &'a str,
+}
+
 /// The exact struct whose canonicalization is the head identity (feeds [`StatusList::head_hash`]). Field
 /// names/order are frozen — they are hashed and cross-checked by verifiers.
 #[derive(Serialize)]

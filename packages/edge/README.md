@@ -37,8 +37,12 @@ export default {
   created. If it doesn't, the gate refuses to exist.
 - **The freshness class is the gate's** (default `F2`, five minutes, the same as `@ainra/sdk`).
 - **Revoked delegates come from the trusted directory.**
+- **The status list is the registrar's or it is nothing.** The gate checks the registrar's signature over the list,
+  its length, its issue time and its URI, under the status key the directory publishes, before it reads a bit of it.
+  Anything else is `stale_status`. Before D-072 this gate didn't check that signature; it has never been published
+  in that state.
 
-A presenter can't loosen any of these (D-068).
+A presenter can't loosen any of these (D-068, D-072).
 
 ## Proof
 

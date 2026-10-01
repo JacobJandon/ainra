@@ -15,6 +15,12 @@ npm are 0.4.1.
 
 ### Security — fixed, and owned
 
+- **The Rust gate path believed any status list a presenter handed it** (D-072). `@ainra/edge` and `ainra
+  verify-request` never checked the registrar's signature over the status list, so a revoked agent could present its
+  pre-revocation list re-dated to "now" — or an all-clear list of its own — and be let in, for as long as it liked.
+  The TypeScript and Python verifiers have always refused that. Neither affected surface has been published; anyone
+  running the edge gate from a checkout since 2026-09-29 was exposed. Gates now authenticate status against the
+  directory's status key before reading it. Found by sending the same requests to all three gates.
 - **The Rust wire path let a presenter choose its own freshness class and bring its own revoked-delegate list**
   (D-068). A self-contained conformance vector needs that; a gate must not: a presenter could declare F3 (24 h)
   and an empty revocation list. Gates now use `verify_wire_policy` — the verifier's class (default F2) and the
@@ -50,6 +56,9 @@ npm are 0.4.1.
   `mint_instance_credential` derives the passport leaf itself. `examples/agent.py` makes the whole journey against the
   Node gate and the edge gate (`make python-agent-e2e`); `make sign-diff` holds the Python and TypeScript signers to
   all three verifiers.
+- **One answer from every gate** (D-072): `make gate-parity` runs a TypeScript agent and a Python agent against the
+  Node, edge and Python gates, then sends 42 requests to all three and requires the same status and reason from
+  each. `tools/gate-origin.py` puts the Python gate behind a socket; `examples/agent.mjs` is the TypeScript agent.
 - **`ainra verify-request`** (D-069): why did a gate refuse this request — the edge gate's check, on files.
 - **`kits/personhood`** (D-066): a registrar-side principal proof from an on-chain proof-of-personhood registry,
   with the evidence kept at the registrar.
@@ -58,6 +67,9 @@ npm are 0.4.1.
 
 - CI runs every `make preflight` row — 18 had never run in CI, which is how a wrong public claim sat green on main.
 - The Python package's unit tests run in CI and preflight (`make py-test`); until D-071 they ran nowhere.
+- The Python gate treats a header sent on several lines as one field, as the Node and edge gates do (D-072): a
+  request with `x-ainra-passport` twice is `schema_violation` everywhere, where the Python gate used the last line.
+- `make policy-parity` compares three implementations: the Rust gate path is a column (D-072).
 - **A request signed by someone else as well is no longer refused** (D-070). Every AINRA gate parsed `signature-input`
   and `signature` as if they held only AINRA's member, and refused a request carrying a second signature as
   `presentation_sig_invalid`; the signers set those fields and erased another signer's. Gates now read the `ainra`

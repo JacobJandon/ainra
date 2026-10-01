@@ -100,6 +100,37 @@ test("a revoked or forged bundle is never stored — naming it afterwards is 428
   }
 });
 
+test("D-072: the gate believes only status the registrar signed — every edit a presenter can make reads stale_status", async () => {
+  // Before D-072 the Rust path did not look at the status signature at all. The only "forged" bundle this file
+  // tried was one whose edit happened to break the list's compression, so it was refused for the wrong reason and
+  // the test never asked which. Each edit here leaves a bundle that still DECODES; only the signature can refuse it.
+  const g = await make();
+  const without = (b, ...keys) => Object.fromEntries(Object.entries(b).filter(([k]) => !keys.includes(k)));
+  const edits = {
+    "the issue time moved": { ...valid, status_issued_at: valid.status_issued_at + 1 },
+    "a byte appended to the list": { ...valid, status_list: valid.status_list + "A" },
+    "the signature removed": without(valid, "status_sig_ed25519", "status_sig_mldsa65"),
+    "one half of the signature removed": without(valid, "status_sig_mldsa65"),
+    "published under another URI": { ...valid, status_uri: "status://someone-else/1" },
+    "REVOKED, with an all-clear list of its own, issued now": { ...revoked, status_list: "eJztwAEBAAAAQCD_VxtCsDIBAgAAAQ", status_issued_at: T },
+    "REVOKED, re-dating the list it was revoked in": { ...revoked, status_issued_at: T },
+  };
+  for (const [what, b] of Object.entries(edits)) {
+    const edge = await g(present(b));
+    const ts = checkRequest(tsVerifier, b, { now: () => T });
+    assert.equal(edge.allow, false, what);
+    assert.equal(edge.event.reason, "stale_status", `${what}: the edge gate`);
+    assert.equal(ts.verdict.reason, "stale_status", `${what}: @ainra/sdk, on the same bundle`);
+  }
+  // and none of them can be sent once and named afterwards
+  const s = await make({ store: createStore() });
+  for (const b of Object.values(edits)) {
+    const p = await s(req(PRIME_PATH, { method: "POST", body: JSON.stringify(b) }));
+    assert.equal(p.response.status, 403);
+    assert.equal(p.response.headers.get("x-ainra-reason"), "stale_status");
+  }
+});
+
 test("no presentation is refused; a gate without an audience or with an unknown class refuses to exist", async () => {
   assert.equal((await (await make())(req("/orders"))).response.status, 403);
   await assert.rejects(createAinraEdgeGate({ directory, roots }), /audience/);

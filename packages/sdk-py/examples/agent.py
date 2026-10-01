@@ -79,13 +79,18 @@ class HybridKey:
 
 
 def call(method: str, url: str, headers=None, body: bytes | None = None):
-    """(status, x-ainra-reason, parsed JSON body or None). A refusal is an answer, not an exception."""
-    req = urllib.request.Request(url, data=body, method=method, headers=dict(headers or {}))
-    try:
-        with urllib.request.urlopen(req, timeout=10) as r:
-            status, hdrs, raw = r.status, r.headers, r.read()
-    except urllib.error.HTTPError as e:
-        status, hdrs, raw = e.code, e.headers, e.read()
+    """(status, x-ainra-reason, parsed JSON body or None). A refusal is an answer, not an exception. A 429 is
+    "wait": the registrar's public door allows 30 writes a minute, so this waits its turn (up to 70 s)."""
+    for attempt in range(15):
+        req = urllib.request.Request(url, data=body, method=method, headers=dict(headers or {}))
+        try:
+            with urllib.request.urlopen(req, timeout=10) as r:
+                status, hdrs, raw = r.status, r.headers, r.read()
+        except urllib.error.HTTPError as e:
+            status, hdrs, raw = e.code, e.headers, e.read()
+        if status != 429 or attempt == 14:
+            break
+        time.sleep(5)
     try:
         parsed = json.loads(raw)
     except ValueError:

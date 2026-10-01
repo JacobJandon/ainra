@@ -10,6 +10,11 @@
 // the send-once POST must carry a valid presentation and an RFC 9421 signature by the running copy's instance key;
 // an allowed request answers 200 `{"ok":true,"as":"<credential name>"}`, a refused one answers with the gate's own
 // status and `x-ainra-reason`. Nothing here is simulated, and nothing here is a deployment: TEST-ROOT, loopback.
+//
+// WITNESS: this is a fixture for checks, not a check — could it hide a failure? An origin that answered 200 without
+// running the gate would pass every "allowed" step and fail every refusal the journeys and `make gate-parity`
+// assert by status AND reason (moved, unsigned, replayed, revoked, forged status), so a gate that is not really
+// behind this socket shows up red there. It exits 1 only when the published directory does not verify.
 import http from "node:http";
 import { readFileSync } from "node:fs";
 import { Verifier, PRIME_PATH } from "../packages/sdk-ts/dist/index.js";
@@ -48,7 +53,8 @@ if (EDGE) {
     res.end(Buffer.from(await g.response.arrayBuffer()));
   };
 } else {
-  const verifier = Verifier.fromDirectoryB64(directory, roots.root_ed25519, roots.root_slh, "F3", false, AUD);
+  // F2 (status no older than five minutes): the default of every gate, so the three origins apply one policy.
+  const verifier = Verifier.fromDirectoryB64(directory, roots.root_ed25519, roots.root_slh, "F2", false, AUD);
   if (!verifier) { console.error("gate-origin: the published directory does not verify against the roots"); process.exit(1); }
   const seen = new Set();
   const store = createPresentationStore();

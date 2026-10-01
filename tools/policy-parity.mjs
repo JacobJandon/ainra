@@ -58,6 +58,27 @@ const SCENARIOS = [
     what: "presenter hands over its own revocation set; the verifier must not take policy from the wire",
     sampleBundle: (b) => ({ ...b, mandate_revocations: ["deadbeef"] }), audience: null, expect: "valid" },
 
+  // ── who signs the status (D-072). The presenter hands over the status list and its issue time; they mean nothing
+  // until the registrar's signature over exactly those values verifies under the directory's status key. The Rust
+  // gate path did not check it at all — it was not a column of this harness, so nothing compared it with the two
+  // that did. Each row is one edit a presenter can make to the status material of a genuine bundle.
+  { id: "status.redated", policy: "who signs the status", viaSample: true,
+    what: "presenter moves the status issue time — the way a revoked agent keeps an old all-clear list 'fresh'",
+    sampleBundle: (b) => ({ ...b, status_issued_at: b.status_issued_at + 1 }), audience: null, expect: "stale_status" },
+
+  { id: "status.list_replaced", policy: "who signs the status", viaSample: true,
+    what: "presenter supplies a status list of its own making",
+    sampleBundle: (b) => ({ ...b, status_list: b.status_list + "A" }), audience: null, expect: "stale_status" },
+
+  { id: "status.unsigned", policy: "who signs the status", viaSample: true,
+    what: "presenter strips the status signature",
+    sampleBundle: (b) => { const { status_sig_ed25519: _e, status_sig_mldsa65: _m, ...rest } = b; return rest; },
+    audience: null, expect: "stale_status" },
+
+  { id: "status.other_uri", policy: "who signs the status", viaSample: true,
+    what: "presenter claims the status was published under another registrar's URI",
+    sampleBundle: (b) => ({ ...b, status_uri: "status://someone-else/1" }), audience: null, expect: "stale_status" },
+
   // ── MINTING-side policy (D-049). Everything above asks what a VERIFIER accepts; these ask what the SDK is
   // willing to PRODUCE. Vectors cannot reach this at all: an artefact the API refuses to create never becomes
   // bytes, so there is nothing for a corpus to pin. It is still a security policy — an unbound proof-of-possession
@@ -211,8 +232,36 @@ print("valid" if r.valid else r.reason)
   return execFileSync("python3", ["-c", script], { encoding: "utf8" }).trim();
 }
 
+// The Rust gate path — what `@ainra/edge` and `ainra verify-request` run (D-068, D-072) — driven the way an operator
+// drives it: `ainra verify-request` on files, a directory verified against both roots, the gate's own clock and
+// class. It prints the credential's verdict event whether or not the request then passes, and that event is the
+// answer compared here. It takes a signed directory, so it answers the sample-directory rows; the others are about
+// SDK constructors and minting, which this path does not have, and are reported as not applicable.
+function runCore(sc) {
+  if (!sc.viaSample) return null;
+  const dir = mkdtempSync(join(tmpdir(), "pp-core-"));
+  const put = (name, obj) => { const f = join(dir, name); writeFileSync(f, JSON.stringify(obj)); return f; };
+  const baseNow = sample("meta.json").now;
+  const aud = sc.audience === null ? "" : sc.audience();
+  const args = [
+    "verify-request",
+    "--bundle", put("bundle.json", sc.sampleBundle(sample("bundle-valid.json"), baseNow)),
+    "--directory", put("directory.json", sample("directory.json")),
+    "--roots", put("roots.json", sample("roots.json")),
+    "--request", put("request.json", { method: "GET", authority: "parity.example", path: "/", headers: [], body_b64u: null }),
+    "--audience", aud, "--now", String(baseNow + (sc.clockSkew ?? 0)),
+  ];
+  let out;
+  try { out = execFileSync(join(ROOT, "target/release/ainra"), args, { encoding: "utf8" }); }
+  catch (e) { out = e.stdout ?? ""; }
+  const event = JSON.parse(out.split("\n")[1] ?? "{}").event;
+  if (!event) return `ERROR: ${out.split("\n")[0].slice(0, 60)}`;
+  return event.status === "valid" ? "valid" : event.reason;
+}
+
 // ── run ──────────────────────────────────────────────────────────────────────────────────────────────────────────
-const IMPLS = [["sdk-ts", runTs], ["sdk-py", (sc) => runPy(sc)]];
+execFileSync("cargo", ["build", "--release", "-q", "-p", "ainra-cli-rs"], { cwd: ROOT, stdio: "inherit" });
+const IMPLS = [["sdk-ts", runTs], ["sdk-py", (sc) => runPy(sc)], ["core-gate", (sc) => runCore(sc)]];
 let bad = 0;
 console.log("policy parity — API shape and default policy, across implementations");
 console.log("─".repeat(96));
@@ -222,12 +271,12 @@ for (const sc of SCENARIOS) {
     try { got[name] = await run(sc); }
     catch (e) { got[name] = `ERROR: ${String(e.message ?? e).split("\n")[0].slice(0, 60)}`; }
   }
-  const values = Object.values(got);
+  const values = Object.values(got).filter((x) => x !== null); // null = this implementation has no such entry point
   const agree = values.every((x) => x === values[0]);
   const correct = values[0] === sc.expect;
   const mark = agree && correct ? "ok   " : "FAIL ";
   if (!(agree && correct)) bad = 1;
-  console.log(`  ${mark} ${sc.id.padEnd(28)} ${Object.entries(got).map(([k, x]) => `${k}=${x}`).join("  ")}`);
+  console.log(`  ${mark} ${sc.id.padEnd(28)} ${Object.entries(got).map(([k, x]) => `${k}=${x ?? "n/a"}`).join("  ")}`);
   if (!agree) console.error(`        ↑ IMPLEMENTATIONS DISAGREE about "${sc.policy}" — ${sc.what}`);
   else if (!correct) console.error(`        ↑ agreed, but on the WRONG outcome: expected ${sc.expect} — ${sc.what}`);
 }

@@ -1607,3 +1607,79 @@ only superseded, and 0.5.0 carries the floor. The Python package still generates
 `cryptography` directly. Nothing here is evidence that any agent outside this repository uses it.
 
 *Status:* NEW. Ships in 0.5.0.
+
+## D-072 — One answer from every gate; and the Rust gate believed any status it was handed (M42)
+
+*Problem:* AINRA ships three gates — `@ainra/middleware`, `@ainra/edge` (the Rust core in WebAssembly) and the
+Python `AinraGate`. The corpus holds their verify functions to one answer and `make policy-parity` holds the SDKs'
+defaults, but nothing sent the same HTTP request to all three. The Python gate had never been behind a socket at
+all. So: the three gates behind real sockets, a TypeScript agent and a Python agent run against each, and one
+battery of requests required to get the same status and the same named reason from all three.
+
+The first run found two differences. One was small. One was the most serious defect this repository has had.
+
+1. **The Rust gate path did not authenticate the status list.** `@ainra/sdk`'s `Verifier` and the Python `Verifier`
+   have, since D-020, refused any status the registrar's status key did not sign: the presenter supplies the
+   compressed list and its issue time, and they mean nothing until the signature over exactly those values verifies
+   under the key the signed directory publishes. The Rust path — `verify_wire_policy`, behind `credential_json` and
+   `gate_json`, which is what `@ainra/edge` and `ainra verify-request` run — did none of it. Its wire struct did not
+   even declare the signature fields; serde dropped them. D-068 gave that path the verifier's freshness class and
+   the directory's revoked delegates, and stopped there. Measured on the live network: an agent whose passport had
+   just been revoked sent the bundle from before its revocation with `status_issued_at` set to the current second.
+   The Node gate and the Python gate answered `403 stale_status`. The edge gate answered `201`, stored the bundle,
+   and then allowed its signed requests. **At the edge gate, revocation could be switched off by the revoked party,
+   indefinitely, by editing one integer.** An all-clear list of the presenter's own making worked as well.
+   - It was not caught because every check that compared the Rust path with the others used honest bundles ("valid,
+     revoked, an hour later"). The one forged bundle in the edge tests was refused, but only because the edit
+     happened to break the list's compression; the test asserted 403 and never asked the reason.
+   - `docs/POLICY-PARITY.md` explained why the Rust core was not a column of the policy harness: its `Presentation`
+     is a struct literal, so no field can be defaulted. True, and beside the point — the adapter that fills the
+     struct for a gate decides where each value comes from, and it took status from the wire.
+   - `@ainra/edge` has never been published and `verify-request` is in no released binary. Anyone running the edge
+     gate from a checkout since D-068 (2026-09-29) was exposed.
+2. **The Python gate read the last of a repeated header.** A request carrying `x-ainra-passport` twice was allowed by
+   the Python gate and refused (`schema_violation`) by the other two, whose HTTP layers join repeated lines. The
+   request was still fully authenticated, so nothing was admitted that should not have been; the gates disagreed.
+
+*Decision:*
+
+- **One definition of what a status publication signs**, in the core: `status::publication_signing_bytes` — the
+  canonical `{bit_len, issued_at, status_list, uri}` with the list as its base64url text. The registrar service
+  signs with it and every verifier checks with it. It was private to the service.
+- **`verify_gate`** is what a Rust gate calls. Before anything is decompressed it resolves the registrar from the
+  claims and authenticates the status: the bundle must carry the hybrid signature and a URI; the passport's URI, the
+  bundle's and the directory's must agree; the signature must verify under the directory's status key. Every failure
+  is `stale_status`, in the order `@ainra/sdk` applies. Then it verifies with the gate's freshness, the directory's
+  revoked delegates, and an empty mandate-revocation set — the presenter supplies none of them.
+- **The trust object carries the status authorities.** `accredit_json` emits each registrar's status key and URI
+  from the directory it just verified; a trust object without them is refused whole, so a host holding a
+  pre-D-072 trust object fails closed instead of falling back to believing the presenter.
+- `verify_wire_policy` and `verify_bundle_json` say in their own doc comments that they are not gates.
+- The Python gate joins repeated header lines with ", " — the rule the other two get from their HTTP layers.
+- `tools/gate-origin.py`: the Python gate behind a socket (a minimal HTTP/1.1 host, for the drill only).
+  `packages/sdk-ts/examples/agent.mjs`: the TypeScript agent, step for step the Python one.
+
+*Evidence:*
+
+- `make gate-parity` (live): six journeys — two agents × three gates — each 12 checks, all passing; then 42 requests
+  answered identically by the three gates: allowed requests, moved/altered/stale/replayed ones, the signature fields
+  in every arrangement D-070 defines, the presentation headers missing, doubled and malformed, send-once with
+  garbage, eight edits to the status material, and the revoked agent re-dating its old list. Negative control: with
+  `authenticate_status` skipped, eight of the 42 go red and the edge gate stores the forged bundles.
+- `crates/ainra-adapter/tests/gate_status.rs` (offline, in `cargo test`): the signed sample directory and bundles;
+  eight forgeries read `stale_status`; a trust object without status authorities refuses everything. One test states
+  what authentication does NOT close: a genuine earlier publication of the same passport replays until it is older
+  than the freshness class (valid at +299 s, `stale_status` at +301 s) — as in `@ainra/sdk` — and re-dating it is
+  now a forgery. With the fix skipped, four of the six tests fail.
+- `make policy-parity`: a third column, `core-gate`, driven through `ainra verify-request`, and four `status.*` rows;
+  14 decisions identical across three implementations. With the fix skipped the four rows read `valid` in that
+  column and the gate fails.
+- `packages/edge` tests: seven edits that still decode, each `stale_status` from the gate and from `@ainra/sdk` on
+  the same bundle, none storable by send-once.
+
+*Not changed, said plainly:* authenticated status bounds revocation latency by the verifier's freshness class; it
+does not prove currency. Currency mode (D-021) exists in `@ainra/sdk` only. The site's "Try it" panel and
+`verify_bundle_json` keep fixture semantics on specimen records and are not gates. `make gate-parity` needs the live
+network, so it is not in CI; the offline tests above are.
+
+*Status:* NEW. Ships in 0.5.0 — before `@ainra/edge` is published for the first time.

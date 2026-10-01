@@ -574,6 +574,10 @@ fn wire_valid(name: &str, description: &str, built: &Built) -> Vector {
         revoked_delegates: Default::default(),
         instance: None,
         audience: String::new(),
+        // A vector's status is a fixture input: no publication signature (gates require one — D-072).
+        status_uri: None,
+        status_sig_ed25519: None,
+        status_sig_mldsa65: None,
     };
     Vector {
         name: name.to_string(),

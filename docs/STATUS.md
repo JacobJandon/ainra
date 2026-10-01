@@ -311,7 +311,9 @@ DECISIONS D-027/D-028, MTS ADR-017.
   (`instance_pop_invalid`, ADR-019 / D-047 / D-049), and every request it makes can be signed with its instance key
   (RFC 9421, D-062) — a profile held to its own corpus by three implementations (D-067) and enforced by the Node
   middleware and the edge gate (`@ainra/edge`, D-068), beside a signature agent's signature on the same request when
-  there is one (D-070). An agent can do all of it from TypeScript or from Python (D-071); there is no Rust agent SDK. What remains, by design: a passport presented DIRECTLY, with
+  there is one (D-070). An agent can do all of it from TypeScript or from Python (D-071); there is no Rust agent SDK.
+  The three gates (Node, edge, Python) answer one battery of requests identically (`make gate-parity`, D-072), and
+  each believes only status the registrar signed — which the edge gate, before D-072, did not check. What remains, by design: a passport presented DIRECTLY, with
   no instance credential, cannot sign a request — the passport key never enters a container — so a gate that
   requires signed requests admits running copies only. And a copy that keeps presenting a status snapshot from
   before its revocation passes until that snapshot is older than the verifier's freshness class (F2 ≤ 5 min by
@@ -323,4 +325,4 @@ DECISIONS D-027/D-028, MTS ADR-017.
 The recorded public genesis ceremony (custodians being recruited), external verifiers running the kit against
 challenges minted on the wall-clock network (M35), and releasing the M36–M38 layers (send-once presentations, the
 request-signature corpus, `@ainra/edge`, reading beside a signature agent) to npm. Live proofs today: `make
-identity-e2e`, `make edge-e2e`, `make signature-agent-e2e` and `make python-agent-e2e`.
+identity-e2e`, `make edge-e2e`, `make signature-agent-e2e`, `make python-agent-e2e` and `make gate-parity`.

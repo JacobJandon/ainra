@@ -139,7 +139,13 @@ class AinraGate:
             await self.app(scope, receive, send)
             return
 
-        headers = {k.decode("latin1").lower(): v.decode("latin1") for k, v in scope.get("headers", [])}
+        # A field sent on several lines is ONE field, its lines joined by ", " (RFC 9110 §5.3) — the rule the Node
+        # and edge gates get from their HTTP layers. A dict comprehension here kept only the LAST line, so a request
+        # with `x-ainra-passport` twice was allowed by this gate and refused by the other two (D-072).
+        headers: dict[str, str] = {}
+        for k, v in scope.get("headers", []):
+            name, value = k.decode("latin1").lower(), v.decode("latin1")
+            headers[name] = f"{headers[name]}, {value}" if name in headers else value
         now = self._now()
         body = b""
 

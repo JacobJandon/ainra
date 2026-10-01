@@ -21,7 +21,9 @@ classifiers = [
 # Ed25519 + ML-DSA-65 come from `cryptography` (pyca / OpenSSL 3.5+).
 # SLH-DSA-SHA2-128s is bound from the same OpenSSL libcrypto via ctypes
 # (stdlib), so no extra dependency is needed for it. SHA-256 / zlib are stdlib.
-dependencies = ["cryptography>=44"]
+# The floor is 48, measured (D-071): 46 has no `mldsa` module, so `import ainra` fails; 47 has the module but its
+# wheels' backend refuses ML-DSA-65, so every valid passport would read sig_invalid; 48.0.1 passes the whole suite.
+dependencies = ["cryptography>=48"]
 
 [project.optional-dependencies]
 test = ["pytest>=7"]

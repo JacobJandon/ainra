@@ -27,8 +27,8 @@ point. Each release carries PEP 740 attestations binding the artifact to the
 GitHub Actions workflow that built it, so you can check where it came from
 before you trust it.
 
-Requires Python ≥ 3.10 and `cryptography` ≥ 44 (already present on most systems;
-it ships Ed25519 and ML-DSA-65). SLH-DSA-SHA2-128s, SHA-256, and zlib need no
+Requires Python ≥ 3.10 and `cryptography` ≥ 48, which ships Ed25519 and ML-DSA-65. The floor is measured: 46 has
+no ML-DSA module, and 47's wheels refuse ML-DSA-65. SLH-DSA-SHA2-128s, SHA-256, and zlib need no
 extra dependency (see below).
 
 ## Quickstart
@@ -186,7 +186,7 @@ v.verify(bundle, now)     # the instance layer is checked automatically when pre
 The default empty audience is fail-closed — a service that has not said who it is accepts no instance credential.
 
 Minting lives on the operator's side and takes a signing callback, so no key material enters this package:
-`mint_instance_credential`, `prove_instance_possession`.
+`mint_instance_credential`, `prove_instance_possession` (see "Be the agent" below).
 
 ## Signed requests and send-once (D-062, D-065)
 
@@ -204,3 +204,32 @@ app = AinraGate(app, verifier, require_signature=True, seen_nonce=cache.seen, st
   by digest after that. A digest the gate doesn't hold is `428 presentation_unknown`.
 - The request-signature profile is the one `ainra-core` generates `vectors/v1-presentation` from, and this package
   agrees with it on every vector (`make diff`).
+
+## Be the agent (D-071)
+
+An agent written in Python can make the whole journey with this package. Keys stay with you: every function that
+signs takes a callback, `bytes -> {"ed25519": <b64url>, "mldsa65": <b64url>}`.
+
+```python
+from ainra import mint_instance_credential, prove_instance_possession, sign_presentation, presentation_ref
+
+# where the passport key lives (never in the container): a credential for one running copy
+ic = mint_instance_credential(passport_claims_b64=bundle["claims"], instance_public=instance_public,
+                              capabilities=["read:invoices"], audience="https://api.example",
+                              now=now, iid="i-0f3a2b71", control_sign=passport_key_sign)
+
+# inside the running copy: send the bundle once, then sign each request
+pop = prove_instance_possession(audience="https://api.example", credential=ic, nonce=fresh(), now=now,
+                                instance_sign=instance_key_sign)
+full = {**bundle, "instance": {**ic, "pop": pop}}        # POST once to /.well-known/ainra-presentation
+headers = [("x-ainra-passport", presentation_ref(full)), ("x-ainra-pop", b64url_json(pop))]
+headers += sign_presentation(method="POST", authority="api.example", path="/orders", headers=headers, body=body,
+                             keyid=ic["iid"], nonce=fresh(), created=now, instance_sign=instance_key_sign)
+```
+
+- `sign_presentation` returns the headers to set: `content-digest` when there is a body, `signature-input`,
+  `signature`. It appends to another signer's fields (a signature agent's, D-070) and never overwrites them.
+- A runnable agent, start to finish: [`examples/agent.py`](examples/agent.py). `make python-agent-e2e` runs it
+  against the Node gate and the edge gate on the live network.
+- `make sign-diff` holds this signer to the other implementations: what it signs, `ainra-core` and `@ainra/sdk`
+  accept.

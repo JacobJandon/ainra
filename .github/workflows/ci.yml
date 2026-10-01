@@ -77,6 +77,10 @@ jobs:
       # Moved here from the wedge job: the Python column verifies full passports, SLH-DSA included, which needs this
       # job's OpenSSL >= 3.5 container. On ubuntu-latest it failed at import (2026-09-29, first CI run of the row).
       - run: make policy-parity
+      # D-071: the Python package's unit tests had no CI row at all, and its signer had no differential. Both need
+      # this job's Python (ML-DSA signing as well as verification).
+      - run: make py-test
+      - run: make sign-diff
       # D-054's number-syntax gate has a Python column that verifies SLH-DSA checkpoints — so it lives here too. On
       # ubuntu-latest the baseline itself read checkpoint_invalid (OpenSSL 3.0), which is the environment, not a
       # change in anyone's number handling. It reads the committed WASM build, so nothing needs building.

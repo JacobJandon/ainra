@@ -1555,3 +1555,55 @@ signature agent's verifier does not read AINRA's; composing them is the site's p
 served over http on 127.0.0.1, where the profile requires https. Nothing here is evidence that any operator runs it.
 
 *Status:* NEW. Ships in 0.5.0 with M36–M39.
+
+## D-071 — An agent written in Python (M41)
+
+*Problem:* Most agents are written in Python, and the Python package could not be one. It had
+`mint_instance_credential` and `prove_instance_possession`, but no request signer — so a Python agent could mint a
+credential and then be refused by every gate that requires signed requests, the edge gate among them. The producing
+side it did have was unproven: no test called `mint_instance_credential`, and it asked the caller for the passport
+leaf that `@ainra/sdk` derives. Looking for where this would have been caught found three more things nothing was
+looking at:
+
+1. **The Python package's unit tests ran nowhere.** Not in CI, not in `make preflight`, not behind any make target —
+   only `make diff` exercised Python, and only its verify path on vectors. One of the tests (the version check
+   written after 0.4.0 shipped reporting 0.3.0) was a bare function that `python -m unittest` does not collect.
+2. **`make diff` holds verifiers, not signers.** Every corpus request is signed by the Rust core. A signer that
+   covered the wrong bytes would produce requests only its own verifier accepts, and no check would see it.
+3. **The declared dependency floor was wrong, twice.** `cryptography>=44`; measured in clean environments: with 46
+   `import ainra` raises (no ML-DSA module), and with 47 it imports but the wheels refuse ML-DSA-65, so the
+   fail-closed verifier answers `sig_invalid` for every valid passport — 44 of the package's own tests fail. 48.0.1
+   passes all of them.
+
+*Decision:*
+
+- `ainra.sign_presentation` — the D-062 profile from the producing side, with D-070's append-never-overwrite rule.
+  It takes the same signing callback as `prove_instance_possession`, so the package still holds no key. It refuses to
+  emit what the profile's parser refuses (a nonce outside the charset, a quoted keyid, a missing covered component,
+  half a hybrid signature), so the error names the cause instead of surfacing at a gate.
+- `mint_instance_credential` derives the passport leaf from the claims, as the TypeScript SDK does. A caller-supplied
+  leaf is still accepted, and one that is not the leaf of those claims is refused.
+- `ainra.canonicalize` and `ainra.presentation_ref` are public: an agent needs both, and the example imports nothing
+  private.
+- `make py-test` runs the package's tests with `unittest` (nothing to install), in preflight and in CI's Python-capable
+  job. The version test is a `TestCase`.
+- `make sign-diff`: the Python package and `@ainra/sdk` each sign four fresh requests under keys that never existed (a
+  GET, a POST with a body, a query under a mixed-case method and authority, a request another signer signed first);
+  `ainra-core`, `@ainra/sdk` and the Python package must each accept all eight. Then one byte of every signature is
+  flipped and each must refuse all eight as `presentation_sig_invalid`.
+- `tools/gate-origin.mjs`: a standalone origin running the real gate (`--edge` for the edge gate), for an agent in any
+  language to be tested against.
+- `cryptography>=48`.
+
+*Evidence:* `make python-agent-e2e` at the real clock, against the Node gate and the edge gate: own key; a passport
+from the registrar's public door (refused without a proof of possession); an instance credential minted in Python;
+send-once `201`, the gate's digest equal to the one this package computes; a signed GET and a signed POST with a body
+allowed at 10.7 KiB of headers; moved, unsigned, unknown-digest and replayed requests refused by name; the revoked
+bundle refused. `make sign-diff`: 2 signers × 3 verifiers, 8/8 each, and the negative control. New unit tests fail
+under two mutations of the signer (SET instead of append; the wrong digest in the base). `make py-test`: 52 tests.
+
+*Not changed, said plainly:* 0.4.x on PyPI still declares `cryptography>=44`; a published artifact cannot be edited,
+only superseded, and 0.5.0 carries the floor. The Python package still generates no keys — the example uses
+`cryptography` directly. Nothing here is evidence that any agent outside this repository uses it.
+
+*Status:* NEW. Ships in 0.5.0.

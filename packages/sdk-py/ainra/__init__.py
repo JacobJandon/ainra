@@ -22,6 +22,7 @@ Quickstart::
 from __future__ import annotations
 
 from . import reasons
+from ._canon import canonicalize
 from .delta import verify_delta, verify_head
 from .directory import verify_directory
 from .instance import (
@@ -33,6 +34,7 @@ from .instance import (
     prove_instance_possession,
 )
 from .middleware import AinraGate, PresentationStore, ainra_gate, check_binding
+from .presentation import presentation_ref, sign_presentation
 from .verdict import Verdict
 from .verifier import Verifier
 from .verify import verify
@@ -46,6 +48,10 @@ __all__ = [
     "instance_cred_digest",
     "pop_signing_bytes",
     "INSTANCE_CRED_DEFAULT_SECS",
+    # D-071 — an agent written in Python: sign each request, name the bundle it sent once by digest.
+    "sign_presentation",
+    "presentation_ref",
+    "canonicalize",
     "Verifier",
     "Verdict",
     "verify",

@@ -1,6 +1,6 @@
 # AINRA — the acceptance bar (MTS §28, brief §8): a stranger clones, runs `make test && make vectors && make diff`,
 # and everything is green in under 10 minutes on a laptop.
-.PHONY: signature-agent-check signature-agent-e2e edge-build edge-test edge-e2e edge-runtimes personhood-test personhood-live live-up live-down live-status identity-e2e root-dark-drill mirror-sufficiency legibility-drill cli-deps succession-drill staleness-drill amendment-check amendment-check-negative doctrine doctrine-negative number-syntax engine-parity one-decode-path bench-gate all test vectors vectors-check diff cli-check suite-migration-drill ceremony-rehearsal-multi witness-check push-advisory-check changelog-board-check fmt clippy fuzz-smoke bench sdk-build sdk-test ci clean status console samples drill explorer demo scale ceremony testbed wedge-build wedge-test repro mirror verify-mirror check-freeze freeze genesis-local verifier-kit-smoke ceremony-dry-run soak-smoke drill-networked preflight s7 license gitleaks audit verify-as-external verifier-triple-drill soak-verify genesis-status verify-transcript genesis-board-demo release doctor verifier-operator-drill site site-up site-down site-check stage-all stage-all-down explorer-up explorer-down ainrascan stage-up stage-down stage-status stage-smoke demo-walkthrough three-clients genesis-verify config-diff declaration genesis-rehearsal site-demo verify issue-first registrar-console mcp-test skills-replay presentation-diff conformance campaign-status campaign-init campaign-gates campaign-check publish-preflight stage-install stage-uninstall stage-health stranger probe-drill miri reasons-check corpus-check instance-gate claims-check claims claims-live policy-parity deploy-current site-net site-net-check lockfile-sync soak-ingest outreach-check names-check interop interop-negative
+.PHONY: py-test sign-diff python-agent-e2e signature-agent-check signature-agent-e2e edge-build edge-test edge-e2e edge-runtimes personhood-test personhood-live live-up live-down live-status identity-e2e root-dark-drill mirror-sufficiency legibility-drill cli-deps succession-drill staleness-drill amendment-check amendment-check-negative doctrine doctrine-negative number-syntax engine-parity one-decode-path bench-gate all test vectors vectors-check diff cli-check suite-migration-drill ceremony-rehearsal-multi witness-check push-advisory-check changelog-board-check fmt clippy fuzz-smoke bench sdk-build sdk-test ci clean status console samples drill explorer demo scale ceremony testbed wedge-build wedge-test repro mirror verify-mirror check-freeze freeze genesis-local verifier-kit-smoke ceremony-dry-run soak-smoke drill-networked preflight s7 license gitleaks audit verify-as-external verifier-triple-drill soak-verify genesis-status verify-transcript genesis-board-demo release doctor verifier-operator-drill site site-up site-down site-check stage-all stage-all-down explorer-up explorer-down ainrascan stage-up stage-down stage-status stage-smoke demo-walkthrough three-clients genesis-verify config-diff declaration genesis-rehearsal site-demo verify issue-first registrar-console mcp-test skills-replay presentation-diff conformance campaign-status campaign-init campaign-gates campaign-check publish-preflight stage-install stage-uninstall stage-health stranger probe-drill miri reasons-check corpus-check instance-gate claims-check claims claims-live policy-parity deploy-current site-net site-net-check lockfile-sync soak-ingest outreach-check names-check interop interop-negative
 
 all: fmt clippy test vectors diff
 
@@ -230,6 +230,18 @@ edge-runtimes: sdk-build edge-build
 	  node runtimes/workerd.mjs
 edge-e2e: sdk-build edge-build
 	AINRA_REGISTRAR=http://127.0.0.1:4970 node tools/identity-e2e.mjs --edge
+
+# D-071 — an agent written in Python. `py-test`: the Python package's own unit tests, which until now ran nowhere but a
+# developer's machine. `sign-diff` (offline): requests signed by the Python package and by @ainra/sdk under keys that
+# never existed, accepted by all three verifiers; then one byte flipped in each, refused by all three.
+# `python-agent-e2e` (needs `make live-up`): the whole journey in Python against the Node gate and the edge gate.
+py-test:
+	cd packages/sdk-py && python3 -m unittest discover -s tests
+sign-diff: sdk-build
+	node tools/sign-diff.mjs && node tools/sign-diff.mjs --negative
+python-agent-e2e: sdk-build edge-build
+	cd packages/middleware && { [ -d node_modules ] || npm install --prefer-offline --no-audit --no-fund --silent; } && npm run -s build
+	bash tools/python-agent-e2e.sh
 
 # D-070 — one request, two readers. `signature-agent-check` (offline, CI): an independent open-source implementation of
 # the signature-agent profile (pinned in kits/signature-agent/package-lock.json) verifies the other signer's member of

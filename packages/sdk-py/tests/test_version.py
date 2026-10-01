@@ -7,6 +7,7 @@ one fact will drift again unless something fails when they do. This is that some
 """
 
 import re
+import unittest
 from pathlib import Path
 
 import ainra
@@ -27,8 +28,12 @@ def _declared_version() -> str:
         return match.group(1)
 
 
-def test_module_version_matches_pyproject():
-    assert ainra.__version__ == _declared_version(), (
-        f"ainra.__version__ is {ainra.__version__!r} but pyproject.toml declares "
-        f"{_declared_version()!r} — the installed package would report the wrong version"
-    )
+class TestVersion(unittest.TestCase):
+    # A TestCase, not a bare function: `python -m unittest` (what `make py-test` and CI run, with no pytest to
+    # install) does not collect module-level functions, so as a function this check ran only where pytest did.
+    def test_module_version_matches_pyproject(self):
+        self.assertEqual(
+            ainra.__version__, _declared_version(),
+            f"ainra.__version__ is {ainra.__version__!r} but pyproject.toml declares "
+            f"{_declared_version()!r} — the installed package would report the wrong version",
+        )

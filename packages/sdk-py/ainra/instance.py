@@ -22,6 +22,7 @@ from ._b64 import decode as b64d
 from ._b64 import encode as b64e
 from ._canon import canon_bytes
 from ._crypto import sha256
+from ._merkle import leaf_hash
 
 #: ADR-019 ceiling — mirrors ``ainra_core::consts::INSTANCE_CRED_DEFAULT_SECS``. A verifier enforces this
 #: regardless of what a minter chose, so the clamp below is a courtesy and not the control.
@@ -73,7 +74,6 @@ def pop_signing_bytes(pop: dict, ic: dict) -> bytes:
 def mint_instance_credential(
     *,
     passport_claims_b64: str,
-    passport_leaf_b64: str,
     instance_public: dict,
     capabilities: list[str],
     audience: str,
@@ -81,12 +81,16 @@ def mint_instance_credential(
     iid: str,
     control_sign,
     lifetime_secs: int = INSTANCE_CRED_DEFAULT_SECS,
+    passport_leaf_b64: str | None = None,
 ) -> dict:
     """Mint a credential for one running copy. Run this where the CONTROL KEY lives, never in the container.
 
-    ``passport_leaf_b64`` is the passport's ``prelog_leaf`` — the same leaf its log inclusion was proven against.
-    Binding to it is what lets instance credentials go unlogged while ``logged-before-valid`` keeps deciding
-    something: you cannot mint under a passport that was never logged.
+    The credential binds to the passport's ``prelog_leaf`` — the leaf its log inclusion was proven against: the
+    RFC 6962 leaf hash of the canonical claims without ``log``. Binding to it is what lets instance credentials go
+    unlogged while ``logged-before-valid`` keeps deciding something: you cannot mint under a passport that was never
+    logged. The leaf is derived here from the claims, as ``@ainra/sdk`` derives it (D-071); ``passport_leaf_b64`` is
+    accepted for callers that already hold it, and one that disagrees with the claims is refused, since no verifier
+    would accept the credential.
 
     Raises ``ValueError`` on a widening capability set. The verifier would refuse it anyway, but failing here means
     the error can name the capability instead of surfacing later as a rejected request in production.
@@ -97,6 +101,9 @@ def mint_instance_credential(
     if claims is None:
         raise ValueError("passport_claims_b64 is not canonical base64url")
     parsed = json.loads(claims.decode("utf-8"))
+    leaf = b64e(leaf_hash(canon_bytes({k: v for k, v in parsed.items() if k != "log"})))
+    if passport_leaf_b64 is not None and passport_leaf_b64 != leaf:
+        raise ValueError("passport_leaf_b64 is not the leaf of these claims")
     held = parsed.get("capabilities") or []
     extra = [c for c in capabilities if c not in held]
     if extra:
@@ -110,7 +117,7 @@ def mint_instance_credential(
         "exp": int(now) + life,
         "capabilities": list(capabilities),
         "aud": audience,
-        "passport_leaf": passport_leaf_b64,
+        "passport_leaf": leaf,
     }
     ic["sig"] = control_sign(instance_signing_bytes(ic))
     return ic

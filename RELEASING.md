@@ -136,7 +136,7 @@ Publish order matters: **`@ainra/sdk` first** (the other two resolve it by name)
 ### PyPI — `ainra`
 
 The distribution name is **`ainra`** (`packages/sdk-py/pyproject.toml` → `[project] name = "ainra"`; checked
-unregistered on PyPI 2026-07-30). Runtime dependency is exactly `cryptography>=44` (`pytest` is a `test` extra only).
+unregistered on PyPI 2026-07-30). Runtime dependency is exactly `cryptography>=48` (`pytest` is a `test` extra only).
 
 - [ ] **Build both artifacts** from a clean tree: `python -m build packages/sdk-py` → `dist/ainra-<version>.tar.gz`
       (sdist) + `dist/ainra-<version>-py3-none-any.whl` (wheel). (Dry-run-verified: the wheel ships only the `ainra/`
@@ -145,7 +145,7 @@ unregistered on PyPI 2026-07-30). Runtime dependency is exactly `cryptography>=4
       dist/ainra-<version>-py3-none-any.whl` pulls in **only** `cryptography` (+ its own `cffi`/`pycparser`), nothing
       surprising, and the README quickstart runs green under the venv's python. Re-check before publishing.
 - [ ] **Check the metadata** before upload: `twine check dist/*` (long-description render, license expression,
-      `Requires-Python`, `Requires-Dist: cryptography>=44`).
+      `Requires-Python`, `Requires-Dist: cryptography>=48`).
 - [ ] **Upload** — prefer a **Trusted Publisher (OIDC)** from CI so no long-lived token is stored: configure the
       `pypi` publisher for the `ainra` project and let the GitHub Action mint a short-lived token. Otherwise, from a
       trusted machine: `twine upload dist/*` (or `--repository testpypi` for a rehearsal first). `twine` is not

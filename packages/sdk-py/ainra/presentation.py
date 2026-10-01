@@ -13,6 +13,8 @@ The order of checks is part of the profile — it decides the reason a request w
 headers present → signature-input shape → alg → keyid → covered set → freshness → body digest → signature field →
 signature → nonce. The nonce is asked last, and only after the signature verified, so an unauthenticated caller
 cannot fill someone else's replay cache. This layer holds no state: pass ``seen`` to enforce single use.
+
+:func:`sign_presentation` is the producing side (D-071): an agent written in Python signs its own requests.
 """
 
 from __future__ import annotations
@@ -192,6 +194,56 @@ def verify_presentation(*, method: str, authority: str, path: str, headers: Sequ
     if seen is not None and seen(nonce):
         return {"ok": False, "reason": "presentation_replayed"}
     return {"ok": True, "nonce": nonce, "created": created}
+
+
+def sign_presentation(*, method: str, authority: str, path: str, headers: Sequence[tuple[str, str]],
+                      body: bytes | None, keyid: str, nonce: str, created: int, instance_sign) -> list[tuple[str, str]]:
+    """Sign a request with the running copy's instance key (D-071). Returns the headers to SET, replacing any of the
+    same name, in order: ``content-digest`` (only when there is a body), ``signature-input``, ``signature``.
+
+    ``keyid`` is the instance credential's ``iid``; ``nonce`` must be fresh per request. ``instance_sign`` is the same
+    callback :func:`ainra.prove_instance_possession` takes: bytes in, ``{"ed25519": <b64url>, "mldsa65": <b64url>}``
+    out, so no key material enters this package. When another signer has already signed (a signature agent, D-070),
+    the returned fields keep its members and append AINRA's; a request that already holds an ``ainra`` member, or
+    only half of another signature, raises ``ValueError`` rather than being overwritten.
+    """
+    # Refuse to emit what the profile's own parser would refuse: the error belongs here, where it can name the cause,
+    # not at a gate as presentation_sig_invalid.
+    if not isinstance(keyid, str) or not 1 <= len(keyid) <= 64 or '"' in keyid:
+        raise ValueError("cannot sign: keyid must be 1-64 characters without a double quote")
+    if not isinstance(nonce, str) or re.fullmatch(r"[A-Za-z0-9._~-]{1,128}", nonce) is None:
+        raise ValueError("cannot sign: nonce must be 1-128 of A-Z a-z 0-9 . _ ~ -")
+    prior_input, prior_sig = _header(headers, "signature-input"), _header(headers, "signature")
+    if (prior_input is None) != (prior_sig is None):
+        raise ValueError("cannot sign: the request carries half of another signature")
+    if prior_input is not None and prior_sig is not None:
+        im, sm = _members(prior_input), _members(prior_sig)
+        if im is None or sm is None:
+            raise ValueError("cannot sign: the request's signature fields do not split into members")
+        if _own_member(im) is not None or _own_member(sm) is not None:
+            raise ValueError("cannot sign: the request already carries an ainra signature")
+    out: list[tuple[str, str]] = []
+    view = list(headers)
+    has_body = bool(body)
+    if has_body:
+        digest = content_digest(body)
+        view = [(k, v) for k, v in view if k.lower() != "content-digest"] + [("content-digest", digest)]
+        out.append(("content-digest", digest))
+    components = covered_components(has_body)
+    base = signature_base(method, authority, path, view, components, created, keyid, nonce)
+    if base is None:
+        raise ValueError(f"cannot sign: a covered component is missing ({', '.join(components)})")
+    sig = instance_sign(base.encode("utf-8"))
+    ed = _b64.decode(sig.get("ed25519")) if isinstance(sig, dict) else None
+    ml = _b64.decode(sig.get("mldsa65")) if isinstance(sig, dict) else None
+    if ed is None or ml is None or len(ed) != ED25519_SIG_LEN or len(ml) != MLDSA65_SIG_LEN:
+        raise ValueError("instance_sign returned a non-hybrid signature: both halves are mandatory (D-047)")
+    listed = " ".join(f'"{c}"' for c in components)
+    own_input = f'{SIG_LABEL}=({listed});created={int(created)};keyid="{keyid}";alg="{SIG_ALG}";nonce="{nonce}"'
+    own_sig = f"{SIG_LABEL}=:" + base64.b64encode(ed + ml).decode("ascii") + ":"
+    out.append(("signature-input", own_input if prior_input is None else f"{prior_input}, {own_input}"))
+    out.append(("signature", own_sig if prior_sig is None else f"{prior_sig}, {own_sig}"))
+    return out
 
 
 def run_presentation_vector(v: dict) -> dict:

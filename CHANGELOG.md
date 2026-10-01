@@ -25,6 +25,10 @@ npm are 0.4.1.
   `not_logged`. No unit test had a hop; `make presentation-diff` caught it.
 - **A registrar started without a write token accepted unauthenticated issuance and revocation** (D-064). Writes
   now fail closed; open writes need an explicit loopback-only switch.
+- **The Python package's dependency floor was wrong** (D-071): it declared `cryptography>=44`. With 46, `import
+  ainra` fails; with 47, ML-DSA-65 is refused by the wheels' backend and the fail-closed verifier answers
+  `sig_invalid` for every valid passport. The floor is now 48, measured. Fail-closed throughout, so no passport was
+  ever wrongly accepted.
 
 ### Added
 
@@ -42,6 +46,10 @@ npm are 0.4.1.
 - **`@ainra/edge`** (D-068): the gate for the edge — `ainra-core` in WebAssembly behind a web-standard `Request`
   → decision function; trust from a directory verified against both roots at start-up. Proven under Deno, Bun,
   Node and inside the workerd runtime (`make edge-runtimes`), and on the live journey (`make edge-e2e`).
+- **An agent written in Python** (D-071): `ainra.sign_presentation` signs requests with the running copy's key;
+  `mint_instance_credential` derives the passport leaf itself. `examples/agent.py` makes the whole journey against the
+  Node gate and the edge gate (`make python-agent-e2e`); `make sign-diff` holds the Python and TypeScript signers to
+  all three verifiers.
 - **`ainra verify-request`** (D-069): why did a gate refuse this request — the edge gate's check, on files.
 - **`kits/personhood`** (D-066): a registrar-side principal proof from an on-chain proof-of-personhood registry,
   with the evidence kept at the registrar.
@@ -49,6 +57,7 @@ npm are 0.4.1.
 ### Changed
 
 - CI runs every `make preflight` row — 18 had never run in CI, which is how a wrong public claim sat green on main.
+- The Python package's unit tests run in CI and preflight (`make py-test`); until D-071 they ran nowhere.
 - **A request signed by someone else as well is no longer refused** (D-070). Every AINRA gate parsed `signature-input`
   and `signature` as if they held only AINRA's member, and refused a request carrying a second signature as
   `presentation_sig_invalid`; the signers set those fields and erased another signer's. Gates now read the `ainra`

@@ -1194,6 +1194,48 @@ pub fn gate_json(
     }
 }
 
+/// Run one `vectors/v1-gate` vector (D-073): a directory and the roots it must verify against, a bundle exactly as a
+/// presenter sends it, and the GATE's own clock, audience and freshness class. This is the gate path end to end —
+/// [`accredit_json`], then [`verify_gate`] — so the corpus holds every implementation to what a gate decides, not
+/// to what the fixture-semantics verify function decides.
+///
+/// `{"verdict":"no_gate"}` when the directory does not verify: a gate that cannot establish trust does not exist.
+/// Otherwise `{"verdict":"valid"}` or `{"verdict":"invalid","reason":…}`.
+pub fn gate_vector_result(v: &serde_json::Value) -> serde_json::Value {
+    let invalid = |r: &str| json!({ "verdict": "invalid", "reason": r });
+    let acc: serde_json::Value = serde_json::from_str(&accredit_json(
+        &v["directory"].to_string(),
+        &v["roots"].to_string(),
+    ))
+    .unwrap_or(serde_json::Value::Null);
+    if acc["ok"] != json!(true) {
+        return json!({ "verdict": "no_gate" });
+    }
+    let (Some(trust), Some(f), Some(now), Some(audience)) = (
+        gate_trust(&acc["trust"].to_string()),
+        v["freshness"].as_str().and_then(freshness_of),
+        v["now"].as_u64(),
+        v["audience"].as_str(),
+    ) else {
+        return invalid("schema_violation");
+    };
+    let Ok(p) = serde_json::from_value::<WirePresentation>(v["bundle"].clone()) else {
+        return invalid("schema_violation");
+    };
+    match verify_gate(&p, &trust, now, audience, f) {
+        Verdict::Valid => json!({ "verdict": "valid" }),
+        Verdict::Invalid { reason } => invalid(&reason_str(reason)),
+    }
+}
+
+/// [`gate_vector_result`] from JSON text, for hosts that must never panic (the WASM boundary).
+pub fn run_gate_vector_json(vector_json: &str) -> String {
+    serde_json::from_str::<serde_json::Value>(vector_json)
+        .map(|v| gate_vector_result(&v))
+        .unwrap_or_else(|_| json!({ "verdict": "invalid", "reason": "schema_violation" }))
+        .to_string()
+}
+
 /// Run one conformance vector from its JSON text and return the verdict as JSON (`{"verdict":…}` / `…,"reason":…`).
 /// This is the entry the cross-surface differential drives, so "it runs in your browser" is a claim the corpus can
 /// defend rather than a description.

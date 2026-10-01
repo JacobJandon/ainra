@@ -8,7 +8,7 @@ spawns this once per corpus and asserts every line agrees with the vector's
 recorded ``expect`` (which is the Rust core's verdict), so the Python verifier
 joins the core / TS-SDK / JS-CLI differential as an independent fourth brain.
 
-Usage:  python -m ainra._vector_runner <passport|delta|directory|presentation> <dir>
+Usage:  python -m ainra._vector_runner <passport|delta|directory|presentation|gate> <dir>
 """
 
 from __future__ import annotations
@@ -20,6 +20,7 @@ import sys
 from .delta import verify_delta_vector
 from .directory import verify_directory
 from .presentation import run_presentation_vector
+from .verifier import Verifier
 from .verify import verify as verify_passport
 
 
@@ -42,6 +43,16 @@ def run(kind: str, directory: str) -> int:
             result = verify_directory(v)
         elif kind == "presentation":
             result = run_presentation_vector(v)
+        elif kind == "gate":
+            # D-073 — what a GATE decides: the directory against both roots, then the GA Verifier with the gate's
+            # own audience and freshness class, at the gate's clock. Nothing is taken on the presenter's word.
+            gate = Verifier.from_directory(v["directory"], v["roots"]["root_ed25519"], v["roots"]["root_slh"],
+                                           audience=v["audience"], freshness=v["freshness"])
+            if gate is None:
+                result = {"verdict": "no_gate"}
+            else:
+                verdict = gate.verify(v["bundle"], v["now"])
+                result = {"verdict": "valid"} if verdict.valid else {"verdict": "invalid", "reason": verdict.reason}
         else:
             print(f"unknown kind: {kind}", file=sys.stderr)
             return 2

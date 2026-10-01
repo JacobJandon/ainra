@@ -15,13 +15,14 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
-import { runVector, expectedVerdict, canonicalize, runDeltaVector, runDirectoryVector, runPresentationVector } from "../../packages/sdk-ts/dist/index.js";
+import { runVector, expectedVerdict, canonicalize, runDeltaVector, runDirectoryVector, runPresentationVector, runGateVector } from "../../packages/sdk-ts/dist/index.js";
 
 const ROOT = fileURLToPath(new URL("../../", import.meta.url));
 const VEC = path.join(ROOT, "vectors/v1");
 const VEC_DELTA = path.join(ROOT, "vectors/v1-delta");
 const VEC_DIR = path.join(ROOT, "vectors/v1-directory");
 const VEC_PRES = path.join(ROOT, "vectors/v1-presentation");
+const VEC_GATE = path.join(ROOT, "vectors/v1-gate");
 const P0 = path.join(ROOT, "apps/cli-node/bin/ainra.js");
 let failures = 0;
 
@@ -222,6 +223,26 @@ if (fs.existsSync(VEC_PRES)) {
   }
   console.log(`(G) presentation diff core↔sdk : ${ppass}/${pfiles.length} agree`);
   pyPhase("presentation diff", "presentation", VEC_PRES, (v) => v.expect);
+}
+
+// ── (H) Gate differential (D-073) — what a GATE decides, not what the fixture-semantics verify function decides ──
+// A dual-root-signed directory, a bundle as a presenter sends it, the gate's own clock, audience and class. The
+// answer recorded is ainra-adapter's `verify_gate` after `accredit`; the GA Verifier in TS and in Python must agree.
+if (fs.existsSync(VEC_GATE)) {
+  const gfiles = fs.readdirSync(VEC_GATE).filter((f) => f.endsWith(".json") && f !== "manifest.json");
+  let gpass = 0;
+  for (const f of gfiles) {
+    const v = JSON.parse(fs.readFileSync(path.join(VEC_GATE, f), "utf8"));
+    const got = stable(runGateVector(v));
+    const want = stable(v.expect);
+    if (got === want) gpass++;
+    else {
+      failures++;
+      console.error(`  GATE MISMATCH ${v.name}: core=${want} sdk=${got}`);
+    }
+  }
+  console.log(`(H) gate diff core↔sdk         : ${gpass}/${gfiles.length} agree`);
+  pyPhase("gate diff        ", "gate", VEC_GATE, (v) => v.expect);
 }
 
 if (failures) {

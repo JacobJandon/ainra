@@ -23,6 +23,10 @@ use wasm_bindgen::prelude::*;
 ///
 /// Returns the canonical verdict event — `{status, reason, name, number, tier, freshness_age_s}` — the same shape
 /// the CLI, the middleware and the MCP server emit, so one log format covers every surface.
+///
+/// NOT A GATE (D-072): the directory is taken as given and the bundle's own freshness class and status list are
+/// believed — fixture semantics, for the page's demonstration on specimen records. To decide access, use the edge
+/// build's `accredit` + `gate`.
 #[wasm_bindgen]
 pub fn verify(bundle_json: &str, directory_json: &str, now_secs: f64) -> String {
     // No audience declared ⇒ the fail-closed empty string ⇒ no instance credential is accepted. A page that
@@ -115,6 +119,14 @@ pub fn presentation_ref(bundle_json: &str) -> String {
 #[wasm_bindgen]
 pub fn run_presentation_vector(vector_json: &str) -> String {
     ainra_adapter::run_presentation_vector_json(vector_json)
+}
+
+/// Run one `vectors/v1-gate` vector as the core does (D-073): the directory against its roots, then the bundle under
+/// the gate's policy — status authenticated, freshness and revocations the verifier's.
+#[cfg(feature = "edge")]
+#[wasm_bindgen]
+pub fn run_gate_vector(vector_json: &str) -> String {
+    ainra_adapter::run_gate_vector_json(vector_json)
 }
 
 /// The build this module was compiled from, so a page can state which verifier answered it.

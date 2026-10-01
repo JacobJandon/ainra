@@ -56,6 +56,11 @@ npm are 0.4.1.
   `mint_instance_credential` derives the passport leaf itself. `examples/agent.py` makes the whole journey against the
   Node gate and the edge gate (`make python-agent-e2e`); `make sign-diff` holds the Python and TypeScript signers to
   all three verifiers.
+- **A corpus for what a gate decides** (D-073): `vectors/v1-gate`, 27 gate vectors — a signed directory, a bundle as
+  a presenter sends it, and the gate's own clock, audience and freshness class. It is the pinning corpus for D-072:
+  every edit a presenter can make to the status material is a vector. Core, TypeScript, Python and the edge build
+  agree on all of them (`make diff`, phase H).
+- **`make live-drills`** (D-073): brings up a network and runs the five live drills; CI runs it on every push.
 - **One answer from every gate** (D-072): `make gate-parity` runs a TypeScript agent and a Python agent against the
   Node, edge and Python gates, then sends 42 requests to all three and requires the same status and reason from
   each. `tools/gate-origin.py` puts the Python gate behind a socket; `examples/agent.mjs` is the TypeScript agent.
@@ -70,6 +75,8 @@ npm are 0.4.1.
 - The Python gate treats a header sent on several lines as one field, as the Node and edge gates do (D-072): a
   request with `x-ainra-passport` twice is `schema_violation` everywhere, where the Python gate used the last line.
 - `make policy-parity` compares three implementations: the Rust gate path is a column (D-072).
+- The Python package accepts a directory on the fields the core accepts it on (D-073): an entry that publishes no
+  status key no longer rejects the whole directory; that registrar's passports are refused as `stale_status`.
 - **A request signed by someone else as well is no longer refused** (D-070). Every AINRA gate parsed `signature-input`
   and `signature` as if they held only AINRA's member, and refused a request carrying a second signature as
   `presentation_sig_invalid`; the signers set those fields and erased another signer's. Gates now read the `ainra`

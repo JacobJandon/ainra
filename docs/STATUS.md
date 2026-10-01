@@ -303,7 +303,7 @@ DECISIONS D-027/D-028, MTS ADR-017.
 ## Known limitations honestly stated
 
 - 1153 passport + 17 delta + 9 directory vectors, plus 46 request-signature vectors (`vectors/v1-presentation`,
-  D-067, D-070) — not the 10 k GA target; broad but not the full combinatorial cross-product.
+  D-067, D-070) and 27 gate vectors (`vectors/v1-gate`, D-073) — not the 10 k GA target; broad but not the full combinatorial cross-product.
 - Services persist to local files, bind 127.0.0.1, single-key signers — a working reference, not the hardened
   multi-region deployment (M4–M8). The CLI's `registrar.secret` is a TEST-labeled dev keystore, not an HSM.
 - Proof of possession, rung by rung. At **issuance**, the registrar certifies only a key the agent proves it holds
@@ -325,4 +325,5 @@ DECISIONS D-027/D-028, MTS ADR-017.
 The recorded public genesis ceremony (custodians being recruited), external verifiers running the kit against
 challenges minted on the wall-clock network (M35), and releasing the M36–M38 layers (send-once presentations, the
 request-signature corpus, `@ainra/edge`, reading beside a signature agent) to npm. Live proofs today: `make
-identity-e2e`, `make edge-e2e`, `make signature-agent-e2e`, `make python-agent-e2e` and `make gate-parity`.
+identity-e2e`, `make edge-e2e`, `make signature-agent-e2e`, `make python-agent-e2e` and `make gate-parity` — all
+five in one command, `make live-drills`, which CI runs (D-073).

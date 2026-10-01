@@ -1,6 +1,6 @@
 # AINRA — the acceptance bar (MTS §28, brief §8): a stranger clones, runs `make test && make vectors && make diff`,
 # and everything is green in under 10 minutes on a laptop.
-.PHONY: gate-parity py-test sign-diff python-agent-e2e signature-agent-check signature-agent-e2e edge-build edge-test edge-e2e edge-runtimes personhood-test personhood-live live-up live-down live-status identity-e2e root-dark-drill mirror-sufficiency legibility-drill cli-deps succession-drill staleness-drill amendment-check amendment-check-negative doctrine doctrine-negative number-syntax engine-parity one-decode-path bench-gate all test vectors vectors-check diff cli-check suite-migration-drill ceremony-rehearsal-multi witness-check push-advisory-check changelog-board-check fmt clippy fuzz-smoke bench sdk-build sdk-test ci clean status console samples drill explorer demo scale ceremony testbed wedge-build wedge-test repro mirror verify-mirror check-freeze freeze genesis-local verifier-kit-smoke ceremony-dry-run soak-smoke drill-networked preflight s7 license gitleaks audit verify-as-external verifier-triple-drill soak-verify genesis-status verify-transcript genesis-board-demo release doctor verifier-operator-drill site site-up site-down site-check stage-all stage-all-down explorer-up explorer-down ainrascan stage-up stage-down stage-status stage-smoke demo-walkthrough three-clients genesis-verify config-diff declaration genesis-rehearsal site-demo verify issue-first registrar-console mcp-test skills-replay presentation-diff conformance campaign-status campaign-init campaign-gates campaign-check publish-preflight stage-install stage-uninstall stage-health stranger probe-drill miri reasons-check corpus-check instance-gate claims-check claims claims-live policy-parity deploy-current site-net site-net-check lockfile-sync soak-ingest outreach-check names-check interop interop-negative
+.PHONY: live-drills gate-parity py-test sign-diff python-agent-e2e signature-agent-check signature-agent-e2e edge-build edge-test edge-e2e edge-runtimes personhood-test personhood-live live-up live-down live-status identity-e2e root-dark-drill mirror-sufficiency legibility-drill cli-deps succession-drill staleness-drill amendment-check amendment-check-negative doctrine doctrine-negative number-syntax engine-parity one-decode-path bench-gate all test vectors vectors-check diff cli-check suite-migration-drill ceremony-rehearsal-multi witness-check push-advisory-check changelog-board-check fmt clippy fuzz-smoke bench sdk-build sdk-test ci clean status console samples drill explorer demo scale ceremony testbed wedge-build wedge-test repro mirror verify-mirror check-freeze freeze genesis-local verifier-kit-smoke ceremony-dry-run soak-smoke drill-networked preflight s7 license gitleaks audit verify-as-external verifier-triple-drill soak-verify genesis-status verify-transcript genesis-board-demo release doctor verifier-operator-drill site site-up site-down site-check stage-all stage-all-down explorer-up explorer-down ainrascan stage-up stage-down stage-status stage-smoke demo-walkthrough three-clients genesis-verify config-diff declaration genesis-rehearsal site-demo verify issue-first registrar-console mcp-test skills-replay presentation-diff conformance campaign-status campaign-init campaign-gates campaign-check publish-preflight stage-install stage-uninstall stage-health stranger probe-drill miri reasons-check corpus-check instance-gate claims-check claims claims-live policy-parity deploy-current site-net site-net-check lockfile-sync soak-ingest outreach-check names-check interop interop-negative
 
 all: fmt clippy test vectors diff
 
@@ -19,10 +19,12 @@ vectors:
 	cargo run --release -q -p ainra-vector-gen -- --delta-out vectors/v1-delta
 	cargo run --release -q -p ainra-vector-gen -- --directory-out vectors/v1-directory
 	cargo run --release -q -p ainra-vector-gen -- --presentation-out vectors/v1-presentation
+	cargo run --release -q -p ainra-vector-gen -- --gate-out vectors/v1-gate
 	@echo "vectors present:" && ls vectors/v1/*.json 2>/dev/null | wc -l
 	@echo "delta vectors:" && ls vectors/v1-delta/*.json 2>/dev/null | wc -l
 	@echo "directory vectors:" && ls vectors/v1-directory/*.json 2>/dev/null | wc -l
 	@echo "presentation vectors:" && ls vectors/v1-presentation/*.json 2>/dev/null | wc -l
+	@echo "gate vectors:" && ls vectors/v1-gate/*.json 2>/dev/null | wc -l
 
 # Replay every vector back through ainra-core (the generator holding itself honest).
 vectors-check:
@@ -30,6 +32,7 @@ vectors-check:
 	cargo run --release -q -p ainra-vector-gen -- --check-delta vectors/v1-delta
 	cargo run --release -q -p ainra-vector-gen -- --check-directory vectors/v1-directory
 	cargo run --release -q -p ainra-vector-gen -- --check-presentation vectors/v1-presentation
+	cargo run --release -q -p ainra-vector-gen -- --check-gate vectors/v1-gate
 
 # 3-way differential: same vectors through ainra-core, sdk-ts, and the P0 cli-node. Nonzero unless 100% agreement.
 diff: sdk-build
@@ -230,6 +233,13 @@ edge-runtimes: sdk-build edge-build
 	  node runtimes/workerd.mjs
 edge-e2e: sdk-build edge-build
 	AINRA_REGISTRAR=http://127.0.0.1:4970 node tools/identity-e2e.mjs --edge
+
+# D-073 — every drill that needs a running network, on a network this brings up: the staging network (for the
+# published directory) and the wall-clock registrar, if they are not already running; then identity-e2e, edge-e2e,
+# signature-agent-e2e, python-agent-e2e and gate-parity; one board; it stops only what it started. This is the row CI
+# runs, so the drills that found D-072 no longer depend on someone remembering to start two daemons.
+live-drills:
+	@bash tools/live-drills.sh
 
 # D-072 — any agent, any gate, one answer (needs `make live-up`). Starts the three gates behind real sockets (Node
 # middleware, the edge gate, the Python gate), runs the TypeScript agent and the Python agent against each, then sends

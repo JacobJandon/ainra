@@ -1,0 +1,7 @@
+{
+  "accept": 7,
+  "count": 27,
+  "note": "CC0 gate conformance vectors (D-073): a dual-root-signed directory, a bundle as a presenter sends it, and the GATE's own clock, audience and freshness class. Unlike vectors/v1, nothing here is taken on the presenter's word: the status list must carry the registrar's signature. Real signing throughout; expect computed by ainra-adapter::verify_gate after accredit, each checked against the case it exists to test. Regenerate with `make vectors`.",
+  "reject": 20,
+  "version": "v1-gate"
+}

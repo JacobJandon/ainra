@@ -3498,6 +3498,501 @@ fn check_presentation(dir: &str) {
     println!("checked {total} presentation vectors: all reproduce their recorded expectation");
 }
 
+// ── v1-gate — what a GATE decides (D-073) ───────────────────────────────────────────────────────────────────────
+//
+// Every other family here has fixture semantics: the vector supplies the anchors, the freshness class, the status
+// list and when it was issued, and the verify function is told to believe them. That is what a self-contained
+// vector needs, and it is why the corpus could not see D-072 — the Rust gate path taking the status list on the
+// presenter's word. A gate believes none of those things: it takes a DIRECTORY and checks it against the roots, it
+// applies its own clock, audience and freshness class, and it accepts only status the registrar signed.
+//
+// So each vector here is a gate's whole input — directory, roots, the bundle as a presenter sends it, and the gate's
+// clock, audience and class — and the answer is what `verify_gate` says after `accredit`. Each declares the answer
+// it exists to test (`want`); the generator refuses to write one whose core verdict disagrees.
+
+/// Sign a status publication the way a registrar's status service does, and put it on the bundle.
+fn gate_sign_status(p: &mut WirePresentation, uri: &str, key: &crypto::HybridKeypair) {
+    let msg =
+        status::publication_signing_bytes(uri, p.status_len, p.status_issued_at, &p.status_list)
+            .expect("status signing bytes");
+    let sig = key.sign(msg.as_bytes()).expect("sign status");
+    p.status_uri = Some(uri.to_string());
+    p.status_sig_ed25519 = Some(b64::encode(&sig.ed25519));
+    p.status_sig_mldsa65 = Some(b64::encode(&sig.mldsa65));
+}
+
+fn gate_vectors() -> Vec<Value> {
+    let mut rng = ChaCha20Rng::seed_from_u64(0x4741_5445_0000_0072); // "GATE" · D-072 — a public TEST seed
+    let root_ed = crypto::TestDelegate::generate(&mut rng); // stand-in for the FROST group key
+    let root_slh = crypto::TestRootSlh::generate(&mut rng);
+    let status_key = crypto::HybridKeypair::generate(&mut rng);
+    let stranger_key = crypto::HybridKeypair::generate(&mut rng);
+    let roots = json!({ "root_ed25519": b64::encode(&root_ed.public()), "root_slh": b64::encode(&root_slh.public()) });
+
+    // One passport, twice: with its status bit clear, and with it set. Same claims, same keys, same log.
+    let mut params = valid_params(0);
+    params.delegate_checkpoint = true;
+    // A thirty-day window, so the freshness cases (an hour later) are about freshness and not about expiry.
+    params.exp = params.nbf + 30 * 24 * 3600;
+    let clear = build(&params);
+    params.status_revoked = true;
+    let revoked = build(&params);
+    let uri = format!("status://{}/1", clear.registrar);
+    let entry = |status: Option<&crypto::HybridKeypair>| ainra_core::directory::DirectoryEntry {
+        registrar: clear.registrar.clone(),
+        issuer_ed25519: b64::encode(&clear.issuer_pub.ed25519),
+        issuer_mldsa65: b64::encode(&clear.issuer_pub.mldsa65),
+        log_root_slh: b64::encode(&clear.root_pub),
+        status_ed25519: status
+            .map(|k| b64::encode(&k.public().ed25519))
+            .unwrap_or_default(),
+        status_mldsa65: status
+            .map(|k| b64::encode(&k.public().mldsa65))
+            .unwrap_or_default(),
+        status_uri: uri.clone(),
+        distrust_from_leaf: None,
+    };
+    let dir = |entries: Vec<ainra_core::directory::DirectoryEntry>,
+               revoked_delegates: Vec<String>| {
+        serde_json::to_value(dir_sign(
+            dir_base(entries, revoked_delegates),
+            &root_ed,
+            &root_slh,
+        ))
+        .expect("ser dir")
+    };
+    let directory = dir(vec![entry(Some(&status_key))], vec![]);
+
+    // The honest bundles: a real publication, signed by the registrar's status key, issued ten seconds ago.
+    let honest = |b: &Built| -> WirePresentation {
+        let mut p = wire_valid("-", "-", b).presentation;
+        gate_sign_status(&mut p, &uri, &status_key);
+        p
+    };
+    let good = honest(&clear);
+    let bad = honest(&revoked);
+    let now = good.now;
+    let val = |p: &WirePresentation| serde_json::to_value(p).expect("ser bundle");
+
+    struct Case {
+        name: &'static str,
+        what: &'static str,
+        directory: Value,
+        bundle: Value,
+        now: u64,
+        audience: &'static str,
+        freshness: &'static str,
+        want: &'static str,
+    }
+    let mut cases: Vec<Case> = Vec::new();
+    let mut add = |name, what, bundle: Value, want| {
+        cases.push(Case {
+            name,
+            what,
+            directory: directory.clone(),
+            bundle,
+            now,
+            audience: "",
+            freshness: "F2",
+            want,
+        })
+    };
+
+    add(
+        "g01-valid",
+        "a passport whose status the registrar signed ten seconds ago",
+        val(&good),
+        "valid",
+    );
+    add(
+        "g02-revoked",
+        "the same passport after revocation, in a publication the registrar signed",
+        val(&bad),
+        "revoked",
+    );
+
+    // ── status the registrar did not sign (D-072) ────────────────────────────────────────────────────────────────
+    {
+        let mut p = bad.clone();
+        p.status_list = good.status_list.clone();
+        p.status_issued_at = now;
+        add(
+            "g03-revoked-brings-an-all-clear-list",
+            "THE D-072 ATTACK: the revoked passport with the earlier list and an issue time of now, under the signature it has",
+            val(&p),
+            "stale_status",
+        );
+    }
+    {
+        let mut p = good.clone();
+        p.status_issued_at += 1;
+        add(
+            "g04-status-redated",
+            "the issue time moved by one second",
+            val(&p),
+            "stale_status",
+        );
+    }
+    {
+        let mut p = good.clone();
+        p.status_list.push('A');
+        add(
+            "g05-status-byte-appended",
+            "one character appended to the list: it still decodes to the same bits",
+            val(&p),
+            "stale_status",
+        );
+    }
+    {
+        let mut p = good.clone();
+        p.status_len += 8;
+        add(
+            "g06-status-length-changed",
+            "the declared length changed",
+            val(&p),
+            "stale_status",
+        );
+    }
+    {
+        let mut p = good.clone();
+        p.status_sig_ed25519 = None;
+        p.status_sig_mldsa65 = None;
+        add(
+            "g07-status-unsigned",
+            "no status signature at all — what every fixture vector looks like",
+            val(&p),
+            "stale_status",
+        );
+    }
+    {
+        let mut p = good.clone();
+        p.status_sig_mldsa65 = None;
+        add(
+            "g08-status-classical-half-only",
+            "the post-quantum half of the status signature removed",
+            val(&p),
+            "stale_status",
+        );
+    }
+    {
+        let mut p = good.clone();
+        p.status_sig_ed25519 = Some(b64::encode(&[0u8; 64]));
+        add(
+            "g09-status-classical-half-zeroed",
+            "the classical half of the status signature zeroed",
+            val(&p),
+            "stale_status",
+        );
+    }
+    {
+        let mut p = good.clone();
+        p.status_uri = Some("status://someone-else/1".into());
+        add(
+            "g10-status-other-uri",
+            "the bundle says the status was published under another URI",
+            val(&p),
+            "stale_status",
+        );
+    }
+    {
+        let mut p = good.clone();
+        p.status_uri = None;
+        add(
+            "g11-status-no-uri",
+            "the status signature with no URI to bind it to",
+            val(&p),
+            "stale_status",
+        );
+    }
+    {
+        let mut p = wire_valid("-", "-", &clear).presentation;
+        gate_sign_status(&mut p, &uri, &stranger_key);
+        add(
+            "g12-status-signed-by-another-key",
+            "a well-formed publication signed by a key the directory does not publish",
+            val(&p),
+            "stale_status",
+        );
+    }
+    {
+        // Authentication comes first: a bundle wrong in two ways is refused for its status, as `@ainra/sdk` refuses it.
+        let mut p = good.clone();
+        p.status_issued_at += 1;
+        p.issuer_sig.ed25519 = b64::encode(&[0u8; 64]);
+        add(
+            "g13-forged-status-and-forged-issuer",
+            "the status re-dated AND the issuer signature zeroed: status is checked first",
+            val(&p),
+            "stale_status",
+        );
+    }
+
+    // ── what the presenter does not get to choose (D-068) ────────────────────────────────────────────────────────
+    {
+        let mut p = good.clone();
+        p.freshness = "F3".into();
+        cases.push(Case {
+            name: "g14-presenter-claims-f3",
+            what: "an hour-old status; the bundle advertises F3, the gate runs F2",
+            directory: directory.clone(),
+            bundle: val(&p),
+            now: now + 3600,
+            audience: "",
+            freshness: "F2",
+            want: "stale_status",
+        });
+        cases.push(Case {
+            name: "g15-gate-runs-f3",
+            what: "the same hour-old status at a gate whose own class is F3",
+            directory: directory.clone(),
+            bundle: val(&good),
+            now: now + 3600,
+            audience: "",
+            freshness: "F3",
+            want: "valid",
+        });
+    }
+    cases.push(Case {
+        name: "g16-f2-at-its-bound",
+        what: "a status exactly 300 s old under F2: the bound is inclusive",
+        directory: directory.clone(),
+        bundle: val(&good),
+        now: good.status_issued_at + 300,
+        audience: "",
+        freshness: "F2",
+        want: "valid",
+    });
+    cases.push(Case {
+        name: "g17-f2-past-its-bound",
+        what: "a status 301 s old under F2",
+        directory: directory.clone(),
+        bundle: val(&good),
+        now: good.status_issued_at + 301,
+        audience: "",
+        freshness: "F2",
+        want: "stale_status",
+    });
+    {
+        // A genuine earlier publication of the same passport, moved into the bundle from after its revocation: a
+        // replay of a real snapshot. Authentication does not close this — the freshness class bounds it — and the
+        // corpus says so rather than leaving it to be assumed.
+        let mut p = bad.clone();
+        p.status_list = good.status_list.clone();
+        p.status_issued_at = good.status_issued_at;
+        p.status_sig_ed25519 = good.status_sig_ed25519.clone();
+        p.status_sig_mldsa65 = good.status_sig_mldsa65.clone();
+        cases.push(Case { name: "g18-genuine-earlier-publication-replayed", what: "the revoked passport with the registrar's own earlier publication, inside the freshness class: accepted — the bound, stated",
+            directory: directory.clone(), bundle: val(&p), now, audience: "", freshness: "F2", want: "valid" });
+        cases.push(Case {
+            name: "g19-genuine-earlier-publication-aged-out",
+            what: "the same replay once the publication is older than the class",
+            directory: directory.clone(),
+            bundle: val(&p),
+            now: good.status_issued_at + 301,
+            audience: "",
+            freshness: "F2",
+            want: "stale_status",
+        });
+    }
+    {
+        let mut p = good.clone();
+        p.mandate_revocations = vec!["m-anything".into()];
+        cases.push(Case { name: "g20-presenter-supplies-mandate-revocations", what: "a mandate-revocation set from the presenter: there is no dynamic feed, so a gate reads none",
+            directory: directory.clone(), bundle: val(&p), now, audience: "", freshness: "F2", want: "valid" });
+    }
+    {
+        // The checkpoint is delegate-signed. The DIRECTORY says which delegates are revoked; the bundle's own list
+        // is a fixture field and a gate ignores it in both directions.
+        let fp = wire_cert_fingerprint(good.checkpoint_sig.cert.as_ref().expect("delegate cert"));
+        let mut p = good.clone();
+        p.revoked_delegates = vec![fp.clone()];
+        cases.push(Case {
+            name: "g21-presenter-revokes-its-own-delegate",
+            what: "the bundle lists its checkpoint delegate as revoked; the directory does not",
+            directory: directory.clone(),
+            bundle: val(&p),
+            now,
+            audience: "",
+            freshness: "F2",
+            want: "valid",
+        });
+        cases.push(Case {
+            name: "g22-directory-revokes-the-delegate",
+            what: "the directory revokes the checkpoint delegate; the bundle says nothing",
+            directory: dir(vec![entry(Some(&status_key))], vec![fp]),
+            bundle: val(&good),
+            now,
+            audience: "",
+            freshness: "F2",
+            want: "checkpoint_invalid",
+        });
+    }
+
+    // ── the directory ────────────────────────────────────────────────────────────────────────────────────────────
+    {
+        let mut other = entry(Some(&status_key));
+        other.registrar = "registrar-99".into();
+        other.status_uri = "status://registrar-99/1".into();
+        cases.push(Case {
+            name: "g23-registrar-not-in-the-directory",
+            what: "a directory that accredits someone else",
+            directory: dir(vec![other], vec![]),
+            bundle: val(&good),
+            now,
+            audience: "",
+            freshness: "F2",
+            want: "unknown_registrar",
+        });
+    }
+    cases.push(Case {
+        name: "g24-registrar-publishes-no-status-key",
+        what: "an accredited registrar with no status key: its revocations cannot be authenticated",
+        directory: dir(vec![entry(None)], vec![]),
+        bundle: val(&good),
+        now,
+        audience: "",
+        freshness: "F2",
+        want: "stale_status",
+    });
+    {
+        let mut d = directory.clone();
+        d["epoch"] = json!(2);
+        cases.push(Case {
+            name: "g25-directory-does-not-verify",
+            what: "the directory edited after it was signed: no gate can be built from it",
+            directory: d,
+            bundle: val(&good),
+            now,
+            audience: "",
+            freshness: "F2",
+            want: "no_gate",
+        });
+    }
+    {
+        let mut p = good.clone();
+        p.now = 0;
+        p.audience = "https://whatever.example".into();
+        cases.push(Case {
+            name: "g26-presenter-clock-and-audience-ignored",
+            what: "the bundle carries its own clock and audience: a gate reads neither",
+            directory: directory.clone(),
+            bundle: val(&p),
+            now,
+            audience: "",
+            freshness: "F2",
+            want: "valid",
+        });
+    }
+    cases.push(Case {
+        name: "g27-expired",
+        what: "the gate's clock is past the passport's expiry, with a status signed just before",
+        directory: directory.clone(),
+        bundle: {
+            let mut p = wire_valid("-", "-", &clear).presentation;
+            p.status_issued_at = clear.exp - 1;
+            gate_sign_status(&mut p, &uri, &status_key);
+            val(&p)
+        },
+        now: clear.exp,
+        audience: "",
+        freshness: "F2",
+        want: "expired",
+    });
+
+    cases.sort_by(|a, b| a.name.cmp(b.name));
+    let mut out = Vec::new();
+    for c in cases {
+        let mut v = json!({
+            "name": c.name,
+            "description": c.what,
+            "directory": c.directory,
+            "roots": roots,
+            "bundle": c.bundle,
+            "now": c.now,
+            "audience": c.audience,
+            "freshness": c.freshness,
+        });
+        let got = ainra_adapter::gate_vector_result(&v);
+        let ok = match c.want {
+            "valid" | "no_gate" => got["verdict"] == json!(c.want),
+            reason => got["reason"] == json!(reason),
+        };
+        if !ok {
+            eprintln!(
+                "GATE VECTOR {} exists to test `{}` but the core says {got}",
+                c.name, c.want
+            );
+            std::process::exit(1);
+        }
+        v["expect"] = got;
+        out.push(v);
+    }
+    out
+}
+
+fn emit_gate(dir: &str) {
+    let vectors = gate_vectors();
+    std::fs::create_dir_all(dir).expect("create dir");
+    for v in &vectors {
+        std::fs::write(
+            Path::new(dir).join(format!("{}.json", v["name"].as_str().unwrap())),
+            serde_json::to_string_pretty(v).unwrap(),
+        )
+        .expect("write gate vector");
+    }
+    let accept = vectors
+        .iter()
+        .filter(|v| v["expect"]["verdict"] == json!("valid"))
+        .count();
+    let manifest = json!({
+        "version": "v1-gate",
+        "count": vectors.len(),
+        "accept": accept,
+        "reject": vectors.len() - accept,
+        "note": "CC0 gate conformance vectors (D-073): a dual-root-signed directory, a bundle as a presenter sends it, and the GATE's own clock, audience and freshness class. Unlike vectors/v1, nothing here is taken on the presenter's word: the status list must carry the registrar's signature. Real signing throughout; expect computed by ainra-adapter::verify_gate after accredit, each checked against the case it exists to test. Regenerate with `make vectors`.",
+    });
+    std::fs::write(
+        Path::new(dir).join("manifest.json"),
+        serde_json::to_string_pretty(&manifest).unwrap(),
+    )
+    .expect("write manifest");
+    println!(
+        "wrote {} gate vectors ({accept} accept) to {dir}",
+        vectors.len()
+    );
+}
+
+fn check_gate(dir: &str) {
+    let mut entries: Vec<_> = std::fs::read_dir(dir)
+        .expect("read dir")
+        .filter_map(|e| e.ok())
+        .map(|e| e.path())
+        .filter(|p| {
+            p.extension().is_some_and(|x| x == "json")
+                && p.file_name().is_some_and(|f| f != "manifest.json")
+        })
+        .collect();
+    entries.sort();
+    let (mut total, mut fails) = (0, 0);
+    for path in entries {
+        let v: Value = serde_json::from_slice(&std::fs::read(&path).expect("read")).expect("parse");
+        let got = ainra_adapter::gate_vector_result(&v);
+        total += 1;
+        if got != v["expect"] {
+            eprintln!(
+                "GATE CHECK MISMATCH {}: expected {} got {got}",
+                v["name"], v["expect"]
+            );
+            fails += 1;
+        }
+    }
+    if fails > 0 {
+        eprintln!("{fails}/{total} gate vectors mismatched");
+        std::process::exit(1);
+    }
+    println!("checked {total} gate vectors: all reproduce their recorded expectation");
+}
+
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     let mut out_dir: Option<String> = None;
@@ -3508,6 +4003,8 @@ fn main() {
     let mut check_directory_dir: Option<String> = None;
     let mut presentation_out: Option<String> = None;
     let mut check_presentation_dir: Option<String> = None;
+    let mut gate_out: Option<String> = None;
+    let mut check_gate_dir: Option<String> = None;
     let mut canon_file: Option<String> = None;
     let mut emit_kind: Option<String> = None;
     let mut min: usize = 0;
@@ -3522,6 +4019,8 @@ fn main() {
             "--check-directory" => check_directory_dir = it.next().cloned(),
             "--presentation-out" => presentation_out = it.next().cloned(),
             "--check-presentation" => check_presentation_dir = it.next().cloned(),
+            "--gate-out" => gate_out = it.next().cloned(),
+            "--check-gate" => check_gate_dir = it.next().cloned(),
             "--canon" => canon_file = it.next().cloned(),
             "--emit" => emit_kind = it.next().cloned(),
             "--bench" => {} // handled after parsing
@@ -3559,6 +4058,14 @@ fn main() {
     }
     if let Some(dir) = check_presentation_dir {
         check_presentation(&dir);
+        return;
+    }
+    if let Some(dir) = gate_out {
+        emit_gate(&dir);
+        return;
+    }
+    if let Some(dir) = check_gate_dir {
+        check_gate(&dir);
         return;
     }
     if let Some(dir) = check_delta_dir {

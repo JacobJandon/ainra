@@ -114,6 +114,61 @@ exist (`ossf/scorecard-action@v2`), and `clusterfuzzlite` — "continuous fuzzin
 CI honestly. Full workings: [`docs/_archive/plans/PLAN-M26.md`](docs/_archive/plans/PLAN-M26.md) and
 [`SECURITY-ADVISORIES.md`](SECURITY-ADVISORIES.md).
 
+## Post-mortem: the Rust gate path believed any status it was handed (D-072, fixed before first release)
+
+The second finding written up to this standard, and the first we found in our own code rather than a dependency's.
+
+**What it was.** A presentation carries the registrar's status list — the revocation bitmap — and when it was
+issued. Both come from the presenter, and they mean nothing until the registrar's signature over exactly those
+values verifies under the status key the signed directory publishes (D-020). `@ainra/sdk` and the Python package
+have checked that signature since they had a verifier. The Rust gate path — `credential_json` / `gate_json` in
+`ainra-adapter`, which is what `@ainra/edge` and `ainra verify-request` run — did not check it at all. Its wire struct
+did not declare the signature fields, so they were silently dropped on the way in.
+
+**What it allowed.** Measured on the live test network: an agent whose passport had just been revoked presented
+the bundle from before its revocation with `status_issued_at` set to the current second. The Node gate and the
+Python gate answered `403 stale_status`. The edge gate answered `201`, stored the bundle, and allowed the signed
+requests that followed. At that gate a revoked party could switch its own revocation off, for as long as it liked,
+by editing one integer; an all-clear list of its own making worked too.
+
+**Blast radius, stated honestly.** `@ainra/edge` has never been published to a registry, and `verify-request` is in
+no released binary; nothing on npm or PyPI and no release artifact was affected. The repository is public, so anyone
+running the edge gate from a checkout between 2026-09-29 (D-068, when that gate landed) and the fix was exposed. The
+browser "Try it" panel uses fixture semantics on specimen records and is not a gate.
+
+**Why nothing caught it, which is the more useful half.**
+
+* Every check that compared the Rust path with the others used *honest* bundles — valid, revoked, an hour later.
+  A verifier that ignores a signature agrees with one that checks it on everything an honest party sends.
+* The edge tests did contain one "forged" bundle, and it was refused — because the edit happened to break the
+  list's compression. The test asserted `403` and never asked the reason. A refusal for the wrong reason is a pass
+  that proves nothing.
+* `docs/POLICY-PARITY.md` explained why the Rust core needed no column in the policy harness: its `Presentation` is
+  a struct literal, so no field can be defaulted. True of the core, and beside the point: the code that *fills* that
+  struct for a gate decides where each value comes from.
+* The conformance corpus could not see it by construction. A vector's status is a fixture input with no signature.
+* The five drills that exercise real gates against a real registrar ran only when someone had started two daemons
+  by hand, and none of them sent the same request to more than one gate.
+
+**How it was found.** By building the check that was missing: the three gates behind real sockets, one battery of
+requests, the same status and reason required from each (`make gate-parity`). It went red on its first run.
+
+**What changed.**
+
+* Rust gates call `verify_gate`, which authenticates the status against the directory's status key before anything
+  is decompressed, in the order `@ainra/sdk` applies; the trust object carries the status authorities and one
+  without them is refused whole. One definition of the signed bytes now lives in the core.
+* **The pinning vectors are a new corpus family, [`vectors/v1-gate`](vectors/v1-gate)**: 27 gate vectors — a
+  dual-root-signed directory, a bundle as a presenter sends it, and the gate's own clock, audience and freshness
+  class. Every edit a presenter can make to the status material is one of them, and so is the attack itself (`g03`).
+  The Rust core, the TypeScript SDK, the Python package and the edge WebAssembly build must agree on all of them in
+  `make diff` and their own tests. With the fix removed, twelve read differently. On its first run this corpus found
+  a further disagreement (a directory entry with no status key: Python rejected the whole directory).
+* `make policy-parity` has a column for the Rust gate path.
+* `make live-drills` brings up a network and runs the five live drills; CI runs it on every push.
+* What authentication does not close is written into the corpus rather than left to be assumed: a genuine earlier
+  publication of the same passport is accepted until it is older than the verifier's freshness class (`g18`, `g19`).
+
 ## Verifying what you run
 You do not have to trust us: the SDK is byte-differential-tested against the Rust core over the public CC0 vectors
 (`make diff`), every published artifact is byte-reproducible from source (`make repro`), and any mirror is

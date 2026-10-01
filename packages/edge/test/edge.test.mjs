@@ -12,7 +12,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
-import { initAinra, createAinraEdgeGate, createStore, createNonceCache, runPresentationVector, PRIME_PATH } from "../src/index.mjs";
+import { initAinra, createAinraEdgeGate, createStore, createNonceCache, runPresentationVector, runGateVector, PRIME_PATH } from "../src/index.mjs";
 import { Verifier, checkRequest } from "../../middleware/dist/index.js";
 import { presentationRef } from "../../sdk-ts/dist/index.js";
 
@@ -39,6 +39,25 @@ test("THE ENGINE IS THE CORE: all request-signature vectors answered by the WASM
   for (const f of files) {
     const v = JSON.parse(readFileSync(new URL(f, dir), "utf8"));
     assert.equal(st(runPresentationVector(v)), st(v.expect), v.name);
+  }
+});
+
+test("D-073: the gate corpus — answered by the WASM build, and by the gate itself, as the core recorded it", async () => {
+  // vectors/v1-gate is what a GATE decides: a signed directory, a bundle as a presenter sends it, the gate's own
+  // clock, audience and class. Twice over: the engine's own runner, and the JavaScript gate built from the same
+  // directory — so the trust object this package passes between the two is held to the corpus as well.
+  const dir = new URL("vectors/v1-gate/", ROOT);
+  const files = readdirSync(dir).filter((f) => f !== "manifest.json");
+  assert.ok(files.length >= 27);
+  const st = (o) => JSON.stringify(o, Object.keys(o).sort());
+  for (const f of files) {
+    const v = JSON.parse(readFileSync(new URL(f, dir), "utf8"));
+    assert.equal(st(runGateVector(v)), st(v.expect), `${v.name}: the engine`);
+    const build = () => createAinraEdgeGate({ directory: v.directory, roots: v.roots, audience: v.audience || "https://unused.example", freshness: v.freshness, now: () => v.now });
+    if (v.expect.verdict === "no_gate") { await assert.rejects(build(), /does not verify/, v.name); continue; }
+    const g = await (await build())(present(v.bundle));
+    assert.equal(g.event.status, v.expect.verdict, `${v.name}: the gate's verdict`);
+    assert.equal(g.event.reason ?? undefined, v.expect.reason, `${v.name}: the gate's reason`);
   }
 });
 

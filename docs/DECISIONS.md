@@ -1683,3 +1683,52 @@ does not prove currency. Currency mode (D-021) exists in `@ainra/sdk` only. The 
 network, so it is not in CI; the offline tests above are.
 
 *Status:* NEW. Ships in 0.5.0 — before `@ainra/edge` is published for the first time.
+
+## D-073 — Closing D-072 to the standard SECURITY.md promises: a gate corpus, the post-mortem, and the live drills in CI (M43)
+
+*Problem:* `SECURITY.md` promises three things for every fixed security bug: a pinning vector in the conformance
+corpus, a public post-mortem, and no quiet patch. D-072 had tests and a decision record, and no vector — because no
+corpus family could express it. Every family had fixture semantics: the vector supplies the anchors, the freshness
+class and the status list, and the verify function is told to believe them. That is what a self-contained vector
+needs, and it is exactly why the corpus could not see a gate taking status on the presenter's word. And the drill
+that found D-072 needs a running network, so it ran only when someone had started two daemons.
+
+*Decision:*
+
+- **`vectors/v1-gate` — what a gate decides.** Each vector is a gate's whole input: a dual-root-signed directory and
+  the roots, a bundle exactly as a presenter sends it (with the registrar's status signature), and the gate's own
+  clock, audience and freshness class. The recorded answer is `ainra-adapter`'s `verify_gate` after `accredit`;
+  `no_gate` when the directory does not verify. 27 gate vectors: valid and revoked; the D-072 attack; eleven edits
+  to the status material; the presenter's freshness, clock, audience, mandate revocations and revoked-delegate list
+  each ignored; the freshness bound at 300 s and 301 s; the directory revoking a delegate; a registrar absent from
+  the directory, one with no status key, and a directory that does not verify. Two vectors state what
+  authentication does not close: a genuine earlier publication replays inside the freshness class.
+- **Four implementations answer it:** `ainra-core` (the generator refuses to write a vector whose verdict is not the
+  one it exists to test), `@ainra/sdk` (`runGateVector`, the GA `Verifier`), the Python package (the GA `Verifier`),
+  and the edge WebAssembly build — both its engine and the JavaScript gate built from the vector's directory.
+  `make diff` gains phase (H); CI regenerates the family and diffs it like the others; `make corpus-check` holds its
+  count.
+- **The post-mortem** is in `SECURITY.md`, to the form the first one set.
+- **`make live-drills`** starts the staging network and the wall-clock registrar if they are not running, runs
+  identity-e2e, edge-e2e, signature-agent-e2e, python-agent-e2e and gate-parity, prints one board, and stops only
+  what it started. CI's new `live` job runs it in the OpenSSL >= 3.5 image. The drill helpers wait on the public
+  door's rate limit (30 writes a minute) instead of failing.
+
+*Evidence:*
+
+- `make diff`: (H) 27/27 core = sdk, 27/27 core = py. **On its first run it was 26/27 for Python**: `g24`, a directory
+  entry that publishes no status key. The core and TypeScript accept that directory and refuse the one registrar's
+  passports (`stale_status`); Python's directory check required a well-formed status key on every entry and rejected
+  the directory whole, so no gate could be built. The directory corpus has no such entry. Python now decides
+  acceptance on the fields the core decides it on.
+- Negative control: with `authenticate_status` skipped, `--check-gate` reports 12 of 27 mismatched, ten of them
+  reading `valid`.
+- The edge tests run all 27 through the engine and through a gate built per vector.
+- `make live-drills`: five drills green here in 79 s, and green from a clean clone inside the `rust:1.96` image with
+  nothing running beforehand — the CI job's steps, in order — before the job was committed.
+
+*Not changed, said plainly:* `vectors/v1-gate` is not yet part of the third-party conformance contract
+(`tools/conformance`), which covers the credential corpus; nor is `vectors/v1-presentation`. The live job has been
+run in its image locally and has not yet run on the hosted runner.
+
+*Status:* NEW. Ships in 0.5.0.

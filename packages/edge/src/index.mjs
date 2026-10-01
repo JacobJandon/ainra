@@ -176,4 +176,10 @@ export function runPresentationVector(vector) {
   if (!ready) throw new Error("@ainra/edge: call initAinra(wasm) first");
   return JSON.parse(core.run_presentation_vector(JSON.stringify(vector)));
 }
+/** One `vectors/v1-gate` entry, answered by the core (D-073): the directory against its roots, then the bundle under
+ *  the gate's policy. `{verdict:"no_gate"}` when the directory does not verify. */
+export function runGateVector(vector) {
+  if (!ready) throw new Error("@ainra/edge: call initAinra(wasm) first");
+  return JSON.parse(core.run_gate_vector(JSON.stringify(vector)));
+}
 export const version = () => core.version();

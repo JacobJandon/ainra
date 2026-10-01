@@ -21,14 +21,12 @@ from ._b64 import decode_fixed as b64f
 from ._canon import CanonError, canon_bytes
 from ._crypto import ed25519_verify, slh_dsa_sha2_128s_verify
 
-# Exact field sizes for a well-formed entry (fail closed on any deviation).
-_ENTRY_SIZES = {
-    "issuer_ed25519": 32,
-    "issuer_mldsa65": 1952,
-    "log_root_slh": 32,
-    "status_ed25519": 32,
-    "status_mldsa65": 1952,
-}
+# What decides whether a directory is ACCEPTED, exactly as `ainra-core`'s `Directory::accredit` and `@ainra/sdk`
+# decide it: the issuer's Ed25519 key is 32 bytes, and its ML-DSA key and the log root decode. The STATUS key is not
+# part of this decision (D-073). This module used to require one, well-formed, on every entry — so a directory with
+# one entry that publishes no status key was accepted by the core and by TypeScript (which then refuse that one
+# registrar's passports as `stale_status`) and rejected whole by Python, which could then build no gate at all. Found
+# by vectors/v1-gate on its first run (g24); the directory corpus had no such entry.
 _ENTRY_STRINGS = ("registrar", "status_uri")
 
 
@@ -57,9 +55,10 @@ def _verify_directory(v: dict) -> dict:
     for e in entries:
         if not isinstance(e, dict):
             return _reject()
-        for field, size in _ENTRY_SIZES.items():
-            if b64f(e.get(field), size) is None:
-                return _reject()
+        if b64f(e.get("issuer_ed25519"), 32) is None:
+            return _reject()
+        if b64d(e.get("issuer_mldsa65")) is None or b64d(e.get("log_root_slh")) is None:
+            return _reject()
         for field in _ENTRY_STRINGS:
             if not isinstance(e.get(field), str):
                 return _reject()

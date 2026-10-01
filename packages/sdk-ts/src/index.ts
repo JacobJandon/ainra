@@ -1596,3 +1596,22 @@ export async function proveInstancePossession(args: {
   pop.sig = await args.instanceSign(popSigningBytes(pop, args.credential));
   return pop;
 }
+
+/** Run one `vectors/v1-gate` vector (D-073): build the GA {@link Verifier} from the vector's directory and roots with
+ *  the gate's own freshness class and audience, and verify the bundle at the gate's clock. This is what a gate
+ *  decides — the directory checked against both roots, the status authenticated, nothing taken on the presenter's
+ *  word — where {@link runVector} is the fixture-semantics verify function. `no_gate` when the directory does not
+ *  verify: a gate that cannot establish trust does not exist. */
+export function runGateVector(v: {
+  directory: WireDirectory;
+  roots: { root_ed25519: string; root_slh: string };
+  bundle: PresentationBundle;
+  now: number;
+  audience: string;
+  freshness: FreshnessClass;
+}): { verdict: "valid" } | { verdict: "invalid"; reason: string } | { verdict: "no_gate" } {
+  const gate = Verifier.fromDirectoryB64(v.directory, v.roots.root_ed25519, v.roots.root_slh, v.freshness, false, v.audience);
+  if (!gate) return { verdict: "no_gate" };
+  const r = gate.verify(v.bundle, v.now);
+  return r.verdict === "valid" ? { verdict: "valid" } : { verdict: "invalid", reason: r.reason };
+}

@@ -34,6 +34,7 @@ const real = {
   // The request-signature corpus (D-067) grew from 33 to 46 in D-070 while STATUS went on saying 33: this gate had no
   // opinion about it, because it only knew the credential corpora.
   presentation: countJson("vectors/v1-presentation"),
+  gate: countJson("vectors/v1-gate"),
 };
 real.total = real.passport + real.delta + real.directory;
 if (real.passport === 0) { console.error("corpus-check: vectors/v1 is empty or missing — refusing to check against nothing"); process.exit(2); }
@@ -64,6 +65,7 @@ const CLAIMS = [
   { re: /"(?:checked|passed)"\s*:\s*(\d{3,4})/g, want: () => real.total, what: "corpus total (json totals)" },
   { re: /\b(\d{3,4})\s*\+\s*17\s*\+\s*9\b/g, want: () => real.passport, what: "passport in the 3-part sum" },
   { re: /\b(\d{1,4})\s+(?:request-signature|presentation)\s+vectors?\b/gi, want: () => real.presentation, what: "request-signature vectors" },
+  { re: /\b(\d{1,4})\s+gate\s+vectors?\b/gi, want: () => real.gate, what: "gate vectors" },
 ];
 
 let bad = 0;
@@ -107,8 +109,8 @@ for (const f of LIVE) {
 
 if (bad) {
   console.error(`\nCORPUS-CHECK FAILED — a stated count disagrees with vectors/ on disk.`);
-  console.error(`Real: passport ${real.passport} · delta ${real.delta} · directory ${real.directory} · total ${real.total} · request-signature ${real.presentation}`);
+  console.error(`Real: passport ${real.passport} · delta ${real.delta} · directory ${real.directory} · total ${real.total} · request-signature ${real.presentation} · gate ${real.gate}`);
   console.error(`Fix the number, or better, state the claim without one ("the whole corpus") where it is not load-bearing.`);
   process.exit(1);
 }
-console.log(`CORPUS-CHECK OK: ${LIVE.length} live surface(s) agree with the corpus on disk — passport ${real.passport} · delta ${real.delta} · directory ${real.directory} · total ${real.total} · request-signature ${real.presentation}.`);
+console.log(`CORPUS-CHECK OK: ${LIVE.length} live surface(s) agree with the corpus on disk — passport ${real.passport} · delta ${real.delta} · directory ${real.directory} · total ${real.total} · request-signature ${real.presentation} · gate ${real.gate}.`);

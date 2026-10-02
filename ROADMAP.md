@@ -10,6 +10,9 @@ Counts here are read from the intake registries (`evidence/`, `witnesses/`), not
 |---|---|---|
 | **v0.2.0** | The downloadable reference CLI goes hybrid Ed25519 + ML-DSA-65; suite-migration drill; distributable ceremony; witness kit v2 | [release](https://github.com/JacobJandon/ainra/releases/tag/v0.2.0) · signed · board-proven |
 | **v0.3.0** | A fourth independent verifier (Python); the self-serve conformance programme; SSH-signed releases with provenance + SBOM | [release](https://github.com/JacobJandon/ainra/releases/tag/v0.3.0) · signed · board-proven |
+| **v0.3.1–v0.3.3** | A dependency advisory fixed end to end (ML-DSA timing side-channel) and the CI failure that hid it; the standing staging network; the release that could actually be published to npm and PyPI | `CHANGELOG.md` · boards in `docs/releases/` |
+| **v0.4.0–v0.4.1** | The instance credential — a short-lived, audience-bound credential for one running copy (ADR-019) — with its proof of possession bound to the credential (D-049); the MCP server made installable | `CHANGELOG.md` · boards in `docs/releases/` |
+| **Unreleased (0.5.0)** | The network keeps time (wall-clock registrar); send-once presentations and signed requests with their own corpus; the edge gate; a Python agent; one answer from every gate; a gate corpus. It carries security fixes for two published packages (D-074, D-075), so it is a security release | `CHANGELOG.md` → Unreleased · `SECURITY.md` |
 | Public | Repository, CI (nightly board), branch protection, the live site | github.com/JacobJandon/ainra · https://ainra.vercel.app/ |
 | Trust scaffolding | Security policy, contribution + conformance-first rules, governance, and self-verifying intake pipelines | `SECURITY.md` · `CONTRIBUTING.md` · `GOVERNANCE.md` · `evidence/README.md` |
 | **Settlers pass** | Five of seven documented industry failure modes closed before we could walk into them: graduated distrust keyed on log position (**D-044**), a log that may never come back shorter (**D-045**), compliance measured adversarially from outside (**D-046**), a 72-hour disclosure term with no severity threshold, and rollback thresholds agreed before any root roll | [`docs/SETTLERS.md`](docs/SETTLERS.md) · [`docs/PROBES.md`](docs/PROBES.md) · [`docs/DISCLOSURE.md`](docs/DISCLOSURE.md) · [`docs/genesis-day/ROLLBACK.md`](docs/genesis-day/ROLLBACK.md) |
@@ -31,14 +34,14 @@ event happens, and nothing on this repository claims otherwise. Production log e
 | **Recorded ceremony** | a recorded FROST 5-of-9 ceremony with independent custodians | **not held** | custodians recruited → ceremony day run from `docs/genesis-day/RUNBOOK.md`; the declaration renders only when the transcript is real |
 | **14-day / 3-region soak** | ≥14 days, ≥3 regions, signed reports, p95 < 60s | **not started** | operator starts the instruments on the 3-host platform; the clock does not pause (`outreach/ready/SOAK-REALITY-CHECK.md`) |
 
-Two further items are open from the settlers pass, and neither is code:
+One further item is open from the settlers pass, and it is not code:
 
-- **The instance-credential rung.** ADR-017 makes a 366-day passport safe *because* a running copy holds a
-  minutes-to-hours credential. That rung is declared and unbuilt, so the passport is currently the runtime credential
-  too. Either build it, or amend ADR-017 to say the passport plays both roles and re-derive its lifetime for that.
-  **Do not "fix" it by shortening the passport** — that trades a sound design away to patch a missing layer.
 - **Witnesses.** Zero operators today, which blocks the split-view guarantee, the witness-anchored half of D-045, and
   any future root roll ([`docs/genesis-day/ROLLBACK.md`](docs/genesis-day/ROLLBACK.md)).
+
+The other item that list once held — the instance-credential rung, without which a 366-day passport was also the
+runtime credential — is built: a running copy carries a credential of minutes to an hour, bound to one audience and
+to its own key, and signs each request with it (ADR-019, D-047, D-049, D-062).
 
 Witness candidacies (a prerequisite for the ceremony's witness quorum): **0** in `witnesses/candidates.json`.
 Candidacies are candidate-not-production and confer no standing until the charter process constitutes them.

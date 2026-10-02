@@ -38,7 +38,7 @@ serde = { version = "1", default-features = false, features = ["alloc", "derive"
 serde_json = { version = "1", default-features = false, features = ["alloc"] }
 base64ct = { version = "1", default-features = false, features = ["alloc"] }
 flate2 = { version = "1" }              # zlib for Token Status List (draft-21)
-thiserror = "1"
+thiserror = "2"
 # Test-only
 proptest = "1"
 hex = "0.4"

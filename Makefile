@@ -592,6 +592,9 @@ claims-live:     ## the deployed site must agree with the repo's sources of trut
 # M30 — the class the corpus structurally cannot reach: API shape and default policy. Vectors pin wire data and
 # assert a verdict; this pins WHO DECIDES. Three real defects have lived here. See docs/POLICY-PARITY.md.
 policy-parity: sdk-build  ## every implementation decides each security policy identically, and closed
+	@# The `mcp` column imports packages/mcp, which resolves @ainra/sdk through its own node_modules. Without this
+	@# line the row passed on any machine that had ever run `make mcp-test` and failed on a clean checkout — CI.
+	@cd packages/mcp && { [ -d node_modules ] || npm install --prefer-offline --no-audit --no-fund --silent; }
 	@node tools/policy-parity.mjs
 
 # claims-live checks the tracked CLAIMS match production; it passed green while the deployment was two

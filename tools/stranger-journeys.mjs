@@ -9,7 +9,7 @@
 // written goes on being served long after it stops being true. The only way to know what a stranger meets is to be
 // one, on the real URL, on a schedule.
 //
-//   node tools/stranger-journeys.mjs                     walk https://ainra.vercel.app
+//   node tools/stranger-journeys.mjs                     walk https://ainra.org
 //   node tools/stranger-journeys.mjs --base <url>        walk somewhere else
 //   node tools/stranger-journeys.mjs --json              machine-readable
 //
@@ -28,7 +28,7 @@
 import { writeFileSync, mkdirSync } from "node:fs";
 
 const arg = (n, d) => { const i = process.argv.indexOf("--" + n); return i > 0 ? process.argv[i + 1] : d; };
-const BASE = (arg("base", process.env.AINRA_SITE || "https://ainra.vercel.app")).replace(/\/$/, "");
+const BASE = (arg("base", process.env.AINRA_SITE || "https://ainra.org")).replace(/\/$/, "");
 const JSON_OUT = process.argv.includes("--json");
 const TIMEOUT = Number(arg("timeout", 20000));
 

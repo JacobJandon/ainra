@@ -32,8 +32,10 @@ The account route works today and reads as **one person's project**. For a neutr
 problem the organization move exists to fix (see [`ORG-MOVE.md`](ORG-MOVE.md)) — and a namespace is far harder to
 change after adopters have wired it into configuration files.
 
-**The domain does not resolve yet** (checked: `ainra.org` and `ainra.dev` both fail to connect), so the DNS route
-is unavailable. Per the standing instruction, no domain is registered here.
+**The domain exists now.** `ainra.org` was registered by the owner and serves the site (checked 2026-10-12: it
+answers over HTTPS with the same bytes as the previous address). So the DNS route is available; what remains is the
+owner adding the TXT record below and publishing. When this section was first written the domain did not resolve,
+and the decision was:
 
 **Decision: park rather than fall back.** Taking the personal namespace now would trade a permanent identifier for
 a few weeks of listing, on the one project whose entire proposition is that it is not a personal project.

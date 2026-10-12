@@ -12,7 +12,7 @@
 // point it at a host that does not serve the page and it says so rather than passing quietly. `--base` makes that
 // testable without breaking production.
 //
-// Usage: node tools/claims-live.mjs [--base https://ainra.vercel.app]
+// Usage: node tools/claims-live.mjs [--base https://ainra.org]
 
 import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -20,7 +20,7 @@ import { dirname, join } from "node:path";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const argBase = process.argv.indexOf("--base");
-const BASE = (argBase >= 0 ? process.argv[argBase + 1] : "https://ainra.vercel.app").replace(/\/+$/, "");
+const BASE = (argBase >= 0 ? process.argv[argBase + 1] : "https://ainra.org").replace(/\/+$/, "");
 
 const read = (p) => { try { return readFileSync(join(ROOT, p), "utf8"); } catch { return null; } };
 const truth = {

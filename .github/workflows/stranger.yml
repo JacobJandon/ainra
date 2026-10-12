@@ -19,7 +19,7 @@ on:
       base:
         description: "Site to walk (defaults to production)"
         required: false
-        default: "https://ainra.vercel.app"
+        default: "https://ainra.org"
 
 permissions:
   contents: read
@@ -49,7 +49,7 @@ jobs:
       - name: walk production as a stranger
         id: walk
         run: |
-          BASE="${{ github.event.inputs.base || 'https://ainra.vercel.app' }}"
+          BASE="${{ github.event.inputs.base || 'https://ainra.org' }}"
           set +e
           node tools/stranger-journeys.mjs --base "$BASE" | tee /tmp/walk.txt
           echo "code=$?" >> "$GITHUB_OUTPUT"

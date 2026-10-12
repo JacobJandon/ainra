@@ -42,7 +42,7 @@ So the page funds **the events, not the author**, and says what is genuinely unc
 > custodians, proven by independent verifiers, and measured in a multi-region soak. None of that has happened yet,
 > and this page says so plainly: **production log entries sealed under a real root: 0.**
 >
-> Sponsorship funds those events — not salary. The honest status is always at ainra.vercel.app, and the counts
+> Sponsorship funds those events — not salary. The honest status is always at ainra.org, and the counts
 > there are read from registries, never asserted.
 
 ### Tiers — deliberately none

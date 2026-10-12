@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: Apache-2.0 OR MIT -->
 # @ainra/sdk
 
-The verify-only TypeScript SDK for [AINRA](https://ainra.vercel.app/) — a neutral, non-profit root for AI-agent
+The verify-only TypeScript SDK for [AINRA](https://ainra.org/) — a neutral, non-profit root for AI-agent
 identity. An agent carries a passport it can prove; you check it here, locally, in about a millisecond.
 
 **Offline. Fail-closed. Zero telemetry.** No account, no API key, no call home — verification is a pure function of
@@ -62,7 +62,7 @@ git clone https://github.com/JacobJandon/ainra && cd ainra && make conformance
 ```
 
 The root's honest status — including what has **not** happened yet — is at
-[ainra.vercel.app](https://ainra.vercel.app/) and in the repository's `ROADMAP.md`.
+[ainra.org](https://ainra.org/) and in the repository's `ROADMAP.md`.
 
 Licensed Apache-2.0 OR MIT.
 

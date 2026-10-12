@@ -2,7 +2,7 @@
 # @ainra/middleware
 
 A fail-closed gate for requests made by AI agents. Five lines in front of your handler, and a request gets through
-only if it carried a valid [AINRA](https://ainra.vercel.app/) passport.
+only if it carried a valid [AINRA](https://ainra.org/) passport.
 
 **Offline. Fail-closed. Zero telemetry.** The check is local — no account with us, no per-request call, nothing that
 can be down. A request with no passport, a revoked one, or one whose status cannot be freshly confirmed is refused

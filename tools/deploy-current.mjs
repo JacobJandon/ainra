@@ -23,7 +23,7 @@ import { dirname, join } from "node:path";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const SITE = join(ROOT, "site");
 const argBase = process.argv.indexOf("--base");
-const BASE = (argBase >= 0 ? process.argv[argBase + 1] : "https://ainra.vercel.app").replace(/\/+$/, "");
+const BASE = (argBase >= 0 ? process.argv[argBase + 1] : "https://ainra.org").replace(/\/+$/, "");
 
 // The export pipeline (tools/export-site.sh) excludes these from the published tree.
 const NOT_PUBLISHED = new Set(["_includes", "DEPLOY.md", "README.md"]);

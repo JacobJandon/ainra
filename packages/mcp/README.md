@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: Apache-2.0 OR MIT -->
 # @ainra/mcp
 
-[AINRA](https://ainra.vercel.app/) as native agent tools. A zero-dependency MCP server that hands an assistant the
+[AINRA](https://ainra.org/) as native agent tools. A zero-dependency MCP server that hands an assistant the
 real verifier, the public record, and — only if you point it at a registrar you control — the ability to issue,
 renew, and revoke.
 

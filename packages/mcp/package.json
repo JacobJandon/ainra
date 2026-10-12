@@ -22,7 +22,7 @@
   "peerDependencies": {
     "@ainra/sdk": "*"
   },
-  "homepage": "https://ainra.vercel.app/",
+  "homepage": "https://ainra.org/",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/JacobJandon/ainra.git"

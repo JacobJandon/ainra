@@ -12,7 +12,7 @@
 #   The network runs whenever THIS MACHINE is powered on. No more than that.
 #
 # It is not "always on", and it is NOT reachable by a stranger: every daemon binds 127.0.0.1, so the public site
-# at ainra.vercel.app cannot reach it and never could. This makes the network survive logout, reboot, and a
+# at ainra.org cannot reach it and never could. This makes the network survive logout, reboot, and a
 # crashed daemon — it does not make it public. A genuinely public endpoint needs a decision the operator has to
 # make (see docs/_archive/plans/PLAN-M27.md § the always-on question); nothing here provisions anything.
 set -uo pipefail

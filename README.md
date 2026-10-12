@@ -5,7 +5,7 @@
      The repository is public and the badge resolves; the historical pre-publication audit is docs/_archive/PUBLISH-AUDIT.md. -->
 [![CI](https://github.com/JacobJandon/ainra/actions/workflows/ci.yml/badge.svg)](https://github.com/JacobJandon/ainra/actions/workflows/ci.yml)
 
-**Live site:** https://ainra.vercel.app/ · **Source & releases:** https://github.com/JacobJandon/ainra · **[Roadmap](ROADMAP.md)** · **[Governance](GOVERNANCE.md)**
+**Live site:** https://ainra.org/ · **Source & releases:** https://github.com/JacobJandon/ainra · **[Roadmap](ROADMAP.md)** · **[Governance](GOVERNANCE.md)**
 
 **Prove your agent. Check theirs.** Both halves run locally — an agent presents signed facts, whoever receives them
 verifies on their own machine, and nothing reaches us in either direction.
@@ -18,7 +18,7 @@ dark**, trusting the **source** — not us.
 
 **No install at all?** Two routes, differing in which verifier answers.
 [`examples/verify-in-browser/`](examples/verify-in-browser/) is four static files running the JavaScript verifier —
-open it, change one byte of a signature, watch it refuse. the live site's [**Try it**](https://ainra.vercel.app/verify.html#try) panel (`make site SERVE=1` locally) runs
+open it, change one byte of a signature, watch it refuse. the live site's [**Try it**](https://ainra.org/verify.html#try) panel (`make site SERVE=1` locally) runs
 **`ainra-core` itself**, the Rust verify path compiled to WebAssembly (`make wasm`), so the browser is checking with
 the same code the CLI does — and `make wasm-diff` pushes the whole corpus through that exact artifact in a headless
 browser, requiring agreement on verdict *and* named reason. Nothing is uploaded and no request leaves the page at

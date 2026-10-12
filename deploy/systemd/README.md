@@ -18,7 +18,7 @@ That sentence is the whole claim, and it is deliberately smaller than "always on
 
 * **It is not always on.** The machine sleeps, reboots, loses power, travels. `Restart=always` and linger mean
   the network comes back by itself; they do not mean it never went away.
-* **It is not reachable by a stranger.** Every daemon binds `127.0.0.1`. The public site at `ainra.vercel.app`
+* **It is not reachable by a stranger.** Every daemon binds `127.0.0.1`. The public site at `ainra.org`
   **cannot** reach it and never could — so making it stand does not turn the live site's minting flow on for
   visitors. It makes the network survive logout, reboot and a crashed daemon, on this machine.
 

@@ -1,0 +1,17 @@
+{
+  "name": "ainra-wimse-kit",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "An AINRA running copy as an IETF WIMSE workload (D-076): its Workload Identity Token and request signature, checked in both directions against independent open-source JOSE and RFC 9421 implementations, pinned.",
+  "license": "Apache-2.0 OR MIT",
+  "scripts": {
+    "check": "node check.mjs",
+    "e2e": "node e2e.mjs"
+  },
+  "devDependencies": {
+    "http-message-sig": "0.3.0",
+    "jose": "6.2.12",
+    "structured-headers": "2.0.3"
+  }
+}

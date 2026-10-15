@@ -75,5 +75,5 @@ export async function liveAgent({ lineage, audience }) {
   const sign = ({ method, authority, path, headers, body, created = now(), key = instance, keyid = ic.iid }) =>
     signPresentation({ req: { method, authority, path, headers, body }, keyid, nonce: "r-" + randomBytes(6).toString("hex"), created, instanceSign: key.sign });
   const revoke = () => j(`${REG}/demo/revoke`, { method: "POST", body: JSON.stringify({ sub, now: now() }) });
-  return { sub, bundle, ic, instance, presentation, popHeader, sign, revoke, fetchBundle, PRESENTATION_HEADER, POP_HEADER };
+  return { sub, bundle, ic, holder, instance, presentation, popHeader, sign, revoke, fetchBundle, PRESENTATION_HEADER, POP_HEADER };
 }

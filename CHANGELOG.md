@@ -61,6 +61,14 @@ npm are 0.4.1.
   Auth profile) and a running copy's AINRA signature; each verifier reads its own label. 13 new vectors (46 in
   all), six carrying a real signature-agent signature that an independent open-source verifier checks in CI
   (`make signature-agent-check`); the live drill runs through both gates (`make signature-agent-e2e`).
+- **A running copy as a WIMSE workload** (D-076). `mintWit`, `signWimseRequest` and `verifyWimseRequest` follow
+  `draft-ietf-wimse-workload-creds` and `draft-ietf-wimse-http-signature`, the drafts the IETF's agent-identity work
+  builds on.
+  - A passport's lineage is the trust domain, and its key is the issuer key.
+  - Independent JOSE and RFC 9421 libraries read AINRA's tokens and signatures, and AINRA reads theirs
+    (`make wimse-check`, CI).
+  - Live, a revoked passport's workload is refused within F1 while a WIMSE-only verifier keeps accepting it
+    (`make wimse-e2e`). See `docs/WIMSE.md`.
 - **`@ainra/edge`** (D-068): the gate for the edge — `ainra-core` in WebAssembly behind a web-standard `Request`
   → decision function; trust from a directory verified against both roots at start-up. Proven under Deno, Bun,
   Node and inside the workerd runtime (`make edge-runtimes`), and on the live journey (`make edge-e2e`).
@@ -72,7 +80,7 @@ npm are 0.4.1.
   a presenter sends it, and the gate's own clock, audience and freshness class. It is the pinning corpus for D-072:
   every edit a presenter can make to the status material is a vector. Core, TypeScript, Python and the edge build
   agree on all of them (`make diff`, phase H).
-- **`make live-drills`** (D-073): brings up a network and runs the five live drills; CI runs it on every push.
+- **`make live-drills`** (D-073): brings up a network and runs the live drills (six, with D-076); CI runs it on every push.
 - **One answer from every gate** (D-072): `make gate-parity` runs a TypeScript agent and a Python agent against the
   Node, edge and Python gates, then sends 42 requests to all three and requires the same status and reason from
   each. `tools/gate-origin.py` puts the Python gate behind a socket; `examples/agent.mjs` is the TypeScript agent.

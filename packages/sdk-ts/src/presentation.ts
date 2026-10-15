@@ -116,7 +116,8 @@ export interface SignableRequest {
 
 const enc = new TextEncoder();
 
-function headerValue(h: SignableRequest["headers"], name: string): string | null {
+/** @internal shared with wimse.ts */
+export function headerValue(h: SignableRequest["headers"], name: string): string | null {
   // RFC 9421 §2.1 / RFC 9110 §5.3: a field sent on several lines is one value — each line trimmed, joined by ", ".
   const lines: string[] = [];
   for (const k of Object.keys(h)) {
@@ -132,7 +133,8 @@ function headerValue(h: SignableRequest["headers"], name: string): string | null
  *  outside quoted strings and inner lists, each member trimmed of SP/HTAB. `null` when the field cannot be split
  *  without guessing — an open quote, an unbalanced or nested parenthesis, an empty member, or a member that does not
  *  begin with a key. Only the structure is checked; members that are not AINRA's are not interpreted. */
-function members(field: string): string[] | null {
+/** @internal shared with wimse.ts */
+export function members(field: string): string[] | null {
   const out: string[] = [];
   let start = 0, depth = 0, quoted = false, escaped = false;
   for (let i = 0; i < field.length; i++) {
@@ -153,7 +155,8 @@ function members(field: string): string[] | null {
   return out.every((m) => /^[a-z*][a-z0-9_.*-]*$/.test(memberKey(m))) ? out : null;
 }
 const trimOws = (s: string) => s.replace(/^[ \t]+|[ \t]+$/g, "");
-const memberKey = (m: string) => m.slice(0, m.search(/[=;]/) < 0 ? m.length : m.search(/[=;]/));
+/** @internal shared with wimse.ts */
+export const memberKey = (m: string) => m.slice(0, m.search(/[=;]/) < 0 ? m.length : m.search(/[=;]/));
 
 /** AINRA's own member of a split field: `null` when it has none, `undefined` when it has more than one. */
 function ownMember(ms: string[]): string | null | undefined {

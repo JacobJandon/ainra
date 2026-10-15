@@ -1815,3 +1815,62 @@ the old behaviour until 0.5.0 is published. The raw constructor still does not a
 could, it takes anchors.
 
 *Status:* NEW. Ships in 0.5.0.
+
+## D-076 — AINRA beneath WIMSE: a running copy as a standard workload (M46)
+
+*Problem:* The IETF's agent-identity work rests on workload identity:
+
+- `draft-ietf-wimse-aims` (agent identity, -00, September 2026);
+- `draft-ietf-wimse-workload-creds` (-02), which defines the Workload Identity Token;
+- `draft-ietf-wimse-http-signature` (-07), which defines the RFC 9421 request profile.
+
+A service that adopts those drafts will accept a WIT and a tagged request signature. It will not read an AINRA
+presentation. The drafts also leave two things open:
+
+- how a trust domain is bound to its issuer keys ("a secure out-of-band mechanism");
+- revocation ("a short expiration is the primary mitigation").
+
+If AINRA is to sit beneath what others standardise, rather than beside it, a running copy has to speak WIMSE. The
+WIMSE verifier must then be able to ask AINRA the two questions WIMSE leaves open.
+
+*Decision:*
+
+- **The mapping.** A passport's lineage is a trust domain: `ainra:<registrar>:<operator>:<lineage>` maps to
+  `<lineage>.<operator>.<registrar>.ainra.org`. AINRA labels are already DNS host labels.
+  - The domain's authorized issuer key is the passport's own key (`keys[0]`, as in ADR-019).
+  - A running copy is the workload `wimse://<trust domain>/<iid>`.
+- **`@ainra/sdk` gains `mintWit`, `signWimseRequest` and `verifyWimseRequest`.**
+  - The WIT and the signature follow the drafts exactly: `typ: wit+jwt`, EdDSA, `cnf.jwk` with `alg`, at most an hour.
+  - The signature is tagged `wimse-workload-to-workload`. It covers `@method @path @query` and the listed headers when
+    present, carries `wimse-aud`, and has no `keyid` or `alg`.
+  - The verifier checks four things, in order: the passport under the verifier's own policy, the WIT, the request
+    signature, and last the nonce.
+- **Existing reason names, no new ones.** The request uses `presentation_*`. The WIT uses `instance_sig_invalid` and
+  `instance_expired`. `reasons.json` stays frozen.
+- **Ed25519 at this layer, and said so.** JOSE has no hybrid post-quantum signature. The passport chain beneath stays
+  hybrid, and the ADR-019 instance credential remains the post-quantum path.
+
+*Evidence:*
+
+- **Unit.** `packages/sdk-ts/test/wimse.test.mjs`: the positive case and one refusal per check.
+  - The passport step uses the real gate corpus. g02, revoked, is refused `revoked` with a perfect WIT and signature.
+  - An independent signature base signs what `signWimseRequest` refuses to produce, so the `keyid`, `alg`,
+    missing-component and lifetime rules fail on the rule and not on a broken signature.
+  - Mutating each of 17 checks in the built verifier turns the suite red. On the first pass two rules stayed green
+    when removed: `keyid`, whose test passed only because the signature broke, and the required components, which
+    had no test. The independent base exists for them.
+- **Interop.** `make wimse-check` (CI) runs both directions against independent open-source JOSE and RFC 9421
+  libraries, pinned. 6 requests are accepted, and 18 tampered ones are refused.
+- **Live.** `make wimse-e2e` (in `make live-drills`): after revocation, AINRA refuses the current passport at once
+  (`revoked`) and the old all-clear snapshot at 32 s (`stale_status`, F1). The WIMSE-only verifier accepted every one
+  of those requests; its WIT had 3569 s left.
+
+*Not changed, said plainly:*
+
+- Response signing and transaction tokens are not implemented.
+- The drafts are drafts and will move.
+- There is no Python or Rust implementation yet. The TypeScript SDK is the only one, so this layer is not part of
+  `make diff`.
+- This is a TEST-ROOT mechanism. It is not evidence of any deployment.
+
+*Status:* NEW. Ships in 0.5.0.

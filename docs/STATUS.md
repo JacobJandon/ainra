@@ -313,7 +313,9 @@ DECISIONS D-027/D-028, MTS ADR-017.
   middleware and the edge gate (`@ainra/edge`, D-068), beside a signature agent's signature on the same request when
   there is one (D-070). An agent can do all of it from TypeScript or from Python (D-071); there is no Rust agent SDK.
   The three gates (Node, edge, Python) answer one battery of requests identically (`make gate-parity`, D-072), and
-  each believes only status the registrar signed — which the edge gate, before D-072, did not check. What remains, by design: a passport presented DIRECTLY, with
+  each believes only status the registrar signed — which the edge gate, before D-072, did not check. A running copy
+  can also present as a standard IETF WIMSE workload, with a Workload Identity Token signed by its passport's key
+  (D-076); that layer is Ed25519 only and exists in TypeScript only. What remains, by design: a passport presented DIRECTLY, with
   no instance credential, cannot sign a request — the passport key never enters a container — so a gate that
   requires signed requests admits running copies only. And a copy that keeps presenting a status snapshot from
   before its revocation passes until that snapshot is older than the verifier's freshness class (F2 ≤ 5 min by
@@ -325,5 +327,5 @@ DECISIONS D-027/D-028, MTS ADR-017.
 The recorded public genesis ceremony (custodians being recruited), external verifiers running the kit against
 challenges minted on the wall-clock network (M35), and releasing the M36–M38 layers (send-once presentations, the
 request-signature corpus, `@ainra/edge`, reading beside a signature agent) to npm. Live proofs today: `make
-identity-e2e`, `make edge-e2e`, `make signature-agent-e2e`, `make python-agent-e2e` and `make gate-parity` — all
-five in one command, `make live-drills`, which CI runs (D-073).
+identity-e2e`, `make edge-e2e`, `make signature-agent-e2e`, `make python-agent-e2e`, `make wimse-e2e` (D-076) and
+`make gate-parity` — all six in one command, `make live-drills`, which CI runs (D-073).

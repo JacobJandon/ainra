@@ -53,6 +53,10 @@ is `presentation_unsigned`; two `ainra` members, or a field that does not split,
 `signPresentation` appends to another signer's fields and never overwrites them. How to run both:
 [SIGNATURE-AGENTS.md](SIGNATURE-AGENTS.md).
 
+A running copy can also present as a standard IETF WIMSE workload. It carries a Workload Identity Token signed by its
+passport's key, and signs the request with the WIMSE profile of RFC 9421. A WIMSE-only service accepts it, and an
+AINRA-aware one also checks the passport and its revocation status: [WIMSE.md](WIMSE.md).
+
 ## The verdict event
 
 Every surface emits the same event when it reports a verdict. Fields, in this fixed order:

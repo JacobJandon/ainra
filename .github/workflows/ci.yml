@@ -117,6 +117,7 @@ jobs:
       - run: make skills-replay
       - run: make personhood-test
       - run: make signature-agent-check
+      - run: make wimse-check
 
   # The publish gate a contributor cannot regress: `make audit` = S7 (fixtures + prose + EVERY commit message) +
   # license headers + gitleaks over full history. Needs the whole history for the commit-message scan + gitleaks.
@@ -312,7 +313,7 @@ jobs:
           cargo install wasm-bindgen-cli --version "$VER" --locked
       - run: cd packages/sdk-ts && npm ci && npm run build
       # stage-up (the published directory) + live-up (the wall-clock registrar), then identity-e2e, edge-e2e,
-      # signature-agent-e2e, python-agent-e2e and gate-parity. One board; red if any drill is red.
+      # signature-agent-e2e, python-agent-e2e, wimse-e2e and gate-parity. One board; red if any drill is red.
       - run: make live-drills
 
   reproducibility:

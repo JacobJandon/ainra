@@ -1,6 +1,6 @@
 # AINRA — the acceptance bar (MTS §28, brief §8): a stranger clones, runs `make test && make vectors && make diff`,
 # and everything is green in under 10 minutes on a laptop.
-.PHONY: live-drills gate-parity py-test sign-diff python-agent-e2e signature-agent-check signature-agent-e2e edge-build edge-test edge-e2e edge-runtimes personhood-test personhood-live live-up live-down live-status identity-e2e root-dark-drill mirror-sufficiency legibility-drill cli-deps succession-drill staleness-drill amendment-check amendment-check-negative doctrine doctrine-negative number-syntax engine-parity one-decode-path bench-gate all test vectors vectors-check diff cli-check suite-migration-drill ceremony-rehearsal-multi witness-check push-advisory-check changelog-board-check fmt clippy fuzz-smoke bench sdk-build sdk-test ci clean status console samples drill explorer demo scale ceremony testbed wedge-build wedge-test repro mirror verify-mirror check-freeze freeze genesis-local verifier-kit-smoke ceremony-dry-run soak-smoke drill-networked preflight s7 license gitleaks audit verify-as-external verifier-triple-drill soak-verify genesis-status verify-transcript genesis-board-demo release doctor verifier-operator-drill site site-up site-down site-check stage-all stage-all-down explorer-up explorer-down ainrascan stage-up stage-down stage-status stage-smoke demo-walkthrough three-clients genesis-verify config-diff declaration genesis-rehearsal site-demo verify issue-first registrar-console mcp-test skills-replay presentation-diff conformance campaign-status campaign-init campaign-gates campaign-check publish-preflight stage-install stage-uninstall stage-health stranger probe-drill miri reasons-check corpus-check instance-gate claims-check claims claims-live policy-parity deploy-current site-net site-net-check lockfile-sync soak-ingest outreach-check names-check interop interop-negative
+.PHONY: wimse-check wimse-e2e live-drills gate-parity py-test sign-diff python-agent-e2e signature-agent-check signature-agent-e2e edge-build edge-test edge-e2e edge-runtimes personhood-test personhood-live live-up live-down live-status identity-e2e root-dark-drill mirror-sufficiency legibility-drill cli-deps succession-drill staleness-drill amendment-check amendment-check-negative doctrine doctrine-negative number-syntax engine-parity one-decode-path bench-gate all test vectors vectors-check diff cli-check suite-migration-drill ceremony-rehearsal-multi witness-check push-advisory-check changelog-board-check fmt clippy fuzz-smoke bench sdk-build sdk-test ci clean status console samples drill explorer demo scale ceremony testbed wedge-build wedge-test repro mirror verify-mirror check-freeze freeze genesis-local verifier-kit-smoke ceremony-dry-run soak-smoke drill-networked preflight s7 license gitleaks audit verify-as-external verifier-triple-drill soak-verify genesis-status verify-transcript genesis-board-demo release doctor verifier-operator-drill site site-up site-down site-check stage-all stage-all-down explorer-up explorer-down ainrascan stage-up stage-down stage-status stage-smoke demo-walkthrough three-clients genesis-verify config-diff declaration genesis-rehearsal site-demo verify issue-first registrar-console mcp-test skills-replay presentation-diff conformance campaign-status campaign-init campaign-gates campaign-check publish-preflight stage-install stage-uninstall stage-health stranger probe-drill miri reasons-check corpus-check instance-gate claims-check claims claims-live policy-parity deploy-current site-net site-net-check lockfile-sync soak-ingest outreach-check names-check interop interop-negative
 
 all: fmt clippy test vectors diff
 
@@ -236,7 +236,7 @@ edge-e2e: sdk-build edge-build
 
 # D-073 — every drill that needs a running network, on a network this brings up: the staging network (for the
 # published directory) and the wall-clock registrar, if they are not already running; then identity-e2e, edge-e2e,
-# signature-agent-e2e, python-agent-e2e and gate-parity; one board; it stops only what it started. This is the row CI
+# signature-agent-e2e, python-agent-e2e, wimse-e2e and gate-parity; one board; it stops only what it started. This is the row CI
 # runs, so the drills that found D-072 no longer depend on someone remembering to start two daemons.
 live-drills:
 	@bash tools/live-drills.sh
@@ -271,6 +271,16 @@ signature-agent-check: sdk-build
 signature-agent-e2e: sdk-build edge-build
 	cd packages/middleware && { [ -d node_modules ] || npm install --prefer-offline --no-audit --no-fund --silent; } && npm run -s build
 	cd kits/signature-agent && { [ -d node_modules ] || npm ci --no-audit --no-fund --silent; } && node e2e.mjs && node e2e.mjs --edge
+
+# D-076 — an AINRA running copy as an IETF WIMSE workload. `wimse-check` (offline, CI): AINRA's Workload Identity Token
+# and request signature read by independent open-source JOSE and RFC 9421 implementations (pinned in
+# kits/wimse/package-lock.json), and theirs read by AINRA's verifyWimseRequest; then the negative control tampers with
+# each in both directions and must see every one refused. `wimse-e2e` (needs `make live-up`): live, a WIMSE-only
+# verifier beside AINRA's — after revocation AINRA refuses within F1 and the WIMSE-only verifier keeps accepting.
+wimse-check: sdk-build
+	cd kits/wimse && { [ -d node_modules ] || npm ci --no-audit --no-fund --silent; } && node check.mjs && node check.mjs --negative
+wimse-e2e: sdk-build
+	cd kits/wimse && { [ -d node_modules ] || npm ci --no-audit --no-fund --silent; } && node e2e.mjs
 
 # D-066 — registrar-side principal proof from an on-chain proof-of-personhood registry (kits/personhood). Offline tests
 # check the Ethereum primitives against other implementations' vectors; the live drill reads the real chain.

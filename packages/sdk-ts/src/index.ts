@@ -37,6 +37,12 @@ export {
 } from "./presentation.js";
 export type { PresentationReason, PresentationCheck, SignableRequest, SigParams } from "./presentation.js";
 
+// M46 (D-076): an AINRA running copy as a standard IETF WIMSE workload, plus the revocation check WIMSE lacks.
+export {
+  trustDomainOf, wimseIdentifier, mintWit, signWimseRequest, verifyWimseRequest,
+  WIT_HEADER, WIT_TYP, WIMSE_TAG, WIT_MAX_SECS, WIMSE_SIG_MAX_SECS,
+} from "./wimse.js";
+
 // ── Verdicts + the 20 frozen reasons ───────────────────────────────────────────────────────────────────────────
 export type Reason =
   | "sig_invalid"

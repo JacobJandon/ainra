@@ -293,18 +293,6 @@ section{padding:88px 0}
 .era.now{border-color:var(--green);border-width:2px}
 .era.now .k{color:var(--green)}
 .eras .t-arrow{height:auto}
-.gaps{max-width:980px;margin:34px auto 0;display:flex;flex-direction:column;gap:10px}
-.gap{display:grid;grid-template-columns:1.1fr 1.3fr 26px 1.4fr;gap:16px;align-items:center;border:1px solid var(--line);border-radius:10px;background:var(--card);padding:16px 18px;text-align:left}
-.gap .who{font-family:var(--display);font-weight:700;font-size:15.5px;letter-spacing:-.01em}
-.gap .who small{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;font-weight:500;margin-top:4px}
-.gap .builds,.gap .open{font-size:14px;color:var(--muted);line-height:1.5}
-.gap .open b{color:#8a3b12;font-weight:650}
-.gap .t-arrow{height:auto}
-.gap.ours{border:2px solid var(--green)}
-.gap.ours .open b{color:var(--green)}
-.proof{max-width:780px;margin:22px auto 0;text-align:center;color:var(--muted);font-size:14.5px}
-.proof code{font-family:var(--mono);font-size:12.5px;background:var(--card);border:1px solid var(--line);border-radius:4px;padding:1px 6px;color:var(--ink)}
-@media(max-width:900px){.gap{grid-template-columns:1fr;gap:6px}.gap .t-arrow{display:none}}
 .eras-close{max-width:720px;margin:30px auto 0;text-align:center;color:var(--muted);font-size:16px}
 @media(max-width:900px){.eras{grid-template-columns:1fr;gap:10px}.eras .t-arrow{height:20px;transform:rotate(90deg)}}
 .sec-head h2,.cta-final h2{font-family:var(--display);font-weight:700;letter-spacing:-.025em;line-height:1.05}
@@ -546,6 +534,7 @@ nav .nav-links a[aria-current="page"],nav .ndocs[aria-current="page"]{text-decor
   </a>
   <a href="verify.html" class="ndocs">Verify</a>
   <a href="get.html" class="ndocs">Network</a>
+  <a href="landscape.html" class="ndocs">Landscape</a>
   <a href="foundation.html" class="ndocs">Foundation</a>
   <a href="docs.html" class="ndocs">Docs</a>
   <div class="nav-r">
@@ -553,7 +542,7 @@ nav .nav-links a[aria-current="page"],nav .ndocs[aria-current="page"]{text-decor
     <a class="btn btn-ink nav-hide" href="foundation.html#access">Join the founding table</a>
     <button class="burger" id="burger" aria-label="Menu" aria-expanded="false">≡</button>
   </div>
-  <div class="nav-links" id="navLinks"><a href="#top" style="color:var(--green)">The root</a><a href="verify.html">Verify</a><a href="get.html">Network</a><a href="foundation.html">Foundation</a><a href="docs.html">Docs</a><a href="foundation.html#access">Join the founding table</a><a href="https://github.com/JacobJandon/ainra" rel="noopener">GitHub ↗</a></div>
+  <div class="nav-links" id="navLinks"><a href="#top" style="color:var(--green)">The root</a><a href="verify.html">Verify</a><a href="get.html">Network</a><a href="landscape.html">Landscape</a><a href="foundation.html">Foundation</a><a href="docs.html">Docs</a><a href="foundation.html#access">Join the founding table</a><a href="https://github.com/JacobJandon/ainra" rel="noopener">GitHub ↗</a></div>
 </div></nav>
 
 <main id="main"><header class="hero" id="hero">
@@ -755,24 +744,6 @@ nav .nav-links a[aria-current="page"],nav .ndocs[aria-current="page"]{text-decor
       <div class="era now" role="listitem"><span class="k">Web4 · now</span><div class="verbs"><b>READ</b><b>WRITE</b><b>OWN</b><b class="new">ACT</b></div><p>Agents act for you while you are elsewhere. They talk to other agents, sign, buy and trade.</p></div>
     </div>
     <p class="eras-close">An act needs an actor. Before a shop, an API or another agent lets yours in, it needs four answers: <b>who it is, who stands behind it, what it may do, and whether it is still trusted.</b> An AINRA passport carries all four, and anyone can check them offline.</p>
-  </div>
-</section>
-
-<section id="missing" class="rv">
-  <div class="wrap">
-    <div class="sec-head" style="text-align:center;max-width:780px;margin:0 auto">
-      <span class="eyebrow">Everyone building this</span>
-      <h2>Everyone is solving agent identity. They all leave the same piece open.</h2>
-      <p class="lede">Each effort answers <i>who is this agent?</i> in its own world. None runs the one thing they all assume: a neutral place to check whether an agent is still trusted.</p>
-    </div>
-    <div class="gaps" role="list" aria-label="What each kind of effort builds, and what it leaves open">
-      <div class="gap" role="listitem"><div class="who">Internet standards<small>IETF agent identity, on WIMSE</small></div><div class="builds">Short-lived tokens, and requests signed with them.</div><div class="t-arrow" aria-hidden="true"><svg viewBox="0 0 30 30" width="18" height="18" aria-hidden="true"><rect x="0" y="0" width="5" height="5" fill="#1A6B4E"/><rect x="6" y="6" width="5" height="5" fill="#1A6B4E"/><rect x="12" y="12" width="5" height="5" fill="#1A6B4E"/><rect x="6" y="18" width="5" height="5" fill="#1A6B4E"/><rect x="0" y="24" width="5" height="5" fill="#1A6B4E"/></svg></div><div class="open"><b>No revocation.</b> In the draft's own words, &ldquo;a short expiration is the primary mitigation.&rdquo;</div></div>
-      <div class="gap" role="listitem"><div class="who">Signature agents<small>Web Bot Auth</small></div><div class="builds">An operator's keys, published in a directory at its own site.</div><div class="t-arrow" aria-hidden="true"><svg viewBox="0 0 30 30" width="18" height="18" aria-hidden="true"><rect x="0" y="0" width="5" height="5" fill="#1A6B4E"/><rect x="6" y="6" width="5" height="5" fill="#1A6B4E"/><rect x="12" y="12" width="5" height="5" fill="#1A6B4E"/><rect x="6" y="18" width="5" height="5" fill="#1A6B4E"/><rect x="0" y="24" width="5" height="5" fill="#1A6B4E"/></svg></div><div class="open"><b>No revocation.</b> A withdrawn key keeps verifying until the verifier fetches the directory again.</div></div>
-      <div class="gap" role="listitem"><div class="who">Identity platforms<small>Commercial products</small></div><div class="builds">Identities for the agents inside one company's systems.</div><div class="t-arrow" aria-hidden="true"><svg viewBox="0 0 30 30" width="18" height="18" aria-hidden="true"><rect x="0" y="0" width="5" height="5" fill="#1A6B4E"/><rect x="6" y="6" width="5" height="5" fill="#1A6B4E"/><rect x="12" y="12" width="5" height="5" fill="#1A6B4E"/><rect x="6" y="18" width="5" height="5" fill="#1A6B4E"/><rect x="0" y="24" width="5" height="5" fill="#1A6B4E"/></svg></div><div class="open"><b>No neutral check.</b> Trusted wherever that vendor is trusted, and nowhere else.</div></div>
-      <div class="gap" role="listitem"><div class="who">Policy frameworks<small>Know-your-agent rules</small></div><div class="builds">Who made the agent, who answers for it, what it may do.</div><div class="t-arrow" aria-hidden="true"><svg viewBox="0 0 30 30" width="18" height="18" aria-hidden="true"><rect x="0" y="0" width="5" height="5" fill="#1A6B4E"/><rect x="6" y="6" width="5" height="5" fill="#1A6B4E"/><rect x="12" y="12" width="5" height="5" fill="#1A6B4E"/><rect x="6" y="18" width="5" height="5" fill="#1A6B4E"/><rect x="0" y="24" width="5" height="5" fill="#1A6B4E"/></svg></div><div class="open"><b>Revocation named, not built.</b> They require it and specify no mechanism.</div></div>
-      <div class="gap ours" role="listitem"><div class="who">AINRA<small>Beneath all of them</small></div><div class="builds">One passport any of them can check offline, from a root no vendor runs.</div><div class="t-arrow" aria-hidden="true"><svg viewBox="0 0 30 30" width="18" height="18" aria-hidden="true"><rect x="0" y="0" width="5" height="5" fill="#1A6B4E"/><rect x="6" y="6" width="5" height="5" fill="#1A6B4E"/><rect x="12" y="12" width="5" height="5" fill="#1A6B4E"/><rect x="6" y="18" width="5" height="5" fill="#1A6B4E"/><rect x="0" y="24" width="5" height="5" fill="#1A6B4E"/></svg></div><div class="open"><b>Revocation anyone can check.</b> Revoke once, and every copy is refused, within 30 seconds on the strict setting.</div></div>
-    </div>
-    <p class="proof">AINRA plugs in beneath them, not instead of them: a running copy can present as a standard IETF workload or sign beside a signature agent. Same request, two verifiers. After revocation, the standard alone keeps accepting; AINRA refuses. Run it yourself: <code>make wimse-e2e</code> · <code>make signature-agent-e2e</code>. Of 130 efforts we counted, the number of non-profits <i>operating</i> cross-vendor verification and revocation is <b>zero</b>. <a href="https://github.com/JacobJandon/ainra/blob/main/docs/LANDSCAPE.md" rel="noopener" style="color:var(--green);font-weight:600">The list, with sources</a>.</p>
   </div>
 </section>
 

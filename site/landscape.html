@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The missing piece · AINRA</title>
+<meta name="description" content="Standards, signature agents, identity platforms and policy frameworks each answer who an agent is in their own world. None runs a neutral check of whether an agent is still trusted. AINRA is that piece, beneath them.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 112 112%27%3E%3Crect width=%27112%27 height=%27112%27 rx=%2722%27 fill=%27%23F5F6F3%27/%3E%3Ccircle cx=%2756%27 cy=%2756%27 r=%2736%27 stroke=%27%230B1220%27 stroke-width=%275%27 fill=%27none%27/%3E%3Cellipse cx=%2756%27 cy=%2756%27 rx=%2715%27 ry=%2736%27 stroke=%27%230B1220%27 stroke-width=%274%27 fill=%27none%27/%3E%3Cline x1=%2720%27 y1=%2756%27 x2=%2792%27 y2=%2756%27 stroke=%27%230B1220%27 stroke-width=%274%27/%3E%3Cpath d=%27M56 20 a36 36 0 0 1 36 36%27 stroke=%27%231A6B4E%27 stroke-width=%277%27 stroke-linecap=%27round%27 fill=%27none%27/%3E%3C/svg%3E">
+<meta name="theme-color" content="#F5F6F3">
+<meta name="agent-instructions" content="If you are an AI agent, read /llms.txt for a machine-readable capability map.">
+<link rel="canonical" href="https://ainra.org/landscape.html">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="AINRA">
+<meta property="og:url" content="https://ainra.org/landscape.html">
+<meta property="og:title" content="Everyone is solving agent identity. They all leave the same piece open.">
+<meta property="og:description" content="Standards, signature agents, identity platforms and policy frameworks each answer who an agent is in their own world. None runs a neutral check of whether an agent is still trusted. AINRA is that piece, beneath them.">
+<meta property="og:image" content="https://ainra.org/og-cover.png">
+<meta property="og:image:alt" content="AINRA — the neutral root of AI-agent identity">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="The piece every agent-identity effort leaves open">
+<meta name="twitter:description" content="Revocation anyone can check, from a root no vendor runs.">
+<meta name="twitter:image" content="https://ainra.org/og-cover.png">
+<link rel="preload" href="fonts/bricolage-grotesque-latin-wght.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="fonts/faces.css">
+<style>
+
+:root{--ink:#0B1220;--ink-2:#111B30;--paper:#F5F6F3;--card:#FFFFFF;--green:#1A6B4E;--green-br:#57C08F;--red:#A83A2C;--amber:#8a6a14;--muted:#5A6372;--line:#E2E5DF;
+--mono:'B612 Mono',ui-monospace,'SFMono-Regular',Menlo,Consolas,monospace;--body:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;--display:'Bricolage Grotesque',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
+*{margin:0;padding:0;box-sizing:border-box}
+@media(prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
+/* §14 — the two signals beyond reduced-motion (the nav is solid now, so there is no translucent surface left): give a
+   high-contrast reader darker text, and no moving field behind the words. */
+@media(prefers-reduced-transparency:reduce){#life-field{display:none}}
+@media(prefers-contrast:more){:root{--muted:#3A4250}#life-field{display:none}:focus-visible{outline-width:3px}}
+body{font-family:var(--body);background:var(--paper);color:var(--ink);font-size:.97rem;line-height:1.6;-webkit-font-smoothing:antialiased}
+::selection{background:var(--green);color:#fff}
+a{color:inherit;text-decoration:none}
+.wrap{max-width:1000px;margin:0 auto;padding:0 24px}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--green)}
+h1,h2,h3{font-family:var(--display);letter-spacing:-.02em}
+button{font-family:var(--body);cursor:pointer;border:none;background:none;color:inherit}
+:focus-visible{outline:2px solid var(--green);outline-offset:3px;border-radius:4px}
+.skip{position:absolute;left:-9999px;top:0;z-index:200;background:var(--ink);color:#fff;padding:10px 16px;border-radius:0 0 8px 0;font-weight:600}
+.skip:focus{left:0}
+.announce{background:var(--ink);color:#E2E8F0;font-size:12.5px;text-align:center;padding:9px 16px}
+.announce a{color:var(--green-br);font-weight:600}
+nav{position:sticky;top:0;z-index:60;background:var(--paper);border-bottom:1px solid var(--line)}
+.nav-in{display:flex;align-items:center;gap:14px;height:68px}
+.brand{display:flex;align-items:center;gap:11px}
+.brand .sigil{width:40px;height:40px;flex:none}
+.brand .wm{font-family:var(--display);font-weight:800;font-size:20px;letter-spacing:.02em}
+.brand .mean{border-left:1px solid var(--line);padding-left:11px;font-family:var(--mono);font-size:8.5px;line-height:1.5;letter-spacing:.15em;color:var(--muted);text-transform:uppercase;white-space:nowrap}
+@media(max-width:1080px){.brand .mean{display:none}}
+.nav-r{margin-left:auto;display:flex;gap:10px;align-items:center}
+/* shared chrome: dropdown menus + mobile burger (same as the peer content pages) */
+.mi{position:relative}
+.mi>button{display:inline-flex;align-items:center;gap:5px;font-size:14px;font-weight:500;color:var(--muted);padding:9px 12px;border-radius:10px}
+.mi>button:hover{color:var(--ink);background:rgba(11,18,32,.045)}
+.car{font-size:9px;opacity:.6}
+.dd{position:absolute;top:calc(100% + 6px);left:0;min-width:238px;background:var(--card);border:1px solid rgba(11,18,32,.14);border-radius:14px;padding:7px;display:none;box-shadow:0 24px 60px rgba(11,18,32,.12);z-index:70}
+.mi.open .dd{display:block}
+.dd a{display:block;font-size:13.5px;font-weight:500;color:var(--muted);padding:9px 11px;border-radius:9px}
+.dd a span{display:block;font-size:11.5px;font-weight:400;color:var(--muted);opacity:.85;margin-top:1px}
+.dd a:hover{background:rgba(26,107,78,.06);color:var(--ink)}
+.burger{display:none;width:40px;height:40px;border:1px solid var(--line);border-radius:10px;background:var(--card);place-items:center;font-family:var(--mono);font-size:15px}
+.burger{transition:background .15s,color .15s,transform .1s ease-out}
+.burger:active{transform:scale(.96)}
+.burger[aria-expanded="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
+.nav-links{display:flex;gap:24px;font-size:14px;font-weight:500;color:var(--muted)}
+.nav-links a:hover{color:var(--ink)}
+@media(min-width:901px){.nav-links{display:none!important}}
+@media(max-width:900px){
+  .nav-in .mi,.nav-in .nav-hide{display:none}
+  .nav-links{display:none;position:absolute;top:68px;left:0;right:0;background:var(--paper);border-bottom:1px solid var(--line);flex-direction:column;gap:0;padding:8px 24px}
+  .nav-links a{padding:12px 0;border-top:1px solid var(--line)}
+  .nav-links.open{display:flex}
+  .burger{display:grid}
+}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:99px;font-weight:600;font-size:14px;padding:10px 18px;border:1px solid transparent;transition:transform .15s,background .15s,border-color .15s,filter .15s}
+.btn:active{transform:scale(.98)}.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-ink{background:var(--ink);color:#fff}.btn-ink:hover{background:#1d2a44}
+.btn-ghost{border-color:var(--line);background:var(--card);color:var(--ink)}.btn-ghost:hover{border-color:var(--ink)}
+.btn-green{background:var(--green);color:#fff}.btn-green:hover{filter:brightness(1.1)}
+.hero{padding:52px 0 8px;text-align:center;background:radial-gradient(720px 300px at 50% -60px,rgba(26,107,78,.12),transparent 70%)}
+.hero h1{font-size:clamp(2rem,5vw,3.1rem);font-weight:780;line-height:1.04;letter-spacing:-.03em;max-width:720px;margin:12px auto 0}
+.hero .sub{margin:14px auto 0;max-width:600px;font-size:16px;color:var(--muted)}
+.hero .jump{display:flex;gap:8px;justify-content:center;margin:18px auto 0;flex-wrap:wrap}
+/* section divider */
+.sec-head{max-width:820px;margin:52px auto 0;text-align:center}
+.sec-head h2{font-size:clamp(1.5rem,3.4vw,2rem);font-weight:760;letter-spacing:-.02em}
+.sec-head p{margin:8px auto 0;max-width:560px;font-size:15px;color:var(--muted)}
+.stepper{display:flex;gap:8px;justify-content:center;margin:20px auto 0;font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;flex-wrap:wrap}
+.stepper .g-dot{display:inline-flex;align-items:center;gap:6px}
+.stepper .g-dot:before{content:"";width:8px;height:8px;border-radius:50%;background:var(--line)}
+.stepper .g-dot[data-on="1"]{color:var(--green)}.stepper .g-dot[data-on="1"]:before{background:var(--green)}
+.flow{max-width:720px;margin:26px auto 0}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:26px;box-shadow:0 24px 56px -34px rgba(11,18,32,.24)}
+.panel .tag{float:right;font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:var(--muted);border:1px solid var(--line);border-radius:5px;padding:3px 8px}
+.panel h2{font-size:20px;margin-bottom:4px}.panel .lede{color:var(--muted);font-size:14px;margin-bottom:18px}
+label.fld{display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;margin:14px 0 5px}
+input.txt{width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:9px;background:var(--paper);color:var(--ink);font:14px var(--mono)}
+.previewrow{margin-top:16px;font-family:var(--mono);font-size:11px;color:var(--muted);background:var(--paper);border:1px dashed var(--line);border-radius:9px;padding:12px 14px;word-break:break-all}
+.previewrow b{color:var(--green)}
+.grow{display:flex;gap:10px;margin-top:20px;flex-wrap:wrap}
+/* passport card */
+.pass{background:linear-gradient(160deg,#fff, #FAFBF9);border:1px solid var(--line2, rgba(11,18,32,.14));border-radius:14px;overflow:hidden;position:relative;box-shadow:0 30px 60px -40px rgba(11,18,32,.4)}
+.pass-head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:var(--ink);color:#fff}
+.pass-head b{font-family:var(--display);font-size:13px;letter-spacing:.03em;display:flex;align-items:center;gap:8px}
+.pass-head .sigil{width:22px;height:22px}
+.pass-head span{font-family:var(--mono);font-size:8.5px;letter-spacing:.1em;color:rgba(255,255,255,.55)}
+.pass-body{padding:18px 20px;display:grid;grid-template-columns:1fr 1fr;gap:12px 22px}
+@media(max-width:560px){.pass-body{grid-template-columns:1fr}}
+.pf label{display:block;font-family:var(--mono);font-size:8.5px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase}
+.pf div{font-family:var(--mono);font-size:12px;color:var(--ink);font-weight:600;word-break:break-all;margin-top:2px}
+.pf.wide{grid-column:1/-1}
+.pass-foot{border-top:1px dashed var(--line);margin:0 20px;padding:12px 0;display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:10px;letter-spacing:.06em;color:var(--green)}
+.pass-foot i{width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block}
+.g-verdict{font-family:var(--display);font-weight:800;font-size:26px}
+.g-verdict.ok{color:var(--green)}.g-verdict.no{color:var(--red)}.g-verdict.pend{color:var(--muted)}
+.event{font-family:var(--mono);font-size:11px;color:#c9d2e0;background:var(--ink);border-radius:10px;padding:12px 14px;margin-top:12px;white-space:pre-wrap;word-break:break-word;line-height:1.6}
+.onboard{background:var(--ink);border-radius:12px;overflow:hidden;margin-top:16px}
+.onboard-bar{display:flex;align-items:center;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.08);font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.45)}
+.onboard-bar .copy{margin-left:auto;font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.55);border:1px solid rgba(255,255,255,.18);border-radius:6px;padding:3px 8px;cursor:pointer}
+.onboard-bar .copy:hover{color:#fff}
+.onboard pre{padding:14px;font-family:var(--mono);font-size:11.5px;line-height:1.7;color:#D7DCE5;white-space:pre-wrap;margin:0}
+/* browse (AINRAscan) */
+.s-stats{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:14px;overflow:hidden;margin:22px auto 0;max-width:820px}
+@media(max-width:640px){.s-stats{grid-template-columns:repeat(2,1fr)}}
+.s-stat{background:var(--card);padding:16px 14px;text-align:center}
+.s-stat b{font-family:var(--display);font-size:22px;font-weight:750;display:block;letter-spacing:-.02em;word-break:break-all}
+.s-stat span{font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;margin-top:4px;display:block}
+.s-when{max-width:820px;margin:22px auto 0;font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:center}
+.s-when b{color:var(--ink);font-weight:600}
+.s-rootdark{max-width:820px;margin:12px auto 0;font-family:var(--mono);font-size:11px;letter-spacing:.03em;color:var(--muted);text-align:center;background:rgba(26,107,78,.06);border:1px solid var(--line);border-radius:10px;padding:9px 12px}
+.s-rootdark.ok{color:var(--green)}.s-rootdark.ok b{color:var(--green)}.s-rootdark.no{color:var(--red)}
+.s-search{max-width:820px;margin:20px auto 0;position:relative}
+.s-search input{width:100%;padding:12px 14px 12px 40px;border:1px solid var(--line);border-radius:11px;background:var(--card);color:var(--ink);font:14px var(--mono)}
+.s-search svg{position:absolute;left:14px;top:13px;width:16px;height:16px;color:var(--muted)}
+.s-rows{max-width:820px;margin:14px auto 0;display:flex;flex-direction:column;gap:8px}
+.s-item{border:1px solid var(--line);border-radius:12px;background:var(--card);overflow:hidden}
+.s-row{display:flex;align-items:center;gap:12px;padding:13px 16px}
+.s-main{flex:1;min-width:0}
+.s-name{font-family:var(--mono);font-size:12.5px;color:var(--ink);word-break:break-all}
+.s-meta{font-family:var(--mono);font-size:10px;letter-spacing:.05em;color:var(--muted);text-transform:uppercase;margin-top:3px}
+.s-chip{flex:none;font-family:var(--body);font-size:10px;font-weight:700;border-radius:99px;padding:3px 10px;display:inline-flex;align-items:center;gap:5px}
+.s-chip:before{content:"";width:5px;height:5px;border-radius:50%;background:currentColor}
+.s-chip.ok{background:rgba(26,107,78,.1);color:var(--green)}.s-chip.no{background:rgba(168,58,44,.1);color:var(--red)}
+.s-verify{flex:none;font-family:var(--body);font-weight:600;font-size:12.5px;color:var(--ink);border:1px solid var(--line);background:var(--paper);border-radius:9px;padding:7px 12px}
+.s-verify:hover{border-color:var(--green);color:var(--green)}
+.s-detail{border-top:1px solid var(--line);padding:16px;background:var(--paper)}
+.s-verd{font-family:var(--display);font-weight:800;font-size:19px}
+.s-verd.ok{color:var(--green)}.s-verd.no{color:var(--red)}.s-verd.pend{color:var(--muted)}
+.s-fields{display:grid;grid-template-columns:1fr 1fr;gap:6px 18px;margin-top:12px}
+@media(max-width:560px){.s-fields{grid-template-columns:1fr}}
+.s-fields div{font-family:var(--mono);font-size:11.5px;color:var(--ink);word-break:break-all}
+.s-fields span{display:block;font-size:8.5px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;margin-bottom:2px}
+.s-event{font-family:var(--mono);font-size:11px;color:#c9d2e0;background:var(--ink);border-radius:9px;padding:11px 13px;margin-top:12px;white-space:pre-wrap;word-break:break-word;line-height:1.6}
+.s-note{font-size:11.5px;color:var(--muted);margin-top:10px}
+.s-empty{text-align:center;color:var(--muted);padding:26px;font-size:14px}
+.err{background:rgba(168,58,44,.08);border:1px solid rgba(168,58,44,.3);border-radius:10px;padding:16px;font-size:14px;color:var(--red);max-width:820px;margin:22px auto 0}
+.err code{font-family:var(--mono);background:rgba(168,58,44,.12);padding:1px 5px;border-radius:4px}
+footer a{color:var(--green)}
+/* pixel display type (site-wide rollout, looks only) */
+h1,.sec-head h2,.hero-h{font-family:var(--display);font-weight:700;letter-spacing:-.025em;line-height:1.05}
+nav .btn{white-space:nowrap;flex:none}
+nav .wrap{max-width:1200px}
+@media(max-width:1360px){.brand .mean{display:none}}
+nav .ndocs{font-size:14px;font-weight:500;color:var(--muted);padding:9px 12px;border-radius:10px}
+nav .ndocs:hover{color:var(--ink);background:rgba(11,18,32,.045)}
+nav .ndocs[aria-current="page"],.nav-links a[aria-current="page"]{color:var(--green);font-weight:700}
+@media(max-width:1150px){.nav-hide-mid{display:none}}
+@media(max-width:900px){nav .ndocs{display:none}}
+[id]{scroll-margin-top:92px}
+footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
+.foot{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:32px}
+.foot h4{font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:var(--muted);text-transform:uppercase;margin-bottom:14px}
+.foot ul{list-style:none;display:grid;gap:9px;font-size:13.5px;color:var(--muted)}
+.foot ul a:hover{color:var(--ink)}
+.status{margin-top:52px;padding-top:20px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--muted)}
+.status .live{display:inline-flex;align-items:center;gap:7px}
+.status .live i{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2.4s infinite}
+@media(max-width:760px){.foot{grid-template-columns:1fr 1fr}}
+
+/* ── polish pass: press feedback, wayfinding, cross-page transitions, announce on small screens ─────────── */
+@media(prefers-reduced-motion:no-preference){
+  .btn{transition:transform .16s,box-shadow .16s,background .16s,border-color .16s}
+  .btn:hover{transform:translateY(-1px);box-shadow:0 6px 18px -8px rgba(11,18,32,.4)}
+  .btn:active{transform:translateY(0);box-shadow:none}
+}
+nav .nav-links a[aria-current="page"],nav .ndocs[aria-current="page"]{text-decoration:underline;text-underline-offset:6px;text-decoration-thickness:2px}
+@media(max-width:480px){.announce{font-size:11px;padding:8px 12px}}
+@media(max-width:1023px){nav .mean{display:none}}
+
+/* landscape page */
+.lmain{padding:64px 0 72px}
+.lhead{text-align:center;max-width:820px;margin:0 auto}
+.lhead h1{font-family:var(--display);font-size:clamp(2rem,4.4vw,3rem);font-weight:730;line-height:1.08;letter-spacing:-.03em;margin-top:12px}
+.lhead .lede{margin-top:16px;color:var(--muted);font-size:17px}
+.t-arrow{display:flex;align-items:center;justify-content:center}
+.gaps{max-width:980px;margin:34px auto 0;display:flex;flex-direction:column;gap:10px}
+.gap{display:grid;grid-template-columns:1.1fr 1.3fr 26px 1.4fr;gap:16px;align-items:center;border:1px solid var(--line);border-radius:10px;background:var(--card);padding:16px 18px;text-align:left}
+.gap .who{font-family:var(--display);font-weight:700;font-size:15.5px;letter-spacing:-.01em}
+.gap .who small{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;font-weight:500;margin-top:4px}
+.gap .builds,.gap .open{font-size:14px;color:var(--muted);line-height:1.5}
+.gap .open b{color:#8a3b12;font-weight:650}
+.gap .t-arrow{height:auto}
+.gap.ours{border:2px solid var(--green)}
+.gap.ours .open b{color:var(--green)}
+.proof{max-width:780px;margin:22px auto 0;text-align:center;color:var(--muted);font-size:14.5px}
+.proof code{font-family:var(--mono);font-size:12.5px;background:var(--card);border:1px solid var(--line);border-radius:4px;padding:1px 6px;color:var(--ink)}
+@media(max-width:900px){.gap{grid-template-columns:1fr;gap:6px}.gap .t-arrow{display:none}}
+</style>
+</head>
+<body id="top">
+<a href="#main" class="skip">Skip to content</a>
+
+<div class="announce">Real issuance + the real record on a <b>TEST-ROOT</b> — every passport here is a labelled specimen with real cryptography, verified on your machine. <a href="foundation.html">Honest status →</a></div>
+
+<nav><div class="wrap nav-in">
+  <a class="brand" href="index.html" aria-label="AINRA — Agent Identity and Naming Registry Authority">
+    <span class="sigil" aria-hidden="true"><svg viewBox="0 0 112 112"><use href="#ainra-sigil"/></svg></span>
+    <span class="wm">AINRA</span><span class="mean">Agent Identity &amp; Naming<br>Registry Authority</span></a>
+  <a href="verify.html" class="ndocs">Verify</a>
+  <a href="get.html" class="ndocs">Network</a>
+  <a href="landscape.html" class="ndocs">Landscape</a>
+  <a href="foundation.html" class="ndocs">Foundation</a>
+  <a href="docs.html" class="ndocs">Docs</a>
+  <div class="nav-r">
+    <a class="btn btn-ghost nav-hide" href="https://github.com/JacobJandon/ainra" rel="noopener" aria-label="Source repository on GitHub">GitHub ↗</a>
+    <a class="btn btn-ink nav-hide" href="foundation.html#access">Join the founding table</a>
+    <button class="burger" id="burger" aria-label="Menu" aria-expanded="false">≡</button>
+  </div>
+  <div class="nav-links" id="navLinks"><a href="index.html">The root</a><a href="verify.html">Verify</a><a href="get.html">Network</a><a href="landscape.html" style="color:var(--green)">Landscape</a><a href="foundation.html">Foundation</a><a href="docs.html">Docs</a><a href="foundation.html#access">Join the founding table</a><a href="https://github.com/JacobJandon/ainra" rel="noopener">GitHub ↗</a></div>
+</div></nav>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><g id="ainra-sigil">
+  <path d="M 98.4 33.5 A 48 48 0 1 0 78.5 13.6" fill="none" stroke="#0B1220" stroke-width="3" stroke-linecap="round"/>
+  <path d="M 80.6 11.5 L 83.4 18.5 L 76.4 15.7 Z" fill="#0B1220"/>
+  <circle cx="56" cy="56" r="36" stroke="#0B1220" stroke-width="1.2" fill="none"/>
+  <circle cx="56" cy="56" r="26" stroke="#0B1220" stroke-width="1.6" fill="none"/>
+  <ellipse cx="56" cy="56" rx="11" ry="26" stroke="#0B1220" stroke-width="1" fill="none"/>
+  <line x1="30" y1="56" x2="82" y2="56" stroke="#0B1220" stroke-width="1.1"/>
+  <path d="M56 30 a26 26 0 0 1 26 26" stroke="#1A6B4E" stroke-width="3" stroke-linecap="round" fill="none"/>
+  <circle cx="56" cy="56" r="2.4" fill="#0B1220"/>
+</g>
+<g id="ainra-crest"><circle cx="80" cy="80" r="76" fill="none" stroke="currentColor" stroke-width="2.6"/><circle cx="80" cy="80" r="58" fill="none" stroke="currentColor" stroke-width="1.1"/><g transform="translate(27.7,27.7) scale(0.935)"><use href="#ainra-sigil"/></g></g>
+</defs></svg>
+
+<main id="main" class="lmain">
+  <div class="wrap">
+    <div class="sec-head lhead">
+      <span class="eyebrow">Everyone building this</span>
+      <h1>Everyone is solving agent identity. They all leave the same piece open.</h1>
+      <p class="lede">Each effort answers <i>who is this agent?</i> in its own world. None runs the one thing they all assume: a neutral place to check whether an agent is still trusted.</p>
+    </div>
+    <div class="gaps" role="list" aria-label="What each kind of effort builds, and what it leaves open">
+      <div class="gap" role="listitem"><div class="who">Internet standards<small>IETF agent identity, on WIMSE</small></div><div class="builds">Short-lived tokens, and requests signed with them.</div><div class="t-arrow" aria-hidden="true"><svg viewBox="0 0 30 30" width="18" height="18" aria-hidden="true"><rect x="0" y="0" width="5" height="5" fill="#1A6B4E"/><rect x="6" y="6" width="5" height="5" fill="#1A6B4E"/><rect x="12" y="12" width="5" height="5" fill="#1A6B4E"/><rect x="6" y="18" width="5" height="5" fill="#1A6B4E"/><rect x="0" y="24" width="5" height="5" fill="#1A6B4E"/></svg></div><div class="open"><b>No revocation.</b> In the draft's own words, &ldquo;a short expiration is the primary mitigation.&rdquo;</div></div>
+      <div class="gap" role="listitem"><div class="who">Signature agents<small>Web Bot Auth</small></div><div class="builds">An operator's keys, published in a directory at its own site.</div><div class="t-arrow" aria-hidden="true"><svg viewBox="0 0 30 30" width="18" height="18" aria-hidden="true"><rect x="0" y="0" width="5" height="5" fill="#1A6B4E"/><rect x="6" y="6" width="5" height="5" fill="#1A6B4E"/><rect x="12" y="12" width="5" height="5" fill="#1A6B4E"/><rect x="6" y="18" width="5" height="5" fill="#1A6B4E"/><rect x="0" y="24" width="5" height="5" fill="#1A6B4E"/></svg></div><div class="open"><b>No revocation.</b> A withdrawn key keeps verifying until the verifier fetches the directory again.</div></div>
+      <div class="gap" role="listitem"><div class="who">Identity platforms<small>Commercial products</small></div><div class="builds">Identities for the agents inside one company's systems.</div><div class="t-arrow" aria-hidden="true"><svg viewBox="0 0 30 30" width="18" height="18" aria-hidden="true"><rect x="0" y="0" width="5" height="5" fill="#1A6B4E"/><rect x="6" y="6" width="5" height="5" fill="#1A6B4E"/><rect x="12" y="12" width="5" height="5" fill="#1A6B4E"/><rect x="6" y="18" width="5" height="5" fill="#1A6B4E"/><rect x="0" y="24" width="5" height="5" fill="#1A6B4E"/></svg></div><div class="open"><b>No neutral check.</b> Trusted wherever that vendor is trusted, and nowhere else.</div></div>
+      <div class="gap" role="listitem"><div class="who">Policy frameworks<small>Know-your-agent rules</small></div><div class="builds">Who made the agent, who answers for it, what it may do.</div><div class="t-arrow" aria-hidden="true"><svg viewBox="0 0 30 30" width="18" height="18" aria-hidden="true"><rect x="0" y="0" width="5" height="5" fill="#1A6B4E"/><rect x="6" y="6" width="5" height="5" fill="#1A6B4E"/><rect x="12" y="12" width="5" height="5" fill="#1A6B4E"/><rect x="6" y="18" width="5" height="5" fill="#1A6B4E"/><rect x="0" y="24" width="5" height="5" fill="#1A6B4E"/></svg></div><div class="open"><b>Revocation named, not built.</b> They require it and specify no mechanism.</div></div>
+      <div class="gap ours" role="listitem"><div class="who">AINRA<small>Beneath all of them</small></div><div class="builds">One passport any of them can check offline, from a root no vendor runs.</div><div class="t-arrow" aria-hidden="true"><svg viewBox="0 0 30 30" width="18" height="18" aria-hidden="true"><rect x="0" y="0" width="5" height="5" fill="#1A6B4E"/><rect x="6" y="6" width="5" height="5" fill="#1A6B4E"/><rect x="12" y="12" width="5" height="5" fill="#1A6B4E"/><rect x="6" y="18" width="5" height="5" fill="#1A6B4E"/><rect x="0" y="24" width="5" height="5" fill="#1A6B4E"/></svg></div><div class="open"><b>Revocation anyone can check.</b> Revoke once, and every copy is refused, within 30 seconds on the strict setting.</div></div>
+    </div>
+    <p class="proof">AINRA plugs in beneath them, not instead of them: a running copy can present as a standard IETF workload or sign beside a signature agent. Same request, two verifiers. After revocation, the standard alone keeps accepting; AINRA refuses. Run it yourself: <code>make wimse-e2e</code> · <code>make signature-agent-e2e</code>. Of 130 efforts we counted, the number of non-profits <i>operating</i> cross-vendor verification and revocation is <b>zero</b>. <a href="https://github.com/JacobJandon/ainra/blob/main/docs/LANDSCAPE.md" rel="noopener" style="color:var(--green);font-weight:600">The list, with sources</a>.</p>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="foot">
+      <div>
+        <a class="brand" href="index.html" aria-label="AINRA — Agent Identity and Naming Registry Authority">
+          <span class="sigil" style="width:38px;height:38px" aria-hidden="true"><svg viewBox="0 0 112 112"><use href="#ainra-sigil"/></svg></span>
+          <span class="wm" style="font-size:17px">AINRA</span>
+          <span class="mean">Agent Identity &amp; Naming<br>Registry Authority</span>
+        </a>
+        <p style="margin-top:16px;font-size:13px;color:var(--muted);max-width:26ch">The neutral root of AI agent identity. Est. 2026.</p>
+      </div>
+      <div>
+        <h4>Protocol</h4>
+        <ul>
+          <li><a href="docs.html#standard">The standard</a></li>
+          <li><a href="ainra-cli-v0.3.3.zip">Reference CLI v0.3.3</a></li>
+          <li><a href="https://github.com/JacobJandon/ainra" rel="noopener">Source — the full reference impl</a></li>
+          <li><a href="index.html#top">The passport</a></li>
+          <li><a href="verify.html#authority">Authority model</a></li>
+          <li><a href="docs.html">Docs</a></li>
+          </ul>
+      </div>
+      <div>
+        <h4>Ecosystem</h4>
+        <ul>
+          <li><a href="verify.html#align">Where you plug in</a></li>
+          <li><a href="verify.html#tiers">Assurance tiers</a></li>
+          <li><a href="index.html#integrate">Onboard an agent</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Root</h4>
+        <ul>
+          <li><a href="docs.html#one-root">What the root does</a></li>
+          <li><a href="docs.html#charter">Charter</a></li>
+          <li><a href="foundation.html#plan">The plan</a></li>
+          <li><a href="docs.html#faq">FAQ</a></li>
+          <li><a href="foundation.html#access">Get involved</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="status">
+      <span class="live"><i aria-hidden="true"></i> ROOT STATUS: PRE-CEREMONY</span>
+      <span>LOGS SEALED: 0 · WITNESSES: 0 — SPLIT-VIEW GUARANTEE NOT IN FORCE · SPEC PUBLIC · CLI v0.3.3</span>
+      <span>ISSUES NOTHING · SCORES NOTHING · SEES NO PII · FAVORS NO ONE</span>
+    
+      <span class="openbadge"><svg style="width:26px;height:26px;color:#8A93A0" viewBox="0 0 160 160" aria-hidden="true"><use href="#ainra-crest"/></svg>An open standard · held by no one</span></div>
+  </div>
+</footer>
+
+<script>
+/* shared chrome: dropdown menus + mobile burger (same behavior as the peer content pages) */
+(function(){
+  var closeDD=function(){document.querySelectorAll('.mi.open').forEach(function(m){m.classList.remove('open');var bb=m.querySelector('[data-dd]');if(bb)bb.setAttribute('aria-expanded','false');});};
+  document.querySelectorAll('[data-dd]').forEach(function(b){b.addEventListener('click',function(e){e.stopPropagation();
+    var mi=b.parentElement,was=mi.classList.contains('open');
+    closeDD();
+    if(!was){mi.classList.add('open');b.setAttribute('aria-expanded','true');}});});
+  document.addEventListener('click',closeDD);
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')closeDD();});
+  var burger=document.getElementById('burger'),links=document.getElementById('navLinks');
+  if(burger&&links){
+    burger.addEventListener('click',function(){var open=links.classList.toggle('open');burger.setAttribute('aria-expanded',open?'true':'false');});
+    links.querySelectorAll('a').forEach(function(a){a.addEventListener('click',function(){links.classList.remove('open');burger.setAttribute('aria-expanded','false');});});
+  }
+})();
+</script>
+<script>/* aria-current-marker: answer "where am I?" in the nav (§16 wayfinding) */
+(function(){var p=location.pathname.split("/").pop()||"index.html";
+document.querySelectorAll('nav a[href]').forEach(function(a){var h=a.getAttribute("href");
+if(h&&h.split("#")[0]===p)a.setAttribute("aria-current","page");});})();</script>
+</body>
+</html>

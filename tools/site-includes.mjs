@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
-// Shared header/footer include. The four peer content pages (standard/verify/foundations/status) draw their <nav>
+// Shared header/footer include. The peer content pages (listed in PAGES below) draw their <nav>
 // and <footer> from site/_includes/{header,footer}.html — ONE source of truth, so they cannot drift. The only
 // per-page differences are applied deterministically here: the active nav link (green) and self-anchors made relative.
 //   node tools/site-includes.mjs          → sync: rewrite each page's <nav>/<footer> from the include (idempotent).
@@ -10,7 +10,7 @@ import { dirname, join } from "node:path";
 
 const SITE = join(dirname(fileURLToPath(import.meta.url)), "..", "site");
 const INC = join(SITE, "_includes");
-const PAGES = ["verify", "docs", "get", "foundation"];
+const PAGES = ["verify", "docs", "get", "foundation", "landscape"];
 // nav-only peers: pages that must carry the identical menu but keep their own compact footer (app pages)
 const NAV_ONLY = [];
 const headerN = readFileSync(join(INC, "header.html"), "utf8").trimEnd(); // page-neutral (no active state)
@@ -57,7 +57,7 @@ for (const p of NAV_ONLY) {
 }
 
 if (check) {
-  console.log(drift ? `\n${drift} drift(s) — run \`make site\` to resync from _includes/` : "✓ shared header/footer in sync across the 4 content pages + the nav-only live page");
+  console.log(drift ? `\n${drift} drift(s) — run \`make site\` to resync from _includes/` : "✓ shared header/footer in sync across the 5 content pages");
   process.exit(drift ? 1 : 0);
 }
 console.log(synced ? `synced ${synced} page(s) from _includes/header.html + footer.html` : "✓ header/footer already in sync with _includes/");

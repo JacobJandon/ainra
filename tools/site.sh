@@ -53,7 +53,7 @@ cp "$TMP/ainra-cli-v${VER}.zip" "$SITE/ainra-cli-v${VER}.zip"
 echo "built $SITE/ — 7 self-contained pages + refreshed downloads (CLI v${VER}, Standard $(wc -l < "$SITE/AINRA_I_The_Standard.md") lines)."
 echo "  the download CLI == apps/cli-node (canonical); the Standard == docs/AINRA_I_The_Standard.md (canonical)."
 
-# M17: keep the 4 content pages' shared header/footer in sync from site/_includes/ (one source of truth, no drift).
+# M17: keep the content pages' shared header/footer in sync from site/_includes/ (one source of truth, no drift).
 node tools/site-includes.mjs
 
 # No version drift (Task 6): AFTER the include sync, every three-part vX.Y.Z printed in a page IS the CLI version.

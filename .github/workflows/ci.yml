@@ -289,7 +289,7 @@ jobs:
   # and the Python agent verify SLH-DSA through the system libcrypto, so this runs in the same OpenSSL >= 3.5 image
   # as the differential job.
   live:
-    name: live drills (a network brought up in the job · five drills at the real clock)
+    name: live drills (a network brought up in the job · six drills at the real clock)
     runs-on: ubuntu-latest
     container: rust:1.96
     timeout-minutes: 45

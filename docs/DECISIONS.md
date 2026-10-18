@@ -1874,3 +1874,32 @@ WIMSE verifier must then be able to ask AINRA the two questions WIMSE leaves ope
 - This is a TEST-ROOT mechanism. It is not evidence of any deployment.
 
 *Status:* NEW. Ships in 0.5.0.
+
+## D-077 — How the root is paid for: a capped per-lineage fee, or flat dues only (PROPOSED)
+
+*Problem:* Two positions are on the record, and they disagree.
+
+- **The Standard (§2) and the specification (§22, F8).** Registrars pay a capped per-lineage-year fee of at most
+  $0.10, plus a flat accreditation fee identical for every registrar. The fee schedule is a root-signed object that
+  may only stay flat or fall (F8). Verification is free, and the root processes no payments (Standard Part I §1, the third of its six prohibitions).
+  - The specification's own estimate: the fee covers the root only from about 5 M lineages. Below that, capped
+    founding-member dues and public-interest grants bridge the gap.
+- **The July 2026 strategy review (a lead, never ratified).** It proposed taking no per-unit money at the neutral
+  entity at all: registrars keep all issuance revenue, and the root is funded by flat dues, capped sponsorship and
+  conformance services.
+  - Its reasoning: per-unit revenue gives the root a standing incentive to grow the unit count, the way the domain
+    system's per-domain fee rewards adding top-level domains.
+
+For comparison, the domain system's coordinator charges each registrar USD 4,000 a year plus USD 0.20 per
+domain-year, raised from 0.18 on 1 July 2025 (its registrar billing FAQ, October 2025).
+
+*Proposal:* keep the Standard's model, and state the reason in this record.
+
+- The capture risk is real. F8 answers it structurally: the fee can never rise, so growing the unit count cannot grow
+  the take per unit. The dues-only model has no equivalent lock.
+- Flat dues do not scale with the cost of serving a billion lineages. A fee that falls toward archival cost does.
+- Nothing here charges anyone today. No fee schedule exists until the root does, and the first signed schedule is a
+  genesis-day artefact.
+
+*Status:* PROPOSED. The maintainer decides. Nothing implements or changes either model until this record says
+ACCEPTED or REJECTED, with the reason.

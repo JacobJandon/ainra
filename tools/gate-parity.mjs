@@ -86,7 +86,11 @@ async function battery(origin) {
   await run("signed by another key", "403 presentation_sig_invalid", async () => get(await signed(await base(), { key: hybridKey() })));
   await run("keyid names another copy", "403 presentation_sig_invalid", async () => get(await signed(await base(), { keyid: "i-00000000" })));
   await run("signed 301 s ago", "403 presentation_stale", async () => get(await signed(await base(), { created: now() - 301 })));
-  await run("signed 31 s in the future", "403 presentation_stale", async () => get(await signed(await base(), { created: now() + 31 })));
+  // Not 31 s: the gate reads its own clock a moment after `created` is set, and if a second ticks over in between, a
+  // request signed 31 s ahead arrives exactly at the 30 s bound and is rightly accepted. CI saw that once (node 200,
+  // edge and python 403). The exact bound is pinned deterministically by vectors p05 and p22; this battery checks that
+  // all three gates refuse a request clearly from the future.
+  await run("signed 40 s in the future", "403 presentation_stale", async () => get(await signed(await base(), { created: now() + 40 })));
   await run("the identical request, again", "403 presentation_replayed", async () => { const h = await signed(await base()); await get(h); return get(h); });
 
   // ── the signature fields ───────────────────────────────────────────────────────────────────────────────────────

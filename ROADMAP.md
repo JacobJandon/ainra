@@ -53,6 +53,15 @@ templates, and two public kill-gates — **K1** (demand evidence) and **K4** (th
 `make campaign-status` reads the counts above from their registries rather than restating them, and
 `node tools/campaign.mjs check` fails the build if this file's numbers ever drift from what the registries hold.
 
+## The order changed (PLAN-M47, 26 October 2026)
+
+The recorded ceremony now comes **after the first design partner**, not before: a root is worth creating once
+something real depends on it. Nothing about the three real-world rows changes: their flip conditions, the public
+gates, and the Definition of Done stay exactly as above. What comes first instead is AINRA Link (D-078), which ties
+the credentials agents already carry to an accountable operator and a revocation anyone can check, plus signed
+decision records and online verification (D-079). The path to a recognised neutral home is in
+[`docs/GOVERNANCE-PATH.md`](docs/GOVERNANCE-PATH.md).
+
 ## After genesis
 
 The root becomes what its charter describes: a member-governed federation with custodians holding threshold keys and

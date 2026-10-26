@@ -1903,3 +1903,76 @@ domain-year, raised from 0.18 on 1 July 2025 (its registrar billing FAQ, October
 
 *Status:* PROPOSED. The maintainer decides. Nothing implements or changes either model until this record says
 ACCEPTED or REJECTED, with the reason.
+
+## D-078 — AINRA Link: status and attribution for credentials agents already have (M47)
+
+*Problem:* An agent usually already carries a credential: a signature-agent key, a workload key, an OAuth client.
+Each of these can be revoked only inside the system that issued it. Nobody offers a neutral, cross-provider,
+offline-checkable answer to *this key, from any issuer, belongs to an accountable operator, and is or is not revoked*
+(the landscape check of 26 October 2026, `docs/LANDSCAPE.md`). When agents broke out of an evaluation environment in
+July 2026, the platform they attacked could not tell who they were until the lab reported it (`docs/REGULATION.md`).
+
+*Decision:*
+
+- **A link record**, signed by an accredited registrar with its hybrid key (both-or-invalid), binds:
+  - a credential, named by a normalised subject. Version 1 supports `jwk` (the RFC 7638 thumbprint of an Ed25519
+    public key, which covers signature-agent and workload keys);
+  - the operator's passport, by name;
+  - an optional scope;
+  - a validity window;
+  - two status bits in the registrar's signed list: the link's own, and the passport's.
+- **Proof of control.** The record carries a signature by the linked key itself over the link's purpose, registrar,
+  passport and subject. The registrar checks it before issuing, and every verifier checks it again. A key cannot be
+  linked to someone else's passport without its holder's consent.
+- **Logged before valid,** exactly as passports are: the record's leaf goes into the registrar's log, and a link
+  without an inclusion proof under a signed checkpoint does not verify.
+- **Three kinds of revocation:**
+  - the link's bit (this key is no longer attributable);
+  - the passport's bit (the operator's whole lineage, so every link of it flips);
+  - a compromise, logged with `suspect_since` so actions before and after it can be told apart.
+- **Verification** takes the key the caller already verified, the link record and the trusted material: directory,
+  authenticated status, checkpoint. It answers accept with the registrar, operator, passport and scope, or refuse with
+  the first failing reason from the frozen set:
+  - `schema_violation`, `unknown_registrar`, `registrar_distrusted`;
+  - `not_yet_valid`, `expired`;
+  - `alg_downgrade`, `sig_invalid` (registrar signature, wrong key, or failed proof of control);
+  - `ceiling_exceeded` (outside the link's scope);
+  - `stale_status`, `revoked`;
+  - `checkpoint_invalid`, `not_logged`.
+  A key with no link at all is reported as *not linked*: an outcome, not a reason.
+- **Two delivery modes:**
+  - *pull*: the verifier looks the key's thumbprint up in the registrar's signed link index, cached and fetched whole;
+  - *push*: the agent sends the record once, then names it by digest (D-065).
+- **No new trust, no new list.** Links take bits in the registrar's existing status list, and its existing log.
+
+*Status:* ACCEPTED for implementation (PLAN-M47). Rust core first; TypeScript and Python independently, held to
+`vectors/v1-link`.
+
+## D-079 — Signed decision records, and online verification that cannot become an authority (M47)
+
+*Problem:* Regulators and the IETF's agent-identity draft ask for durable, tamper-evident records of which agent did
+what, under whose authority. Gates today return a verdict and keep nothing. Separately, the project should operate
+something people can call. But the record of hosted revocation checks is poor: online status queries leaked what
+users visited, failed open and were switched off (Let's Encrypt, 6 August 2025).
+
+*Decision:*
+
+- **A decision record** for every gate decision. It holds:
+  - the agent's passport or the linked key, and the operator;
+  - the verdict and reason;
+  - a digest of the request's signed components (never the body);
+  - the status sequence and checkpoint used;
+  - the gate's audience and freshness policy;
+  - the previous record's digest.
+  It is signed by the gate's own key and chained into a local log a verifier can check end to end. It contains no
+  personal data.
+- **The same record is the receipt** of the hosted verifier, so a caller holds what an auditor needs.
+- **Online verification is static first.** It publishes the same signed artefacts offline verifiers use, as
+  content-addressed files any mirror may serve: status lists, link indexes, checkpoints, log tiles.
+- **A stateless `POST /v1/verify`** runs the published verifier at a pinned build hash. It returns a signed decision
+  record that embeds the artefacts it used, so the caller can re-check it offline. It keeps aggregate counters only.
+- **Forbidden:** lookup by full identifier, search, listing agents, unsigned verdicts, and soft-fail.
+- **Push is a doorbell only:** a signed head announcement after which receivers pull and verify.
+
+*Status:* ACCEPTED for implementation (PLAN-M47). The hosting is the owner's decision, and nothing is provisioned
+without it.

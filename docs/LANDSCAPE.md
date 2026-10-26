@@ -220,6 +220,48 @@ These are not yet in the counts above, which stay a floor. Each was read from it
   Gartner. Its 2026 top cybersecurity trends list "Identity and Access Management Adapts to AI Agents" as one of six,
   unranked. Neither is used anywhere we publish.
 
+## Revocation and attribution, specifically (checked 26 October 2026)
+
+The question AINRA Link answers: *this key, from any issuer, belongs to an accountable operator, and is or is not
+revoked, checked by anyone, offline.* Each entry below was read on its own published material. None answers that
+question across providers today.
+
+- **IETF OAuth Token Status List** is in the RFC Editor queue (draft-21, 21 June 2026): a signed, compressed bitstring
+  the token itself must point to. The spec "does not mandate specific methods for key resolution and trust
+  management". Keys that carry no status claim, such as signature-agent keys and OAuth clients, are outside it.
+  <https://datatracker.ietf.org/doc/draft-ietf-oauth-status-list/>
+- **W3C Bitstring Status List** became a Recommendation on 15 May 2025. It sets a minimum of 131,072 entries for herd
+  privacy. <https://www.w3.org/TR/vc-bitstring-status-list/>
+- **OpenID Shared Signals, CAEP and RISC** were approved as Final in September 2025. They push events between parties
+  that have configured a stream in advance; strangers get no status.
+  <https://openid.net/top-firms-test-interoperability-of-final-ssf-and-caep/>
+- **The Web Bot Auth directory draft** covers rotation and expiry ("remove expired keys from the directory"), not
+  revocation. The registry draft warns: "Malicious actors may put properties which are not theirs in the registry."
+  <https://www.ietf.org/archive/id/draft-meunier-webbotauth-registry-03.txt>
+- **Visa Trusted Agent Protocol** (14 October 2025) keeps an agent registry of public keys inside the network. Its
+  repository documents no key revocation. <https://github.com/visa/trusted-agent-protocol>
+- **The Ant International, Visa and Mastercard "Know Your Agent" framework** (10 September 2026) names "operator
+  traceability across networks" first, while "each network will continue to use its own verification and decisioning
+  processes". <https://thenextweb.com/news/visa-mastercard-ant-international-know-your-agent-ai-agents>
+- **Microsoft Entra Agent ID** disables an agent identity so it stops "receiving tokens", inside Entra.
+  <https://learn.microsoft.com/entra/agent-id/disable-agent-identities>
+- **AWS AgentCore** signs Web Bot Auth requests for its customers: AWS "handles credential generation, request signing,
+  and identity registration", so attribution stops at the platform.
+  <https://aws.amazon.com/about-aws/whats-new/2025/10/amazon-bedrock-agentcore-browser-web-bot-auth-preview>
+- **DigiCert AI Trust Manager** (15 September 2026) describes an "AI Passport" connected "to an accountable owner",
+  with a kill switch at the source. It names no mechanism, and it is a commercial certificate authority.
+  <https://www.digicert.com/news/every-ai-agent-needs-a-kill-switch-digicert-launches-ai-trust-manager>
+- **DNSid** (draft-ihsanullah-dnsid-01, 29 June 2026) is the closest design: a status endpoint that "MUST NOT report
+  ... verified-ACTIVE when current status is unavailable or stale", sitting "beneath" other identity systems. It needs
+  an online check and is run by one domain-registry company. <https://www.ietf.org/archive/id/draft-ihsanullah-dnsid-01.html>
+- **ANS** (agent name service) revokes through CRL/OCSP with a 300 s TTL; its reference implementation "uses mock
+  cryptography" according to an independent review.
+  <https://labs.cloudsecurityalliance.org/research/agentic-identity-ans-security-analysis-v1-0/>
+- **The web PKI's own lesson.** Let's Encrypt switched its OCSP responders off on 6 August 2025, for privacy and
+  reliability (<https://letsencrypt.org/2024/12/05/ending-ocsp/>). Firefox now downloads every revocation, about
+  300 kB a day, because "the only secure approach is to check all revocations"
+  (<https://hacks.mozilla.org/2025/08/crlite-fast-private-and-comprehensive-certificate-revocation-checking-in-firefox/>).
+
 ## Corrections applied before publishing
 
 An adversarial pass re-checked every claim against primary sources. Claims that did not survive were removed, not

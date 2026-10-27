@@ -1,0 +1,7 @@
+{
+  "break": 16,
+  "count": 21,
+  "hold": 5,
+  "note": "CC0 decision-log conformance vectors (D-079): a gate's signed, hash-chained decision records, one canonical record per line, with the gate's Ed25519 public key and an optional anchor for a segment. The answer is {ok, count} or the first break {index, problem}, problem one of schema, gate, signature, sequence, link, clock. d17 pins an honest limit: removing records from the END of a log is invisible to the chain itself. Real signing throughout; expect computed by ainra-adapter::decision_vector_result, each checked against the case it exists to test. Regenerate with `make vectors`.",
+  "version": "v1-decision"
+}

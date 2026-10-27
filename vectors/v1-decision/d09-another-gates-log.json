@@ -1,0 +1,14 @@
+{
+  "anchor": null,
+  "description": "a genuine log, checked against the wrong gate's key",
+  "expect": {
+    "index": 0,
+    "ok": false,
+    "problem": "gate"
+  },
+  "gate_key": "WO01eRSCJUK8vnwXz9WzweoLkQMyl3jXWLk1yziACbI",
+  "lines": [
+    "{\"at\":1000,\"checkpoint\":{\"origin\":\"ainra-log/registrar-07\",\"root\":\"q6urq6urq6urq6urq6urq6urq6urq6urq6urq6urq6s\",\"size\":40},\"gate\":\"gDJbjRa0wON7qHbVEHSe6dNUz0jk05kH_NzTdvJ0nYs\",\"kind\":\"passport\",\"operator\":\"acme\",\"policy\":{\"audience\":\"https://shop.example\",\"freshness\":\"F1\"},\"prev\":\"\",\"request\":\"PnB3_S9m1ongzuanz1s3vy3KfJea81bQoxy8XIVgXH0\",\"seq\":0,\"sig\":\"r-CmYK5tuchJioV_5rOn2O8D9v0cIkHc29iKMgRwejM7mYe4Ya8yEqzDFRujYocClYKTUxrvxF64ucMHaI8eAg\",\"status\":{\"issued_at\":997,\"list\":\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\",\"uri\":\"status://registrar-07/1\"},\"subject\":\"ainra:registrar-07:acme:invoicing@1.0.0\",\"v\":\"ainra-decision-1\",\"verdict\":\"valid\"}"
+  ],
+  "name": "d09-another-gates-log"
+}

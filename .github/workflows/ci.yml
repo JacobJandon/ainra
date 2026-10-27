@@ -41,6 +41,7 @@ jobs:
       - run: cargo run --release -q -p ainra-vector-gen -- --check-presentation vectors/v1-presentation
       - run: cargo run --release -q -p ainra-vector-gen -- --check-gate vectors/v1-gate
       - run: cargo run --release -q -p ainra-vector-gen -- --check-link vectors/v1-link
+      - run: cargo run --release -q -p ainra-vector-gen -- --check-decision vectors/v1-decision
 
   differential:
     name: 4-way differential (core · sdk-ts · P0 · py)
@@ -72,7 +73,8 @@ jobs:
       - run: cargo run --release -q -p ainra-vector-gen -- --presentation-out vectors/v1-presentation
       - run: cargo run --release -q -p ainra-vector-gen -- --gate-out vectors/v1-gate
       - run: cargo run --release -q -p ainra-vector-gen -- --link-out vectors/v1-link
-      - run: git diff --exit-code -- vectors/v1 vectors/v1-delta vectors/v1-directory vectors/v1-presentation vectors/v1-gate vectors/v1-link || (echo "committed vectors differ from regenerated (nondeterminism?)" && exit 1)
+      - run: cargo run --release -q -p ainra-vector-gen -- --decision-out vectors/v1-decision
+      - run: git diff --exit-code -- vectors/v1 vectors/v1-delta vectors/v1-directory vectors/v1-presentation vectors/v1-gate vectors/v1-link vectors/v1-decision || (echo "committed vectors differ from regenerated (nondeterminism?)" && exit 1)
       - run: node tools/diff-harness/run.mjs
       # M24 Task 2 — the conformance programme, offline: the language-agnostic runner passes the 3 in-repo verdict
       # impls CLEAN over the full corpus (same corpus hash), FAILS a deliberately broken impl with named divergences,

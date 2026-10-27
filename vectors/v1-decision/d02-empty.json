@@ -1,0 +1,11 @@
+{
+  "anchor": null,
+  "description": "an empty log holds, trivially",
+  "expect": {
+    "count": 0,
+    "ok": true
+  },
+  "gate_key": "WO01eRSCJUK8vnwXz9WzweoLkQMyl3jXWLk1yziACbI",
+  "lines": [],
+  "name": "d02-empty"
+}

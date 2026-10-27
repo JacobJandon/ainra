@@ -11,8 +11,10 @@
 import {
   Verifier, verdictEvent, serializeVerdictEvent, decodeInstance, verifyPresentation,
   isPresentationRef, splitPresentation, joinPresentation, presentationRef, POP_HEADER, PRIME_PATH,
-  type PresentationBundle, type Verdict, type VerdictEvent, type PresentationReason,
+  decisionRequestDigest,
+  type PresentationBundle, type Verdict, type VerdictEvent, type PresentationReason, type DecisionLog,
 } from "@ainra/sdk";
+import { createHash } from "node:crypto";
 
 // ── M36 (D-065): bundles sent once, named by digest after that ───────────────────────────────────────────────────
 
@@ -79,6 +81,11 @@ export interface GateOptions {
   store?: PresentationStore;
   /** Header the per-request proof of possession arrives in when the bundle is named by digest. Default `x-ainra-pop`. */
   popHeader?: string;
+  /** D-079: record every decision this gate can attribute to a named passport in a signed, chained log
+   *  (`createDecisionLog` from `@ainra/sdk`). A request that names no parseable passport has no subject and is not
+   *  recorded. The operator is recorded only on a valid decision: on an invalid one, the name in the claims is
+   *  the presenter's word. Never receives the request body. */
+  decisions?: DecisionLog;
 }
 
 /** What `requireSignature` needs from the request, beyond the bundle. A framework-agnostic shape so an edge
@@ -210,6 +217,40 @@ function bindingFromReq(req: ReqLike): RequestBinding {
   };
 }
 
+/** D-079: write one decision to the gate's log, when the request named a passport. Nothing here can fail the
+ *  request: a decision log that cannot be written is the operator's alarm, not the agent's refusal. */
+function recordDecision(log: DecisionLog, raw: unknown, result: GateResult, req: ReqLike, opts: GateOptions): void {
+  try {
+    const sub = result.event.name;
+    if (typeof sub !== "string" || sub === "") return; // nothing parseable named: no subject to record
+    let b: Partial<PresentationBundle> = {};
+    const v = Array.isArray(raw) ? raw[0] : raw;
+    if (typeof v === "string" && !isPresentationRef(v)) {
+      try { b = JSON.parse(v.trim().startsWith("{") ? v : Buffer.from(v, "base64url").toString("utf8")); } catch { /* digests only */ }
+    } else if (v && typeof v === "object") b = v as PresentationBundle;
+    const binding = bindingFromReq(req);
+    const cd = binding.headers["content-digest"];
+    const valid = result.allow;
+    const digest = (text: string) => createHash("sha256").update(text).digest("base64url");
+    log.record({
+      at: (opts.now ?? (() => Math.floor(Date.now() / 1000)))(),
+      kind: "passport",
+      subject: sub,
+      ...(valid ? { operator: sub.split(":")[2] } : {}),
+      verdict: valid ? "valid" : "invalid",
+      ...(valid ? {} : { reason: result.reason ?? "schema_violation" }),
+      request: decisionRequestDigest({ method: binding.method, authority: binding.authority, path: binding.path, contentDigest: Array.isArray(cd) ? cd[0] : cd }),
+      ...(typeof b.status_uri === "string" && Number.isSafeInteger(b.status_issued_at) && typeof b.status_list === "string"
+        ? { status: { uri: b.status_uri, issued_at: b.status_issued_at as number, list: digest(b.status_list) } } : {}),
+      ...(b.checkpoint && typeof b.checkpoint.origin === "string" && Number.isSafeInteger(b.checkpoint.size) && typeof b.checkpoint.root === "string"
+        ? { checkpoint: { origin: b.checkpoint.origin, size: b.checkpoint.size, root: b.checkpoint.root } } : {}),
+    });
+  } catch (e) {
+    // A presentation reason (e.g. presentation_unsigned) is not a credential reason and has no place in the closed
+    // record; and any other failure to record must surface without changing the decision.
+    console.error(`ainra: decision not recorded: ${(e as Error).message}`);
+  }
+}
 /**
  * Connect/Express middleware. Reads the presentation from the configured header (or `req.body.ainra_passport`),
  * verifies it, and either calls `next()` (attaching `req.ainra`) or responds **403 fail-closed** with the reason.
@@ -234,6 +275,7 @@ export function ainraGate(verifier: Verifier, opts: GateOptions = {}) {
             pop: Array.isArray(popRaw) ? popRaw[0] : popRaw,
           });
     req.ainra = result;
+    if (opts.decisions) recordDecision(opts.decisions, raw, result, req, opts);
     // Emit the canonical verdict event on every request (allow or deny) — one event shape everywhere (PRESENTATION.md).
     res.setHeader("x-ainra-verdict", serializeVerdictEvent(result.event));
     if (result.allow) {

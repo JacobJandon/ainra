@@ -1,0 +1,17 @@
+{
+  "anchor": null,
+  "description": "a genuinely signed record that names the wrong predecessor",
+  "expect": {
+    "index": 2,
+    "ok": false,
+    "problem": "link"
+  },
+  "gate_key": "WO01eRSCJUK8vnwXz9WzweoLkQMyl3jXWLk1yziACbI",
+  "lines": [
+    "{\"at\":1000,\"checkpoint\":{\"origin\":\"ainra-log/registrar-07\",\"root\":\"q6urq6urq6urq6urq6urq6urq6urq6urq6urq6urq6s\",\"size\":40},\"gate\":\"8ADGfVfrshi2ONiE-MCJUVIorNUJ2gk4tDXcH7ls0V0\",\"kind\":\"passport\",\"operator\":\"acme\",\"policy\":{\"audience\":\"https://shop.example\",\"freshness\":\"F1\"},\"prev\":\"\",\"request\":\"PnB3_S9m1ongzuanz1s3vy3KfJea81bQoxy8XIVgXH0\",\"seq\":0,\"sig\":\"aMqOJDItwQvjoOqINO2HaIftiiXUtDheetbIoWUqJrg4sqLQuKsHKzhkhdqyiJ4Qvy8kZbZWebm9a0MT3AWECg\",\"status\":{\"issued_at\":997,\"list\":\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\",\"uri\":\"status://registrar-07/1\"},\"subject\":\"ainra:registrar-07:acme:invoicing@1.0.0\",\"v\":\"ainra-decision-1\",\"verdict\":\"valid\"}",
+    "{\"at\":1010,\"checkpoint\":{\"origin\":\"ainra-log/registrar-07\",\"root\":\"q6urq6urq6urq6urq6urq6urq6urq6urq6urq6urq6s\",\"size\":41},\"gate\":\"8ADGfVfrshi2ONiE-MCJUVIorNUJ2gk4tDXcH7ls0V0\",\"kind\":\"link\",\"operator\":\"acme\",\"passport\":\"ainra:registrar-07:acme:invoicing@1.0.0\",\"policy\":{\"audience\":\"https://shop.example\",\"freshness\":\"F1\"},\"prev\":\"KNTBJPXXDGUODKOSq52sULvd34YiSamSi8O6XsGBuvw\",\"request\":\"KuHBnAy9N45GySep82EZI-wHzBrjV1AqCVNtRVJ1zyE\",\"seq\":1,\"sig\":\"6HycuR6pKMkzKEml4QQ7s9oS9paOHi5XUCimmaogCxZQMjsG6VSdYuXS700I68rCTP1w-Q4NSTzzK8L-8BBkDQ\",\"status\":{\"issued_at\":1007,\"list\":\"AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE\",\"uri\":\"status://registrar-07/1\"},\"subject\":\"AgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgI\",\"v\":\"ainra-decision-1\",\"verdict\":\"valid\"}",
+    "{\"at\":1020,\"checkpoint\":{\"origin\":\"ainra-log/registrar-07\",\"root\":\"q6urq6urq6urq6urq6urq6urq6urq6urq6urq6urq6s\",\"size\":42},\"gate\":\"8ADGfVfrshi2ONiE-MCJUVIorNUJ2gk4tDXcH7ls0V0\",\"kind\":\"link\",\"policy\":{\"audience\":\"https://shop.example\",\"freshness\":\"F1\"},\"prev\":\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\",\"reason\":\"not_linked\",\"request\":\"2B9ReB7rj0ag4RLobKM1iWzMEs7gDmz89Yo1ARKd_CQ\",\"seq\":2,\"sig\":\"4UGKZWmpmRpUQBz-4Rpsu43YQCobq5YBTb7okAzUKWnLoJNvoQXtgF9kLslU6_uktbgMGTtfi7AynaDFzbEXAg\",\"status\":{\"issued_at\":1017,\"list\":\"AgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgI\",\"uri\":\"status://registrar-07/1\"},\"subject\":\"AwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwM\",\"v\":\"ainra-decision-1\",\"verdict\":\"invalid\"}",
+    "{\"at\":1030,\"checkpoint\":{\"origin\":\"ainra-log/registrar-07\",\"root\":\"q6urq6urq6urq6urq6urq6urq6urq6urq6urq6urq6s\",\"size\":43},\"gate\":\"8ADGfVfrshi2ONiE-MCJUVIorNUJ2gk4tDXcH7ls0V0\",\"kind\":\"passport\",\"policy\":{\"audience\":\"https://shop.example\",\"freshness\":\"F1\"},\"prev\":\"K0AWFT86uD1eFZRVxzXI8IPcWYmV6gCeHHBq2M7z1Gs\",\"reason\":\"revoked\",\"request\":\"_uvxhjvR_O7f7_JpOCnVD_vKwQDQ--dFSC4DL5P2uvs\",\"seq\":3,\"sig\":\"Ki7MXvfFcVu1J_4ECDUnAjgPKQoAjtBd-4DY4yuMFgOBjLM-Sb2K1_YNYxpvbpgWZ5k7nF6CuARpITR8MvhvBA\",\"status\":{\"issued_at\":1027,\"list\":\"AwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwM\",\"uri\":\"status://registrar-07/1\"},\"subject\":\"ainra:registrar-07:acme:invoicing@1.0.0\",\"v\":\"ainra-decision-1\",\"verdict\":\"invalid\"}"
+  ],
+  "name": "d07-wrong-prev"
+}

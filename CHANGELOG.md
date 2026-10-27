@@ -63,6 +63,13 @@ npm are 0.4.1.
   `Verifier.verify_link` in the Python package, and `verify_link_gate` in `ainra-adapter` decide as a gate decides:
   signed directory, status authenticated before it is read, the gate's own clock, class and capability. 36 vectors in
   `vectors/v1-link`; all three agree on every one in `make diff`. See `docs/LINKS.md`.
+- **Signed decision records** (D-079). A gate can keep one signed, hash-chained record per decision: who decided,
+  when, about which passport or key, the verdict and reason, digests of the request's signed components and of the
+  status and checkpoint it relied on. The field set is closed, so it holds no personal data. `createDecisionLog` and
+  `verifyDecisionChain` in `@ainra/sdk`, `ainra.decision` in Python, `ainra_core::decision`, a `decisions` option on
+  `@ainra/middleware`, and `ainra verify-decisions` with `--head`. 21 vectors in `vectors/v1-decision`, including
+  the honest limit that records cut from the end of a log are invisible without a published head. See
+  `docs/DECISION-RECORDS.md`.
 - **`make link-e2e`, in `make live-drills`** (D-078). A signature agent's existing Ed25519 keys are linked to its
   operator's passport, attributed by an origin that reads each request with an independent signature-agent verifier
   and with AINRA Link, then revoked as `link`, `compromise` and `operator`. The signature-agent reader keeps accepting;

@@ -1,0 +1,15 @@
+{
+  "anchor": null,
+  "description": "HONEST LIMIT: the last record removed. A chain cannot show what is missing after its end; publishing the latest digest (a head) is the defence",
+  "expect": {
+    "count": 3,
+    "ok": true
+  },
+  "gate_key": "WO01eRSCJUK8vnwXz9WzweoLkQMyl3jXWLk1yziACbI",
+  "lines": [
+    "{\"at\":1000,\"checkpoint\":{\"origin\":\"ainra-log/registrar-07\",\"root\":\"q6urq6urq6urq6urq6urq6urq6urq6urq6urq6urq6s\",\"size\":40},\"gate\":\"8ADGfVfrshi2ONiE-MCJUVIorNUJ2gk4tDXcH7ls0V0\",\"kind\":\"passport\",\"operator\":\"acme\",\"policy\":{\"audience\":\"https://shop.example\",\"freshness\":\"F1\"},\"prev\":\"\",\"request\":\"PnB3_S9m1ongzuanz1s3vy3KfJea81bQoxy8XIVgXH0\",\"seq\":0,\"sig\":\"aMqOJDItwQvjoOqINO2HaIftiiXUtDheetbIoWUqJrg4sqLQuKsHKzhkhdqyiJ4Qvy8kZbZWebm9a0MT3AWECg\",\"status\":{\"issued_at\":997,\"list\":\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\",\"uri\":\"status://registrar-07/1\"},\"subject\":\"ainra:registrar-07:acme:invoicing@1.0.0\",\"v\":\"ainra-decision-1\",\"verdict\":\"valid\"}",
+    "{\"at\":1010,\"checkpoint\":{\"origin\":\"ainra-log/registrar-07\",\"root\":\"q6urq6urq6urq6urq6urq6urq6urq6urq6urq6urq6s\",\"size\":41},\"gate\":\"8ADGfVfrshi2ONiE-MCJUVIorNUJ2gk4tDXcH7ls0V0\",\"kind\":\"link\",\"operator\":\"acme\",\"passport\":\"ainra:registrar-07:acme:invoicing@1.0.0\",\"policy\":{\"audience\":\"https://shop.example\",\"freshness\":\"F1\"},\"prev\":\"KNTBJPXXDGUODKOSq52sULvd34YiSamSi8O6XsGBuvw\",\"request\":\"KuHBnAy9N45GySep82EZI-wHzBrjV1AqCVNtRVJ1zyE\",\"seq\":1,\"sig\":\"6HycuR6pKMkzKEml4QQ7s9oS9paOHi5XUCimmaogCxZQMjsG6VSdYuXS700I68rCTP1w-Q4NSTzzK8L-8BBkDQ\",\"status\":{\"issued_at\":1007,\"list\":\"AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE\",\"uri\":\"status://registrar-07/1\"},\"subject\":\"AgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgI\",\"v\":\"ainra-decision-1\",\"verdict\":\"valid\"}",
+    "{\"at\":1020,\"checkpoint\":{\"origin\":\"ainra-log/registrar-07\",\"root\":\"q6urq6urq6urq6urq6urq6urq6urq6urq6urq6urq6s\",\"size\":42},\"gate\":\"8ADGfVfrshi2ONiE-MCJUVIorNUJ2gk4tDXcH7ls0V0\",\"kind\":\"link\",\"policy\":{\"audience\":\"https://shop.example\",\"freshness\":\"F1\"},\"prev\":\"JGWVjetVPvOB596hVBJBrDCeXwYDZbYNydoV_4QUSmM\",\"reason\":\"not_linked\",\"request\":\"2B9ReB7rj0ag4RLobKM1iWzMEs7gDmz89Yo1ARKd_CQ\",\"seq\":2,\"sig\":\"lQiAafTa-GNJqRtR2SziKkd3LFmN1yM5D76V1LCDX3CLG0LUXpxRKBCrGmF8wsZxiDBTn4PWQ5PWaFk4KRv5CA\",\"status\":{\"issued_at\":1017,\"list\":\"AgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgI\",\"uri\":\"status://registrar-07/1\"},\"subject\":\"AwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwM\",\"v\":\"ainra-decision-1\",\"verdict\":\"invalid\"}"
+  ],
+  "name": "d17-tail-cut-is-invisible"
+}

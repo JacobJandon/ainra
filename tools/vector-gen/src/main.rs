@@ -4769,6 +4769,453 @@ fn check_link(dir: &str) {
     println!("checked {total} link vectors: all reproduce their recorded expectation");
 }
 
+// ── v1-decision — a gate's signed, chained decision log (D-079) ─────────────────────────────────────────────────
+//
+// Each vector is a log (one canonical record per line), the gate's public key, and optionally the anchor a segment
+// continues from. The answer is the core's `verify_chain`: `{ok, count}` or the first break `{index, problem}`. Each
+// case declares the answer it exists to test; the generator refuses one the core disagrees with.
+
+fn decision_vectors() -> Vec<Value> {
+    use ainra_core::decision::{
+        self, DecisionCheckpoint, DecisionPolicy, DecisionRecord, DecisionStatus,
+    };
+    let mut rng = ChaCha20Rng::seed_from_u64(0x4445_4349_0000_0079); // "DECI" · D-079 — a public TEST seed
+    let gate = crypto::TestDelegate::generate(&mut rng);
+    let other = crypto::TestDelegate::generate(&mut rng);
+    let passport = "ainra:registrar-07:acme:invoicing@1.0.0";
+    let rec = |g: &crypto::TestDelegate,
+               seq: u64,
+               at: u64,
+               prev: String,
+               kind: &str,
+               verdict: &str,
+               reason: Option<&str>| DecisionRecord {
+        v: decision::DECISION_V.to_string(),
+        gate: decision::gate_id(&g.public()),
+        seq,
+        at,
+        kind: kind.to_string(),
+        subject: if kind == "link" {
+            b64::encode(&[seq as u8 + 1; 32])
+        } else {
+            passport.to_string()
+        },
+        passport: (kind == "link" && verdict == "valid").then(|| passport.to_string()),
+        operator: (verdict == "valid").then(|| "acme".to_string()),
+        verdict: verdict.to_string(),
+        reason: reason.map(String::from),
+        request: b64::encode(&merkle::hash_leaf(&seq.to_be_bytes())),
+        status: Some(DecisionStatus {
+            uri: "status://registrar-07/1".into(),
+            issued_at: at - 3,
+            list: b64::encode(&[seq as u8; 32]),
+        }),
+        checkpoint: Some(DecisionCheckpoint {
+            origin: "ainra-log/registrar-07".into(),
+            size: 40 + seq,
+            root: b64::encode(&[0xAB; 32]),
+        }),
+        policy: DecisionPolicy {
+            freshness: "F1".into(),
+            audience: "https://shop.example".into(),
+        },
+        prev,
+        sig: String::new(),
+    };
+    let sign = |g: &crypto::TestDelegate, mut r: DecisionRecord| {
+        r.sig = b64::encode(&g.sign(&r.signing_bytes().expect("signing bytes")));
+        r
+    };
+    let line = |r: &DecisionRecord| String::from_utf8(r.to_line().expect("line")).expect("utf8");
+    // The genuine log: a passport accepted, a link accepted, a key nobody linked, a revoked passport.
+    let shapes = [
+        ("passport", "valid", None),
+        ("link", "valid", None),
+        ("link", "invalid", Some("not_linked")),
+        ("passport", "invalid", Some("revoked")),
+    ];
+    let mut genuine: Vec<DecisionRecord> = Vec::new();
+    for (i, (kind, verdict, reason)) in shapes.iter().enumerate() {
+        let prev = genuine
+            .last()
+            .map(|r| b64::encode(&r.digest().expect("digest")))
+            .unwrap_or_default();
+        genuine.push(sign(
+            &gate,
+            rec(
+                &gate,
+                i as u64,
+                1_000 + 10 * i as u64,
+                prev,
+                kind,
+                verdict,
+                *reason,
+            ),
+        ));
+    }
+    let g_lines: Vec<String> = genuine.iter().map(line).collect();
+    let key = b64::encode(&gate.public());
+
+    struct Case {
+        name: &'static str,
+        what: &'static str,
+        key: String,
+        lines: Vec<String>,
+        anchor: Value,
+        want: Value,
+    }
+    let mut cases: Vec<Case> = Vec::new();
+    let mut add = |name, what, lines: Vec<String>, anchor: Value, want: Value| {
+        cases.push(Case {
+            name,
+            what,
+            key: key.clone(),
+            lines,
+            anchor,
+            want,
+        })
+    };
+    let ok = |n: usize| json!({ "ok": true, "count": n });
+    let brk = |i: usize, p: &str| json!({ "ok": false, "index": i, "problem": p });
+
+    add("d01-genuine", "four genuine records: a passport accepted, a link accepted, a key nobody linked, a revoked passport", g_lines.clone(), Value::Null, ok(4));
+    add(
+        "d02-empty",
+        "an empty log holds, trivially",
+        vec![],
+        Value::Null,
+        ok(0),
+    );
+    {
+        let mut rs = genuine.clone();
+        rs[3].reason = Some("stale_status".into());
+        add(
+            "d03-edited",
+            "the fourth record's reason was changed after the gate signed it",
+            rs.iter().map(line).collect(),
+            Value::Null,
+            brk(3, "signature"),
+        );
+    }
+    {
+        let mut ls = g_lines.clone();
+        ls.remove(1);
+        add(
+            "d04-deleted",
+            "the second record was removed",
+            ls,
+            Value::Null,
+            brk(1, "sequence"),
+        );
+    }
+    {
+        let mut ls = g_lines.clone();
+        ls.swap(1, 2);
+        add(
+            "d05-reordered",
+            "two records swapped",
+            ls,
+            Value::Null,
+            brk(1, "sequence"),
+        );
+    }
+    {
+        let mut ls = g_lines.clone();
+        let forged = sign(
+            &other,
+            rec(
+                &gate,
+                2,
+                1_020,
+                b64::encode(&genuine[1].digest().unwrap()),
+                "link",
+                "valid",
+                None,
+            ),
+        );
+        ls.insert(2, line(&forged));
+        add(
+            "d06-inserted-by-another-key",
+            "a record claiming this gate, signed by another key, inserted",
+            ls,
+            Value::Null,
+            brk(2, "signature"),
+        );
+    }
+    {
+        let mut ls = g_lines.clone();
+        ls[2] = line(&sign(
+            &gate,
+            rec(
+                &gate,
+                2,
+                1_020,
+                b64::encode(&[0u8; 32]),
+                "link",
+                "invalid",
+                Some("not_linked"),
+            ),
+        ));
+        add(
+            "d07-wrong-prev",
+            "a genuinely signed record that names the wrong predecessor",
+            ls,
+            Value::Null,
+            brk(2, "link"),
+        );
+    }
+    {
+        let mut ls = g_lines.clone();
+        ls[3] = line(&sign(
+            &gate,
+            rec(
+                &gate,
+                3,
+                900,
+                b64::encode(&genuine[2].digest().unwrap()),
+                "passport",
+                "invalid",
+                Some("revoked"),
+            ),
+        ));
+        add(
+            "d08-clock-backwards",
+            "the gate's clock went backwards between two records",
+            ls,
+            Value::Null,
+            brk(3, "clock"),
+        );
+    }
+    {
+        let other_chain = sign(
+            &other,
+            rec(&other, 0, 1_000, String::new(), "passport", "valid", None),
+        );
+        add(
+            "d09-another-gates-log",
+            "a genuine log, checked against the wrong gate's key",
+            vec![line(&other_chain)],
+            Value::Null,
+            brk(0, "gate"),
+        );
+    }
+    {
+        let mut ls = g_lines.clone();
+        ls[0] = ls[0].replacen('{', "{\"email\":\"a@b.c\",", 1);
+        add(
+            "d10-a-field-for-personal-data",
+            "a record with a field outside the closed set",
+            ls,
+            Value::Null,
+            brk(0, "schema"),
+        );
+    }
+    {
+        let mut ls = g_lines.clone();
+        ls[0] = ls[0].replacen(',', ", ", 1);
+        add(
+            "d11-non-canonical",
+            "a record not in canonical form",
+            ls,
+            Value::Null,
+            brk(0, "schema"),
+        );
+    }
+    {
+        let mut r = rec(&gate, 0, 1_000, String::new(), "passport", "valid", None);
+        r.reason = Some("revoked".into());
+        add(
+            "d12-reason-on-valid",
+            "a valid verdict carrying a reason",
+            vec![line(&sign(&gate, r))],
+            Value::Null,
+            brk(0, "schema"),
+        );
+    }
+    add(
+        "d13-not-linked-on-a-passport",
+        "not_linked is a link outcome only",
+        vec![line(&sign(
+            &gate,
+            rec(
+                &gate,
+                0,
+                1_000,
+                String::new(),
+                "passport",
+                "invalid",
+                Some("not_linked"),
+            ),
+        ))],
+        Value::Null,
+        brk(0, "schema"),
+    );
+    add(
+        "d14-reason-not-frozen",
+        "a reason outside the frozen set",
+        vec![line(&sign(
+            &gate,
+            rec(
+                &gate,
+                0,
+                1_000,
+                String::new(),
+                "passport",
+                "invalid",
+                Some("disliked"),
+            ),
+        ))],
+        Value::Null,
+        brk(0, "schema"),
+    );
+    add(
+        "d21-request-not-bound",
+        "a refusal for a request the credential did not sign: the request-signature vocabulary is in the closed set too",
+        vec![line(&sign(&gate, rec(&gate, 0, 1_000, String::new(), "passport", "invalid", Some("presentation_unsigned"))))],
+        Value::Null,
+        ok(1),
+    );
+    let anchor_of = |r: &DecisionRecord| json!({ "seq": r.seq, "at": r.at, "digest": b64::encode(&r.digest().unwrap()) });
+    add(
+        "d15-segment",
+        "the last two records, continuing from the second",
+        g_lines[2..].to_vec(),
+        anchor_of(&genuine[1]),
+        ok(2),
+    );
+    add(
+        "d16-segment-wrong-anchor",
+        "the same segment, continuing from a record it does not follow",
+        g_lines[2..].to_vec(),
+        anchor_of(&genuine[0]),
+        brk(0, "sequence"),
+    );
+    add("d17-tail-cut-is-invisible", "HONEST LIMIT: the last record removed. A chain cannot show what is missing after its end; publishing the latest digest (a head) is the defence", g_lines[..3].to_vec(), Value::Null, ok(3));
+    add(
+        "d18-starts-mid-chain",
+        "a segment presented as a whole log, with no anchor",
+        g_lines[1..].to_vec(),
+        Value::Null,
+        brk(0, "sequence"),
+    );
+    {
+        let mut ls = g_lines.clone();
+        ls.insert(2, ls[1].clone());
+        add(
+            "d19-replayed-record",
+            "a genuine record repeated",
+            ls,
+            Value::Null,
+            brk(2, "sequence"),
+        );
+    }
+    {
+        // An explicit null, signed as written: in the closed format, absent and null are not the same record.
+        let mut v = serde_json::to_value(rec(
+            &gate,
+            0,
+            1_000,
+            String::new(),
+            "passport",
+            "valid",
+            None,
+        ))
+        .unwrap();
+        let o = v.as_object_mut().unwrap();
+        o.remove("sig");
+        o.insert("status".into(), Value::Null);
+        let msg = canon::canonicalize(&v).unwrap().into_bytes();
+        v["sig"] = json!(b64::encode(&gate.sign(&msg)));
+        add(
+            "d20-explicit-null",
+            "a field written as null instead of left out, and signed that way",
+            vec![canon::canonicalize(&v).unwrap()],
+            Value::Null,
+            brk(0, "schema"),
+        );
+    }
+
+    cases.sort_by(|a, b| a.name.cmp(b.name));
+    let mut out = Vec::new();
+    for c in cases {
+        let mut v = json!({ "name": c.name, "description": c.what, "gate_key": c.key, "anchor": c.anchor, "lines": c.lines });
+        let got = ainra_adapter::decision_vector_result(&v);
+        if got != c.want {
+            eprintln!(
+                "DECISION VECTOR {} exists to test {} but the core says {got}",
+                c.name, c.want
+            );
+            std::process::exit(1);
+        }
+        v["expect"] = got;
+        out.push(v);
+    }
+    out
+}
+
+fn emit_decision(dir: &str) {
+    let vectors = decision_vectors();
+    std::fs::create_dir_all(dir).expect("create dir");
+    for v in &vectors {
+        std::fs::write(
+            Path::new(dir).join(format!("{}.json", v["name"].as_str().unwrap())),
+            serde_json::to_string_pretty(v).unwrap(),
+        )
+        .expect("write decision vector");
+    }
+    let holds = vectors
+        .iter()
+        .filter(|v| v["expect"]["ok"] == json!(true))
+        .count();
+    let manifest = json!({
+        "version": "v1-decision",
+        "count": vectors.len(),
+        "hold": holds,
+        "break": vectors.len() - holds,
+        "note": "CC0 decision-log conformance vectors (D-079): a gate's signed, hash-chained decision records, one canonical record per line, with the gate's Ed25519 public key and an optional anchor for a segment. The answer is {ok, count} or the first break {index, problem}, problem one of schema, gate, signature, sequence, link, clock. d17 pins an honest limit: removing records from the END of a log is invisible to the chain itself. Real signing throughout; expect computed by ainra-adapter::decision_vector_result, each checked against the case it exists to test. Regenerate with `make vectors`.",
+    });
+    std::fs::write(
+        Path::new(dir).join("manifest.json"),
+        serde_json::to_string_pretty(&manifest).unwrap(),
+    )
+    .expect("write manifest");
+    println!(
+        "wrote {} decision vectors ({holds} hold) to {dir}",
+        vectors.len()
+    );
+}
+
+fn check_decision(dir: &str) {
+    let mut entries: Vec<_> = std::fs::read_dir(dir)
+        .expect("read dir")
+        .filter_map(|e| e.ok())
+        .map(|e| e.path())
+        .filter(|p| {
+            p.extension().is_some_and(|x| x == "json")
+                && p.file_name().is_some_and(|f| f != "manifest.json")
+        })
+        .collect();
+    entries.sort();
+    let (mut total, mut fails) = (0, 0);
+    for path in entries {
+        let v: Value = serde_json::from_slice(&std::fs::read(&path).expect("read")).expect("parse");
+        let got = ainra_adapter::decision_vector_result(&v);
+        total += 1;
+        if got != v["expect"] {
+            eprintln!(
+                "DECISION CHECK MISMATCH {}: expected {} got {got}",
+                v["name"], v["expect"]
+            );
+            fails += 1;
+        }
+    }
+    if fails > 0 {
+        eprintln!("{fails}/{total} decision vectors mismatched");
+        std::process::exit(1);
+    }
+    println!("checked {total} decision vectors: all reproduce their recorded expectation");
+}
+
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     let mut out_dir: Option<String> = None;
@@ -4783,6 +5230,8 @@ fn main() {
     let mut check_gate_dir: Option<String> = None;
     let mut link_out: Option<String> = None;
     let mut check_link_dir: Option<String> = None;
+    let mut decision_out: Option<String> = None;
+    let mut check_decision_dir: Option<String> = None;
     let mut canon_file: Option<String> = None;
     let mut emit_kind: Option<String> = None;
     let mut min: usize = 0;
@@ -4801,6 +5250,8 @@ fn main() {
             "--check-gate" => check_gate_dir = it.next().cloned(),
             "--link-out" => link_out = it.next().cloned(),
             "--check-link" => check_link_dir = it.next().cloned(),
+            "--decision-out" => decision_out = it.next().cloned(),
+            "--check-decision" => check_decision_dir = it.next().cloned(),
             "--canon" => canon_file = it.next().cloned(),
             "--emit" => emit_kind = it.next().cloned(),
             "--bench" => {} // handled after parsing
@@ -4838,6 +5289,14 @@ fn main() {
     }
     if let Some(dir) = check_presentation_dir {
         check_presentation(&dir);
+        return;
+    }
+    if let Some(dir) = decision_out {
+        emit_decision(&dir);
+        return;
+    }
+    if let Some(dir) = check_decision_dir {
+        check_decision(&dir);
         return;
     }
     if let Some(dir) = link_out {

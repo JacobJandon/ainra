@@ -15,7 +15,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
-import { runVector, expectedVerdict, canonicalize, runDeltaVector, runDirectoryVector, runPresentationVector, runGateVector, runLinkVector } from "../../packages/sdk-ts/dist/index.js";
+import { runVector, expectedVerdict, canonicalize, runDeltaVector, runDirectoryVector, runPresentationVector, runGateVector, runLinkVector, runDecisionVector } from "../../packages/sdk-ts/dist/index.js";
 
 const ROOT = fileURLToPath(new URL("../../", import.meta.url));
 const VEC = path.join(ROOT, "vectors/v1");
@@ -24,6 +24,7 @@ const VEC_DIR = path.join(ROOT, "vectors/v1-directory");
 const VEC_PRES = path.join(ROOT, "vectors/v1-presentation");
 const VEC_GATE = path.join(ROOT, "vectors/v1-gate");
 const VEC_LINK = path.join(ROOT, "vectors/v1-link");
+const VEC_DECISION = path.join(ROOT, "vectors/v1-decision");
 const P0 = path.join(ROOT, "apps/cli-node/bin/ainra.js");
 let failures = 0;
 
@@ -265,6 +266,26 @@ if (fs.existsSync(VEC_LINK)) {
   }
   console.log(`(I) link diff core↔sdk         : ${lpass}/${lfiles.length} agree`);
   pyPhase("link diff        ", "link", VEC_LINK, (v) => v.expect);
+}
+
+// ── (J) Decision-log differential (D-079) — a gate's signed, chained record of what it decided ─────────────────
+// One canonical record per line, the gate's public key, an optional anchor. The answer is {ok, count} or the first
+// break {index, problem}; the recorded one is the core's `verify_chain`.
+if (fs.existsSync(VEC_DECISION)) {
+  const dfiles = fs.readdirSync(VEC_DECISION).filter((f) => f.endsWith(".json") && f !== "manifest.json");
+  let dpass = 0;
+  for (const f of dfiles) {
+    const v = JSON.parse(fs.readFileSync(path.join(VEC_DECISION, f), "utf8"));
+    const got = stable(runDecisionVector(v));
+    const want = stable(v.expect);
+    if (got === want) dpass++;
+    else {
+      failures++;
+      console.error(`  DECISION MISMATCH ${v.name}: core=${want} sdk=${got}`);
+    }
+  }
+  console.log(`(J) decision diff core↔sdk     : ${dpass}/${dfiles.length} agree`);
+  pyPhase("decision diff    ", "decision", VEC_DECISION, (v) => v.expect);
 }
 
 if (failures) {

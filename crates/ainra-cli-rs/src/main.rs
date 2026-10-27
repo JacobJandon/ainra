@@ -38,6 +38,7 @@ fn main() {
         "reverify" => cmd_reverify(rest),
         "events" => cmd_events(rest),
         "verify-request" => cmd_verify_request(rest),
+        "verify-decisions" => cmd_verify_decisions(rest),
         "demo" => cmd_demo(),
         "help" | "-h" | "--help" => {
             print_help();
@@ -784,6 +785,11 @@ GATE (D-062 / D-068)
         why did a gate refuse this request? The same check @ainra/edge makes: the directory must verify
         against both roots; the credential under the GATE's policy; then the RFC 9421 request signature.
         Q is {{method, authority, path, headers: [[name, value], …], body_b64u}}. Prints ALLOW or the reason.
+  verify-decisions <log.jsonl> --gate-key K [--after SEQ:AT:DIGEST] [--head DIGEST]
+        does a gate's decision log hold? (D-079) Checks every record's signature under the gate's Ed25519 key K
+        (base64url), its sequence, its link to the one before and the clock. --after continues a segment from a
+        record already checked; --head compares the last record with a digest the gate published, which is the
+        only way to see records cut from the END. Prints HOLDS n or the first break.
 
 REGISTRY
   seed [out-dir]                              build the fictional multi-registrar registry (+ self-check)
@@ -792,6 +798,78 @@ REGISTRY
 
 Time is explicit (the core has no clock): pass --now <unix-seconds>; the default sits inside the demo window."#
     );
+}
+
+// ── verify-decisions: does a gate's decision log hold? (D-079) ───────────────────────────────────────────────────
+
+fn cmd_verify_decisions(a: &[String]) -> i32 {
+    let usage = "usage: ainra verify-decisions <log.jsonl> --gate-key K [--after SEQ:AT:DIGEST] [--head DIGEST]";
+    let (Some(path), Some(key)) = (pos(a, 0), opt(a, "gate-key")) else {
+        eprintln!("{usage}");
+        return 2;
+    };
+    let text = match std::fs::read_to_string(path) {
+        Ok(t) => t,
+        Err(e) => {
+            eprintln!("cannot read {path}: {e}");
+            return 1;
+        }
+    };
+    // One record per line; a trailing newline is not a record.
+    let lines: Vec<String> = text
+        .lines()
+        .filter(|l| !l.is_empty())
+        .map(String::from)
+        .collect();
+    let anchor = match opt(a, "after") {
+        None => None,
+        Some(s) => {
+            let p: Vec<&str> = s.splitn(3, ':').collect();
+            match (
+                p.first().and_then(|x| x.parse::<u64>().ok()),
+                p.get(1).and_then(|x| x.parse::<u64>().ok()),
+                p.get(2),
+            ) {
+                (Some(seq), Some(at), Some(d)) => {
+                    Some(serde_json::json!({ "seq": seq, "at": at, "digest": d }))
+                }
+                _ => {
+                    eprintln!("--after is SEQ:AT:DIGEST, the last record already checked");
+                    return 2;
+                }
+            }
+        }
+    };
+    let r = ainra_adapter::decision_chain_result(key, &lines, anchor.as_ref());
+    if r["ok"] != serde_json::json!(true) {
+        println!(
+            "BREAKS at record {} (line {}): {}",
+            r["index"],
+            r["index"].as_u64().unwrap_or(0) + 1,
+            r["problem"].as_str().unwrap_or("?")
+        );
+        return 1;
+    }
+    if let Some(head) = opt(a, "head") {
+        let last = lines
+            .last()
+            .map(|l| ainra_core::b64::encode(&ainra_core::decision::line_digest(l.as_bytes())))
+            .unwrap_or_default();
+        if last != head {
+            println!("BREAKS at the end: the last record is not the head the gate published (records were cut, or the head is newer)");
+            return 1;
+        }
+    }
+    println!(
+        "HOLDS {} record(s){}",
+        lines.len(),
+        if opt(a, "head").is_some() {
+            ", ending at the published head"
+        } else {
+            ""
+        }
+    );
+    0
 }
 
 // ── verify-request: the gate's decision on one captured request (D-062, D-068) ────────────────────────────────────

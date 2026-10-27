@@ -8,7 +8,7 @@ spawns this once per corpus and asserts every line agrees with the vector's
 recorded ``expect`` (which is the Rust core's verdict), so the Python verifier
 joins the core / TS-SDK / JS-CLI differential as an independent fourth brain.
 
-Usage:  python -m ainra._vector_runner <passport|delta|directory|presentation|gate|link> <dir>
+Usage:  python -m ainra._vector_runner <passport|delta|directory|presentation|gate|link|decision> <dir>
 """
 
 from __future__ import annotations
@@ -18,6 +18,7 @@ import os
 import sys
 
 from ._b64 import decode as b64d
+from .decision import run_decision_vector
 from .delta import verify_delta_vector
 from .directory import verify_directory
 from .presentation import run_presentation_vector
@@ -54,6 +55,9 @@ def run(kind: str, directory: str) -> int:
             else:
                 verdict = gate.verify(v["bundle"], v["now"])
                 result = {"verdict": "valid"} if verdict.valid else {"verdict": "invalid", "reason": verdict.reason}
+        elif kind == "decision":
+            # D-079 — a gate's signed, hash-chained decision log.
+            result = run_decision_vector(v)
         elif kind == "link":
             # D-078 — who stands behind a key the gate already verified, decided as a gate decides it.
             gate = Verifier.from_directory(v["directory"], v["roots"]["root_ed25519"], v["roots"]["root_slh"],

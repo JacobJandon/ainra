@@ -31,6 +31,7 @@ pub mod chain;
 pub mod checkpoint;
 pub mod consts;
 pub mod crypto;
+pub mod decision;
 pub mod directory;
 pub mod error;
 pub mod instance;

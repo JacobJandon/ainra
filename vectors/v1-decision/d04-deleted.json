@@ -1,0 +1,16 @@
+{
+  "anchor": null,
+  "description": "the second record was removed",
+  "expect": {
+    "index": 1,
+    "ok": false,
+    "problem": "sequence"
+  },
+  "gate_key": "WO01eRSCJUK8vnwXz9WzweoLkQMyl3jXWLk1yziACbI",
+  "lines": [
+    "{\"at\":1000,\"checkpoint\":{\"origin\":\"ainra-log/registrar-07\",\"root\":\"q6urq6urq6urq6urq6urq6urq6urq6urq6urq6urq6s\",\"size\":40},\"gate\":\"8ADGfVfrshi2ONiE-MCJUVIorNUJ2gk4tDXcH7ls0V0\",\"kind\":\"passport\",\"operator\":\"acme\",\"policy\":{\"audience\":\"https://shop.example\",\"freshness\":\"F1\"},\"prev\":\"\",\"request\":\"PnB3_S9m1ongzuanz1s3vy3KfJea81bQoxy8XIVgXH0\",\"seq\":0,\"sig\":\"aMqOJDItwQvjoOqINO2HaIftiiXUtDheetbIoWUqJrg4sqLQuKsHKzhkhdqyiJ4Qvy8kZbZWebm9a0MT3AWECg\",\"status\":{\"issued_at\":997,\"list\":\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\",\"uri\":\"status://registrar-07/1\"},\"subject\":\"ainra:registrar-07:acme:invoicing@1.0.0\",\"v\":\"ainra-decision-1\",\"verdict\":\"valid\"}",
+    "{\"at\":1020,\"checkpoint\":{\"origin\":\"ainra-log/registrar-07\",\"root\":\"q6urq6urq6urq6urq6urq6urq6urq6urq6urq6urq6s\",\"size\":42},\"gate\":\"8ADGfVfrshi2ONiE-MCJUVIorNUJ2gk4tDXcH7ls0V0\",\"kind\":\"link\",\"policy\":{\"audience\":\"https://shop.example\",\"freshness\":\"F1\"},\"prev\":\"JGWVjetVPvOB596hVBJBrDCeXwYDZbYNydoV_4QUSmM\",\"reason\":\"not_linked\",\"request\":\"2B9ReB7rj0ag4RLobKM1iWzMEs7gDmz89Yo1ARKd_CQ\",\"seq\":2,\"sig\":\"lQiAafTa-GNJqRtR2SziKkd3LFmN1yM5D76V1LCDX3CLG0LUXpxRKBCrGmF8wsZxiDBTn4PWQ5PWaFk4KRv5CA\",\"status\":{\"issued_at\":1017,\"list\":\"AgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgI\",\"uri\":\"status://registrar-07/1\"},\"subject\":\"AwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwM\",\"v\":\"ainra-decision-1\",\"verdict\":\"invalid\"}",
+    "{\"at\":1030,\"checkpoint\":{\"origin\":\"ainra-log/registrar-07\",\"root\":\"q6urq6urq6urq6urq6urq6urq6urq6urq6urq6urq6s\",\"size\":43},\"gate\":\"8ADGfVfrshi2ONiE-MCJUVIorNUJ2gk4tDXcH7ls0V0\",\"kind\":\"passport\",\"policy\":{\"audience\":\"https://shop.example\",\"freshness\":\"F1\"},\"prev\":\"K0AWFT86uD1eFZRVxzXI8IPcWYmV6gCeHHBq2M7z1Gs\",\"reason\":\"revoked\",\"request\":\"_uvxhjvR_O7f7_JpOCnVD_vKwQDQ--dFSC4DL5P2uvs\",\"seq\":3,\"sig\":\"Ki7MXvfFcVu1J_4ECDUnAjgPKQoAjtBd-4DY4yuMFgOBjLM-Sb2K1_YNYxpvbpgWZ5k7nF6CuARpITR8MvhvBA\",\"status\":{\"issued_at\":1027,\"list\":\"AwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwM\",\"uri\":\"status://registrar-07/1\"},\"subject\":\"ainra:registrar-07:acme:invoicing@1.0.0\",\"v\":\"ainra-decision-1\",\"verdict\":\"invalid\"}"
+  ],
+  "name": "d04-deleted"
+}

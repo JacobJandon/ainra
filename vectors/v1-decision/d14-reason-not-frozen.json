@@ -1,0 +1,14 @@
+{
+  "anchor": null,
+  "description": "a reason outside the frozen set",
+  "expect": {
+    "index": 0,
+    "ok": false,
+    "problem": "schema"
+  },
+  "gate_key": "WO01eRSCJUK8vnwXz9WzweoLkQMyl3jXWLk1yziACbI",
+  "lines": [
+    "{\"at\":1000,\"checkpoint\":{\"origin\":\"ainra-log/registrar-07\",\"root\":\"q6urq6urq6urq6urq6urq6urq6urq6urq6urq6urq6s\",\"size\":40},\"gate\":\"8ADGfVfrshi2ONiE-MCJUVIorNUJ2gk4tDXcH7ls0V0\",\"kind\":\"passport\",\"policy\":{\"audience\":\"https://shop.example\",\"freshness\":\"F1\"},\"prev\":\"\",\"reason\":\"disliked\",\"request\":\"PnB3_S9m1ongzuanz1s3vy3KfJea81bQoxy8XIVgXH0\",\"seq\":0,\"sig\":\"UV24AQt6JJtLq7f1xrN9yJtZdKE2YmuzGreoXQJlziBg7YV0XtkXUDJjRzN0zddpPAgMl6avXshjlriy2ARrAg\",\"status\":{\"issued_at\":997,\"list\":\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\",\"uri\":\"status://registrar-07/1\"},\"subject\":\"ainra:registrar-07:acme:invoicing@1.0.0\",\"v\":\"ainra-decision-1\",\"verdict\":\"invalid\"}"
+  ],
+  "name": "d14-reason-not-frozen"
+}

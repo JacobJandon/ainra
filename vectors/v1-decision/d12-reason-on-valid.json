@@ -1,0 +1,14 @@
+{
+  "anchor": null,
+  "description": "a valid verdict carrying a reason",
+  "expect": {
+    "index": 0,
+    "ok": false,
+    "problem": "schema"
+  },
+  "gate_key": "WO01eRSCJUK8vnwXz9WzweoLkQMyl3jXWLk1yziACbI",
+  "lines": [
+    "{\"at\":1000,\"checkpoint\":{\"origin\":\"ainra-log/registrar-07\",\"root\":\"q6urq6urq6urq6urq6urq6urq6urq6urq6urq6urq6s\",\"size\":40},\"gate\":\"8ADGfVfrshi2ONiE-MCJUVIorNUJ2gk4tDXcH7ls0V0\",\"kind\":\"passport\",\"operator\":\"acme\",\"policy\":{\"audience\":\"https://shop.example\",\"freshness\":\"F1\"},\"prev\":\"\",\"reason\":\"revoked\",\"request\":\"PnB3_S9m1ongzuanz1s3vy3KfJea81bQoxy8XIVgXH0\",\"seq\":0,\"sig\":\"53xloI6IKfrUs5XilmqsvIkwz9e_5JHDt_A1u8yuYGsAHZXBcgeiGNfdj3fyA_vG6YORpYN85wH4_r1loPCeBw\",\"status\":{\"issued_at\":997,\"list\":\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\",\"uri\":\"status://registrar-07/1\"},\"subject\":\"ainra:registrar-07:acme:invoicing@1.0.0\",\"v\":\"ainra-decision-1\",\"verdict\":\"valid\"}"
+  ],
+  "name": "d12-reason-on-valid"
+}

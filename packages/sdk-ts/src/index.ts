@@ -1879,3 +1879,190 @@ export function runLinkVector(v: {
   if (key === null || key.length !== 32) return { verdict: "invalid", reason: "schema_violation" };
   return gate.verifyLink(v.link, key, v.now, v.capability ?? undefined);
 }
+
+// ── Signed decision records (D-079) ─────────────────────────────────────────────────────────────────────────────
+// Written from D-079 and `ainra_core::decision`; held to `vectors/v1-decision` in `make diff`. A gate signs one
+// record per decision with its own Ed25519 key and chains each to the one before; anyone with the gate's public key
+// can check the log end to end. The field set is closed, so there is nowhere to put personal data.
+
+export const DECISION_V = "ainra-decision-1";
+export type ChainProblem = "schema" | "gate" | "signature" | "sequence" | "link" | "clock";
+export type ChainResult = { ok: true; count: number } | { ok: false; index: number; problem: ChainProblem };
+/** The record a log segment continues from: its `seq`, `at` and digest (base64url). */
+export interface ChainAnchor { seq: number; at: number; digest: string }
+export interface DecisionRecord {
+  v: string; gate: string; seq: number; at: number; kind: "passport" | "link"; subject: string;
+  passport?: string; operator?: string; verdict: "valid" | "invalid"; reason?: string; request: string;
+  status?: { uri: string; issued_at: number; list: string };
+  checkpoint?: { origin: string; size: number; root: string };
+  policy: { freshness: FreshnessClass; audience: string };
+  prev: string; sig: string;
+}
+
+const DECISION_FIELDS = new Set(["v", "gate", "seq", "at", "kind", "subject", "passport", "operator", "verdict", "reason", "request", "status", "checkpoint", "policy", "prev", "sig"]);
+const DECISION_OPTIONAL = new Set(["passport", "operator", "reason", "status", "checkpoint"]);
+const FROZEN_REASONS: ReadonlySet<string> = new Set([
+  "registrar_distrusted", "sig_invalid", "alg_downgrade", "expired", "not_yet_valid", "revoked", "mandate_revoked",
+  "chain_widening", "chain_expired", "not_logged", "checkpoint_invalid", "stale_status", "name_malformed",
+  "ceiling_exceeded", "unknown_registrar", "schema_violation", "instance_expired", "instance_scope_exceeds",
+  "instance_sig_invalid", "instance_pop_invalid",
+]);
+
+// The request-signature refusals (D-062): a good credential on a request it did not sign is a decision too.
+const PRESENTATION_REASONS: ReadonlySet<string> = new Set(["presentation_unsigned", "presentation_sig_invalid", "presentation_stale", "presentation_replayed"]);
+
+function b64Len(s: unknown, n: number): boolean {
+  if (typeof s !== "string") return false;
+  const b = strictB64u(s);
+  return b !== null && b.length === n;
+}
+function exactObject(o: unknown, fields: string[]): o is Record<string, unknown> {
+  if (o === null || typeof o !== "object" || Array.isArray(o)) return false;
+  const keys = Object.keys(o);
+  return keys.length === fields.length && fields.every((f) => Object.hasOwn(o, f));
+}
+
+/** Parse one log line the way `DecisionRecord::parse_checked` does; `null` for anything outside version 1. */
+function parseDecision(line: string): DecisionRecord | null {
+  let o: Record<string, unknown>;
+  try {
+    o = JSON.parse(line);
+  } catch {
+    return null;
+  }
+  if (o === null || typeof o !== "object" || Array.isArray(o)) return null;
+  for (const k of Object.keys(o)) if (!DECISION_FIELDS.has(k)) return null;
+  for (const k of DECISION_FIELDS) {
+    if (!Object.hasOwn(o, k)) { if (!DECISION_OPTIONAL.has(k)) return null; continue; }
+    // An explicit null is not "absent": the Rust record would re-encode without it and refuse the line.
+    if (o[k] === null) return null;
+  }
+  for (const k of ["v", "gate", "kind", "subject", "verdict", "request", "prev", "sig"]) if (typeof o[k] !== "string") return null;
+  for (const k of ["passport", "operator", "reason"]) if (k in o && typeof o[k] !== "string") return null;
+  if (!isU64(o.seq) || !isU64(o.at)) return null;
+  const st = o.status, cp = o.checkpoint, pol = o.policy;
+  if (st !== undefined && !(exactObject(st, ["uri", "issued_at", "list"]) && typeof st.uri === "string" && isU64(st.issued_at) && b64Len(st.list, 32))) return null;
+  if (cp !== undefined && !(exactObject(cp, ["origin", "size", "root"]) && typeof cp.origin === "string" && isU64(cp.size) && b64Len(cp.root, 32))) return null;
+  if (!(exactObject(pol, ["freshness", "audience"]) && typeof pol.audience === "string" && ["F1", "F2", "F3"].includes(pol.freshness as string))) return null;
+  try {
+    if (canonicalize(o) !== line) return null;
+  } catch {
+    return null;
+  }
+  const r = o as unknown as DecisionRecord;
+  if (r.v !== DECISION_V || !b64Len(r.gate, 32) || !b64Len(r.request, 32) || !b64Len(r.sig, 64)) return null;
+  if (!(r.seq === 0 && r.prev === "") && !b64Len(r.prev, 32)) return null;
+  if (r.kind === "passport") {
+    if (!parseName(r.subject) || r.passport !== undefined) return null;
+  } else if (r.kind === "link") {
+    if (!b64Len(r.subject, 32) || (r.passport !== undefined && !parseName(r.passport))) return null;
+  } else return null;
+  const okVerdict =
+    (r.verdict === "valid" && r.reason === undefined) ||
+    (r.verdict === "invalid" && r.reason === "not_linked" && r.kind === "link") ||
+    (r.verdict === "invalid" && r.reason !== undefined && (FROZEN_REASONS.has(r.reason) || PRESENTATION_REASONS.has(r.reason)));
+  if (!okVerdict) return null;
+  if (r.operator !== undefined && (r.operator.length === 0 || new TextEncoder().encode(r.operator).length > 63)) return null;
+  return r;
+}
+
+/** What the gate signs: the canonical record without `sig`. */
+export function decisionSigningBytes(r: Omit<DecisionRecord, "sig"> & { sig?: string }): Uint8Array {
+  const { sig: _sig, ...rest } = r;
+  void _sig;
+  return new TextEncoder().encode(canonicalize(rest));
+}
+
+/** Sign and serialise one record. `prevLine` is the previous log line (`""` for the first); `seq` and `prev` are
+ *  filled in from it, so a gate cannot get the chain wrong by hand. Returns the new line. */
+export function signDecision(
+  r: Omit<DecisionRecord, "v" | "gate" | "seq" | "prev" | "sig">,
+  gatePublic: Uint8Array,
+  prevLine: string,
+  sign: (msg: Uint8Array) => Uint8Array,
+): string {
+  const prev = prevLine === "" ? null : parseDecision(prevLine);
+  if (prevLine !== "" && prev === null) throw new Error("the previous line is not a decision record");
+  const rec: Omit<DecisionRecord, "sig"> = {
+    ...r,
+    v: DECISION_V,
+    gate: jwkThumbprintEd25519(gatePublic),
+    seq: prev ? prev.seq + 1 : 0,
+    prev: prev ? b64uEncode(sha256(new TextEncoder().encode(prevLine))) : "",
+  };
+  // Optional fields are left out, never written as undefined or null: absent and null are different records.
+  for (const k of Object.keys(rec) as (keyof typeof rec)[]) if (rec[k] === undefined) delete rec[k];
+  const line = canonicalize({ ...rec, sig: b64uEncode(sign(decisionSigningBytes(rec))) });
+  if (parseDecision(line) === null) throw new Error("this record would not verify: a field is outside the vocabulary");
+  return line;
+}
+
+/** Check a decision log against the gate's Ed25519 public key. Per record, in this order: schema, gate, signature,
+ *  sequence, link, clock — the core's order. Removing records from the END of a log is invisible to this check
+ *  (`vectors/v1-decision/d17`): compare the last digest with a head the gate published. */
+export function verifyDecisionChain(lines: string[], gateKey: Uint8Array, anchor?: ChainAnchor | null): ChainResult {
+  const gate = jwkThumbprintEd25519(gateKey);
+  let last: { seq: number; at: number; digest: string } | null = anchor ?? null;
+  for (let index = 0; index < lines.length; index++) {
+    const fail = (problem: ChainProblem): ChainResult => ({ ok: false, index, problem });
+    const r = parseDecision(lines[index]);
+    if (r === null) return fail("schema");
+    if (r.gate !== gate) return fail("gate");
+    if (!ed25519Verify(gateKey, decisionSigningBytes(r), strictB64u(r.sig) as Uint8Array)) return fail("signature");
+    const wantSeq = last ? last.seq + 1 : 0;
+    if (r.seq !== wantSeq) return fail("sequence");
+    if (r.prev !== (last ? last.digest : "")) return fail("link");
+    if (last && r.at < last.at) return fail("clock");
+    last = { seq: r.seq, at: r.at, digest: b64uEncode(sha256(new TextEncoder().encode(lines[index]))) };
+  }
+  return { ok: true, count: lines.length };
+}
+
+/** Run one `vectors/v1-decision` vector. */
+export function runDecisionVector(v: { gate_key: string; lines: string[]; anchor: ChainAnchor | null }): ChainResult {
+  const key = strictB64u(v.gate_key);
+  if (key === null || key.length !== 32) return { ok: false, index: 0, problem: "schema" };
+  if (v.anchor !== null && v.anchor !== undefined) {
+    const d = strictB64u(v.anchor.digest);
+    if (!isU64(v.anchor.seq) || !isU64(v.anchor.at) || d === null || d.length !== 32) return { ok: false, index: 0, problem: "schema" };
+  }
+  return verifyDecisionChain(v.lines, key, v.anchor);
+}
+
+/** The digest a decision record keeps of a request: SHA-256 over the canonical `{authority, content_digest, method,
+ *  path}` — what the request's signature covers, never its body (`content_digest` is the header, or ""). */
+export function decisionRequestDigest(req: { method: string; authority: string; path: string; contentDigest?: string }): string {
+  return b64uEncode(sha256(new TextEncoder().encode(canonicalize({
+    authority: req.authority, content_digest: req.contentDigest ?? "", method: req.method, path: req.path,
+  }))));
+}
+
+/** What a gate records about one decision; the log adds who, when in sequence, and the chain. */
+export type DecisionInput = Omit<DecisionRecord, "v" | "gate" | "seq" | "prev" | "sig" | "policy">;
+
+/** A gate's decision log (D-079). `append` receives each new line (write it to a file, a queue, anywhere
+ *  append-only); `lastLine` resumes a log after a restart. `head()` is the digest to publish, so a reader can tell
+ *  when records were cut from the end. The key never leaves `sign`. */
+export function createDecisionLog(o: {
+  gatePublic: Uint8Array;
+  sign: (msg: Uint8Array) => Uint8Array;
+  append: (line: string) => void;
+  freshness: FreshnessClass;
+  audience?: string;
+  lastLine?: string;
+}) {
+  let last = o.lastLine ?? "";
+  return {
+    record(d: DecisionInput): string {
+      const line = signDecision({ ...d, policy: { freshness: o.freshness, audience: o.audience ?? "" } }, o.gatePublic, last, o.sign);
+      o.append(line);
+      last = line;
+      return line;
+    },
+    head(): string {
+      return last === "" ? "" : b64uEncode(sha256(new TextEncoder().encode(last)));
+    },
+  };
+}
+export type DecisionLog = ReturnType<typeof createDecisionLog>;
+

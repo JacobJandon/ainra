@@ -1990,6 +1990,19 @@ users visited, failed open and were switched off (Let's Encrypt, 6 August 2025).
 *Status:* ACCEPTED for implementation (PLAN-M47). The hosting is the owner's decision, and nothing is provisioned
 without it.
 
+*Decision records, as built (2026-10-27, `crates/ainra-core/src/decision.rs`, `docs/DECISION-RECORDS.md`):*
+
+- The gate's identity in a record is the RFC 7638 thumbprint of its Ed25519 key; `prev` is the SHA-256 of the
+  previous canonical line; the closed field set is enforced (`deny_unknown_fields`, and an explicit `null` is refused).
+- A refusal's reason is a frozen credential reason, a request-signature reason (`presentation_*`), or `not_linked`
+  for a link. The operator is recorded only on a valid decision.
+- The chain result has its own small vocabulary (schema, gate, signature, sequence, link, clock), checked in that
+  order. The frozen reasons describe credentials, not logs.
+- Honest limit, pinned in the corpus: records cut from the END of a log are invisible to the chain. A published head
+  is the defence (`ainra verify-decisions --head`).
+- `vectors/v1-decision` (21); core, TypeScript and Python agree in `make diff`. `@ainra/middleware` takes a
+  `decisions` option.
+
 ## D-080 — Every write the registrar daemon accepts is on disk before it answers
 
 *Problem:* `registrar-box` saves its snapshot after `/issue` and the demo door, but the authenticated `POST /revoke`

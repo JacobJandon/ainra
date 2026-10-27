@@ -95,6 +95,36 @@ pub enum Reason {
 }
 
 impl Reason {
+    /// Every reason, in declaration order. The match in [`Reason::as_str`] is exhaustive, so a new variant fails to
+    /// compile there; this list is held to it by the `all_is_every_reason` test.
+    pub const ALL: [Reason; 20] = [
+        Reason::RegistrarDistrusted,
+        Reason::SigInvalid,
+        Reason::AlgDowngrade,
+        Reason::Expired,
+        Reason::NotYetValid,
+        Reason::Revoked,
+        Reason::MandateRevoked,
+        Reason::ChainWidening,
+        Reason::ChainExpired,
+        Reason::NotLogged,
+        Reason::CheckpointInvalid,
+        Reason::StaleStatus,
+        Reason::NameMalformed,
+        Reason::CeilingExceeded,
+        Reason::UnknownRegistrar,
+        Reason::SchemaViolation,
+        Reason::InstanceExpired,
+        Reason::InstanceScopeExceeds,
+        Reason::InstanceSigInvalid,
+        Reason::InstancePopInvalid,
+    ];
+
+    /// The reason a frozen wire string names, if any.
+    pub fn from_wire(s: &str) -> Option<Reason> {
+        Reason::ALL.into_iter().find(|r| r.as_str() == s)
+    }
+
     /// The exact frozen wire string (matches the CC0 vectors).
     pub const fn as_str(self) -> &'static str {
         match self {
@@ -181,5 +211,24 @@ mod tests {
         );
         assert!(ok.is_valid());
         assert_eq!(v.reason(), Some(Reason::AlgDowngrade));
+    }
+
+    #[test]
+    fn all_is_every_reason() {
+        // docs/reasons.json is the frozen list; ALL must name each of its reasons exactly once.
+        let frozen: serde_json::Value =
+            serde_json::from_str(include_str!("../../../docs/reasons.json")).unwrap();
+        let text = frozen.to_string();
+        let mut seen = alloc::collections::BTreeSet::new();
+        for r in Reason::ALL {
+            assert!(seen.insert(r.as_str()), "{} listed twice", r.as_str());
+            assert!(
+                text.contains(&alloc::format!("\"{}\"", r.as_str())),
+                "{} not in reasons.json",
+                r.as_str()
+            );
+            assert_eq!(Reason::from_wire(r.as_str()), Some(r));
+        }
+        assert_eq!(Reason::from_wire("not_linked"), None);
     }
 }

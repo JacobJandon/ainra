@@ -13,7 +13,7 @@
 //! implementation, that is a stop-and-report signal, not a thing to write.
 
 use ainra_core::verdict::{Reason, Verdict};
-use ainra_core::{b64, checkpoint, crypto, instance, link, mandate, status, verify};
+use ainra_core::{b64, checkpoint, crypto, decision, instance, link, mandate, status, verify};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::collections::BTreeMap;
@@ -1398,6 +1398,52 @@ pub fn run_link_vector_json(vector_json: &str) -> String {
         .map(|v| link_vector_result(&v))
         .unwrap_or_else(|_| json!({ "verdict": "invalid", "reason": "schema_violation" }))
         .to_string()
+}
+
+// ── Decision records (D-079) ─────────────────────────────────────────────────────────────────────────────
+
+/// Check a decision log against a gate's public key: `{"ok":true,"count":n}` or `{"ok":false,"index":i,"problem":p}`.
+/// `lines` are the log's lines as text; `anchor` (optional) is `{seq, at, digest}` of the record a segment continues
+/// from. A malformed gate key or anchor is `{"ok":false,"index":0,"problem":"schema"}`.
+pub fn decision_chain_result(
+    gate_key: &str,
+    lines: &[String],
+    anchor: Option<&serde_json::Value>,
+) -> serde_json::Value {
+    let schema = json!({ "ok": false, "index": 0, "problem": "schema" });
+    let Ok(key) = decode32(gate_key) else {
+        return schema;
+    };
+    let anchor = match anchor {
+        None | Some(serde_json::Value::Null) => None,
+        Some(a) => {
+            let (Some(seq), Some(at), Some(d)) = (
+                a["seq"].as_u64(),
+                a["at"].as_u64(),
+                a["digest"].as_str().and_then(|d| decode32(d).ok()),
+            ) else {
+                return schema;
+            };
+            Some(decision::ChainAnchor { seq, at, digest: d })
+        }
+    };
+    let refs: Vec<&[u8]> = lines.iter().map(|l| l.as_bytes()).collect();
+    match decision::verify_chain(&refs, &key, anchor) {
+        Ok(n) => json!({ "ok": true, "count": n }),
+        Err(b) => json!({ "ok": false, "index": b.index, "problem": b.problem.as_str() }),
+    }
+}
+
+/// Run one `vectors/v1-decision` vector.
+pub fn decision_vector_result(v: &serde_json::Value) -> serde_json::Value {
+    let (Some(key), Some(lines)) = (v["gate_key"].as_str(), v["lines"].as_array()) else {
+        return json!({ "ok": false, "index": 0, "problem": "schema" });
+    };
+    let lines: Option<Vec<String>> = lines.iter().map(|l| l.as_str().map(String::from)).collect();
+    let Some(lines) = lines else {
+        return json!({ "ok": false, "index": 0, "problem": "schema" });
+    };
+    decision_chain_result(key, &lines, v.get("anchor"))
 }
 
 /// [`gate_vector_result`] from JSON text, for hosts that must never panic (the WASM boundary).

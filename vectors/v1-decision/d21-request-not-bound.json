@@ -1,0 +1,13 @@
+{
+  "anchor": null,
+  "description": "a refusal for a request the credential did not sign: the request-signature vocabulary is in the closed set too",
+  "expect": {
+    "count": 1,
+    "ok": true
+  },
+  "gate_key": "WO01eRSCJUK8vnwXz9WzweoLkQMyl3jXWLk1yziACbI",
+  "lines": [
+    "{\"at\":1000,\"checkpoint\":{\"origin\":\"ainra-log/registrar-07\",\"root\":\"q6urq6urq6urq6urq6urq6urq6urq6urq6urq6urq6s\",\"size\":40},\"gate\":\"8ADGfVfrshi2ONiE-MCJUVIorNUJ2gk4tDXcH7ls0V0\",\"kind\":\"passport\",\"policy\":{\"audience\":\"https://shop.example\",\"freshness\":\"F1\"},\"prev\":\"\",\"reason\":\"presentation_unsigned\",\"request\":\"PnB3_S9m1ongzuanz1s3vy3KfJea81bQoxy8XIVgXH0\",\"seq\":0,\"sig\":\"0PXXi63l65IvmkUtrBsjWlRYdBAYzJXBpgZqvqbrKEEX_Le7hkzMnp-nZKqTIeyaPC0AU1fbk_7RUM4iFCtjDg\",\"status\":{\"issued_at\":997,\"list\":\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\",\"uri\":\"status://registrar-07/1\"},\"subject\":\"ainra:registrar-07:acme:invoicing@1.0.0\",\"v\":\"ainra-decision-1\",\"verdict\":\"invalid\"}"
+  ],
+  "name": "d21-request-not-bound"
+}

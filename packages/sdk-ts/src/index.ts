@@ -1270,6 +1270,19 @@ export class Verifier {
       return invalid("schema_violation");
     }
   }
+
+  /** AINRA Link (D-078): who stands behind `presentedKey`, a 32-byte Ed25519 key this gate has ALREADY verified the
+   *  request's signature with. Uses the directory's anchors and revoked delegates, this verifier's freshness class,
+   *  and authenticates the status publication before reading a bit. `capability` is what the request exercises.
+   *  A key with no link is the caller's outcome ("not linked") — this checks the link it is given. Never throws. */
+  verifyLink(link: WireLink, presentedKey: Uint8Array, now: number, capability?: string): LinkVerdict {
+    try {
+      return { verdict: "valid", ...verifyLinkInner(link, this.anchors, this.revokedDelegates, presentedKey, now, this.freshness, capability) };
+    } catch (e) {
+      if (e instanceof Reject) return { verdict: "invalid", reason: e.reason };
+      return { verdict: "invalid", reason: "schema_violation" };
+    }
+  }
 }
 
 /** The expected verdict recorded in a wire vector, as a comparable Verdict. */
@@ -1603,6 +1616,193 @@ export async function proveInstancePossession(args: {
   return pop;
 }
 
+// ── AINRA Link (D-078) — status and attribution for keys agents already have ────────────────────────────────────
+// Written from D-078 and the frozen order in `ainra_core::link::verify_link`; held to `vectors/v1-link` in
+// `make diff`. A gate that has ALREADY verified a request's Ed25519 signature asks: which accountable operator
+// stands behind this key, and is it revoked? Nothing here makes a request genuine; it attributes a genuine one.
+
+const LINK_V = "ainra-link-1";
+const LINK_POP_PURPOSE = "ainra-link-pop-1";
+const ALLOWED_LINK = new Set(["v", "registrar", "passport", "subject", "scope", "nbf", "exp", "status", "passport_status", "pop", "log"]);
+const ALLOWED_LINK_SUBJECT = new Set(["kind", "alg", "thumbprint"]);
+const ALLOWED_LINK_LOG = new Set(["leaf"]);
+
+/** One link as a gate receives it: an index entry (or the agent's own copy), the checkpoint it is proven under, and
+ *  the registrar's signed status publication. Mirrors `ainra_adapter::WireLink`. */
+export interface WireLink {
+  claims: string;
+  registrar_sig: WireKey;
+  leaf_index: number;
+  inclusion_proof: string[];
+  checkpoint: { origin: string; size: number; root: string };
+  checkpoint_sig: WireCheckpointSig;
+  status_list: string;
+  status_len: number;
+  status_issued_at: number;
+  status_uri?: string;
+  status_sig_ed25519?: string;
+  status_sig_mldsa65?: string;
+}
+
+/** Who a valid link attributes the key to. */
+export interface LinkAttribution {
+  registrar: string;
+  operator: string;
+  passport: string;
+  scope: string[];
+}
+export type LinkVerdict = ({ verdict: "valid" } & LinkAttribution) | { verdict: "invalid"; reason: Reason };
+
+interface LinkClaims {
+  registrar: string;
+  passport: string;
+  thumbprint: string;
+  scope: string[];
+  nbf: number;
+  exp: number;
+  statusUri: string;
+  statusIdx: number;
+  passportIdx: number;
+  pop: Uint8Array;
+  leaf: Uint8Array;
+}
+
+function isU64(v: unknown): v is number {
+  return typeof v === "number" && Number.isSafeInteger(v) && v >= 0;
+}
+
+/** The link schema gate, in `LinkClaims::parse_checked`'s order. Every failure is `schema_violation` except a
+ *  passport name outside the grammar (`name_malformed`). */
+function parseLinkChecked(raw: Uint8Array): LinkClaims {
+  let o: Record<string, unknown>;
+  try {
+    o = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(raw));
+  } catch {
+    throw new Reject("schema_violation");
+  }
+  if (typeof o !== "object" || o === null || Array.isArray(o)) throw new Reject("schema_violation");
+  // deny_unknown_fields, every field required, every type exact — what serde does on the Rust side.
+  denyUnknown(o, ALLOWED_LINK);
+  for (const k of ALLOWED_LINK) if (!Object.hasOwn(o, k)) throw new Reject("schema_violation");
+  const subject = o.subject as Record<string, unknown>;
+  const status = o.status as Record<string, unknown>;
+  const pstatus = o.passport_status as Record<string, unknown>;
+  const log = o.log as Record<string, unknown>;
+  for (const [obj, allowed] of [[subject, ALLOWED_LINK_SUBJECT], [status, ALLOWED_STATUSREF], [pstatus, ALLOWED_STATUSREF], [log, ALLOWED_LINK_LOG]] as const) {
+    if (typeof obj !== "object" || obj === null || Array.isArray(obj)) throw new Reject("schema_violation");
+    denyUnknown(obj, allowed);
+    for (const k of allowed) if (!Object.hasOwn(obj, k)) throw new Reject("schema_violation");
+  }
+  const v = reqString(o.v);
+  const registrar = reqString(o.registrar);
+  const passport = reqString(o.passport);
+  const kind = reqString(subject.kind);
+  const alg = reqString(subject.alg);
+  const thumbprint = reqString(subject.thumbprint);
+  const scope = reqStringArray(o.scope);
+  const popB64 = reqString(o.pop);
+  const leafB64 = reqString(log.leaf);
+  const statusUri = reqString(status.uri);
+  const passportUri = reqString(pstatus.uri);
+  if (!isU64(o.nbf) || !isU64(o.exp) || !isU64(status.idx) || !isU64(pstatus.idx)) throw new Reject("schema_violation");
+  // The signed bytes must already be canonical (D-029): one record, one byte string, everywhere.
+  let again: string;
+  try {
+    again = canonicalize(o);
+  } catch {
+    throw new Reject("schema_violation");
+  }
+  if (!eqBytes(new TextEncoder().encode(again), raw)) throw new Reject("schema_violation");
+  if (v !== LINK_V || kind !== "jwk" || alg !== "Ed25519") throw new Reject("schema_violation");
+  const tp = strictB64u(thumbprint);
+  const pop = strictB64u(popB64);
+  const leaf = strictB64u(leafB64);
+  if (tp === null || tp.length !== 32 || pop === null || pop.length !== 64 || leaf === null || leaf.length !== 32)
+    throw new Reject("schema_violation");
+  if (scope.length > MAX_CAPABILITIES || scope.some((s) => s.length === 0 || new TextEncoder().encode(s).length > 128))
+    throw new Reject("schema_violation");
+  // Both bits live in the one list the registrar signs.
+  if (statusUri !== passportUri || status.idx === pstatus.idx) throw new Reject("schema_violation");
+  if (o.nbf >= o.exp) throw new Reject("schema_violation");
+  if (!parseName(passport)) throw new Reject("name_malformed");
+  // A registrar links only passports it issued itself.
+  if (passport.split(":")[1] !== registrar) throw new Reject("schema_violation");
+  return {
+    registrar, passport, thumbprint, scope, nbf: o.nbf, exp: o.exp,
+    statusUri, statusIdx: status.idx, passportIdx: pstatus.idx, pop, leaf,
+  };
+}
+
+/** RFC 7638 thumbprint of an Ed25519 public key: base64url(SHA-256(`{"crv":"Ed25519","kty":"OKP","x":"…"}`)). */
+export function jwkThumbprintEd25519(pk: Uint8Array): string {
+  return b64uEncode(sha256(new TextEncoder().encode(canonicalize({ crv: "Ed25519", kty: "OKP", x: b64uEncode(pk) }))));
+}
+
+/** What the linked key signs to consent to a link (D-078). Frozen. */
+export function linkPopSigningBytes(registrar: string, passport: string, thumbprint: string, nbf: number): Uint8Array {
+  return new TextEncoder().encode(canonicalize({ purpose: LINK_POP_PURPOSE, registrar, passport, thumbprint, nbf }));
+}
+
+/** Verify a link as a gate: schema, accredited registrar, the status publication authenticated against the
+ *  directory's status key (before anything is decompressed), then the signatures, proof of control, scope, both
+ *  status bits and logged-before-valid — first failure wins, in the core's order. */
+function verifyLinkInner(
+  w: WireLink,
+  anchors: TrustAnchors,
+  revokedDelegates: Set<string>,
+  presentedKey: Uint8Array,
+  now: number,
+  freshness: FreshnessClass,
+  capability: string | undefined,
+): LinkAttribution {
+  const raw = dec(w.claims);
+  const c = parseLinkChecked(raw);
+  if (!Object.hasOwn(anchors, c.registrar)) throw new Reject("unknown_registrar");
+  const reg = anchors[c.registrar];
+  if (!reg.statusKey) throw new Reject("stale_status");
+  authenticateStatus(reg, c.statusUri, w as unknown as PresentationBundle);
+  const packed = (() => {
+    const z = strictB64u(w.status_list);
+    if (z === null) throw new Reject("stale_status");
+    return unpackStatus(z, w.status_len);
+  })();
+  const sig: HybridSig = { ed25519: dec(w.registrar_sig.ed25519), mldsa65: dec(w.registrar_sig.mldsa65) };
+  const cpRoot = dec(w.checkpoint.root);
+  if (cpRoot.length !== 32) throw new Reject("schema_violation");
+  const cpSig = decodeCheckpointSig(w.checkpoint_sig);
+  const proof = w.inclusion_proof.map((h) => {
+    const b = dec(h);
+    if (b.length !== 32) throw new Reject("schema_violation");
+    return b;
+  });
+  if (!isU64(w.leaf_index) || !isU64(w.status_issued_at) || !isU64(w.checkpoint.size)) throw new Reject("schema_violation");
+
+  // window, exact
+  if (now < c.nbf) throw new Reject("not_yet_valid");
+  if (now >= c.exp) throw new Reject("expired");
+  // the registrar signed exactly these bytes, with both halves of its key
+  const r = verifyHybrid(reg.issuerKey, raw, sig);
+  if (r) throw new Reject(r);
+  // the key the gate verified is the linked key, and that key consented to this link
+  if (presentedKey.length !== 32 || jwkThumbprintEd25519(presentedKey) !== c.thumbprint) throw new Reject("sig_invalid");
+  if (!ed25519Verify(presentedKey, linkPopSigningBytes(c.registrar, c.passport, c.thumbprint, c.nbf), c.pop))
+    throw new Reject("sig_invalid");
+  // scope
+  if (capability !== undefined && c.scope.length > 0 && !c.scope.includes(capability)) throw new Reject("ceiling_exceeded");
+  // status: fresh, then the link's own bit, then the operator's lineage
+  if (freshnessStale(freshness, now, w.status_issued_at)) throw new Reject("stale_status");
+  if (statusBit(packed, w.status_len, c.statusIdx)) throw new Reject("revoked");
+  if (statusBit(packed, w.status_len, c.passportIdx)) throw new Reject("revoked");
+  // logged before valid
+  if (!verifyCheckpointSig(reg.logRootKey, { origin: w.checkpoint.origin, rootB64: w.checkpoint.root, size: w.checkpoint.size }, cpSig, now))
+    throw new Reject("checkpoint_invalid");
+  if (cpSig.mode === "delegate" && revokedDelegates.has(certFingerprintB64(cpSig.cert))) throw new Reject("checkpoint_invalid");
+  if (!eqBytes(c.leaf, prelogLeaf(raw))) throw new Reject("not_logged");
+  if (!verifyInclusion(c.leaf, w.leaf_index, w.checkpoint.size, proof, cpRoot)) throw new Reject("not_logged");
+  if (reg.distrustFromLeaf !== undefined && w.leaf_index >= reg.distrustFromLeaf) throw new Reject("registrar_distrusted");
+  return { registrar: c.registrar, operator: c.passport.split(":")[2], passport: c.passport, scope: c.scope };
+}
+
 /** Run one `vectors/v1-gate` vector (D-073): build the GA {@link Verifier} from the vector's directory and roots with
  *  the gate's own freshness class and audience, and verify the bundle at the gate's clock. This is what a gate
  *  decides — the directory checked against both roots, the status authenticated, nothing taken on the presenter's
@@ -1620,4 +1820,23 @@ export function runGateVector(v: {
   if (!gate) return { verdict: "no_gate" };
   const r = gate.verify(v.bundle, v.now);
   return r.verdict === "valid" ? { verdict: "valid" } : { verdict: "invalid", reason: r.reason };
+}
+
+/** Run one `vectors/v1-link` vector (D-078): the GA {@link Verifier} from the vector's directory and roots with the
+ *  gate's own freshness class, then {@link Verifier.verifyLink} at the gate's clock for the key it verified and the
+ *  capability the request exercises. `no_gate` when the directory does not verify. */
+export function runLinkVector(v: {
+  directory: WireDirectory;
+  roots: { root_ed25519: string; root_slh: string };
+  link: WireLink;
+  presented_key: string;
+  now: number;
+  freshness: FreshnessClass;
+  capability: string | null;
+}): LinkVerdict | { verdict: "no_gate" } {
+  const gate = Verifier.fromDirectoryB64(v.directory, v.roots.root_ed25519, v.roots.root_slh, v.freshness);
+  if (!gate) return { verdict: "no_gate" };
+  const key = strictB64u(v.presented_key);
+  if (key === null || key.length !== 32) return { verdict: "invalid", reason: "schema_violation" };
+  return gate.verifyLink(v.link, key, v.now, v.capability ?? undefined);
 }

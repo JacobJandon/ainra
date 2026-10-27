@@ -3993,6 +3993,782 @@ fn check_gate(dir: &str) {
     println!("checked {total} gate vectors: all reproduce their recorded expectation");
 }
 
+// ── v1-link — who stands behind a key a gate has already verified (D-078) ──────────────────────────────────────
+//
+// Gate semantics from the start (the D-072 lesson): each vector is a gate's whole input — a dual-root-signed
+// directory and the roots, one link as a gate receives it (record, registrar signature, inclusion proof, checkpoint,
+// and the registrar's SIGNED status publication), the key the gate verified the request with, and the gate's own
+// clock, freshness class and the capability the request exercises. The answer is `link_vector_result` after
+// `accredit`; each case declares the answer it exists to test, and the generator refuses one the core disagrees with.
+
+/// Everything one link record is built from. Each case changes one thing.
+#[derive(Clone)]
+struct LinkSpecV {
+    registrar: String,
+    passport: String,
+    /// The key the record names (its thumbprint).
+    subject: [u8; 32],
+    scope: Vec<String>,
+    nbf: u64,
+    exp: u64,
+    link_idx: u64,
+    passport_idx: u64,
+    uri: String,
+}
+
+struct LinkWorld {
+    issuer: crypto::HybridKeypair,
+    log_root: crypto::TestRootSlh,
+    status_key: crypto::HybridKeypair,
+}
+
+/// A link record exactly as a registrar issues one: the body logged, then signed with the `log` back-reference.
+/// `pop_by` signs the consent; `signer` signs the record; `mutate` edits the body after logging (tamper cases).
+fn link_record(
+    s: &LinkSpecV,
+    pop_by: &crypto::TestDelegate,
+    signer: &crypto::HybridKeypair,
+    mutate: impl FnOnce(&mut Value),
+) -> (Vec<u8>, crypto::HybridSig, [u8; 32], Vec<u8>) {
+    let tp = ainra_core::link::jwk_thumbprint_ed25519(&s.subject);
+    let pop = pop_by.sign(&ainra_core::link::pop_signing_bytes(
+        &s.registrar,
+        &s.passport,
+        &tp,
+        s.nbf,
+    ));
+    let mut body = json!({
+        "v": ainra_core::link::LINK_V,
+        "registrar": s.registrar,
+        "passport": s.passport,
+        "subject": { "kind": "jwk", "alg": "Ed25519", "thumbprint": tp },
+        "scope": s.scope,
+        "nbf": s.nbf,
+        "exp": s.exp,
+        "status": { "uri": s.uri, "idx": s.link_idx },
+        "passport_status": { "uri": s.uri, "idx": s.passport_idx },
+        "pop": b64::encode(&pop),
+    });
+    let body_bytes = canon::canonicalize(&body).expect("canon body").into_bytes();
+    let leaf = merkle::hash_leaf(&body_bytes);
+    body["log"] = json!({ "leaf": b64::encode(&leaf) });
+    mutate(&mut body);
+    let claims = canon::canonicalize(&body).expect("canon link").into_bytes();
+    let sig = signer.sign(&claims).expect("sign link");
+    (claims, sig, leaf, body_bytes)
+}
+
+/// A status publication over `bits` (64 by default), signed by `key` under `uri`, issued at `issued_at`.
+fn link_status(
+    revoked: &[u64],
+    len: usize,
+    issued_at: u64,
+    uri: &str,
+    key: &crypto::HybridKeypair,
+) -> Value {
+    let mut bits = vec![false; len];
+    for &i in revoked {
+        bits[i as usize] = true;
+    }
+    let list = b64::encode(
+        &status::StatusList::from_bits(bits)
+            .encode()
+            .expect("encode"),
+    );
+    let msg =
+        status::publication_signing_bytes(uri, len as u64, issued_at, &list).expect("pub bytes");
+    let sig = key.sign(msg.as_bytes()).expect("sign status");
+    json!({
+        "status_list": list,
+        "status_len": len,
+        "status_issued_at": issued_at,
+        "status_uri": uri,
+        "status_sig_ed25519": b64::encode(&sig.ed25519),
+        "status_sig_mldsa65": b64::encode(&sig.mldsa65),
+    })
+}
+
+fn link_vectors() -> Vec<Value> {
+    let mut rng = ChaCha20Rng::seed_from_u64(0x4C49_4E4B_0000_0078); // "LINK" · D-078 — a public TEST seed
+    let root_ed = crypto::TestDelegate::generate(&mut rng);
+    let root_slh = crypto::TestRootSlh::generate(&mut rng);
+    let w = LinkWorld {
+        issuer: crypto::HybridKeypair::generate(&mut rng),
+        log_root: crypto::TestRootSlh::generate(&mut rng),
+        status_key: crypto::HybridKeypair::generate(&mut rng),
+    };
+    let stranger = crypto::HybridKeypair::generate(&mut rng);
+    let agent = crypto::TestDelegate::generate(&mut rng);
+    let other = crypto::TestDelegate::generate(&mut rng);
+    let roots = json!({ "root_ed25519": b64::encode(&root_ed.public()), "root_slh": b64::encode(&root_slh.public()) });
+    let reg = "registrar-07".to_string();
+    let uri = format!("status://{reg}/1");
+    // Small instants on purpose: the checkpoint delegate is certified for [0, 92 days], as in every other family.
+    let (nbf, exp) = (1_000u64, 1_000 + 30 * 24 * 3600);
+    let now = nbf + 24 * 3600;
+    let base = LinkSpecV {
+        registrar: reg.clone(),
+        passport: format!("ainra:{reg}:acme:invoicing@1.0.0"),
+        subject: agent.public(),
+        scope: vec![],
+        nbf,
+        exp,
+        link_idx: 5,
+        passport_idx: 3,
+        uri: uri.clone(),
+    };
+
+    let entry = |id: &str, distrust: Option<u64>| ainra_core::directory::DirectoryEntry {
+        registrar: id.to_string(),
+        issuer_ed25519: b64::encode(&w.issuer.public().ed25519),
+        issuer_mldsa65: b64::encode(&w.issuer.public().mldsa65),
+        log_root_slh: b64::encode(&w.log_root.public()),
+        status_ed25519: b64::encode(&w.status_key.public().ed25519),
+        status_mldsa65: b64::encode(&w.status_key.public().mldsa65),
+        status_uri: format!("status://{id}/1"),
+        distrust_from_leaf: distrust,
+    };
+    let dir = |entries, revoked: Vec<String>| {
+        serde_json::to_value(dir_sign(dir_base(entries, revoked), &root_ed, &root_slh))
+            .expect("ser dir")
+    };
+    let directory = dir(vec![entry(&reg, None)], vec![]);
+
+    // One log holds three earlier entries and then the record, under one delegate-signed checkpoint.
+    let assemble = |claims: &[u8],
+                    sig: &crypto::HybridSig,
+                    logged: &[u8],
+                    rng: &mut ChaCha20Rng|
+     -> (Value, u64) {
+        let mut log = merkle::TestLog::new();
+        for k in 0..3u8 {
+            log.append(&[k]);
+        }
+        let idx = log.append(logged);
+        let cp = checkpoint::Checkpoint {
+            origin: format!("ainra-log/{reg}"),
+            tree_size: log.size(),
+            root: log.root(),
+        };
+        let cp_sig = checkpoint_sig(&cp, &w.log_root, rng, true, None);
+        let proof = log.inclusion_proof(idx).expect("proof");
+        (
+            json!({
+                "claims": b64::encode(claims),
+                "registrar_sig": { "ed25519": b64::encode(&sig.ed25519), "mldsa65": b64::encode(&sig.mldsa65) },
+                "leaf_index": idx,
+                "inclusion_proof": proof.iter().map(|h| b64::encode(h)).collect::<Vec<_>>(),
+                "checkpoint": { "origin": cp.origin, "size": cp.tree_size, "root": b64::encode(&cp.root) },
+                "checkpoint_sig": serde_json::to_value(&cp_sig).expect("ser cp sig"),
+            }),
+            idx,
+        )
+    };
+    let with_status = |mut l: Value, st: Value| {
+        for (k, v) in st.as_object().expect("status object") {
+            l[k] = v.clone();
+        }
+        l
+    };
+    let mut rng2 = ChaCha20Rng::seed_from_u64(0x4C49_4E4B_0000_0079);
+    let mut build = |s: &LinkSpecV,
+                     pop_by: &crypto::TestDelegate,
+                     signer: &crypto::HybridKeypair,
+                     mutate: &dyn Fn(&mut Value)| {
+        let (claims, sig, _leaf, logged) = link_record(s, pop_by, signer, |b| mutate(b));
+        assemble(&claims, &sig, &logged, &mut rng2)
+    };
+    let clear = |at: u64| link_status(&[], 64, at, &uri, &w.status_key);
+    let (good, good_idx) = build(&base, &agent, &w.issuer, &|_| {});
+    let key = |k: &crypto::TestDelegate| b64::encode(&k.public());
+
+    struct Case {
+        name: &'static str,
+        what: &'static str,
+        directory: Value,
+        link: Value,
+        presented: String,
+        now: u64,
+        freshness: &'static str,
+        capability: Option<&'static str>,
+        want: &'static str,
+    }
+    let mut cases: Vec<Case> = Vec::new();
+    macro_rules! add {
+        ($name:expr, $what:expr, $link:expr, $presented:expr, $at:expr, $cap:expr, $want:expr) => {
+            cases.push(Case {
+                name: $name,
+                what: $what,
+                directory: directory.clone(),
+                link: $link,
+                presented: $presented,
+                now: $at,
+                freshness: "F2",
+                capability: $cap,
+                want: $want,
+            })
+        };
+    }
+    add!(
+        "l01-valid",
+        "a linked key, its status signed ten seconds ago",
+        with_status(good.clone(), clear(now - 10)),
+        key(&agent),
+        now,
+        None,
+        "valid"
+    );
+    add!(
+        "l02-valid-at-nbf",
+        "the gate's clock is exactly the link's nbf",
+        with_status(good.clone(), clear(nbf - 10)),
+        key(&agent),
+        nbf,
+        None,
+        "valid"
+    );
+    add!(
+        "l03-expired-at-exp",
+        "the gate's clock is exactly the link's exp",
+        with_status(good.clone(), clear(exp - 10)),
+        key(&agent),
+        exp,
+        None,
+        "expired"
+    );
+    add!(
+        "l04-not-yet-valid",
+        "one second before the link's nbf",
+        with_status(good.clone(), clear(nbf - 11)),
+        key(&agent),
+        nbf - 1,
+        None,
+        "not_yet_valid"
+    );
+    add!(
+        "l05-link-revoked",
+        "the link's own bit is set: this key is no longer attributable",
+        with_status(
+            good.clone(),
+            link_status(&[5], 64, now - 10, &uri, &w.status_key)
+        ),
+        key(&agent),
+        now,
+        None,
+        "revoked"
+    );
+    add!(
+        "l06-operator-suspended",
+        "the passport's bit is set: every link of the operator refuses",
+        with_status(
+            good.clone(),
+            link_status(&[3], 64, now - 10, &uri, &w.status_key)
+        ),
+        key(&agent),
+        now,
+        None,
+        "revoked"
+    );
+    add!(
+        "l07-another-key",
+        "the gate verified a different key than the one linked",
+        with_status(good.clone(), clear(now - 10)),
+        key(&other),
+        now,
+        None,
+        "sig_invalid"
+    );
+    {
+        let (l, _) = build(&base, &other, &w.issuer, &|_| {});
+        add!(
+            "l08-consent-by-another-key",
+            "the record names the agent's key, but another key signed the consent",
+            with_status(l, clear(now - 10)),
+            key(&agent),
+            now,
+            None,
+            "sig_invalid"
+        );
+    }
+    {
+        let (l, _) = build(&base, &other, &w.issuer, &|_| {});
+        add!("l09-attacker-presents-own-key", "a record naming the victim's key with the attacker's consent, presented with the attacker's key", with_status(l, clear(now - 10)), key(&other), now, None, "sig_invalid");
+    }
+    {
+        let (l, _) = build(&base, &agent, &stranger, &|_| {});
+        add!(
+            "l10-registrar-sig-forged",
+            "the record is signed by a key that is not the registrar's",
+            with_status(l, clear(now - 10)),
+            key(&agent),
+            now,
+            None,
+            "sig_invalid"
+        );
+    }
+    {
+        let mut l = with_status(good.clone(), clear(now - 10));
+        l["registrar_sig"]["mldsa65"] = json!("");
+        add!(
+            "l11-classical-half-only",
+            "the registrar signature carries Ed25519 only",
+            l,
+            key(&agent),
+            now,
+            None,
+            "alg_downgrade"
+        );
+    }
+    let scoped = LinkSpecV {
+        scope: vec!["read:invoices".into()],
+        ..base.clone()
+    };
+    let (narrow, _) = build(&scoped, &agent, &w.issuer, &|_| {});
+    add!(
+        "l12-scope-allows",
+        "a narrowed link, exercising the capability it names",
+        with_status(narrow.clone(), clear(now - 10)),
+        key(&agent),
+        now,
+        Some("read:invoices"),
+        "valid"
+    );
+    add!(
+        "l13-outside-scope",
+        "a narrowed link, exercising a capability it does not name",
+        with_status(narrow, clear(now - 10)),
+        key(&agent),
+        now,
+        Some("sign:invoice"),
+        "ceiling_exceeded"
+    );
+    add!(
+        "l14-unscoped-any-capability",
+        "an unnarrowed link defers to the passport for scope",
+        with_status(good.clone(), clear(now - 10)),
+        key(&agent),
+        now,
+        Some("sign:invoice"),
+        "valid"
+    );
+    add!(
+        "l15-status-stale",
+        "the status publication is 301 seconds old at an F2 gate",
+        with_status(good.clone(), clear(now - 301)),
+        key(&agent),
+        now,
+        None,
+        "stale_status"
+    );
+    {
+        let mut l = with_status(good.clone(), clear(now - 10));
+        for k in ["status_uri", "status_sig_ed25519", "status_sig_mldsa65"] {
+            l.as_object_mut().unwrap().remove(k);
+        }
+        add!(
+            "l16-status-unsigned",
+            "a status list with no registrar signature",
+            l,
+            key(&agent),
+            now,
+            None,
+            "stale_status"
+        );
+    }
+    {
+        let revoked = link_status(&[5], 64, now - 10, &uri, &w.status_key);
+        let mut l = with_status(good.clone(), revoked);
+        l["status_list"] = clear(now - 10)["status_list"].clone();
+        add!(
+            "l17-revoked-brings-an-all-clear-list",
+            "a revoked link swaps in an all-clear list under the revoked list's signature",
+            l,
+            key(&agent),
+            now,
+            None,
+            "stale_status"
+        );
+    }
+    add!(
+        "l18-status-other-uri",
+        "a genuine signature, but under another registrar's status URI",
+        with_status(
+            good.clone(),
+            link_status(&[], 64, now - 10, "status://registrar-08/1", &w.status_key)
+        ),
+        key(&agent),
+        now,
+        None,
+        "stale_status"
+    );
+    {
+        let mut l = with_status(good.clone(), clear(now - 400));
+        l["status_issued_at"] = json!(now - 10);
+        add!(
+            "l19-status-redated",
+            "an old publication re-dated to look fresh after signing",
+            l,
+            key(&agent),
+            now,
+            None,
+            "stale_status"
+        );
+    }
+    {
+        let list = b64::encode(b"not a zlib stream");
+        let msg = status::publication_signing_bytes(&uri, 64, now - 10, &list).unwrap();
+        let sig = w.status_key.sign(msg.as_bytes()).unwrap();
+        let st = json!({ "status_list": list, "status_len": 64, "status_issued_at": now - 10, "status_uri": uri,
+                         "status_sig_ed25519": b64::encode(&sig.ed25519), "status_sig_mldsa65": b64::encode(&sig.mldsa65) });
+        add!(
+            "l20-status-signed-but-unreadable",
+            "the registrar signed a list that does not decompress: unavailable status",
+            with_status(good.clone(), st),
+            key(&agent),
+            now,
+            None,
+            "stale_status"
+        );
+    }
+    {
+        let far = LinkSpecV {
+            link_idx: 70,
+            ..base.clone()
+        };
+        let (l, _) = build(&far, &agent, &w.issuer, &|_| {});
+        add!(
+            "l21-bit-past-the-list-end",
+            "the link's bit lies past the end of a 64-bit list: fail closed",
+            with_status(l, clear(now - 10)),
+            key(&agent),
+            now,
+            None,
+            "revoked"
+        );
+    }
+    {
+        let mut l = with_status(good.clone(), clear(now - 10));
+        let other_leaf = merkle::hash_leaf(&[1u8]); // a leaf that IS in this log, just not this record's
+        let mut c: Value =
+            serde_json::from_slice(&b64::decode(l["claims"].as_str().unwrap()).unwrap()).unwrap();
+        c["log"]["leaf"] = json!(b64::encode(&other_leaf));
+        let claims = canon::canonicalize(&c).unwrap().into_bytes();
+        let sig = w.issuer.sign(&claims).unwrap();
+        l["claims"] = json!(b64::encode(&claims));
+        l["registrar_sig"] =
+            json!({ "ed25519": b64::encode(&sig.ed25519), "mldsa65": b64::encode(&sig.mldsa65) });
+        // The whole attack, not half of it: the index and the proof move to that leaf too, so inclusion holds and only
+        // the binding of the record's own bytes to its leaf can refuse it. With the leaf and nothing else changed,
+        // inclusion failed first and a verifier with no binding check still answered not_logged.
+        let (_, _, _, logged) = link_record(&base, &agent, &w.issuer, |_| {});
+        let mut log = merkle::TestLog::new();
+        for k in 0..3u8 {
+            log.append(&[k]);
+        }
+        log.append(&logged);
+        assert_eq!(
+            b64::encode(&log.root()),
+            l["checkpoint"]["root"].as_str().unwrap(),
+            "same log as the record's"
+        );
+        l["leaf_index"] = json!(1);
+        l["inclusion_proof"] = json!(log
+            .inclusion_proof(1)
+            .unwrap()
+            .iter()
+            .map(|h| b64::encode(h))
+            .collect::<Vec<_>>());
+        add!("l22-points-at-another-leaf", "a registrar-signed record whose log reference, index and proof all name another logged leaf", l, key(&agent), now, None, "not_logged");
+    }
+    {
+        let mut l = with_status(good.clone(), clear(now - 10));
+        l["inclusion_proof"][0] = json!(b64::encode(&[7u8; 32]));
+        add!(
+            "l23-inclusion-proof-altered",
+            "the inclusion proof does not lead to the signed root",
+            l,
+            key(&agent),
+            now,
+            None,
+            "not_logged"
+        );
+    }
+    {
+        let mut l = with_status(good.clone(), clear(now - 10));
+        l["checkpoint"]["size"] = json!(l["checkpoint"]["size"].as_u64().unwrap() + 1);
+        add!(
+            "l24-checkpoint-altered",
+            "the checkpoint was changed after the delegate signed it",
+            l,
+            key(&agent),
+            now,
+            None,
+            "checkpoint_invalid"
+        );
+    }
+    {
+        let cert: WireDelegateCert =
+            serde_json::from_value(good["checkpoint_sig"]["cert"].clone()).unwrap();
+        let revoked_dir = dir(vec![entry(&reg, None)], vec![wire_cert_fingerprint(&cert)]);
+        cases.push(Case {
+            name: "l25-checkpoint-delegate-revoked",
+            what: "the directory revokes the delegate that signed the checkpoint",
+            directory: revoked_dir,
+            link: with_status(good.clone(), clear(now - 10)),
+            presented: key(&agent),
+            now,
+            freshness: "F2",
+            capability: None,
+            want: "checkpoint_invalid",
+        });
+    }
+    cases.push(Case {
+        name: "l26-registrar-distrusted",
+        what: "the root distrusts this registrar from the record's leaf onward",
+        directory: dir(vec![entry(&reg, Some(good_idx))], vec![]),
+        link: with_status(good.clone(), clear(now - 10)),
+        presented: key(&agent),
+        now,
+        freshness: "F2",
+        capability: None,
+        want: "registrar_distrusted",
+    });
+    cases.push(Case {
+        name: "l27-distrust-after-this-leaf",
+        what: "a distrust cutoff after the record's leaf leaves it standing",
+        directory: dir(vec![entry(&reg, Some(good_idx + 1))], vec![]),
+        link: with_status(good.clone(), clear(now - 10)),
+        presented: key(&agent),
+        now,
+        freshness: "F2",
+        capability: None,
+        want: "valid",
+    });
+    cases.push(Case {
+        name: "l28-unknown-registrar",
+        what: "the directory accredits another registrar only",
+        directory: dir(vec![entry("registrar-08", None)], vec![]),
+        link: with_status(good.clone(), clear(now - 10)),
+        presented: key(&agent),
+        now,
+        freshness: "F2",
+        capability: None,
+        want: "unknown_registrar",
+    });
+    {
+        let x = LinkSpecV {
+            passport: "ainra:registrar-08:acme:invoicing@1.0.0".into(),
+            ..base.clone()
+        };
+        let (l, _) = build(&x, &agent, &w.issuer, &|_| {});
+        add!(
+            "l29-another-registrars-passport",
+            "a registrar links a passport it did not issue",
+            with_status(l, clear(now - 10)),
+            key(&agent),
+            now,
+            None,
+            "schema_violation"
+        );
+    }
+    {
+        let x = LinkSpecV {
+            passport: "ainra:registrar-07:Acme:invoicing@1.0.0".into(),
+            ..base.clone()
+        };
+        let (l, _) = build(&x, &agent, &w.issuer, &|_| {});
+        add!(
+            "l30-passport-name-malformed",
+            "the passport name is outside the grammar (an upper-case label)",
+            with_status(l, clear(now - 10)),
+            key(&agent),
+            now,
+            None,
+            "name_malformed"
+        );
+    }
+    {
+        let mut l = with_status(good.clone(), clear(now - 10));
+        let raw = b64::decode(l["claims"].as_str().unwrap()).unwrap();
+        let spaced = String::from_utf8(raw)
+            .unwrap()
+            .replacen(",", ", ", 1)
+            .into_bytes();
+        let sig = w.issuer.sign(&spaced).unwrap();
+        l["claims"] = json!(b64::encode(&spaced));
+        l["registrar_sig"] =
+            json!({ "ed25519": b64::encode(&sig.ed25519), "mldsa65": b64::encode(&sig.mldsa65) });
+        add!(
+            "l31-non-canonical-claims",
+            "registrar-signed claims that are not in canonical form",
+            l,
+            key(&agent),
+            now,
+            None,
+            "schema_violation"
+        );
+    }
+    {
+        let (l, _) = build(&base, &agent, &w.issuer, &|b| b["note"] = json!("x"));
+        add!(
+            "l32-unknown-field",
+            "a registrar-signed record with a field version 1 does not define",
+            with_status(l, clear(now - 10)),
+            key(&agent),
+            now,
+            None,
+            "schema_violation"
+        );
+    }
+    {
+        let same = LinkSpecV {
+            link_idx: 3,
+            ..base.clone()
+        };
+        let (l, _) = build(&same, &agent, &w.issuer, &|_| {});
+        add!(
+            "l33-one-bit-for-both",
+            "the link's bit and the passport's bit are the same index",
+            with_status(l, clear(now - 10)),
+            key(&agent),
+            now,
+            None,
+            "schema_violation"
+        );
+    }
+    {
+        let mut d = directory.clone();
+        d["epoch"] = json!(2);
+        cases.push(Case {
+            name: "l34-directory-does-not-verify",
+            what: "the directory was edited after the roots signed it: no gate",
+            directory: d,
+            link: with_status(good.clone(), clear(now - 10)),
+            presented: key(&agent),
+            now,
+            freshness: "F2",
+            capability: None,
+            want: "no_gate",
+        });
+    }
+    cases.push(Case {
+        name: "l35-f1-gate-refuses-a-minute-old-status",
+        what: "a strict F1 gate and a status signed sixty seconds ago",
+        directory: directory.clone(),
+        link: with_status(good.clone(), clear(now - 60)),
+        presented: key(&agent),
+        now,
+        freshness: "F1",
+        capability: None,
+        want: "stale_status",
+    });
+    cases.push(Case {
+        name: "l36-f3-gate-accepts-an-hour-old-status",
+        what: "a lenient F3 gate and a status signed an hour ago",
+        directory: directory.clone(),
+        link: with_status(good.clone(), clear(now - 3600)),
+        presented: key(&agent),
+        now,
+        freshness: "F3",
+        capability: None,
+        want: "valid",
+    });
+
+    cases.sort_by(|a, b| a.name.cmp(b.name));
+    let mut out = Vec::new();
+    for c in cases {
+        let mut v = json!({
+            "name": c.name,
+            "description": c.what,
+            "directory": c.directory,
+            "roots": roots,
+            "link": c.link,
+            "presented_key": c.presented,
+            "now": c.now,
+            "freshness": c.freshness,
+            "capability": c.capability,
+        });
+        let got = ainra_adapter::link_vector_result(&v);
+        let ok = match c.want {
+            "valid" | "no_gate" => got["verdict"] == json!(c.want),
+            reason => got["reason"] == json!(reason),
+        };
+        if !ok {
+            eprintln!(
+                "LINK VECTOR {} exists to test `{}` but the core says {got}",
+                c.name, c.want
+            );
+            std::process::exit(1);
+        }
+        v["expect"] = got;
+        out.push(v);
+    }
+    out
+}
+
+fn emit_link(dir: &str) {
+    let vectors = link_vectors();
+    std::fs::create_dir_all(dir).expect("create dir");
+    for v in &vectors {
+        std::fs::write(
+            Path::new(dir).join(format!("{}.json", v["name"].as_str().unwrap())),
+            serde_json::to_string_pretty(v).unwrap(),
+        )
+        .expect("write link vector");
+    }
+    let accept = vectors
+        .iter()
+        .filter(|v| v["expect"]["verdict"] == json!("valid"))
+        .count();
+    let manifest = json!({
+        "version": "v1-link",
+        "count": vectors.len(),
+        "accept": accept,
+        "reject": vectors.len() - accept,
+        "note": "CC0 AINRA Link conformance vectors (D-078): a dual-root-signed directory, one link as a gate receives it (record, registrar signature, inclusion proof, checkpoint, signed status publication), the Ed25519 key the gate already verified the request with, and the gate's own clock, freshness class and capability. A valid answer names the registrar, operator, passport and scope. Real signing throughout; expect computed by ainra-adapter::link_vector_result after accredit, each checked against the case it exists to test. Regenerate with `make vectors`.",
+    });
+    std::fs::write(
+        Path::new(dir).join("manifest.json"),
+        serde_json::to_string_pretty(&manifest).unwrap(),
+    )
+    .expect("write manifest");
+    println!(
+        "wrote {} link vectors ({accept} accept) to {dir}",
+        vectors.len()
+    );
+}
+
+fn check_link(dir: &str) {
+    let mut entries: Vec<_> = std::fs::read_dir(dir)
+        .expect("read dir")
+        .filter_map(|e| e.ok())
+        .map(|e| e.path())
+        .filter(|p| {
+            p.extension().is_some_and(|x| x == "json")
+                && p.file_name().is_some_and(|f| f != "manifest.json")
+        })
+        .collect();
+    entries.sort();
+    let (mut total, mut fails) = (0, 0);
+    for path in entries {
+        let v: Value = serde_json::from_slice(&std::fs::read(&path).expect("read")).expect("parse");
+        let got = ainra_adapter::link_vector_result(&v);
+        total += 1;
+        if got != v["expect"] {
+            eprintln!(
+                "LINK CHECK MISMATCH {}: expected {} got {got}",
+                v["name"], v["expect"]
+            );
+            fails += 1;
+        }
+    }
+    if fails > 0 {
+        eprintln!("{fails}/{total} link vectors mismatched");
+        std::process::exit(1);
+    }
+    println!("checked {total} link vectors: all reproduce their recorded expectation");
+}
+
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     let mut out_dir: Option<String> = None;
@@ -4005,6 +4781,8 @@ fn main() {
     let mut check_presentation_dir: Option<String> = None;
     let mut gate_out: Option<String> = None;
     let mut check_gate_dir: Option<String> = None;
+    let mut link_out: Option<String> = None;
+    let mut check_link_dir: Option<String> = None;
     let mut canon_file: Option<String> = None;
     let mut emit_kind: Option<String> = None;
     let mut min: usize = 0;
@@ -4021,6 +4799,8 @@ fn main() {
             "--check-presentation" => check_presentation_dir = it.next().cloned(),
             "--gate-out" => gate_out = it.next().cloned(),
             "--check-gate" => check_gate_dir = it.next().cloned(),
+            "--link-out" => link_out = it.next().cloned(),
+            "--check-link" => check_link_dir = it.next().cloned(),
             "--canon" => canon_file = it.next().cloned(),
             "--emit" => emit_kind = it.next().cloned(),
             "--bench" => {} // handled after parsing
@@ -4058,6 +4838,14 @@ fn main() {
     }
     if let Some(dir) = check_presentation_dir {
         check_presentation(&dir);
+        return;
+    }
+    if let Some(dir) = link_out {
+        emit_link(&dir);
+        return;
+    }
+    if let Some(dir) = check_link_dir {
+        check_link(&dir);
         return;
     }
     if let Some(dir) = gate_out {

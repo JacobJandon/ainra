@@ -15,7 +15,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
-import { runVector, expectedVerdict, canonicalize, runDeltaVector, runDirectoryVector, runPresentationVector, runGateVector } from "../../packages/sdk-ts/dist/index.js";
+import { runVector, expectedVerdict, canonicalize, runDeltaVector, runDirectoryVector, runPresentationVector, runGateVector, runLinkVector } from "../../packages/sdk-ts/dist/index.js";
 
 const ROOT = fileURLToPath(new URL("../../", import.meta.url));
 const VEC = path.join(ROOT, "vectors/v1");
@@ -23,6 +23,7 @@ const VEC_DELTA = path.join(ROOT, "vectors/v1-delta");
 const VEC_DIR = path.join(ROOT, "vectors/v1-directory");
 const VEC_PRES = path.join(ROOT, "vectors/v1-presentation");
 const VEC_GATE = path.join(ROOT, "vectors/v1-gate");
+const VEC_LINK = path.join(ROOT, "vectors/v1-link");
 const P0 = path.join(ROOT, "apps/cli-node/bin/ainra.js");
 let failures = 0;
 
@@ -243,6 +244,27 @@ if (fs.existsSync(VEC_GATE)) {
   }
   console.log(`(H) gate diff core↔sdk         : ${gpass}/${gfiles.length} agree`);
   pyPhase("gate diff        ", "gate", VEC_GATE, (v) => v.expect);
+}
+
+// ── (I) Link differential (D-078) — who stands behind a key the gate already verified ──────────────────────────
+// Gate semantics from the start: the directory against both roots, the status publication authenticated, the gate's
+// own clock, class and capability. A valid answer names the registrar, operator, passport and scope, so accepting
+// for the wrong operator is a disagreement too. The answer recorded is ainra-adapter's `link_vector_result`.
+if (fs.existsSync(VEC_LINK)) {
+  const lfiles = fs.readdirSync(VEC_LINK).filter((f) => f.endsWith(".json") && f !== "manifest.json");
+  let lpass = 0;
+  for (const f of lfiles) {
+    const v = JSON.parse(fs.readFileSync(path.join(VEC_LINK, f), "utf8"));
+    const got = stable(runLinkVector(v));
+    const want = stable(v.expect);
+    if (got === want) lpass++;
+    else {
+      failures++;
+      console.error(`  LINK MISMATCH ${v.name}: core=${want} sdk=${got}`);
+    }
+  }
+  console.log(`(I) link diff core↔sdk         : ${lpass}/${lfiles.length} agree`);
+  pyPhase("link diff        ", "link", VEC_LINK, (v) => v.expect);
 }
 
 if (failures) {

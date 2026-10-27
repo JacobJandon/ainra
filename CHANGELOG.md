@@ -59,6 +59,10 @@ npm are 0.4.1.
   entry registrar-signed and proven under one checkpoint; `POST /link/revoke` revokes as `link`, `operator` or
   `compromise` (with `suspect_since`), and every revocation is logged. The core verifier (`ainra_core::link`) answers
   accept with the operator, or the first failing reason from the frozen set.
+- **Link verification in every implementation, held to one corpus** (D-078). `Verifier.verifyLink` in `@ainra/sdk`,
+  `Verifier.verify_link` in the Python package, and `verify_link_gate` in `ainra-adapter` decide as a gate decides:
+  signed directory, status authenticated before it is read, the gate's own clock, class and capability. 36 vectors in
+  `vectors/v1-link`; all three agree on every one in `make diff`. See `docs/LINKS.md`.
 - **The network keeps time** (D-064): delegates renew at the wall clock, presentations prove inclusion against the
   current checkpoint, the write path refuses to sign outside its delegate window; `make live-up` / `live-status`.
 - **Send the bundle once, name it by digest** (D-065): a signed request fits in ~11 KB of headers, no line over

@@ -8,7 +8,7 @@ spawns this once per corpus and asserts every line agrees with the vector's
 recorded ``expect`` (which is the Rust core's verdict), so the Python verifier
 joins the core / TS-SDK / JS-CLI differential as an independent fourth brain.
 
-Usage:  python -m ainra._vector_runner <passport|delta|directory|presentation|gate> <dir>
+Usage:  python -m ainra._vector_runner <passport|delta|directory|presentation|gate|link> <dir>
 """
 
 from __future__ import annotations
@@ -17,6 +17,7 @@ import json
 import os
 import sys
 
+from ._b64 import decode as b64d
 from .delta import verify_delta_vector
 from .directory import verify_directory
 from .presentation import run_presentation_vector
@@ -53,6 +54,17 @@ def run(kind: str, directory: str) -> int:
             else:
                 verdict = gate.verify(v["bundle"], v["now"])
                 result = {"verdict": "valid"} if verdict.valid else {"verdict": "invalid", "reason": verdict.reason}
+        elif kind == "link":
+            # D-078 — who stands behind a key the gate already verified, decided as a gate decides it.
+            gate = Verifier.from_directory(v["directory"], v["roots"]["root_ed25519"], v["roots"]["root_slh"],
+                                           freshness=v["freshness"])
+            key = b64d(v.get("presented_key"))
+            if gate is None:
+                result = {"verdict": "no_gate"}
+            elif key is None or len(key) != 32:
+                result = {"verdict": "invalid", "reason": "schema_violation"}
+            else:
+                result = gate.verify_link(v["link"], key, v["now"], v.get("capability"))
         else:
             print(f"unknown kind: {kind}", file=sys.stderr)
             return 2

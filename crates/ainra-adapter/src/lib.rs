@@ -13,7 +13,7 @@
 //! implementation, that is a stop-and-report signal, not a thing to write.
 
 use ainra_core::verdict::{Reason, Verdict};
-use ainra_core::{b64, checkpoint, crypto, instance, mandate, status, verify};
+use ainra_core::{b64, checkpoint, crypto, instance, link, mandate, status, verify};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::collections::BTreeMap;
@@ -465,21 +465,52 @@ fn authenticate_status(p: &WirePresentation, trust: &GateTrust) -> Result<(), Re
     if !trust.anchors.registrars.contains_key(&registrar) {
         return Err(Reason::UnknownRegistrar);
     }
-    let authority = trust.status.get(&registrar).ok_or(Reason::StaleStatus)?;
-    let (Some(uri), Some(ed), Some(ml)) =
-        (&p.status_uri, &p.status_sig_ed25519, &p.status_sig_mldsa65)
-    else {
+    authenticate_publication(
+        trust,
+        &registrar,
+        &passport.status.status_list.uri,
+        Publication {
+            uri: p.status_uri.as_deref(),
+            sig_ed25519: p.status_sig_ed25519.as_deref(),
+            sig_mldsa65: p.status_sig_mldsa65.as_deref(),
+            bit_len: p.status_len,
+            issued_at: p.status_issued_at,
+            list: &p.status_list,
+        },
+    )
+}
+
+/// A status publication as it travels beside a credential: the compressed list, what it claims about itself, and
+/// the registrar's signature over exactly that.
+struct Publication<'a> {
+    uri: Option<&'a str>,
+    sig_ed25519: Option<&'a str>,
+    sig_mldsa65: Option<&'a str>,
+    bit_len: u64,
+    issued_at: u64,
+    list: &'a str,
+}
+
+/// Steps (a)–(c) of [`authenticate_status`], for any credential that names a status URI: a passport or a link
+/// (D-078). One definition, so the two can never come to disagree about what an authentic list is.
+fn authenticate_publication(
+    trust: &GateTrust,
+    registrar: &str,
+    claimed_uri: &str,
+    p: Publication,
+) -> Result<(), Reason> {
+    let authority = trust.status.get(registrar).ok_or(Reason::StaleStatus)?;
+    let (Some(uri), Some(ed), Some(ml)) = (p.uri, p.sig_ed25519, p.sig_mldsa65) else {
         return Err(Reason::StaleStatus);
     };
-    if *uri != authority.uri || passport.status.status_list.uri != authority.uri {
+    if uri != authority.uri || claimed_uri != authority.uri {
         return Err(Reason::StaleStatus);
     }
     let (Ok(ed25519), Ok(mldsa65)) = (b64::decode(ed), b64::decode(ml)) else {
         return Err(Reason::StaleStatus);
     };
-    let signing =
-        status::publication_signing_bytes(uri, p.status_len, p.status_issued_at, &p.status_list)
-            .map_err(|_| Reason::StaleStatus)?;
+    let signing = status::publication_signing_bytes(uri, p.bit_len, p.issued_at, p.list)
+        .map_err(|_| Reason::StaleStatus)?;
     crypto::verify_hybrid(
         &authority.key,
         signing.as_bytes(),
@@ -1226,6 +1257,147 @@ pub fn gate_vector_result(v: &serde_json::Value) -> serde_json::Value {
         Verdict::Valid => json!({ "verdict": "valid" }),
         Verdict::Invalid { reason } => invalid(&reason_str(reason)),
     }
+}
+
+// ── AINRA Link (D-078) ─────────────────────────────────────────────────────────────────────────────────────
+
+/// One link as a gate receives it: an entry of the registrar's link index (pull) or the agent's own copy, sent
+/// once (push), together with the checkpoint it is proven under and the registrar's signed status publication.
+/// Everything here is the presenter's or a mirror's word until [`verify_link_gate`] has checked it.
+#[derive(Serialize, Deserialize, Clone)]
+pub struct WireLink {
+    pub claims: String,
+    pub registrar_sig: WireSig,
+    pub leaf_index: u64,
+    pub inclusion_proof: Vec<String>,
+    pub checkpoint: WireCheckpoint,
+    pub checkpoint_sig: WireCheckpointSig,
+    pub status_list: String,
+    pub status_len: u64,
+    pub status_issued_at: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status_uri: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status_sig_ed25519: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status_sig_mldsa65: Option<String>,
+}
+
+/// Verify a link AS A GATE (D-078 on top of D-072). `presented_key` is the Ed25519 key the gate has ALREADY verified
+/// the request's signature with — this answers who stands behind that key, not whether the request is genuine.
+///
+/// Order, fixed, first failure wins: the link's schema; its registrar is accredited; the status publication is
+/// authenticated against the directory's status key (nothing is decompressed before that holds, and a list that is
+/// authenticated but cannot be read is `stale_status`, unavailable status); then every remaining field decodes
+/// (`schema_violation` otherwise); then [`ainra_core::link::verify_link`] with the gate's clock, freshness class,
+/// capability and the directory's revoked delegates.
+pub fn verify_link_gate(
+    w: &WireLink,
+    trust: &GateTrust,
+    presented_key: &[u8; 32],
+    now: u64,
+    freshness: status::Freshness,
+    capability: Option<&str>,
+) -> Result<link::Attribution, Reason> {
+    let claims = bad(b64::decode(&w.claims))?;
+    let c = link::LinkClaims::parse_checked(&claims)?;
+    if !trust.anchors.registrars.contains_key(&c.registrar) {
+        return Err(Reason::UnknownRegistrar);
+    }
+    authenticate_publication(
+        trust,
+        &c.registrar,
+        &c.status.uri,
+        Publication {
+            uri: w.status_uri.as_deref(),
+            sig_ed25519: w.status_sig_ed25519.as_deref(),
+            sig_mldsa65: w.status_sig_mldsa65.as_deref(),
+            bit_len: w.status_len,
+            issued_at: w.status_issued_at,
+            list: &w.status_list,
+        },
+    )?;
+    let list = b64::decode(&w.status_list)
+        .ok()
+        .and_then(|z| status::StatusList::decode(&z, w.status_len as usize).ok())
+        .ok_or(Reason::StaleStatus)?;
+    let registrar_sig = crypto::HybridSig {
+        ed25519: bad(b64::decode(&w.registrar_sig.ed25519))?,
+        mldsa65: bad(b64::decode(&w.registrar_sig.mldsa65))?,
+    };
+    let checkpoint = checkpoint::Checkpoint {
+        origin: w.checkpoint.origin.clone(),
+        tree_size: w.checkpoint.size,
+        root: decode32(&w.checkpoint.root)?,
+    };
+    let checkpoint_sig = decode_cp_sig(&w.checkpoint_sig)?;
+    let inclusion_proof = w
+        .inclusion_proof
+        .iter()
+        .map(|s| decode32(s))
+        .collect::<D<Vec<_>>>()?;
+    link::verify_link(
+        &link::LinkCheck {
+            claims: &claims,
+            registrar_sig,
+            presented_key: *presented_key,
+            now,
+            status_list: &list,
+            status_issued_at: w.status_issued_at,
+            freshness,
+            checkpoint: &checkpoint,
+            checkpoint_sig: &checkpoint_sig,
+            leaf_index: w.leaf_index,
+            inclusion_proof: &inclusion_proof,
+            revoked_delegates: &trust.revoked_delegates,
+            capability,
+        },
+        &trust.anchors,
+    )
+}
+
+/// Run one `vectors/v1-link` vector: accredit the directory against both roots, then [`verify_link_gate`] at the
+/// gate's clock, class and capability. `no_gate` when the directory does not verify. A valid answer carries who the
+/// key is attributed to, so an implementation that accepts but names the wrong operator disagrees.
+pub fn link_vector_result(v: &serde_json::Value) -> serde_json::Value {
+    let invalid = |r: &str| json!({ "verdict": "invalid", "reason": r });
+    let acc: serde_json::Value = serde_json::from_str(&accredit_json(
+        &v["directory"].to_string(),
+        &v["roots"].to_string(),
+    ))
+    .unwrap_or(serde_json::Value::Null);
+    if acc["ok"] != json!(true) {
+        return json!({ "verdict": "no_gate" });
+    }
+    let (Some(trust), Some(f), Some(now), Some(key)) = (
+        gate_trust(&acc["trust"].to_string()),
+        v["freshness"].as_str().and_then(freshness_of),
+        v["now"].as_u64(),
+        v["presented_key"].as_str().and_then(|k| decode32(k).ok()),
+    ) else {
+        return invalid("schema_violation");
+    };
+    let Ok(w) = serde_json::from_value::<WireLink>(v["link"].clone()) else {
+        return invalid("schema_violation");
+    };
+    match verify_link_gate(&w, &trust, &key, now, f, v["capability"].as_str()) {
+        Ok(a) => json!({
+            "verdict": "valid",
+            "registrar": a.registrar,
+            "operator": a.operator,
+            "passport": a.passport,
+            "scope": a.scope,
+        }),
+        Err(r) => invalid(&reason_str(r)),
+    }
+}
+
+/// [`link_vector_result`] from JSON text, for hosts that must never panic (the WASM boundary).
+pub fn run_link_vector_json(vector_json: &str) -> String {
+    serde_json::from_str::<serde_json::Value>(vector_json)
+        .map(|v| link_vector_result(&v))
+        .unwrap_or_else(|_| json!({ "verdict": "invalid", "reason": "schema_violation" }))
+        .to_string()
 }
 
 /// [`gate_vector_result`] from JSON text, for hosts that must never panic (the WASM boundary).

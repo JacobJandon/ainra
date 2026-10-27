@@ -190,3 +190,15 @@ class Verifier:
         if bad is not None:
             return invalid(bad)
         return _verify(self._anchors, pres, now)
+
+    def verify_link(self, link: dict, presented_key: bytes, now: int, capability: str | None = None) -> dict:
+        """AINRA Link (D-078): who stands behind ``presented_key``, the 32-byte Ed25519 key this gate has ALREADY
+        verified the request's signature with. Uses this verifier's anchors, revoked delegates and freshness class,
+        and always authenticates the status publication — a link has no fixture mode. Never raises.
+
+        Returns ``{"verdict": "valid", "registrar", "operator", "passport", "scope"}`` or
+        ``{"verdict": "invalid", "reason": ...}``. A key with no link at all is the caller's outcome ("not linked").
+        """
+        from .link import verify_link
+
+        return verify_link(self._anchors, self._revoked, link, presented_key, now, self._freshness, capability)

@@ -28,6 +28,12 @@ use serde_json::json;
 use crate::log::Logd;
 use crate::status::Statusd;
 
+/// AINRA Link (D-078): status and attribution for keys agents already have. A child module, so it shares this
+/// registrar's log, status segment and issuer key rather than growing a second copy of any of them.
+#[path = "registrar_link.rs"]
+pub mod link;
+pub use link::{LinkRecord, LinkRevocation, LinkSpec, RevocationKind};
+
 /// Operational delegate-cert lifetime: 90 days, inside the ADR-002 ≤ 92-day cap. The cap itself lives in
 /// [`ainra_core::consts`]; the compile-time assert keeps this operational choice from ever drifting past it.
 const CERT_VALIDITY: u64 = 90 * 24 * 60 * 60;
@@ -347,6 +353,8 @@ pub struct RegistrarBox {
     /// ADR-017 continuity heads: `operator:lineage` → (current sub, current credential leaf b64). A REISSUE must
     /// chain from exactly this leaf — renewing a superseded generation is a fork and is refused, fail closed.
     lineage_heads: BTreeMap<String, (String, String)>,
+    /// D-078 links, keyed by the linked key's RFC 7638 thumbprint (one link per key, ever).
+    links: BTreeMap<String, LinkRecord>,
     next_status_idx: usize,
     status_capacity: usize,
     dir: PathBuf,
@@ -446,6 +454,7 @@ impl RegistrarBox {
             records: BTreeMap::new(),
             superseded: Vec::new(),
             lineage_heads: BTreeMap::new(),
+            links: BTreeMap::new(),
             next_status_idx: 0,
             status_capacity,
             dir: dir.to_path_buf(),
@@ -552,6 +561,14 @@ impl RegistrarBox {
                 if !newer {
                     me.lineage_heads.insert(key, (sub, leaf));
                 }
+            }
+        }
+        // D-078 links. Absent in snapshots written before links existed: then there are none.
+        if let Some(links) = snap["links"].as_array() {
+            for l in links {
+                let rec: LinkRecord = serde_json::from_value(l.clone())
+                    .map_err(|e| IssueError::Malformed(format!("link: {e}")))?;
+                me.links.insert(rec.thumbprint.clone(), rec);
             }
         }
         me.next_status_idx = snap["next_status_idx"].as_u64().unwrap_or(0) as usize;
@@ -1335,6 +1352,7 @@ impl RegistrarBox {
             "lineage_heads": self.lineage_heads.iter().map(|(k, (sub, leaf))| {
                 (k.clone(), json!({ "sub": sub, "leaf": leaf }))
             }).collect::<serde_json::Map<_, _>>(),
+            "links": self.links.values().collect::<Vec<_>>(),
         });
         let path = self.dir.join("registrar.json");
         std::fs::write(
@@ -1548,13 +1566,13 @@ mod tests {
     use rand_chacha::ChaCha20Rng;
     use rand_core::SeedableRng;
 
-    const NBF: u64 = 1_775_865_600;
+    pub(super) const NBF: u64 = 1_775_865_600;
     // ADR-017 366 d default window. Verification happens WITHIN the checkpoint delegate cert's 90-day window
     // (ADR-002 cap); the credential's own window is independent — cert rotation across 90-day boundaries is M4.
-    const EXP: u64 = NBF + ainra_core::consts::PASSPORT_VALIDITY_DEFAULT_SECS;
-    const VERIFY_NOW: u64 = NBF + 10 * 24 * 60 * 60; // 10 days after issuance
+    pub(super) const EXP: u64 = NBF + ainra_core::consts::PASSPORT_VALIDITY_DEFAULT_SECS;
+    pub(super) const VERIFY_NOW: u64 = NBF + 10 * 24 * 60 * 60; // 10 days after issuance
 
-    fn spec(op: &str, lineage: &str, ver: &str) -> IssueSpec {
+    pub(super) fn spec(op: &str, lineage: &str, ver: &str) -> IssueSpec {
         IssueSpec {
             operator: op.into(),
             lineage: lineage.into(),
@@ -1571,7 +1589,7 @@ mod tests {
         }
     }
 
-    fn engine(dir: &Path) -> RegistrarBox {
+    pub(super) fn engine(dir: &Path) -> RegistrarBox {
         let mut rng = ChaCha20Rng::seed_from_u64(0x9E_11_A2_02);
         let now = NBF - 1000;
         RegistrarBox::create(dir, "registrar-07", 64, now, NBF, EXP, &mut rng).unwrap()

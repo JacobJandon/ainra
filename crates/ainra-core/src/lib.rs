@@ -34,6 +34,7 @@ pub mod crypto;
 pub mod directory;
 pub mod error;
 pub mod instance;
+pub mod link;
 pub mod mandate;
 pub mod merkle;
 pub mod name;

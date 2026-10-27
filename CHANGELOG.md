@@ -15,6 +15,10 @@ npm are 0.4.1.
 
 ### Security — fixed, and owned
 
+- **The registrar daemon forgot authenticated revocations on restart** (D-080). `POST /revoke` and `POST /renew`
+  answered `200` without saving, so after a restart a revoked passport verified `valid` again and a renewal was gone.
+  No release is affected; checkouts of main since 2026-08-17 are. Both routes now persist, and a test runs the real
+  binary through write, kill, start, read.
 - **`ainra_verify` in `@ainra/mcp` believed the bundle — published, in 0.4.1** (D-074). The MCP tool ran
   the conformance corpus's runner over whatever it was handed: the bundle's own clock, freshness class and status
   list. A revoked presenter carrying an all-clear status list of its own was reported `valid`; so was a stale status
@@ -50,6 +54,11 @@ npm are 0.4.1.
 
 ### Added
 
+- **AINRA Link at the registrar** (D-078). `POST /link` links an Ed25519 key an agent already has to one of the
+  registrar's passports, refused unless the key itself signed its consent; `GET /links` serves the whole index, each
+  entry registrar-signed and proven under one checkpoint; `POST /link/revoke` revokes as `link`, `operator` or
+  `compromise` (with `suspect_since`), and every revocation is logged. The core verifier (`ainra_core::link`) answers
+  accept with the operator, or the first failing reason from the frozen set.
 - **The network keeps time** (D-064): delegates renew at the wall clock, presentations prove inclusion against the
   current checkpoint, the write path refuses to sign outside its delegate window; `make live-up` / `live-status`.
 - **Send the bundle once, name it by digest** (D-065): a signed request fits in ~11 KB of headers, no line over

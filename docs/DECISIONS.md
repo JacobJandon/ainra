@@ -1922,7 +1922,7 @@ July 2026, the platform they attacked could not tell who they were until the lab
   - a validity window;
   - two status bits in the registrar's signed list: the link's own, and the passport's.
 - **Proof of control.** The record carries a signature by the linked key itself over the link's purpose, registrar,
-  passport and subject. The registrar checks it before issuing, and every verifier checks it again. A key cannot be
+  passport, subject and start time. The registrar checks it before issuing, and every verifier checks it again. A key cannot be
   linked to someone else's passport without its holder's consent.
 - **Logged before valid,** exactly as passports are: the record's leaf goes into the registrar's log, and a link
   without an inclusion proof under a signed checkpoint does not verify.
@@ -1941,12 +1941,25 @@ July 2026, the platform they attacked could not tell who they were until the lab
   - `checkpoint_invalid`, `not_logged`.
   A key with no link at all is reported as *not linked*: an outcome, not a reason.
 - **Two delivery modes:**
-  - *pull*: the verifier looks the key's thumbprint up in the registrar's signed link index, cached and fetched whole;
+  - *pull*: the verifier looks the key's thumbprint up in the registrar's link index, cached and fetched whole. Every
+    entry is registrar-signed and proven under one delegate-signed checkpoint; the container itself is not signed,
+    because a missing entry is a refusal and the issuer key signs credentials only;
   - *push*: the agent sends the record once, then names it by digest (D-065).
 - **No new trust, no new list.** Links take bits in the registrar's existing status list, and its existing log.
 
 *Status:* ACCEPTED for implementation (PLAN-M47). Rust core first; TypeScript and Python independently, held to
 `vectors/v1-link`.
+
+*Registrar rules (2026-10-26, `services/ainra-services/src/registrar_link.rs`):*
+
+- **One link per key, ever.** A revoked key stays revoked; rotation is a new key linked and the old one revoked, so a
+  thumbprint always names exactly one record.
+- **A link never outlives or outranks its passport:** its window inside the passport's, its scope inside the
+  passport's capabilities, and no links for a revoked passport.
+- **Every revocation is logged** as its own entry (`ainra-link-revocation-1`: registrar, passport, thumbprint, kind,
+  time, and `suspect_since` for a compromise). A `link` revocation may be upgraded to `compromise`; nothing else
+  repeats, and a compromise is never downgraded.
+- Endpoints: `POST /link`, `GET /links` (the whole index), `POST /link/revoke`.
 
 ## D-079 — Signed decision records, and online verification that cannot become an authority (M47)
 
@@ -1976,3 +1989,19 @@ users visited, failed open and were switched off (Let's Encrypt, 6 August 2025).
 
 *Status:* ACCEPTED for implementation (PLAN-M47). The hosting is the owner's decision, and nothing is provisioned
 without it.
+
+## D-080 — Every write the registrar daemon accepts is on disk before it answers
+
+*Problem:* `registrar-box` saves its snapshot after `/issue` and the demo door, but the authenticated `POST /revoke`
+and `POST /renew` changed memory only. After a restart the old snapshot loaded cleanly — its delta log and its
+`status_seq` agree with each other — so **a revoked passport came back valid**, and a renewal disappeared. Found on
+2026-10-26 while adding link persistence; reproduced against the real binary (revoked before the restart, valid
+after it).
+
+*Decision:* both routes persist on success, like every other write, and `tests/registrar_restart.rs` runs the real
+binary through write, kill, start, read for each. With the fix removed, both tests fail.
+
+*Status:* FIXED on main. No release is affected: up to v0.4.1 the daemon never reloaded its state at all (fixed
+2026-08-17 in 752697e, which introduced the gap). Exposed: anyone running `registrar-box` from a checkout of main
+since 2026-08-17 who revoked through `/revoke` and then restarted. `tools/stage.sh` revokes its staged passports
+exactly that way. See `SECURITY.md`.

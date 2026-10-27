@@ -169,6 +169,27 @@ requests, the same status and reason required from each (`make gate-parity`). It
 * What authentication does not close is written into the corpus rather than left to be assumed: a genuine earlier
   publication of the same passport is accepted until it is older than the verifier's freshness class (`g18`, `g19`).
 
+## Post-mortem: a revocation the registrar daemon forgot on restart (D-080, fixed before any release)
+
+**What it was.** `registrar-box` answered `200` to an authenticated `POST /revoke` and kept the revocation in memory
+only. Its snapshot on disk was written after issuance and after the demo door, never after `/revoke` or `/renew`.
+
+**What it allowed.** Restart the daemon and every passport revoked that way verified `valid` again. Nothing on disk
+looked wrong: the snapshot's delta log and its recorded status sequence agreed with each other, so the integrity check
+that refuses a truncated delta log had nothing to refuse. A revocation that a restart undoes is not a revocation.
+
+**Blast radius, stated honestly.** No release: up to v0.4.1 the daemon never reloaded its state at all (disclosed in
+`docs/DISCLOSURE.md`), and the reload that opened this gap landed on main on 2026-08-17 (752697e).
+Exposed: anyone running the daemon from main since then who revoked through `/revoke` and restarted it.
+`tools/stage.sh` revokes its staged passports exactly that way. Verifiers were never wrong: they checked the list
+they were served, and after a restart the daemon served an older one.
+
+**Why nothing caught it.** Every drill revokes and checks inside one process lifetime. The reload tests call `save()`
+themselves, so they prove the snapshot round-trips, not that the daemon writes one.
+
+**What changed.** Both routes persist on success (D-080). `services/ainra-services/tests/registrar_restart.rs` runs the
+real binary through write, kill, start, read for a revocation and a renewal; with the fix removed, both fail.
+
 ## Post-mortem: the published MCP tool believed the bundle (D-074, fixed in 0.5.0)
 
 **What it was.** `ainra_verify` in `@ainra/mcp` 0.4.1 ran the conformance corpus's runner (`runVector`) over

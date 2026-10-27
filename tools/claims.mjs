@@ -126,7 +126,7 @@ const CLAIMS = [
     where: ["tools/doctrine-check.mjs", "tools/doctrine-negative.sh",
             "site/_includes/footer.html", "site/index.html", "site/docs.html", "site/foundation.html",
             "site/get.html", "site/verify.html", "site/plan.html", "site/standard.html", "site/demo.html",
-            "site/scan.html", "site/status.html", "site/404.html", "site/foundations.html",
+            "site/scan.html", "site/status.html", "site/404.html", "site/foundations.html", "site/landscape.html",
             "ROADMAP.md", "docs/PLAN-M28.md", "docs/genesis-day/GO-NO-GO.md", "tools/campaign.mjs",
             // The live gate matches on this claim's exact wording, so it IS an assertion of it. Registering rather
             // than exempting is deliberate: when the witness count moves, the live matcher must move with it, and

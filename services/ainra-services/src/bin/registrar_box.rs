@@ -23,7 +23,9 @@ use std::time::Instant;
 
 use ainra_core::{b64, Verdict};
 use ainra_services::http::{serve, Request};
-use ainra_services::registrar::{AuditEvidence, HybridB64, IssueSpec, RegistrarBox};
+use ainra_services::registrar::{
+    AuditEvidence, HybridB64, IssueSpec, LinkSpec, RegistrarBox, RevocationKind,
+};
 use ainra_services::status::{WireDelta, WireFreshHead};
 use rand_chacha::ChaCha20Rng;
 use rand_core::{RngCore, SeedableRng};
@@ -525,7 +527,11 @@ fn main() {
                 });
                 let State { rb, rng, .. } = &mut *st;
                 match rb.reissue(&sub, new_version, now, audit.as_ref(), rng) {
-                    Ok(rec) => ok(&rec),
+                    Ok(rec) => {
+                        // Persisted like every other write: an unsaved renewal vanished on the next restart.
+                        persist(rb, &id);
+                        ok(&rec)
+                    }
                     Err(e) => (400, json!({ "error": e.to_string() }).to_string()),
                 }
             }
@@ -598,13 +604,99 @@ fn main() {
                     .unwrap_or_else(default_now);
                 match sub {
                     Some(sub) => match st.rb.revoke(&sub, now) {
-                        Ok(delta) => (
-                            200,
-                            serde_json::to_string(&WireDelta::from_core(&delta)).unwrap(),
-                        ),
+                        Ok(delta) => {
+                            // A revocation that is not on disk is undone by the next restart: the snapshot still
+                            // loads (its delta log and status_seq agree with each other), so the passport silently
+                            // comes back valid. This route answered 200 without saving until 2026-10-26.
+                            persist(&st.rb, &id);
+                            (
+                                200,
+                                serde_json::to_string(&WireDelta::from_core(&delta)).unwrap(),
+                            )
+                        }
                         Err(e) => (400, json!({ "error": e.to_string() }).to_string()),
                     },
                     None => (400, r#"{"error":"sub required"}"#.to_string()),
+                }
+            }
+
+            // D-078 AINRA Link: link a key the agent already has to one of this registrar's passports. Body: a
+            // LinkSpec {passport, key, pop, scope?, nbf, exp}; `pop` is the key's own signature over the frozen
+            // consent bytes, so nobody can link a key they do not hold. Write endpoint (auth + rate limited).
+            ("POST", "/link") => {
+                if !write_authorized(req, &st.issue_token, open_writes) {
+                    return (
+                        401,
+                        r#"{"error":"unauthorized (bearer token required)"}"#.to_string(),
+                    );
+                }
+                if !rate_ok(&mut st.writes) {
+                    return (429, r#"{"error":"rate limited"}"#.to_string());
+                }
+                match serde_json::from_str::<LinkSpec>(&req.body) {
+                    Ok(spec) => match st.rb.link(&spec) {
+                        Ok(rec) => {
+                            persist(&st.rb, &id);
+                            ok(&rec)
+                        }
+                        Err(e) => (400, json!({ "error": e.to_string() }).to_string()),
+                    },
+                    Err(e) => (
+                        400,
+                        json!({ "error": format!("bad link spec: {e}") }).to_string(),
+                    ),
+                }
+            }
+
+            // The whole link index (D-079: whole-list download, no lookup by key). Read-only, open, cacheable.
+            ("GET", "/links") => match st.rb.link_index(qnow(&req.path)) {
+                Some(idx) => (200, idx.to_string()),
+                None => (
+                    500,
+                    r#"{"error":"inclusion proof unavailable"}"#.to_string(),
+                ),
+            },
+
+            // Revoke a link. Body: {thumbprint, kind: link|operator|compromise, suspect_since? (compromise only),
+            // now?}. Write endpoint (auth + rate limited); every revocation is appended to the log.
+            ("POST", "/link/revoke") => {
+                if !write_authorized(req, &st.issue_token, open_writes) {
+                    return (
+                        401,
+                        r#"{"error":"unauthorized (bearer token required)"}"#.to_string(),
+                    );
+                }
+                if !rate_ok(&mut st.writes) {
+                    return (429, r#"{"error":"rate limited"}"#.to_string());
+                }
+                let v: serde_json::Value =
+                    serde_json::from_str(&req.body).unwrap_or(serde_json::Value::Null);
+                let Some(tp) = v
+                    .get("thumbprint")
+                    .and_then(|x| x.as_str())
+                    .map(String::from)
+                else {
+                    return (400, r#"{"error":"thumbprint required"}"#.to_string());
+                };
+                let Ok(kind) = serde_json::from_value::<RevocationKind>(
+                    v.get("kind").cloned().unwrap_or(serde_json::Value::Null),
+                ) else {
+                    return (
+                        400,
+                        r#"{"error":"kind must be link, operator or compromise"}"#.to_string(),
+                    );
+                };
+                let suspect_since = v.get("suspect_since").and_then(|x| x.as_u64());
+                let now = v
+                    .get("now")
+                    .and_then(|x| x.as_u64())
+                    .unwrap_or_else(default_now);
+                match st.rb.revoke_link(&tp, kind, suspect_since, now) {
+                    Ok(rev) => {
+                        persist(&st.rb, &id);
+                        ok(&rev)
+                    }
+                    Err(e) => (400, json!({ "error": e.to_string() }).to_string()),
                 }
             }
 

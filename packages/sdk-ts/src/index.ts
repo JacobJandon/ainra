@@ -1803,6 +1803,45 @@ function verifyLinkInner(
   return { registrar: c.registrar, operator: c.passport.split(":")[2], passport: c.passport, scope: c.scope };
 }
 
+/** A registrar's link index, as `GET /links` serves it (D-078, D-079: fetched whole, never looked up by key). */
+export interface LinkIndex {
+  registrar: string;
+  checkpoint: { origin: string; size: number; root: string };
+  checkpoint_sig: WireCheckpointSig;
+  links: Array<{ thumbprint: string; claims: string; registrar_sig: WireKey; leaf_index: number; inclusion_proof: string[] }>;
+}
+/** A registrar's signed status publication, as `GET /status-list` serves it. */
+export interface StatusPublication {
+  uri: string;
+  status_list_b64: string;
+  bit_len: number;
+  issued_at: number;
+  sig_ed25519: string;
+  sig_mldsa65: string;
+}
+
+/** Assemble the {@link WireLink} for one key from a registrar's two published documents. `null` means the key is
+ *  not linked at this registrar. Assembling trusts nothing: {@link Verifier.verifyLink} checks every part, so an
+ *  index or a publication from a mirror is as good as one from the registrar. */
+export function linkFromIndex(index: LinkIndex, publication: StatusPublication, thumbprint: string): WireLink | null {
+  const e = index.links.find((l) => l.thumbprint === thumbprint);
+  if (!e) return null;
+  return {
+    claims: e.claims,
+    registrar_sig: e.registrar_sig,
+    leaf_index: e.leaf_index,
+    inclusion_proof: e.inclusion_proof,
+    checkpoint: index.checkpoint,
+    checkpoint_sig: index.checkpoint_sig,
+    status_list: publication.status_list_b64,
+    status_len: publication.bit_len,
+    status_issued_at: publication.issued_at,
+    status_uri: publication.uri,
+    status_sig_ed25519: publication.sig_ed25519,
+    status_sig_mldsa65: publication.sig_mldsa65,
+  };
+}
+
 /** Run one `vectors/v1-gate` vector (D-073): build the GA {@link Verifier} from the vector's directory and roots with
  *  the gate's own freshness class and audience, and verify the bundle at the gate's clock. This is what a gate
  *  decides — the directory checked against both roots, the status authenticated, nothing taken on the presenter's

@@ -275,6 +275,12 @@ signature-agent-e2e: sdk-build edge-build
 	cd packages/middleware && { [ -d node_modules ] || npm install --prefer-offline --no-audit --no-fund --silent; } && npm run -s build
 	cd kits/signature-agent && { [ -d node_modules ] || npm ci --no-audit --no-fund --silent; } && node e2e.mjs && node e2e.mjs --edge
 
+# D-078 — AINRA Link, live: the Ed25519 key an agent already signs with as a signature agent, linked to its operator's
+# passport with the key's own consent, attributed by an origin, then revoked three ways (needs `make live-up` and
+# `make stage-up`). The signature-agent reader keeps accepting throughout; AINRA refuses within the F1 window.
+link-e2e: sdk-build
+	cd kits/signature-agent && { [ -d node_modules ] || npm ci --no-audit --no-fund --silent; } && node link-e2e.mjs
+
 # D-076 — an AINRA running copy as an IETF WIMSE workload. `wimse-check` (offline, CI): AINRA's Workload Identity Token
 # and request signature read by independent open-source JOSE and RFC 9421 implementations (pinned in
 # kits/wimse/package-lock.json), and theirs read by AINRA's verifyWimseRequest; then the negative control tampers with

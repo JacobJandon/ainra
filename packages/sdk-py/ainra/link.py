@@ -262,6 +262,23 @@ def _verify(anchors: dict, revoked_delegates: list, link: dict, presented_key: b
             "scope": list(c["scope"])}
 
 
+def link_from_index(index: dict, publication: dict, thumbprint: str) -> dict | None:
+    """Assemble the link for one key from a registrar's link index (``GET /links``) and its signed status
+    publication (``GET /status-list``). ``None`` means the key is not linked there. Assembling trusts nothing:
+    :meth:`ainra.Verifier.verify_link` checks every part, so a mirror's copy is as good as the registrar's."""
+    for e in index.get("links") or []:
+        if isinstance(e, dict) and e.get("thumbprint") == thumbprint:
+            return {
+                "claims": e.get("claims"), "registrar_sig": e.get("registrar_sig"), "leaf_index": e.get("leaf_index"),
+                "inclusion_proof": e.get("inclusion_proof"), "checkpoint": index.get("checkpoint"),
+                "checkpoint_sig": index.get("checkpoint_sig"), "status_list": publication.get("status_list_b64"),
+                "status_len": publication.get("bit_len"), "status_issued_at": publication.get("issued_at"),
+                "status_uri": publication.get("uri"), "status_sig_ed25519": publication.get("sig_ed25519"),
+                "status_sig_mldsa65": publication.get("sig_mldsa65"),
+            }
+    return None
+
+
 def verify_link(anchors: dict, revoked_delegates: list, link: dict, presented_key: bytes, now: int,
                 freshness: str = "F2", capability: str | None = None) -> dict:
     """``{"verdict": "valid", registrar, operator, passport, scope}`` or ``{"verdict": "invalid", "reason": …}``.

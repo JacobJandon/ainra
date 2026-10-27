@@ -93,3 +93,22 @@ the registrar, operator, passport and scope, so accepting for the wrong operator
 core, the TypeScript SDK and the Python package must agree on every one in `make diff`. Each check was removed once from
 each implementation to confirm a vector goes red; the leaf-binding attack (`l22`) was rewritten after that exercise
 showed its first version could not tell a verifier with the check from one without it.
+
+## Live
+
+`make link-e2e` (in `make live-drills`, which CI runs) does it at the real clock against a running registrar. An
+operator's agents sign as signature agents with keys in its published directory. Two of three keys are linked, each
+with its own consent. An origin reads every request twice: an independent open-source signature-agent verifier, then
+AINRA Link from the downloaded index and signed status list.
+
+| Step | Signature-agent reader | AINRA Link |
+|---|---|---|
+| Signed by a linked key | valid | valid, names the operator |
+| Signed by the key nobody linked | valid | refused: not linked |
+| Key A revoked | valid | A refused `revoked`; B still valid |
+| A upgraded to `compromise` | valid | refused; downgrading back is refused |
+| Operator suspended | valid | every key refused; the passport itself reads `revoked` |
+
+The signature-agent reader accepts throughout because its profile has no revocation: its remedy is removing the key
+from the directory, which reaches a verifier at its next cache refresh. That is the gap Link fills.
+

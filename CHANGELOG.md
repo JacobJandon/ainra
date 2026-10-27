@@ -63,6 +63,10 @@ npm are 0.4.1.
   `Verifier.verify_link` in the Python package, and `verify_link_gate` in `ainra-adapter` decide as a gate decides:
   signed directory, status authenticated before it is read, the gate's own clock, class and capability. 36 vectors in
   `vectors/v1-link`; all three agree on every one in `make diff`. See `docs/LINKS.md`.
+- **`make link-e2e`, in `make live-drills`** (D-078). A signature agent's existing Ed25519 keys are linked to its
+  operator's passport, attributed by an origin that reads each request with an independent signature-agent verifier
+  and with AINRA Link, then revoked as `link`, `compromise` and `operator`. The signature-agent reader keeps accepting;
+  AINRA refuses at the F1 gate. `linkFromIndex` / `link_from_index` assemble a link from the two published documents.
 - **The network keeps time** (D-064): delegates renew at the wall clock, presentations prove inclusion against the
   current checkpoint, the write path refuses to sign outside its delegate window; `make live-up` / `live-status`.
 - **Send the bundle once, name it by digest** (D-065): a signed request fits in ~11 KB of headers, no line over

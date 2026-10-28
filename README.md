@@ -203,6 +203,8 @@ metric is opt-in, count-only, in the kit layer only) · only audited crypto libr
 - [CONTRIBUTING.md](CONTRIBUTING.md) — how to build, the gates your PR must pass, and the **DCO** sign-off (not a CLA).
 - [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) — Contributor Covenant.
 - [SECURITY.md](SECURITY.md) — how to report; our **fail-closed** posture; we adversarially review every milestone.
+- **Contact:** [info@ainra.org](mailto:info@ainra.org). For a security problem, use the private advisory in
+  SECURITY.md instead.
 
 ## Licensing
 

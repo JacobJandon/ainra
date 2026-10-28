@@ -262,6 +262,39 @@ question across providers today.
   300 kB a day, because "the only secure approach is to check all revocations"
   (<https://hacks.mozilla.org/2025/08/crlite-fast-private-and-comprehensive-certificate-revocation-checking-in-firefox/>).
 
+## Agents that must trust strangers (checked 28 October 2026)
+
+- **Centre for Cryptographic Trust Infrastructure (CCTI), Cambridge.** Announced 7 October 2026 by Martin Kleppmann,
+  with a £2.4m grant from ARIA's Scaling Trust programme; partners: the Cambridge Computer Laboratory, the SINE
+  Foundation, Ink & Switch and Light Squares. Its question: "How is your agent supposed to know if the other agents are
+  telling the truth?" Its approach: zero-knowledge proofs that a *claim* is true (emissions, provenance), built from
+  evidence such as TLSNotary-authenticated bank records, DKIM-signed email and signed sensor data. It does not
+  address identity, revocation or transparency logs by name. **Relation to AINRA:** complementary layers. CCTI proves
+  what an agent says; AINRA says which accountable operator stands behind the key that said it, and whether that is
+  still true. A proof from a revoked or unattributable key is worth little.
+  <https://martin.kleppmann.com/2026/10/07/centre-for-cryptographic-trust-infrastructure.html>
+- **ARIA Scaling Trust.** "Nearly £50m" for secure coordination of AI agents in three tracks (Arena competitions,
+  open-source tooling, fundamental research). The page says rolling funding is "currently open" for Tracks 2 and 3;
+  eligibility is not stated on that page. A candidate funding route for open-source revocation and attribution
+  tooling (Track 2). <https://aria.org.uk/opportunity-spaces/trust-everything-everywhere/scaling-trust>
+- **Fetch.ai.** An architecture paper (Wooldridge et al., arXiv 2510.18699, v2 September 2026) describes on-chain
+  services for agent identity, discovery and transactions, with a logistics demonstration of agents that discover,
+  negotiate and transact. It names no revocation or reputation mechanism; one freight company reports a pilot. No
+  independent evidence of large-scale production use was found. **Relation:** a network whose agent keys could be
+  linked to accountable operators across networks. AINRA Link v1 takes Ed25519 keys only, so it would need another
+  key type first. <https://arxiv.org/abs/2510.18699>
+- **Attestix.** Open documentation tooling that produces Ed25519-signed, machine-readable EU AI Act evidence for
+  agents (data governance, lineage, conformity records, verifiable presentations checkable "without contacting
+  Attestix"). It says plainly it is not a conformity determination. No revocation or audit-log mechanism is
+  described. **Relation:** close to AINRA's decision records in purpose, different in subject: evidence about how a
+  system was built, against evidence of what a gate decided. Neither replaces the other.
+  <https://attestix.io/docs/guides/eu-ai-act-compliance>
+- **IRONVALD, "The passport problem" (29 September 2026).** About government passports, not agents: long-lived
+  identity documents signed today will still be in use after a cryptographically relevant quantum computer exists,
+  so their signatures are the exposure. **Relation:** an outside statement of the reason AINRA signs every passport
+  with Ed25519 *and* ML-DSA-65 and refuses either alone. IRONVALD itself sells critical-infrastructure defence and
+  does not work on agent identity. <https://ironvald.com/news/the-passport-problem>
+
 ## Corrections applied before publishing
 
 An adversarial pass re-checked every claim against primary sources. Claims that did not survive were removed, not

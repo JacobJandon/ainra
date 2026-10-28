@@ -37,6 +37,9 @@ includes yours):
 > **[Report a vulnerability privately](https://github.com/JacobJandon/ainra/security/advisories/new)**
 > (repository → Security → Advisories → *Report a vulnerability*)
 
+If you cannot use GitHub, write to **info@ainra.org** with "security" in the subject and nothing sensitive in the
+first message. We will reply and move the report somewhere private.
+
 Include:
 - a description and the impact,
 - a concrete reproduction — the exact bundle / directory / input, or a failing `make` invocation. **A failing

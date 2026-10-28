@@ -15,6 +15,10 @@ npm are 0.4.1.
 
 ### Security — fixed, and owned
 
+- **RUSTSEC-2026-0385: non-constant-time masks in `ctutils`**, reached through `ml-dsa`. Signing-side exposure only
+  (registrar, ceremony, CLI); verification handles no secrets. Released tags v0.3.3–v0.4.1 locked the affected 0.4.2;
+  no production key exists, and the npm and PyPI packages do not contain the crate. Upgraded to 0.4.6; the site's
+  WebAssembly verifier is rebuilt. Found by the `cargo-audit` gate on the first push after the advisory.
 - **The registrar daemon forgot authenticated revocations on restart** (D-080). `POST /revoke` and `POST /renew`
   answered `200` without saving, so after a restart a revoked passport verified `valid` again and a renewal was gone.
   No release is affected; checkouts of main since 2026-08-17 are. Both routes now persist, and a test runs the real

@@ -75,6 +75,24 @@ The historical examples in "Our posture" above are exactly that record: each one
 decision in the log. That is the standard your report will be held to — and the reason a good report here is
 permanent, not just patched.
 
+## Advisory: RUSTSEC-2026-0385 — non-constant-time masks in `ctutils` (fixed on main, 28 October 2026)
+
+**What it was.** `ctutils` 0.4.2, a constant-time helper crate that `ml-dsa` reaches through `hybrid-array`,
+generated some masks and compared `u128` values in ways whose timing depends on the operands. Upstream fix:
+[RustCrypto/utils#1569](https://github.com/RustCrypto/utils/pull/1569), advisory published 2026-10-23.
+
+**Blast radius, stated honestly.** As with RUSTSEC-2025-0144, the exposure is on the **signing** side, where ML-DSA
+handles a secret key: registrar issuance, ceremony delegates and the CLI. Verification, including the browser
+verifier on the site, consumes only public inputs. Every released tag from v0.3.3 to v0.4.1 locked 0.4.2. No
+production key exists yet; the keys that signed with it are TEST-ROOT staging keys. The npm and PyPI packages do
+not contain this crate.
+
+**How it was found.** The `cargo-audit` job turned red on the first push after the advisory was published. That is
+the gate working as the post-mortem below intended: it now stops on vulnerabilities, not on lesser notices.
+
+**What changed.** `ctutils` is at 0.4.6, the site's WebAssembly verifier is rebuilt, and the corpus is unchanged.
+The next release will carry it.
+
 ## Post-mortem: RUSTSEC-2025-0144 — timing side-channel in `ml-dsa` (fixed in v0.3.1)
 
 The first finding to arrive through the process above, written up to the standard that section promises.

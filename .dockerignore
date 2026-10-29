@@ -1,0 +1,11 @@
+# Keep image builds small and free of local state: build output, installed modules, runtime data and anything private.
+target/
+**/node_modules/
+**/dist/
+.git/
+live/
+stage/
+outreach/
+campaign/tracker.local.json
+**/*.secret
+**/.issue-token

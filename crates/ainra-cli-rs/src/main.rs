@@ -32,6 +32,7 @@ fn main() {
         "log-verify" => cmd_log_verify(rest),
         "fresh-head" => cmd_fresh_head(rest),
         "status" => cmd_status(rest),
+        "status-jwt" => cmd_status_jwt(rest),
         "deltas" => cmd_deltas(rest),
         "export" => cmd_export(rest),
         "seed" => cmd_seed(rest),
@@ -415,6 +416,27 @@ fn cmd_revoke(a: &[String]) -> i32 {
     }
 }
 
+fn cmd_status_jwt(a: &[String]) -> i32 {
+    let Some(dir) = pos(a, 0) else {
+        eprintln!("usage: ainra status-jwt <dir> [--now T]");
+        return 2;
+    };
+    let rb = match load(dir) {
+        Ok(rb) => rb,
+        Err(c) => return c,
+    };
+    match rb.publish_status_jwt(now_or_default(a)) {
+        Some(jwt) => {
+            println!("{jwt}");
+            0
+        }
+        None => {
+            eprintln!("could not build the status token");
+            1
+        }
+    }
+}
+
 fn cmd_present(a: &[String]) -> i32 {
     let (Some(dir), Some(sub)) = (pos(a, 0), pos(a, 1)) else {
         eprintln!("usage: ainra present <dir> <sub>");
@@ -780,6 +802,7 @@ REGISTRAR LIFECYCLE (operate on a local data dir)
   revoke <dir> <sub> [--now T]                revoke → emit a signed, delegate-countersigned delta
   present <dir> <sub>                         print the full presentation record (JSON)
   status <dir> [--now T]                      the signed Token Status List
+  status-jwt <dir> [--now T]                  the same bits as an IETF statuslist+jwt (Ed25519), for standard libraries
   fresh-head <dir> [--now T]                  the 30-second delegate-signed fresh head
   deltas <dir> [--since S]                    the signed delta stream since head S
   export <dir> [--now T]                      full export (records + live verdicts) for the explorer

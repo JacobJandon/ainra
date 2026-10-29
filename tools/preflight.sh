@@ -90,6 +90,8 @@ run "personhood kit"    "a human behind the agent, offline" make personhood-test
 run "signature agents"  "one request, two readers"          make signature-agent-check
 run "python unit tests" "the Python package's own tests"    make py-test
 run "signer differential" "PY + TS sign, 3 verifiers accept" make sign-diff
+run "status list (IETF)" "independent TSL + JOSE read it"   make tsl-check
+run "online verifier"   "signed receipts, no lookup, static" make online-verifier-check
 if command -v wasm-bindgen >/dev/null 2>&1; then
   run "link parity"      "3 link gates, one answer"         make link-parity
 else

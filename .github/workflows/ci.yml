@@ -122,6 +122,10 @@ jobs:
       - run: make personhood-test
       - run: make signature-agent-check
       - run: make wimse-check
+      # D-078 step 4: independent Token Status List and JOSE implementations read AINRA's status list.
+      - run: make tsl-check
+      # D-079: the hosted verifier (signed receipts, no lookup) and the static publisher against a real registrar.
+      - run: make online-verifier-check
 
   # The publish gate a contributor cannot regress: `make audit` = S7 (fixtures + prose + EVERY commit message) +
   # license headers + gitleaks over full history. Needs the whole history for the commit-message scan + gitleaks.

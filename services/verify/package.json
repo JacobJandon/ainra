@@ -1,0 +1,8 @@
+{
+  "name": "ainra-verify",
+  "private": true,
+  "description": "The hosted AINRA verifier (D-079): stateless, signed receipts, no lookup. A convenience, not an authority.",
+  "type": "module",
+  "license": "Apache-2.0 OR MIT",
+  "scripts": { "start": "node server.mjs", "test": "node --test test/*.test.mjs" }
+}

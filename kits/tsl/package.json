@@ -1,0 +1,11 @@
+{
+  "name": "ainra-kit-tsl",
+  "private": true,
+  "description": "AINRA's status list read by independent open-source IETF Token Status List and JOSE implementations (D-078 step 4).",
+  "type": "module",
+  "license": "Apache-2.0 OR MIT",
+  "dependencies": {
+    "@sd-jwt/jwt-status-list": "0.19.0",
+    "jose": "6.2.14"
+  }
+}

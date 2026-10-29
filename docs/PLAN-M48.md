@@ -47,9 +47,12 @@ plan finishes the rest, adds what the 28 October research changed, and records t
 3. **Finish the gates.** *Done 2026-10-29:* link mode in the Node, edge and Python gates; decision logs on all three;
    `ainra link`, `link-revoke`, `links`, `verify-link`; the MCP tool `ainra_verify_link`; `make link-parity`, the
    three gates on one battery (CI).
-4. **The standard status format.** Each registrar also serves its list as a signed `statuslist+jwt`; an independent
+4. **The standard status format.** *Done 2026-10-29:* `GET /status-list.jwt`, `ainra status-jwt`, and `kits/tsl`,
+   where independent Token Status List and JOSE implementations verify and read it (CI). Originally: Each registrar also serves its list as a signed `statuslist+jwt`; an independent
    open-source Token Status List library reads AINRA's list in a new kit, and CI runs it.
-5. **The online verifier, static first.** A publisher writes content-addressed status lists, link indexes and
+5. **The online verifier, static first.** *Done 2026-10-29 (code and configuration; nothing provisioned):*
+   `tools/publish-static.mjs`, `services/verify` with its Dockerfile, `docs/ONLINE-VERIFICATION.md`,
+   `make online-verifier-check` (CI). Originally: A publisher writes content-addressed status lists, link indexes and
    checkpoints that any mirror can serve; a stateless `POST /v1/verify` returns a signed decision record; a doorbell
    stream announces new heads; aggregate counters only. Code and deploy configuration; nothing is provisioned.
 6. **The pilot kit.** One command puts a link-mode gate with a decision log in front of any endpoint.

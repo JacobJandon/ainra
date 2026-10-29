@@ -252,6 +252,22 @@ impl Statusd {
     }
 }
 
+impl Statusd {
+    /// The same bits as [`Statusd::publish`], as an IETF Token Status List token (`statuslist+jwt`), signed with the
+    /// Ed25519 half of the status key. `ttl` is how long a holder may cache it. The hybrid publication stays
+    /// authoritative; this copy exists so any standard Token Status List library can read AINRA revocations.
+    pub fn publish_jwt(&self, now: u64, ttl: u64) -> Option<String> {
+        let compressed = status::StatusList::from_bits(self.bits.clone())
+            .encode()
+            .ok()?;
+        let kid = ainra_core::link::jwk_thumbprint_ed25519(&self.signer.public().ed25519);
+        let input =
+            status::status_list_jwt_signing_input(&self.uri, now, ttl, &compressed, &kid).ok()?;
+        let sig = self.signer.sign_ed25519_for_jws(input.as_bytes())?;
+        Some(format!("{input}.{}", b64::encode(&sig)))
+    }
+}
+
 /// Verify a published status list against the registrar's key, then read one lineage's status with fail-closed
 /// freshness (this is what a verifier does; it lives here so the daemon and its tests share one truth).
 pub fn verify_publication(
@@ -391,5 +407,57 @@ impl WireFreshHead {
             status_hash: b64::decode(&self.status_hash).ok()?.try_into().ok()?,
             sig_delegate: b64::decode(&self.sig_delegate).ok()?,
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rand_chacha::ChaCha20Rng;
+    use rand_core::SeedableRng;
+
+    /// The Token Status List mirror reads, to an outside verifier, exactly what the hybrid publication says.
+    #[test]
+    fn the_status_list_token_carries_the_same_bits_and_verifies_under_the_status_key() {
+        let mut rng = ChaCha20Rng::seed_from_u64(0x7541_5100);
+        let mut sd = Statusd::new(
+            "status://registrar-07/1",
+            64,
+            crypto::HybridKeypair::generate(&mut rng),
+        );
+        assert!(sd.revoke(5));
+        let pk = sd.signer.public().ed25519;
+        let jwt = sd.publish_jwt(1_000, 300).unwrap();
+        let parts: Vec<&str> = jwt.split('.').collect();
+        assert_eq!(parts.len(), 3);
+        let sig: [u8; 64] = b64::decode_array(parts[2]).unwrap();
+        let input = format!("{}.{}", parts[0], parts[1]);
+        assert!(
+            crypto::ed25519_verify(&pk, input.as_bytes(), &sig),
+            "EdDSA verifies under the status key"
+        );
+        let header: serde_json::Value =
+            serde_json::from_slice(&b64::decode(parts[0]).unwrap()).unwrap();
+        assert_eq!(header["typ"], status::STATUS_LIST_JWT_TYP);
+        assert_eq!(header["kid"], ainra_core::link::jwk_thumbprint_ed25519(&pk));
+        let payload: serde_json::Value =
+            serde_json::from_slice(&b64::decode(parts[1]).unwrap()).unwrap();
+        assert_eq!(payload["sub"], "status://registrar-07/1");
+        assert_eq!(payload["status_list"]["bits"], 1);
+        let lst = b64::decode(payload["status_list"]["lst"].as_str().unwrap()).unwrap();
+        let list = status::StatusList::decode(&lst, 64).unwrap();
+        assert_eq!(list.status_of(5), status::LineageStatus::Revoked);
+        assert_eq!(list.status_of(4), status::LineageStatus::Valid);
+        // The same bytes as the authoritative publication's list.
+        assert_eq!(b64::encode(&lst), sd.publish(1_000).status_list_b64);
+    }
+
+    #[test]
+    fn the_ed25519_only_signer_refuses_anything_shaped_like_an_ainra_object() {
+        let mut rng = ChaCha20Rng::seed_from_u64(1);
+        let k = crypto::HybridKeypair::generate(&mut rng);
+        assert!(k.sign_ed25519_for_jws(br#"{"v":"ainra-link-1"}"#).is_none());
+        assert!(k.sign_ed25519_for_jws(b"no-dot").is_none());
+        assert!(k.sign_ed25519_for_jws(b"eyJh.eyJi").is_some());
     }
 }

@@ -67,6 +67,14 @@ npm are 0.4.1.
   `Verifier.verify_link` in the Python package, and `verify_link_gate` in `ainra-adapter` decide as a gate decides:
   signed directory, status authenticated before it is read, the gate's own clock, class and capability. 36 vectors in
   `vectors/v1-link`; all three agree on every one in `make diff`. See `docs/LINKS.md`.
+- **Online verification, static first** (D-079). `tools/publish-static.mjs` writes each registrar's signed artefacts
+  as content-addressed files any mirror can serve; `services/verify` answers `POST /v1/verify` with a signed decision
+  receipt bound to the request, and has no lookup, no search and aggregate-only metrics; a Dockerfile builds it at a
+  named commit. Nothing is deployed. See `docs/ONLINE-VERIFICATION.md`.
+- **Revocations in the IETF Token Status List form** (D-078 step 4). Each registrar also serves its status list as a
+  `statuslist+jwt` at `GET /status-list.jwt` (`ainra status-jwt`), signed with the Ed25519 half of its status key; the
+  hybrid publication stays authoritative. `make tsl-check`: independent Token Status List and JOSE implementations
+  verify the token and read the bits (CI).
 - **Link mode in every gate, and in the tools** (D-078). `ainraLinkGate` in `@ainra/middleware`, `AinraLinkGate` in
   Python, `createAinraLinkCheck` in `@ainra/edge` (the Rust core in WebAssembly); `ainra link`, `link-revoke`, `links`
   and `verify-link` on the command line; `ainra_verify_link` in the MCP server. `make link-parity`: all three gates

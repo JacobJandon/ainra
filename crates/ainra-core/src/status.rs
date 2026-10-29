@@ -161,6 +161,61 @@ impl StatusList {
 /// One definition, here, for the service that signs and for every verifier that checks (D-072). It used to live,
 /// privately, in the service — so the Rust verify path had nothing to authenticate a presented list with, and did
 /// not: a gate built on it believed whatever status a presenter handed over.
+/// The media type of the IETF Token Status List mirror.
+pub const STATUS_LIST_JWT_TYP: &str = "statuslist+jwt";
+
+/// The JWS signing input of a registrar's status list in the IETF Token Status List form: the same bits, the same
+/// zlib-compressed, LSB-first layout, as `base64url(header).base64url(payload)`. Header `{alg: EdDSA, kid, typ:
+/// statuslist+jwt}`; payload `{sub: uri, iat, exp: iat + 24 h, ttl, status_list: {bits: 1, lst}}`. AINRA's own
+/// hybrid-signed publication stays authoritative; this is a compatibility copy for standard libraries.
+pub fn status_list_jwt_signing_input(
+    uri: &str,
+    issued_at: u64,
+    ttl: u64,
+    compressed: &[u8],
+    kid: &str,
+) -> Result<String> {
+    #[derive(Serialize)]
+    struct Header<'a> {
+        alg: &'a str,
+        kid: &'a str,
+        typ: &'a str,
+    }
+    #[derive(Serialize)]
+    struct Lst {
+        bits: u8,
+        lst: String,
+    }
+    #[derive(Serialize)]
+    struct Payload<'a> {
+        exp: u64,
+        iat: u64,
+        status_list: Lst,
+        sub: &'a str,
+        ttl: u64,
+    }
+    let h = canon::canonicalize(&Header {
+        alg: "EdDSA",
+        kid,
+        typ: STATUS_LIST_JWT_TYP,
+    })?;
+    let p = canon::canonicalize(&Payload {
+        exp: issued_at.saturating_add(24 * 60 * 60),
+        iat: issued_at,
+        status_list: Lst {
+            bits: 1,
+            lst: b64::encode(compressed),
+        },
+        sub: uri,
+        ttl,
+    })?;
+    Ok(alloc::format!(
+        "{}.{}",
+        b64::encode(h.as_bytes()),
+        b64::encode(p.as_bytes())
+    ))
+}
+
 pub fn publication_signing_bytes(
     uri: &str,
     bit_len: u64,

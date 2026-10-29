@@ -1157,6 +1157,11 @@ impl RegistrarBox {
         Ok(delta)
     }
 
+    /// The same status as an IETF Token Status List token (`statuslist+jwt`, Ed25519), for standard libraries.
+    pub fn publish_status_jwt(&self, now: u64) -> Option<String> {
+        self.status.publish_jwt(now, 300)
+    }
+
     /// The current signed status publication (full list) stamped `now`.
     pub fn publish_status(&self, now: u64) -> crate::status::SignedStatusList {
         self.status.publish(now)

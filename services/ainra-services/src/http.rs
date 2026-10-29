@@ -132,6 +132,9 @@ where
         // the console as text/html without changing the (u16, String) handler signature every route shares.
         let ctype = if json.trim_start().starts_with('<') {
             "text/html; charset=utf-8"
+        } else if json.starts_with("eyJ") && json.matches('.').count() == 2 {
+            // A compact JWS (the Token Status List mirror): base64url of '{"…', never JSON, never HTML.
+            "application/statuslist+jwt"
         } else {
             "application/json"
         };

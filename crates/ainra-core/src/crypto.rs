@@ -91,6 +91,17 @@ impl HybridKeypair {
         }
     }
 
+    /// The Ed25519 half ALONE, for one purpose only: the IETF Token Status List mirror (`statuslist+jwt`), which
+    /// standard libraries verify with EdDSA. Nothing AINRA reads is ever signed this way — every AINRA object is
+    /// both-or-invalid. The input must be a JWS signing input (`base64url(header).base64url(payload)`); anything that
+    /// starts like a JSON object is refused, so this signature can never stand in for one over an AINRA object.
+    pub fn sign_ed25519_for_jws(&self, jws_signing_input: &[u8]) -> Option<[u8; 64]> {
+        if jws_signing_input.first() == Some(&b'{') || !jws_signing_input.contains(&b'.') {
+            return None;
+        }
+        Some(self.ed.sign(jws_signing_input).to_bytes())
+    }
+
     /// Sign `msg` with BOTH algorithms. ML-DSA uses the deterministic variant so vectors are reproducible;
     /// Ed25519 is deterministic by construction (RFC 8032).
     pub fn sign(&self, msg: &[u8]) -> Result<HybridSig> {

@@ -700,6 +700,13 @@ fn main() {
                 }
             }
 
+            // The same bits in the IETF Token Status List form (statuslist+jwt), for standard libraries. AINRA's own
+            // hybrid-signed /status-list stays authoritative.
+            ("GET", "/status-list.jwt") => match st.rb.publish_status_jwt(qnow(&req.path)) {
+                Some(jwt) => (200, jwt),
+                None => (500, r#"{"error":"status token unavailable"}"#.to_string()),
+            },
+
             ("GET", "/status-list") => (
                 200,
                 serde_json::to_string(&st.rb.publish_status(qnow(&req.path))).unwrap(),

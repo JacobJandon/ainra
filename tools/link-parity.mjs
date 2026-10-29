@@ -5,6 +5,11 @@
 // WebAssembly) and the Python link gate (ainra.AinraLinkGate), exactly as a registrar would serve it: a link index
 // keyed by thumbprint and a signed status publication. All three must give the same status, the same named reason,
 // and on acceptance the same operator. Hermetic: no network.
+//
+// WITNESS: could this fail? Yes, and it has: with the Python link verifier's scope check removed, vector
+// l13-outside-scope reads 200 there and 403 ceiling_exceeded in the other two, and this goes red (2026-10-29). Any
+// gate that drops a check, believes an unauthenticated status, or picks the wrong index entry disagrees with the
+// other two on at least one of the 36 vectors.
 import { readFileSync, readdirSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";

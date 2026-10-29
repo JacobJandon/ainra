@@ -1,0 +1,11 @@
+{
+  "name": "ainra-pilot",
+  "private": true,
+  "type": "module",
+  "description": "One command puts an AINRA gate, with a signed decision log, in front of any HTTP service (PLAN-M47 step 4). Link mode verifies signature-agent requests with an independent open-source implementation, pinned.",
+  "license": "Apache-2.0 OR MIT",
+  "dependencies": {
+    "http-message-sig": "0.3.0",
+    "web-bot-auth": "0.2.0"
+  }
+}

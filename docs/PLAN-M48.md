@@ -55,7 +55,8 @@ plan finishes the rest, adds what the 28 October research changed, and records t
    `make online-verifier-check` (CI). Originally: A publisher writes content-addressed status lists, link indexes and
    checkpoints that any mirror can serve; a stateless `POST /v1/verify` returns a signed decision record; a doorbell
    stream announces new heads; aggregate counters only. Code and deploy configuration; nothing is provisioned.
-6. **The pilot kit.** One command puts a link-mode gate with a decision log in front of any endpoint.
+6. **The pilot kit.** *Done 2026-10-29:* `kits/pilot` (link mode drilled live in `make pilot-e2e`, in live-drills;
+   passport mode wired but not yet drilled). Originally: One command puts a link-mode gate with a decision log in front of any endpoint.
 7. **0.6.0 surfaces.** The conformance entry points, the MCP tool without fixture mode, trusted and presented inputs
    as different types. Breaking for package users; the owner publishes.
 8. **The Internet-Draft.** Status and attribution for externally issued agent keys, with info@ainra.org as contact;

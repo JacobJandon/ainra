@@ -67,6 +67,10 @@ npm are 0.4.1.
   `Verifier.verify_link` in the Python package, and `verify_link_gate` in `ainra-adapter` decide as a gate decides:
   signed directory, status authenticated before it is read, the gate's own clock, class and capability. 36 vectors in
   `vectors/v1-link`; all three agree on every one in `make diff`. See `docs/LINKS.md`.
+- **`kits/pilot`: an AINRA gate in front of any service, in one command.** Link mode verifies signature-agent requests
+  with an independent implementation and asks Link who stands behind the key; passport mode uses the standard gate.
+  Every decision goes to a signed, chained log whose head it publishes. `make pilot-e2e` (in `make live-drills`) drills
+  link mode live.
 - **Online verification, static first** (D-079). `tools/publish-static.mjs` writes each registrar's signed artefacts
   as content-addressed files any mirror can serve; `services/verify` answers `POST /v1/verify` with a signed decision
   receipt bound to the request, and has no lookup, no search and aggregate-only metrics; a Dockerfile builds it at a

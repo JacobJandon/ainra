@@ -2,13 +2,13 @@
 # SPDX-License-Identifier: Apache-2.0 OR MIT
 # make live-drills — every drill that needs a running network, on a network this script brings up (D-073).
 #
-# Seven drills prove the identity end to end at the real clock: identity-e2e, edge-e2e, signature-agent-e2e,
-# python-agent-e2e, wimse-e2e (D-076), link-e2e (D-078) and gate-parity. Each needs the wall-clock registrar (`make live-up`) and the
+# Eight drills prove the identity end to end at the real clock: identity-e2e, edge-e2e, signature-agent-e2e,
+# python-agent-e2e, wimse-e2e (D-076), link-e2e (D-078), pilot-e2e and gate-parity. Each needs the wall-clock registrar (`make live-up`) and the
 # published directory (`make stage-up`), so none of them ran in CI — and gate-parity is the one that found the Rust
 # gate path believing any status it was handed (D-072). A check that only runs when someone remembers to start two
 # daemons is a check that mostly does not run.
 #
-# This starts what is missing, runs all seven, prints one board, and stops only what it started. It is hermetic in
+# This starts what is missing, runs all eight, prints one board, and stops only what it started. It is hermetic in
 # the sense that matters: a clean checkout, the documented toolchain, no network beyond loopback.
 #   LIVE_DRILLS_KEEP=1   leave the networks up afterwards
 set -uo pipefail
@@ -60,6 +60,7 @@ run "signature agents"      make -s signature-agent-e2e
 run "python agent"          make -s python-agent-e2e
 run "wimse workload"        make -s wimse-e2e
 run "link (signature agent)" make -s link-e2e
+run "pilot (link mode)"   make -s pilot-e2e
 run "gate parity"           make -s gate-parity
 echo "────────────────────────────────────────────────────────────────"
 if [ "$FAIL" = 0 ]; then echo "  LIVE DRILLS GREEN — ${#NAMES[@]} drills against a running network."; else echo "  LIVE DRILLS RED"; fi

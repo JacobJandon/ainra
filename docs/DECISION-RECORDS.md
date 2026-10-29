@@ -51,8 +51,11 @@ app.use("/agent", ainraGate(verifier, { decisions }));
 // publish decisions.head() from time to time
 ```
 
-Python has the same pieces in `ainra.decision` (`sign_decision`, `verify_chain`). A decision the gate cannot write is
-logged as an error and does not change the decision.
+The same `decisions` option exists on every gate: `@ainra/edge`'s `createAinraEdgeGate` (it takes the log
+`createDecisionLog` returns), the Python `AinraGate` and `AinraLinkGate` (`ainra.DecisionLog`), and the link-mode
+gates, which record `kind: "link"` decisions including `not_linked`. The request digest is defined once in the core
+(`ainra_core::decision::request_digest`) and every gate produces the same bytes for the same request. A decision the
+gate cannot write is logged as an error and does not change the decision.
 
 ## Checking a log
 

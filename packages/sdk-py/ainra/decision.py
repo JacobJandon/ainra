@@ -147,6 +147,34 @@ def verify_chain(lines: list, gate_key: bytes, anchor: dict | None = None) -> di
     return {"ok": True, "count": len(lines)}
 
 
+def request_digest(method: str, authority: str, path: str, content_digest: str = "") -> str:
+    """The digest a record keeps of a request: SHA-256 over the canonical ``{authority, content_digest, method, path}``
+    — what the request's signature covers, never its body. Same bytes as ``ainra_core::decision::request_digest``."""
+    return b64e(sha256(canon_bytes({"authority": authority, "content_digest": content_digest, "method": method,
+                                    "path": path})))
+
+
+class DecisionLog:
+    """A gate's decision log (D-079). ``append(line)`` receives each new line (write it somewhere append-only);
+    ``last_line`` resumes a log after a restart; :meth:`head` is the digest to publish. The key never leaves
+    ``sign``."""
+
+    def __init__(self, gate_public: bytes, sign, append, freshness: str = "F2", audience: str = "",
+                 last_line: str = "") -> None:
+        self._pub, self._sign, self._append = gate_public, sign, append
+        self._policy = {"freshness": freshness, "audience": audience}
+        self._last = last_line
+
+    def record(self, decision: dict) -> str:
+        line = sign_decision({**decision, "policy": self._policy}, self._pub, self._last, self._sign)
+        self._append(line)
+        self._last = line
+        return line
+
+    def head(self) -> str:
+        return b64e(sha256(self._last.encode("utf-8"))) if self._last else ""
+
+
 def run_decision_vector(v: dict) -> dict:
     key = b64d(v.get("gate_key"))
     if key is None or len(key) != 32:

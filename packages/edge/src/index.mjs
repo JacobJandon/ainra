@@ -110,7 +110,7 @@ function deny(status, reason, event, extra = {}) {
  */
 export async function createAinraEdgeGate({ directory, roots, audience, freshness = "F2",
   now = () => Math.floor(Date.now() / 1000), store = createStore(), nonces = createNonceCache(),
-  primePath = PRIME_PATH, maxPrimeBytes = 256 * 1024 } = {}) {
+  primePath = PRIME_PATH, maxPrimeBytes = 256 * 1024, decisions = null } = {}) {
   if (typeof audience !== "string" || !audience) throw new Error("createAinraEdgeGate: `audience` is required — the gate must know who it is (ADR-019)");
   if (!["F1", "F2", "F3"].includes(freshness)) throw new Error(`createAinraEdgeGate: freshness must be F1, F2 or F3, not ${freshness}`);
   if (!ready) throw new Error("@ainra/edge: call initAinra(wasm) before creating a gate");
@@ -119,6 +119,35 @@ export async function createAinraEdgeGate({ directory, roots, audience, freshnes
   const acc = JSON.parse(core.accredit(str(directory), str(roots)));
   if (!acc.ok) throw new Error("createAinraEdgeGate: the directory does not verify against the roots — refusing to start");
   const trust = JSON.stringify(acc.trust);
+
+  // D-079: with `decisions` (a log from `createDecisionLog` in @ainra/sdk), every decision about a named passport is
+  // recorded, signed and chained. Recording never changes the decision; a log that cannot be written is the
+  // operator's alarm, not the agent's refusal.
+  const sha256b64u = async (text) => bytesToB64u(new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text))));
+  const record = async (request, url, bundle, g, t) => {
+    if (!decisions) return g;
+    try {
+      const sub = g.event?.name;
+      if (typeof sub !== "string" || sub === "") return g;
+      const valid = g.allow === true;
+      decisions.record({
+        at: t,
+        kind: "passport",
+        subject: sub,
+        ...(valid ? { operator: sub.split(":")[2] } : {}),
+        verdict: valid ? "valid" : "invalid",
+        ...(valid ? {} : { reason: g.reason ?? "schema_violation" }),
+        request: core.decision_request_digest(request.method, url.host, url.pathname + url.search, request.headers.get("content-digest") ?? ""),
+        ...(bundle && typeof bundle.status_uri === "string" && Number.isSafeInteger(bundle.status_issued_at) && typeof bundle.status_list === "string"
+          ? { status: { uri: bundle.status_uri, issued_at: bundle.status_issued_at, list: await sha256b64u(bundle.status_list) } } : {}),
+        ...(bundle?.checkpoint && typeof bundle.checkpoint.origin === "string" && Number.isSafeInteger(bundle.checkpoint.size) && typeof bundle.checkpoint.root === "string"
+          ? { checkpoint: { origin: bundle.checkpoint.origin, size: bundle.checkpoint.size, root: bundle.checkpoint.root } } : {}),
+      });
+    } catch (e) {
+      console.error(`@ainra/edge: decision not recorded: ${e?.message ?? e}`);
+    }
+    return g;
+  };
 
   return async function gate(request) {
     const t = now();
@@ -164,10 +193,10 @@ export async function createAinraEdgeGate({ directory, roots, audience, freshnes
     }
     const req = { method: request.method, authority: url.host, path: url.pathname + url.search, headers: [...request.headers], body_b64u: body };
     const r = JSON.parse(core.gate(JSON.stringify(bundle), trust, JSON.stringify(req), t, audience, freshness));
-    if (!r.allow) return deny(403, r.reason ?? "schema_violation", r.event);
+    if (!r.allow) return record(request, url, bundle, deny(403, r.reason ?? "schema_violation", r.event), t);
     // Last, and only now that the signature holds: a nonce check before it would let anyone fill this cache.
-    if (nonces.seen(r.nonce, t)) return deny(403, "presentation_replayed", r.event);
-    return { allow: true, event: r.event, nonce: r.nonce };
+    if (nonces.seen(r.nonce, t)) return record(request, url, bundle, deny(403, "presentation_replayed", r.event), t);
+    return record(request, url, bundle, { allow: true, event: r.event, nonce: r.nonce }, t);
   };
 }
 
@@ -182,4 +211,54 @@ export function runGateVector(vector) {
   if (!ready) throw new Error("@ainra/edge: call initAinra(wasm) first");
   return JSON.parse(core.run_gate_vector(JSON.stringify(vector)));
 }
+// ── AINRA Link (D-078) ────────────────────────────────────────────────────────────────────────────────────────────
+
+/** Assemble the link for one key from a registrar's link index (`GET /links`) and its signed status publication
+ *  (`GET /status-list`). `null` means the key is not linked there. Assembling trusts nothing; the check does. */
+export function linkFromIndex(index, publication, thumbprint) {
+  const e = (index?.links ?? []).find((l) => l.thumbprint === thumbprint);
+  if (!e) return null;
+  return {
+    claims: e.claims, registrar_sig: e.registrar_sig, leaf_index: e.leaf_index, inclusion_proof: e.inclusion_proof,
+    checkpoint: index.checkpoint, checkpoint_sig: index.checkpoint_sig,
+    status_list: publication.status_list_b64, status_len: publication.bit_len, status_issued_at: publication.issued_at,
+    status_uri: publication.uri, status_sig_ed25519: publication.sig_ed25519, status_sig_mldsa65: publication.sig_mldsa65,
+  };
+}
+
+/** A link checker built from a root-signed directory, once (like the gate). Resolves to
+ *  `check(link, presentedKeyB64u, capability?)` → `{verdict:"valid", registrar, operator, passport, scope}` or
+ *  `{verdict:"invalid", reason}`. `presentedKeyB64u` is the Ed25519 key the host ALREADY verified the request with. */
+export async function createAinraLinkCheck({ directory, roots, freshness = "F2", now = () => Math.floor(Date.now() / 1000) } = {}) {
+  if (!["F1", "F2", "F3"].includes(freshness)) throw new Error(`createAinraLinkCheck: freshness must be F1, F2 or F3, not ${freshness}`);
+  if (!ready) throw new Error("@ainra/edge: call initAinra(wasm) before creating a link check");
+  await ready;
+  const str = (x) => (typeof x === "string" ? x : JSON.stringify(x));
+  const acc = JSON.parse(core.accredit(str(directory), str(roots)));
+  if (!acc.ok) throw new Error("createAinraLinkCheck: the directory does not verify against the roots — refusing to start");
+  const trust = JSON.stringify(acc.trust);
+  return (link, presentedKeyB64u, capability = "") =>
+    JSON.parse(core.link_check(JSON.stringify(link), trust, presentedKeyB64u, now(), freshness, capability ?? ""));
+}
+
+/** One `vectors/v1-link` entry, answered by the core. */
+export function runLinkVector(vector) {
+  if (!ready) throw new Error("@ainra/edge: call initAinra(wasm) first");
+  return JSON.parse(core.run_link_vector(JSON.stringify(vector)));
+}
+
+// ── Decision records (D-079) ──────────────────────────────────────────────────────────────────────────────────────
+
+/** Check a gate's decision log against its Ed25519 public key (base64url): `{ok, count}` or `{ok:false, index,
+ *  problem}`. `anchor` is the record a segment continues from, or null. */
+export function verifyDecisionChain(lines, gateKeyB64u, anchor = null) {
+  if (!ready) throw new Error("@ainra/edge: call initAinra(wasm) first");
+  return JSON.parse(core.decision_chain(gateKeyB64u, JSON.stringify(lines), JSON.stringify(anchor)));
+}
+/** One `vectors/v1-decision` entry, answered by the core. */
+export function runDecisionVector(vector) {
+  if (!ready) throw new Error("@ainra/edge: call initAinra(wasm) first");
+  return JSON.parse(core.run_decision_vector(JSON.stringify(vector)));
+}
+
 export const version = () => core.version();

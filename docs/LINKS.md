@@ -85,6 +85,23 @@ The order is fixed and the first failure wins:
 A key with no link at all is **not linked**: an outcome for the gate to act on, not a reason. A gate in link mode
 refuses it.
 
+### Ready-made gates and tools
+
+| Where | What |
+|---|---|
+| Node (Express/Connect) | `ainraLinkGate(verifier, { verifiedKey, source, capability?, decisions? })` from `@ainra/middleware` |
+| Python (ASGI) | `AinraLinkGate(app, verifier, verified_key, source, capability=..., decisions=...)` |
+| Edge (WebAssembly) | `createAinraLinkCheck({ directory, roots, freshness })` from `@ainra/edge`, plus `linkFromIndex` |
+| Command line | `ainra verify-link --link L --directory D --roots R --key K` prints ACCEPT with the operator, or REFUSE with the reason; `ainra link`, `ainra link-revoke` and `ainra links` run a local registrar's side |
+| MCP | `ainra_verify_link`, read-only; takes a link, or the registrar's index and status publication |
+
+`verifiedKey` (Python: `verified_key`) is yours: whatever already checks the request's signature hands over the key
+it verified. `source` returns the registrar's index and signed status publication; cache them inside your freshness
+class. Each gate records `link` decisions when given a decision log.
+
+`make link-parity` serves every link vector to the Node, edge and Python gates as a registrar would, and requires the
+same status, reason and operator from all three. CI runs it.
+
 ## Held to one corpus
 
 [`vectors/v1-link`](../vectors/v1-link) has 36 vectors in gate form: the directory and roots, the link as a gate

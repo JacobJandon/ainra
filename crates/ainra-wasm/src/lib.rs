@@ -129,6 +129,62 @@ pub fn run_gate_vector(vector_json: &str) -> String {
     ainra_adapter::run_gate_vector_json(vector_json)
 }
 
+/// AINRA Link (D-078): who stands behind `presented_key` (base64url Ed25519), a key the host has ALREADY verified the
+/// request's signature with. `link_json` is the link as a gate receives it; `capability` is "" for none.
+#[cfg(feature = "edge")]
+#[wasm_bindgen]
+pub fn link_check(
+    link_json: &str,
+    trust_json: &str,
+    presented_key: &str,
+    now_secs: f64,
+    freshness: &str,
+    capability: &str,
+) -> String {
+    ainra_adapter::link_check_json(
+        link_json,
+        trust_json,
+        presented_key,
+        clamp_secs(now_secs),
+        freshness,
+        capability,
+    )
+}
+
+/// Run one `vectors/v1-link` vector as the core does.
+#[cfg(feature = "edge")]
+#[wasm_bindgen]
+pub fn run_link_vector(vector_json: &str) -> String {
+    ainra_adapter::run_link_vector_json(vector_json)
+}
+
+/// Decision records (D-079): check a gate's decision log. `lines_json` is an array of lines; `anchor_json` an anchor
+/// `{seq, at, digest}` or `null`. Returns `{ok, count}` or `{ok:false, index, problem}`.
+#[cfg(feature = "edge")]
+#[wasm_bindgen]
+pub fn decision_chain(gate_key: &str, lines_json: &str, anchor_json: &str) -> String {
+    ainra_adapter::decision_chain_json(gate_key, lines_json, anchor_json)
+}
+
+/// Run one `vectors/v1-decision` vector as the core does.
+#[cfg(feature = "edge")]
+#[wasm_bindgen]
+pub fn run_decision_vector(vector_json: &str) -> String {
+    ainra_adapter::run_decision_vector_json(vector_json)
+}
+
+/// The digest a decision record keeps of a request (its signed components, never its body), defined once in the core.
+#[cfg(feature = "edge")]
+#[wasm_bindgen]
+pub fn decision_request_digest(
+    method: &str,
+    authority: &str,
+    path: &str,
+    content_digest: &str,
+) -> String {
+    ainra_core::decision::request_digest(method, authority, path, content_digest)
+}
+
 /// The build this module was compiled from, so a page can state which verifier answered it.
 #[wasm_bindgen]
 pub fn version() -> String {

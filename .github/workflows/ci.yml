@@ -316,6 +316,10 @@ jobs:
           VER=$(grep -oP '=\K[0-9.]+' crates/ainra-wasm/Cargo.toml | head -1)
           cargo install wasm-bindgen-cli --version "$VER" --locked
       - run: cd packages/sdk-ts && npm ci && npm run build
+      # D-078: the Node, edge and Python link gates agree on every link vector (hermetic; needs the edge wasm and
+      # this job's Python with ML-DSA, which is why it lives here).
+      - run: cd packages/middleware && npm install && npm run build
+      - run: make link-parity
       # stage-up (the published directory) + live-up (the wall-clock registrar), then identity-e2e, edge-e2e,
       # signature-agent-e2e, python-agent-e2e, wimse-e2e and gate-parity. One board; red if any drill is red.
       - run: make live-drills

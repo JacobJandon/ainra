@@ -9,7 +9,7 @@
 import { readFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
-import { runVector, Verifier, verdictEvent, serializeVerdictEvent } from "@ainra/sdk";  // file:../sdk-ts in a checkout; ^x.y.z when published
+import { runVector, Verifier, verdictEvent, serializeVerdictEvent, linkFromIndex, jwkThumbprintEd25519, strictB64u } from "@ainra/sdk";  // file:../sdk-ts in a checkout; ^x.y.z when published
 export { verdictEvent, serializeVerdictEvent }; // one event shape across CLI, middleware, MCP (docs/PRESENTATION.md)
 
 const ROOT = fileURLToPath(new URL("../../../", import.meta.url));
@@ -191,6 +191,60 @@ export const TOOLS = [
         policy: { now, freshness, audience: audience || null, trust },
         instance: instanceReport(input.presentation, v, audience),
       };
+    },
+  },
+  {
+    name: "ainra_verify_link",
+    title: "Who stands behind this agent key?",
+    description: "AINRA Link (D-078): after you have verified a request's signature with an agent's Ed25519 key, ask which accountable operator stands behind that key and whether the link is still good. Pass the key (`key`, base64url), and either the `link` as a gate receives it, or the registrar's link `index` (GET /links) and its signed `status` publication (GET /status-list), from which the link for your key is found. Trust is YOURS: the signed `directory` and the two `roots` (omit both to use AINRA_TARGET's). The status list is authenticated before it is read; the clock, freshness class and capability are yours. Returns `decision` (accept or refuse), the operator and passport on accept, or the named reason. Read-only. A key with no link at all is refused as not_linked.",
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+    inputSchema: {
+      type: "object",
+      properties: {
+        key: { type: "string", description: "The Ed25519 public key (base64url, 32 bytes) you ALREADY verified the request's signature with." },
+        link: { type: "object", description: "The link as a gate receives it (an index entry with the checkpoint and the signed status publication)." },
+        index: { type: "object", description: "Instead of `link`: the registrar's whole link index (GET /links)." },
+        status: { type: "object", description: "With `index`: the registrar's signed status publication (GET /status-list)." },
+        directory: { type: "object", description: "The dual-root-signed directory of the network you trust." },
+        roots: { type: "object", description: "The two ceremony root keys, { root_ed25519, root_slh }, obtained out of band." },
+        capability: { type: "string", description: "The capability the request exercises, if the link may be narrowed (e.g. read:invoices)." },
+        freshness: { type: "string", enum: ["F1", "F2", "F3"], description: "How old a status publication you accept: F1 30 s, F2 5 min (default), F3 24 h." },
+        now: { type: "integer", description: "Your clock, unix seconds. Defaults to this server's clock." },
+      },
+      required: ["key"],
+    },
+    async handler(input) {
+      const keyBytes = typeof input.key === "string" ? strictB64u(input.key) : null;
+      if (!keyBytes || keyBytes.length !== 32) throw new Error("`key` must be a base64url Ed25519 public key (32 bytes). Nothing was verified.");
+      let link = input.link;
+      if (link === undefined) {
+        if (!input.index || !input.status) throw new Error("pass either `link`, or both `index` (GET /links) and `status` (GET /status-list). Nothing was verified.");
+        link = linkFromIndex(input.index, input.status, jwkThumbprintEd25519(keyBytes));
+        if (!link)
+          return { decision: "refuse", verdict: "invalid", reason: "not_linked",
+                   explanation: "This key has no link at this registrar: a valid signature from it is not, by itself, an accountable operator." };
+      }
+      let { directory, roots } = input;
+      let trust = "the directory and roots you passed";
+      if (directory === undefined && roots === undefined) {
+        if (!isUrl(TARGET))
+          throw new Error("ainra_verify_link needs the trust to verify against: pass the signed `directory` and the `roots`, or set AINRA_TARGET to the URL of a network that publishes /directory.json and /roots.json. Nothing was verified.");
+        [directory, roots] = [await getJson("/directory.json"), await getJson("/roots.json")];
+        trust = `directory.json and roots.json fetched from AINRA_TARGET (${TARGET})`;
+      }
+      if (!directory || !roots || typeof roots.root_ed25519 !== "string" || typeof roots.root_slh !== "string")
+        throw new Error("ainra_verify_link needs BOTH `directory` and `roots` ({ root_ed25519, root_slh }). Nothing was verified.");
+      const freshness = input.freshness ?? "F2";
+      if (!["F1", "F2", "F3"].includes(freshness)) throw new Error("freshness must be F1, F2 or F3. Nothing was verified.");
+      const verifier = Verifier.fromDirectoryB64(directory, roots.root_ed25519, roots.root_slh, freshness);
+      if (!verifier) throw new Error("the directory does not verify against the roots — nothing in it can be trusted, so nothing was verified.");
+      const now = Number.isInteger(input.now) ? input.now : Math.floor(Date.now() / 1000);
+      const v = verifier.verifyLink(link, keyBytes, now, input.capability);
+      return v.verdict === "valid"
+        ? { decision: "accept", verdict: "valid", operator: v.operator, passport: v.passport, registrar: v.registrar, scope: v.scope,
+            explanation: `This key acts for operator "${v.operator}" under ${v.passport}, and the link has not been revoked.`,
+            policy: { now, freshness, capability: input.capability ?? null, trust } }
+        : { decision: "refuse", verdict: "invalid", reason: v.reason, explanation: gloss(v), policy: { now, freshness, capability: input.capability ?? null, trust } };
     },
   },
   {

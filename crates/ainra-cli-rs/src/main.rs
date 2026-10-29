@@ -39,6 +39,10 @@ fn main() {
         "events" => cmd_events(rest),
         "verify-request" => cmd_verify_request(rest),
         "verify-decisions" => cmd_verify_decisions(rest),
+        "link" => cmd_link(rest),
+        "link-revoke" => cmd_link_revoke(rest),
+        "links" => cmd_links(rest),
+        "verify-link" => cmd_verify_link(rest),
         "demo" => cmd_demo(),
         "help" | "-h" | "--help" => {
             print_help();
@@ -785,6 +789,14 @@ GATE (D-062 / D-068)
         why did a gate refuse this request? The same check @ainra/edge makes: the directory must verify
         against both roots; the credential under the GATE's policy; then the RFC 9421 request signature.
         Q is {{method, authority, path, headers: [[name, value], …], body_b64u}}. Prints ALLOW or the reason.
+  link <dir> --passport P --key K --pop S --nbf T --exp T [--scope C ...]
+        AINRA Link (D-078): link an Ed25519 key an agent already uses (K, base64url) to passport P of this registrar.
+        S is the key's own signature over the consent bytes — nobody can link a key they do not hold.
+  link-revoke <dir> --thumbprint T --kind link|operator|compromise [--suspect-since T] [--now T]
+  links <dir> [--now T]                        print the registrar's whole link index (what GET /links serves)
+  verify-link --link L --directory D --roots R --key K [--now T] [--freshness F2] [--capability C]
+        who stands behind key K, as a gate decides it: the directory against both roots, the status authenticated,
+        then the link. L is the link as a gate receives it (an index entry + checkpoint + signed status list).
   verify-decisions <log.jsonl> --gate-key K [--after SEQ:AT:DIGEST] [--head DIGEST]
         does a gate's decision log hold? (D-079) Checks every record's signature under the gate's Ed25519 key K
         (base64url), its sequence, its link to the one before and the clock. --after continues a segment from a
@@ -798,6 +810,182 @@ REGISTRY
 
 Time is explicit (the core has no clock): pass --now <unix-seconds>; the default sits inside the demo window."#
     );
+}
+
+// ── AINRA Link at a local registrar, and as a gate checks it (D-078) ──────────────────────────────────────────────
+
+fn cmd_link(a: &[String]) -> i32 {
+    let usage =
+        "usage: ainra link <dir> --passport P --key K --pop S --nbf T --exp T [--scope C ...]";
+    let (Some(dir), Some(passport), Some(key), Some(pop), Some(nbf), Some(exp)) = (
+        pos(a, 0),
+        opt(a, "passport"),
+        opt(a, "key"),
+        opt(a, "pop"),
+        opt(a, "nbf").and_then(|x| x.parse::<u64>().ok()),
+        opt(a, "exp").and_then(|x| x.parse::<u64>().ok()),
+    ) else {
+        eprintln!("{usage}");
+        return 2;
+    };
+    let mut rb = match load(dir) {
+        Ok(rb) => rb,
+        Err(c) => return c,
+    };
+    let spec = ainra_services::registrar::LinkSpec {
+        passport: passport.to_string(),
+        key: key.to_string(),
+        pop: pop.to_string(),
+        scope: opt_multi(a, "scope"),
+        nbf,
+        exp,
+    };
+    match rb.link(&spec) {
+        Ok(rec) => {
+            if let Err(e) = rb.save() {
+                eprintln!("save failed: {e}");
+                return 1;
+            }
+            println!(
+                "linked key {} to {} — log leaf {}",
+                rec.thumbprint, rec.passport, rec.leaf_index
+            );
+            print_json(&rec);
+            0
+        }
+        Err(e) => {
+            eprintln!("link refused: {e}");
+            1
+        }
+    }
+}
+
+fn cmd_link_revoke(a: &[String]) -> i32 {
+    use ainra_services::registrar::RevocationKind;
+    let usage = "usage: ainra link-revoke <dir> --thumbprint T --kind link|operator|compromise [--suspect-since T] [--now T]";
+    let (Some(dir), Some(tp), Some(kind)) = (pos(a, 0), opt(a, "thumbprint"), opt(a, "kind"))
+    else {
+        eprintln!("{usage}");
+        return 2;
+    };
+    let kind = match kind {
+        "link" => RevocationKind::Link,
+        "operator" => RevocationKind::Operator,
+        "compromise" => RevocationKind::Compromise,
+        _ => {
+            eprintln!("--kind is link, operator or compromise");
+            return 2;
+        }
+    };
+    let suspect_since = match opt(a, "suspect-since").map(|x| x.parse::<u64>()) {
+        None => None,
+        Some(Ok(t)) => Some(t),
+        Some(Err(_)) => {
+            eprintln!("--suspect-since is unix seconds");
+            return 2;
+        }
+    };
+    let mut rb = match load(dir) {
+        Ok(rb) => rb,
+        Err(c) => return c,
+    };
+    match rb.revoke_link(tp, kind, suspect_since, now_or_default(a)) {
+        Ok(rev) => {
+            if let Err(e) = rb.save() {
+                eprintln!("save failed: {e}");
+                return 1;
+            }
+            println!("revoked link {tp} — log leaf {}", rev.leaf_index);
+            print_json(&rev);
+            0
+        }
+        Err(e) => {
+            eprintln!("revoke refused: {e}");
+            1
+        }
+    }
+}
+
+fn cmd_links(a: &[String]) -> i32 {
+    let Some(dir) = pos(a, 0) else {
+        eprintln!("usage: ainra links <dir> [--now T]");
+        return 2;
+    };
+    let rb = match load(dir) {
+        Ok(rb) => rb,
+        Err(c) => return c,
+    };
+    match rb.link_index(now_or_default(a)) {
+        Some(idx) => {
+            print_json(&idx);
+            0
+        }
+        None => {
+            eprintln!("could not build the index (an inclusion proof is missing)");
+            1
+        }
+    }
+}
+
+fn cmd_verify_link(a: &[String]) -> i32 {
+    let usage = "usage: ainra verify-link --link L --directory D --roots R --key K [--now T] [--freshness F2] [--capability C]";
+    let (Some(l), Some(d), Some(r), Some(key)) = (
+        opt(a, "link"),
+        opt(a, "directory"),
+        opt(a, "roots"),
+        opt(a, "key"),
+    ) else {
+        eprintln!("{usage}");
+        return 2;
+    };
+    let read = |p: &str| std::fs::read_to_string(p).map_err(|e| format!("cannot read {p}: {e}"));
+    let (link, directory, roots) = match (read(l), read(d), read(r)) {
+        (Ok(l), Ok(d), Ok(r)) => (l, d, r),
+        (l, d, r) => {
+            for e in [l.err(), d.err(), r.err()].into_iter().flatten() {
+                eprintln!("{e}");
+            }
+            return 1;
+        }
+    };
+    let acc: serde_json::Value =
+        serde_json::from_str(&ainra_adapter::accredit_json(&directory, &roots)).unwrap_or_default();
+    if acc["ok"] != serde_json::json!(true) {
+        println!("REFUSE — the directory does not verify against the roots");
+        return 1;
+    }
+    let now = opt(a, "now")
+        .and_then(|s| s.parse().ok())
+        .unwrap_or_else(|| {
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_secs())
+                .unwrap_or(0)
+        });
+    let out: serde_json::Value = serde_json::from_str(&ainra_adapter::link_check_json(
+        &link,
+        &acc["trust"].to_string(),
+        key,
+        now,
+        opt(a, "freshness").unwrap_or("F2"),
+        opt(a, "capability").unwrap_or(""),
+    ))
+    .unwrap_or_default();
+    if out["verdict"] == serde_json::json!("valid") {
+        println!(
+            "ACCEPT — key acts for operator {} under {} (registrar {})",
+            out["operator"].as_str().unwrap_or("?"),
+            out["passport"].as_str().unwrap_or("?"),
+            out["registrar"].as_str().unwrap_or("?")
+        );
+        0
+    } else {
+        println!(
+            "REFUSE — {}",
+            out["reason"].as_str().unwrap_or("schema_violation")
+        );
+        1
+    }
 }
 
 // ── verify-decisions: does a gate's decision log hold? (D-079) ───────────────────────────────────────────────────

@@ -90,6 +90,11 @@ run "personhood kit"    "a human behind the agent, offline" make personhood-test
 run "signature agents"  "one request, two readers"          make signature-agent-check
 run "python unit tests" "the Python package's own tests"    make py-test
 run "signer differential" "PY + TS sign, 3 verifiers accept" make sign-diff
+if command -v wasm-bindgen >/dev/null 2>&1; then
+  run "link parity"      "3 link gates, one answer"         make link-parity
+else
+  skip "link parity"     "needs wasm-bindgen-cli for the edge engine (enforced in CI; see make link-parity)"
+fi
 if command -v wasm-bindgen >/dev/null 2>&1 && node tools/wasm-differential.mjs --probe >/dev/null 2>&1; then
   run "browser verifier"   "whole corpus agrees in-browser" make wasm-diff
   run "engine parity"      "both page engines give one answer" node tools/engine-parity.mjs

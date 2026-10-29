@@ -1434,6 +1434,59 @@ pub fn decision_chain_result(
     }
 }
 
+/// A gate's link check from JSON (the WASM and edge boundary): the link as a gate receives it, the gate's trust from
+/// [`accredit_json`], the key it verified (base64url), its clock, class and capability (`""` for none). Returns
+/// `{"verdict":"valid", registrar, operator, passport, scope}` or `{"verdict":"invalid","reason":…}`. Never panics.
+pub fn link_check_json(
+    link_json: &str,
+    trust_json: &str,
+    presented_key: &str,
+    now_secs: u64,
+    freshness: &str,
+    capability: &str,
+) -> String {
+    let invalid = |r: &str| json!({ "verdict": "invalid", "reason": r }).to_string();
+    let (Ok(w), Some(trust), Some(f), Ok(key)) = (
+        serde_json::from_str::<WireLink>(link_json),
+        gate_trust(trust_json),
+        freshness_of(freshness),
+        decode32(presented_key),
+    ) else {
+        return invalid("schema_violation");
+    };
+    let cap = (!capability.is_empty()).then_some(capability);
+    match verify_link_gate(&w, &trust, &key, now_secs, f, cap) {
+        Ok(a) => json!({
+            "verdict": "valid",
+            "registrar": a.registrar,
+            "operator": a.operator,
+            "passport": a.passport,
+            "scope": a.scope,
+        })
+        .to_string(),
+        Err(r) => invalid(&reason_str(r)),
+    }
+}
+
+/// [`decision_chain_result`] from JSON text: `lines_json` is an array of log lines, `anchor_json` an anchor or `null`.
+pub fn decision_chain_json(gate_key: &str, lines_json: &str, anchor_json: &str) -> String {
+    let schema = || json!({ "ok": false, "index": 0, "problem": "schema" }).to_string();
+    let Ok(lines) = serde_json::from_str::<Vec<String>>(lines_json) else {
+        return schema();
+    };
+    let anchor: serde_json::Value =
+        serde_json::from_str(anchor_json).unwrap_or(serde_json::Value::Null);
+    decision_chain_result(gate_key, &lines, Some(&anchor)).to_string()
+}
+
+/// [`link_vector_result`] / [`decision_vector_result`] from JSON text, for hosts that must never panic.
+pub fn run_decision_vector_json(vector_json: &str) -> String {
+    serde_json::from_str::<serde_json::Value>(vector_json)
+        .map(|v| decision_vector_result(&v))
+        .unwrap_or_else(|_| json!({ "ok": false, "index": 0, "problem": "schema" }))
+        .to_string()
+}
+
 /// Run one `vectors/v1-decision` vector.
 pub fn decision_vector_result(v: &serde_json::Value) -> serde_json::Value {
     let (Some(key), Some(lines)) = (v["gate_key"].as_str(), v["lines"].as_array()) else {

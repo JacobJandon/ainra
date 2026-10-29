@@ -11,7 +11,8 @@
 import {
   Verifier, verdictEvent, serializeVerdictEvent, decodeInstance, verifyPresentation,
   isPresentationRef, splitPresentation, joinPresentation, presentationRef, POP_HEADER, PRIME_PATH,
-  decisionRequestDigest,
+  decisionRequestDigest, linkFromIndex, jwkThumbprintEd25519,
+  type LinkIndex, type StatusPublication, type LinkVerdict,
   type PresentationBundle, type Verdict, type VerdictEvent, type PresentationReason, type DecisionLog,
 } from "@ainra/sdk";
 import { createHash } from "node:crypto";
@@ -331,6 +332,73 @@ export function ainraPrime(verifier: Verifier, opts: { store: PresentationStore;
     const ref = presentationRef(bundle);
     opts.store.put(ref, stable, expiresAt);
     res.status(201).json({ ref, expires: expiresAt });
+  };
+}
+
+// ── Link mode (D-078): the request's signature is verified by whatever you already use; AINRA says who stands
+// behind the key ─────────────────────────────────────────────────────────────────────────────────────────────────
+
+export interface LinkGateOptions {
+  /** The Ed25519 key that verified THIS request's signature (your signature-agent, WIMSE or other verifier), or null
+   *  if it did not verify. AINRA never treats a key as verified on its own say-so. */
+  verifiedKey: (req: ReqLike) => Uint8Array | null | Promise<Uint8Array | null>;
+  /** The registrar's link index and signed status publication, as `GET /links` and `GET /status-list` serve them.
+   *  Cache them as you like; the status must stay inside the gate's freshness class or links read `stale_status`. */
+  source: () => Promise<{ index: LinkIndex; status: StatusPublication }> | { index: LinkIndex; status: StatusPublication };
+  /** The capability this request exercises, if links may be narrowed. */
+  capability?: (req: ReqLike) => string | undefined;
+  now?: () => number;
+  decisions?: DecisionLog;
+  onDeny?: (reason: string) => void;
+}
+
+/**
+ * Connect/Express middleware in link mode: requests whose signing key is linked to an accountable operator, and not
+ * revoked, pass (with `req.ainraLink` attached); everything else gets 403 and a named reason, `not_linked` included.
+ * The Verifier carries the trust (directory, roots, freshness class), exactly as for passports.
+ */
+export function ainraLinkGate(verifier: Verifier, opts: LinkGateOptions) {
+  const clock = opts.now ?? (() => Math.floor(Date.now() / 1000));
+  return async (req: ReqLike & { ainraLink?: LinkVerdict }, res: ResLike, next: Next): Promise<void> => {
+    const t = clock();
+    let key: Uint8Array | null = null;
+    try { key = await opts.verifiedKey(req); } catch { key = null; }
+    let r: LinkVerdict | { verdict: "invalid"; reason: string };
+    let tp: string | null = null;
+    if (!key || key.length !== 32) {
+      r = { verdict: "invalid", reason: "sig_invalid" };
+    } else {
+      tp = jwkThumbprintEd25519(key);
+      let link = null;
+      try {
+        const { index, status } = await opts.source();
+        link = linkFromIndex(index, status, tp);
+      } catch { link = null; }
+      r = link ? verifier.verifyLink(link, key, t, opts.capability?.(req)) : { verdict: "invalid", reason: "not_linked" };
+    }
+    if (opts.decisions && tp) {
+      try {
+        const binding = bindingFromReq(req);
+        const cd = binding.headers["content-digest"];
+        opts.decisions.record({
+          at: t, kind: "link", subject: tp,
+          ...(r.verdict === "valid" ? { passport: r.passport, operator: r.operator } : {}),
+          verdict: r.verdict,
+          ...(r.verdict === "valid" ? {} : { reason: r.reason }),
+          request: decisionRequestDigest({ method: binding.method, authority: binding.authority, path: binding.path, contentDigest: Array.isArray(cd) ? cd[0] : cd }),
+        });
+      } catch (e) {
+        console.error(`ainra: decision not recorded: ${(e as Error).message}`);
+      }
+    }
+    if (r.verdict === "valid") {
+      req.ainraLink = r;
+      next();
+      return;
+    }
+    opts.onDeny?.(r.reason);
+    res.setHeader("x-ainra-reason", r.reason);
+    res.status(403).json({ error: "ainra: key not attributable", reason: r.reason });
   };
 }
 

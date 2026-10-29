@@ -44,8 +44,9 @@ plan finishes the rest, adds what the 28 October research changed, and records t
 1. **Push** the six commits once the clean-clone CI run is green.
 2. **Follow-ups.** The 15 one-time follow-ups are rewritten as new emails from info@ainra.org and are in the desk;
    the owner sends them, at most four a day, after the push (they link to files the push publishes).
-3. **Finish the gates.** The edge gate (WebAssembly) and the Python gate get link mode and the decision log; the CLI
-   gets `ainra link` and `ainra verify-link`; the MCP server gets `ainra_verify_link`; gate-parity gets a link battery.
+3. **Finish the gates.** *Done 2026-10-29:* link mode in the Node, edge and Python gates; decision logs on all three;
+   `ainra link`, `link-revoke`, `links`, `verify-link`; the MCP tool `ainra_verify_link`; `make link-parity`, the
+   three gates on one battery (CI).
 4. **The standard status format.** Each registrar also serves its list as a signed `statuslist+jwt`; an independent
    open-source Token Status List library reads AINRA's list in a new kit, and CI runs it.
 5. **The online verifier, static first.** A publisher writes content-addressed status lists, link indexes and

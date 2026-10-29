@@ -224,6 +224,27 @@ impl DecisionRecord {
     }
 }
 
+/// The digest a record keeps of a request: base64url SHA-256 over the canonical `{authority, content_digest, method,
+/// path}` — what the request's signature covers, never its body. `content_digest` is the header's value, or "".
+/// One definition, so every gate (Node, edge, Python) records the same bytes for the same request.
+pub fn request_digest(method: &str, authority: &str, path: &str, content_digest: &str) -> String {
+    #[derive(Serialize)]
+    struct Req<'a> {
+        authority: &'a str,
+        content_digest: &'a str,
+        method: &'a str,
+        path: &'a str,
+    }
+    let c = canon::canonicalize(&Req {
+        authority,
+        content_digest,
+        method,
+        path,
+    })
+    .unwrap_or_default();
+    b64::encode(&Sha256::digest(c.as_bytes()))
+}
+
 /// The digest of one log line: what the next record's `prev` names, and what a gate publishes as its head.
 pub fn line_digest(line: &[u8]) -> [u8; 32] {
     Sha256::digest(line).into()
@@ -357,6 +378,24 @@ mod tests {
 
     fn broke(index: usize, problem: ChainProblem) -> core::result::Result<usize, ChainBreak> {
         Err(ChainBreak { index, problem })
+    }
+
+    #[test]
+    fn the_request_digest_matches_the_typescript_sdk() {
+        // values printed by @ainra/sdk decisionRequestDigest for the same inputs (2026-10-29)
+        assert_eq!(
+            request_digest("GET", "shop.example", "/orders?id=7", ""),
+            "tHlRA9FaC4JbQTLk_5luMTNLhNGamRFVfC1G1OQ7otQ"
+        );
+        assert_eq!(
+            request_digest(
+                "POST",
+                "api.example:8443",
+                "/pay",
+                "sha-256=:X48E9qOokqqrvdts8nOJRJN3OWDUoyWxBf7kbu9DBPE=:"
+            ),
+            "2h0UIrY1A-lEvewXmT_tj9P-5QKfE1Yoqmqf27UyO3Q"
+        );
     }
 
     #[test]

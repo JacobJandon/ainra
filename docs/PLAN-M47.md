@@ -175,6 +175,4 @@ The owner chose to defer these on 28 October 2026. Each stays listed here until 
   secp256k1 keys common on ledgers, need a new `alg` and vectors first.
 - **The tail of a decision log.** Records cut from the end are invisible without a published head; gates should
   publish their head somewhere they cannot quietly rewrite. The format exists (`--head`); where to publish it does not.
-- **Decision logs in the edge and Python gates.** The Node gate has them; the other two have the functions but no
-  gate option yet.
 

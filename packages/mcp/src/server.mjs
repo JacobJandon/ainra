@@ -17,7 +17,7 @@ const fail = (id, code, message) => send({ jsonrpc: "2.0", id, error: { code, me
 async function handle(msg) {
   const { id, method, params } = msg;
   if (method === "initialize")
-    return reply(id, { protocolVersion: PROTOCOL, capabilities: { tools: { listChanged: false } }, serverInfo: { name: "ainra", version: VERSION }, instructions: `AINRA tools. Target: ${TARGET_INFO.target} (${TARGET_INFO.mode}). Read-only: ainra_verify/lookup/status. Write (need confirm:true): ainra_issue/renew/revoke. Never targets a registrar you don't control.` });
+    return reply(id, { protocolVersion: PROTOCOL, capabilities: { tools: { listChanged: false } }, serverInfo: { name: "ainra", version: VERSION }, instructions: `AINRA tools. Target: ${TARGET_INFO.target} (${TARGET_INFO.mode}). Read-only: ainra_verify/verify_link/lookup/status. Write (need confirm:true): ainra_issue/renew/revoke. Never targets a registrar you don't control.` });
   if (method === "notifications/initialized" || method === "notifications/cancelled") return; // no response to notifications
   if (method === "ping") return reply(id, {});
   if (method === "tools/list")

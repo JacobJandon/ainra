@@ -1,5 +1,7 @@
 # AINRA — the acceptance bar (MTS §28, brief §8): a stranger clones, runs `make test && make vectors && make diff`,
 # and everything is green in under 10 minutes on a laptop.
+
+.PHONY: link-parity link-e2e
 .PHONY: wimse-check wimse-e2e live-drills gate-parity py-test sign-diff python-agent-e2e signature-agent-check signature-agent-e2e edge-build edge-test edge-e2e edge-runtimes personhood-test personhood-live live-up live-down live-status identity-e2e root-dark-drill mirror-sufficiency legibility-drill cli-deps succession-drill staleness-drill amendment-check amendment-check-negative doctrine doctrine-negative number-syntax engine-parity one-decode-path bench-gate all test vectors vectors-check diff cli-check suite-migration-drill ceremony-rehearsal-multi witness-check push-advisory-check changelog-board-check fmt clippy fuzz-smoke bench sdk-build sdk-test ci clean status console samples drill explorer demo scale ceremony testbed wedge-build wedge-test repro mirror verify-mirror check-freeze freeze genesis-local verifier-kit-smoke ceremony-dry-run soak-smoke drill-networked preflight s7 license gitleaks audit verify-as-external verifier-triple-drill soak-verify genesis-status verify-transcript genesis-board-demo release doctor verifier-operator-drill site site-up site-down site-check stage-all stage-all-down explorer-up explorer-down ainrascan stage-up stage-down stage-status stage-smoke demo-walkthrough three-clients genesis-verify config-diff declaration genesis-rehearsal site-demo verify issue-first registrar-console mcp-test skills-replay presentation-diff conformance campaign-status campaign-init campaign-gates campaign-check publish-preflight stage-install stage-uninstall stage-health stranger probe-drill miri reasons-check corpus-check instance-gate claims-check claims claims-live policy-parity deploy-current site-net site-net-check lockfile-sync soak-ingest outreach-check names-check interop interop-negative
 
 all: fmt clippy test vectors diff
@@ -277,6 +279,12 @@ signature-agent-check: sdk-build
 signature-agent-e2e: sdk-build edge-build
 	cd packages/middleware && { [ -d node_modules ] || npm install --prefer-offline --no-audit --no-fund --silent; } && npm run -s build
 	cd kits/signature-agent && { [ -d node_modules ] || npm ci --no-audit --no-fund --silent; } && node e2e.mjs && node e2e.mjs --edge
+
+# D-078 — three link gates, one battery (hermetic): every vectors/v1-link entry served to the Node link gate, the edge
+# engine (the Rust core in WebAssembly) and the Python link gate, as a registrar serves it. Same status, reason and
+# operator from all three, or it fails.
+link-parity: sdk-build edge-build wedge-build
+	@node tools/link-parity.mjs
 
 # D-078 — AINRA Link, live: the Ed25519 key an agent already signs with as a signature agent, linked to its operator's
 # passport with the key's own consent, attributed by an origin, then revoked three ways (needs `make live-up` and

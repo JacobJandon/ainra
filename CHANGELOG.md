@@ -67,6 +67,11 @@ npm are 0.4.1.
   `Verifier.verify_link` in the Python package, and `verify_link_gate` in `ainra-adapter` decide as a gate decides:
   signed directory, status authenticated before it is read, the gate's own clock, class and capability. 36 vectors in
   `vectors/v1-link`; all three agree on every one in `make diff`. See `docs/LINKS.md`.
+- **Link mode in every gate, and in the tools** (D-078). `ainraLinkGate` in `@ainra/middleware`, `AinraLinkGate` in
+  Python, `createAinraLinkCheck` in `@ainra/edge` (the Rust core in WebAssembly); `ainra link`, `link-revoke`, `links`
+  and `verify-link` on the command line; `ainra_verify_link` in the MCP server. `make link-parity`: all three gates
+  give the same status, reason and operator on every link vector (CI). Decision logs are now on the edge and Python
+  gates too, with one request digest defined in the core.
 - **Signed decision records** (D-079). A gate can keep one signed, hash-chained record per decision: who decided,
   when, about which passport or key, the verdict and reason, digests of the request's signed components and of the
   status and checkpoint it relied on. The field set is closed, so it holds no personal data. `createDecisionLog` and

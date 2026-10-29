@@ -116,16 +116,20 @@ class AinraGate:
         signature verified.
       * ``store`` — a :class:`PresentationStore`; enables send-once (D-065): ``POST PRIME_PATH`` stores a verified
         bundle and answers ``201 {"ref"}``; a request naming an unknown ref is ``428 presentation_unknown``.
+      * ``decisions`` — a :class:`ainra.decision.DecisionLog`; every decision about a named passport is recorded,
+        signed and chained (D-079). The operator is recorded only on a valid decision; recording never changes the
+        decision.
     """
 
     def __init__(self, app, verifier: Verifier, now=None, *, require_signature: bool = False, seen_nonce=None,
-                 store: PresentationStore | None = None, prime_path: str = PRIME_PATH) -> None:
+                 store: PresentationStore | None = None, prime_path: str = PRIME_PATH, decisions=None) -> None:
         self.app = app
         self.verifier = verifier
         self.require_signature = bool(require_signature)
         self.seen_nonce = seen_nonce
         self.store = store
         self.prime_path = prime_path
+        self.decisions = decisions
         # `now` may be an int (fixed clock, e.g. for tests) or a zero-arg callable.
         if now is None:
             self._now = lambda: int(time.time())
@@ -133,6 +137,9 @@ class AinraGate:
             self._now = now
         else:
             self._now = lambda: int(now)
+
+    def _record(self, scope, headers, bundle, verdict, reason, now) -> None:
+        _record_decision(self.decisions, scope, headers, bundle, verdict, reason, now)
 
     async def __call__(self, scope, receive, send):
         if scope.get("type") != "http":
@@ -206,6 +213,7 @@ class AinraGate:
         event_header = json.dumps(verdict.event(), separators=(",", ":")).encode("latin1")
 
         if not verdict.valid:
+            self._record(scope, headers, bundle, verdict, verdict.reason or "schema_violation", now)
             await _deny(send, verdict.reason or "schema_violation", event_header)
             return
 
@@ -215,8 +223,11 @@ class AinraGate:
                 body, receive = await _buffer_body(receive)
             reason = check_binding(scope, body, bundle, now, self.seen_nonce)
             if reason is not None:
+                self._record(scope, headers, bundle, verdict, reason, now)
                 await _deny(send, reason, event_header)
                 return
+
+        self._record(scope, headers, bundle, verdict, None, now)
 
         scope = dict(scope)
         scope["ainra"] = {"event": verdict.event()}
@@ -230,6 +241,47 @@ class AinraGate:
             await send(message)
 
         await self.app(scope, receive, send_wrapper)
+
+
+def _record_decision(log, scope, headers, bundle, verdict, reason, now) -> None:
+    """D-079: write one decision when the request named a passport. Never raises, never changes the decision."""
+    if log is None:
+        return
+    try:
+        from .decision import request_digest
+        from ._crypto import sha256
+        from ._b64 import encode as b64e
+
+        sub = verdict.event().get("name")
+        if not isinstance(sub, str) or not sub:
+            return
+        valid = reason is None and verdict.valid
+        path = scope.get("path", "/")
+        qs = scope.get("query_string") or b""
+        if qs:
+            path += "?" + qs.decode("latin1")
+        rec = {
+            "at": now, "kind": "passport", "subject": sub, "verdict": "valid" if valid else "invalid",
+            "request": request_digest(scope.get("method", "GET"), headers.get("host", ""), path,
+                                      headers.get("content-digest", "")),
+        }
+        if valid:
+            rec["operator"] = sub.split(":")[2]
+        else:
+            rec["reason"] = reason or verdict.reason or "schema_violation"
+        b = bundle if isinstance(bundle, dict) else {}
+        if isinstance(b.get("status_uri"), str) and isinstance(b.get("status_issued_at"), int) \
+                and isinstance(b.get("status_list"), str):
+            rec["status"] = {"uri": b["status_uri"], "issued_at": b["status_issued_at"],
+                             "list": b64e(sha256(b["status_list"].encode("utf-8")))}
+        cp = b.get("checkpoint")
+        if isinstance(cp, dict) and isinstance(cp.get("origin"), str) and isinstance(cp.get("size"), int) \
+                and isinstance(cp.get("root"), str):
+            rec["checkpoint"] = {"origin": cp["origin"], "size": cp["size"], "root": cp["root"]}
+        log.record(rec)
+    except Exception as e:  # a log that cannot be written is the operator's alarm, not the agent's refusal
+        import sys
+        print(f"ainra: decision not recorded: {e}", file=sys.stderr)
 
 
 async def _buffer_body(receive):
@@ -279,6 +331,82 @@ async def _deny(send, reason: str, event_header: bytes) -> None:
         }
     )
     await send({"type": "http.response.body", "body": body})
+
+
+class AinraLinkGate:
+    """ASGI3 middleware in link mode (D-078): your own signature check verifies the request; AINRA says who stands
+    behind the key. Requests whose key is linked to an accountable operator, and not revoked, pass with
+    ``scope["ainra_link"]`` set; everything else gets 403 and a named reason, ``not_linked`` included.
+
+    * ``verified_key(scope, headers) -> bytes | None`` — the Ed25519 key that verified THIS request, or None.
+    * ``source() -> (index, status)`` — the registrar's link index and signed status publication (GET /links,
+      GET /status-list); cache them as you like, inside the verifier's freshness class.
+    * ``capability(scope) -> str | None`` — the capability the request exercises, if links may be narrowed.
+    * ``decisions`` — a :class:`ainra.decision.DecisionLog`; link decisions are recorded, signed and chained.
+    """
+
+    def __init__(self, app, verifier: Verifier, verified_key, source, now=None, *, capability=None,
+                 decisions=None) -> None:
+        self.app, self.verifier, self.verified_key, self.source = app, verifier, verified_key, source
+        self.capability, self.decisions = capability, decisions
+        self._now = (lambda: int(time.time())) if now is None else (now if callable(now) else (lambda: int(now)))
+
+    async def __call__(self, scope, receive, send):
+        if scope.get("type") != "http":
+            await self.app(scope, receive, send)
+            return
+        from .link import jwk_thumbprint_ed25519, link_from_index
+
+        headers: dict[str, str] = {}
+        for k, v in scope.get("headers", []):
+            name, value = k.decode("latin1").lower(), v.decode("latin1")
+            headers[name] = f"{headers[name]}, {value}" if name in headers else value
+        now = self._now()
+        try:
+            key = self.verified_key(scope, headers)
+        except Exception:
+            key = None
+        tp = None
+        if not isinstance(key, (bytes, bytearray)) or len(key) != 32:
+            result = {"verdict": "invalid", "reason": "sig_invalid"}
+        else:
+            tp = jwk_thumbprint_ed25519(bytes(key))
+            try:
+                index, status = self.source()
+                link = link_from_index(index, status, tp)
+            except Exception:
+                link = None
+            cap = self.capability(scope) if self.capability else None
+            result = self.verifier.verify_link(link, bytes(key), now, cap) if link else \
+                {"verdict": "invalid", "reason": "not_linked"}
+        if self.decisions is not None and tp is not None:
+            try:
+                from .decision import request_digest
+
+                path = scope.get("path", "/")
+                if scope.get("query_string"):
+                    path += "?" + scope["query_string"].decode("latin1")
+                rec = {"at": now, "kind": "link", "subject": tp, "verdict": result["verdict"],
+                       "request": request_digest(scope.get("method", "GET"), headers.get("host", ""), path,
+                                                 headers.get("content-digest", ""))}
+                if result["verdict"] == "valid":
+                    rec.update(passport=result["passport"], operator=result["operator"])
+                else:
+                    rec["reason"] = result["reason"]
+                self.decisions.record(rec)
+            except Exception as e:
+                import sys
+                print(f"ainra: decision not recorded: {e}", file=sys.stderr)
+        if result["verdict"] == "valid":
+            scope = dict(scope)
+            scope["ainra_link"] = result
+            await self.app(scope, receive, send)
+            return
+        body = json.dumps({"error": "forbidden", "reason": result["reason"]}, separators=(",", ":")).encode()
+        await send({"type": "http.response.start", "status": 403,
+                    "headers": [(b"content-type", b"application/json"),
+                                (b"x-ainra-reason", result["reason"].encode("latin1"))]})
+        await send({"type": "http.response.body", "body": body})
 
 
 # Convenience alias mirroring the TS export name.

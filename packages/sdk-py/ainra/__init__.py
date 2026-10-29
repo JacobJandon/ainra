@@ -35,7 +35,8 @@ from .instance import (
     pop_signing_bytes,
     prove_instance_possession,
 )
-from .middleware import AinraGate, PresentationStore, ainra_gate, check_binding
+from .decision import DecisionLog
+from .middleware import AinraGate, AinraLinkGate, PresentationStore, ainra_gate, check_binding
 from .presentation import presentation_ref, sign_presentation
 from .verdict import Verdict
 from .verifier import Verifier
@@ -65,6 +66,8 @@ __all__ = [
     "verify_head",
     "verify_directory",
     "AinraGate",
+    "AinraLinkGate",
+    "DecisionLog",
     "PresentationStore",
     "check_binding",
     "ainra_gate",

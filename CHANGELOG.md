@@ -10,8 +10,12 @@ We **publicly own fixed security bugs** — hiding them would be the opposite of
 
 ## [Unreleased]
 
-What 0.5.0 will carry. Nothing below is on npm or PyPI yet; `@ainra/sdk`, `@ainra/middleware` and `@ainra/mcp` on
-npm are 0.4.1.
+Nothing yet.
+
+## [0.5.0] — 2026-10-29
+
+The release commit; its board is `docs/releases/v0.5.0-board.md`. Tagging and publishing to npm and PyPI are the
+maintainer's steps — until they happen, the registries still serve 0.4.1.
 
 ### Security — fixed, and owned
 

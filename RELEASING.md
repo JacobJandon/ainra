@@ -35,6 +35,7 @@ commit each version's board was proven at; both tags are now **signed, pushed, a
 |---|---|---|---|
 | **v0.2.0** | **`5ae1b12`** | `docs/releases/v0.2.0-board.md` — full 17-row board ALL GREEN from a clean clone | **RELEASED** — signed tag verified (`git verify-tag v0.2.0`), artifacts on the releases page |
 | **v0.3.0** | **`af3c869`** | `docs/releases/v0.3.0-board.md` — full 18-row board (incl. `conformance`, 4-way differential) ALL GREEN from a clean clone | **RELEASED** — signed tag verified, signed artifacts + provenance + SBOM on the releases page; the repo's Latest |
+| **v0.5.0** | **`e6870bc`** | `docs/releases/v0.5.0-board.md` — full 44-row board ALL GREEN, no skips, from a fresh clone | **READY** — the maintainer signs the tag at `e6870bc`, then `make publish-preflight` and publishes; until then npm and PyPI serve 0.4.1 |
 
 Never rewrite tagged history: if something must change after a tag, neutralize at the tip (a new commit), never by
 moving or deleting a released tag.

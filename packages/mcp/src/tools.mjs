@@ -9,7 +9,7 @@
 import { readFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
-import { runVector, Verifier, verdictEvent, serializeVerdictEvent, linkFromIndex, jwkThumbprintEd25519, strictB64u } from "@ainra/sdk";  // file:../sdk-ts in a checkout; ^x.y.z when published
+import { Verifier, verdictEvent, serializeVerdictEvent, linkFromIndex, jwkThumbprintEd25519, strictB64u } from "@ainra/sdk";  // file:../sdk-ts in a checkout; ^x.y.z when published
 export { verdictEvent, serializeVerdictEvent }; // one event shape across CLI, middleware, MCP (docs/PRESENTATION.md)
 
 const ROOT = fileURLToPath(new URL("../../../", import.meta.url));
@@ -100,7 +100,7 @@ export const TOOLS = [
   {
     name: "ainra_verify",
     title: "Verify an AINRA passport",
-    description: "Decide whether a presentation someone handed you verifies. Pass the `presentation` with the signed `directory` and the two `roots` you trust (omit them and a URL target's own are fetched): the directory is checked against both roots, the status list against the registrar's status key, and the clock, the freshness class and the audience are YOURS — nothing a presenter put in the bundle is believed. Returns `decision` (accept or refuse), the verdict, and the named reason in plain words. Read-only. If the bundle carries an ADR-019 instance credential (a RUNNING COPY of an agent), pass your own `audience`; an empty audience refuses every instance credential. To replay a conformance VECTOR instead — which carries its own anchors, clock and status on purpose — pass `anchors` with `fixture: true`; that mode believes the bundle and decides nothing.",
+    description: "Decide whether a presentation someone handed you verifies. Pass the `presentation` with the signed `directory` and the two `roots` you trust (omit them and a URL target's own are fetched): the directory is checked against both roots, the status list against the registrar's status key, and the clock, the freshness class and the audience are YOURS — nothing a presenter put in the bundle is believed. Returns `decision` (accept or refuse), the verdict, and the named reason in plain words. Read-only. If the bundle carries an ADR-019 instance credential (a RUNNING COPY of an agent), pass your own `audience`; an empty audience refuses every instance credential. (Replaying a conformance vector is not this tool's job: use `@ainra/sdk/conformance`.)",
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     inputSchema: {
       type: "object",
@@ -111,8 +111,6 @@ export const TOOLS = [
         audience: { type: "string", description: "YOUR audience (ADR-019), e.g. https://api.example. Required to accept an instance credential; a presenter can never supply it. Omit for plain passport bundles." },
         freshness: { type: "string", enum: ["F1", "F2", "F3"], description: "How old a status publication you accept: F1 30 s, F2 5 min (default), F3 24 h. Yours, never the bundle's." },
         now: { type: "integer", description: "Your clock, unix seconds. Defaults to this server's clock. Never read from the bundle." },
-        anchors: { type: "object", description: "FIXTURE MODE ONLY: a conformance vector's own trust anchors (issuer_key + log_root_key per registrar). Requires `fixture: true`." },
-        fixture: { type: "boolean", description: "Replay a conformance vector with fixture semantics: the bundle's own clock, freshness class and status list are believed. Decides nothing about a real presenter." },
       },
       required: ["presentation"],
     },
@@ -138,28 +136,11 @@ export const TOOLS = [
         };
       };
 
-      // ── fixture mode: a conformance vector, replayed. Explicit, labelled, and never a decision (D-074). ──────
-      if (input.anchors !== undefined && input.directory === undefined && input.roots === undefined) {
-        if (input.fixture !== true)
-          throw new Error(
-            "ainra_verify with `anchors` replays a conformance vector: it believes the bundle's own clock, freshness " +
-            "class and status list, so a revoked or expired presenter could make it say valid. To decide whether to " +
-            "trust a presentation, pass the signed `directory` and the `roots` instead. To replay a vector on " +
-            "purpose, add `fixture: true`. Nothing was verified.");
-        // The audience is the CALLER's even here; everything else is the vector's, which is what a vector is for.
-        const presentation = { ...input.presentation, audience: input.audience ?? "" };
-        const v = runVector({ name: "mcp", expect: {}, anchors: input.anchors, presentation });
-        return {
-          mode: "fixture",
-          decision: null,
-          warning: "FIXTURE SEMANTICS: the bundle's own clock, freshness class and status list were believed. This replays a conformance vector; it does not decide whether to trust a presenter.",
-          verdict: v.verdict,
-          reason: v.reason ?? null,
-          explanation: gloss(v),
-          event: verdictEvent(presentation, v, presentation?.now ?? 0),
-          instance: instanceReport(presentation, v, presentation.audience),
-        };
-      }
+      // Fixture mode was removed in 0.6.0 (PLAN-M48 step 7). It replayed a vector by believing the bundle's own clock,
+      // class and status list; an agent that reached for it to decide trust would have been told a revoked presenter
+      // was valid (D-074). Conformance replay lives in `@ainra/sdk/conformance`, where the import says what it is.
+      if (input.anchors !== undefined || input.fixture !== undefined)
+        throw new Error("ainra_verify no longer replays conformance vectors (fixture mode was removed in 0.6.0): it only decides, against a signed `directory` and its `roots`. To replay a vector, use `@ainra/sdk/conformance` or `ainra verify`. Nothing was verified.");
 
       // ── gate mode: what a verifier decides. The directory against both roots; the status against the registrar's
       // status key; the clock, the class and the audience from the CALLER. ─────────────────────────────────────────

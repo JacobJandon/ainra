@@ -942,6 +942,23 @@ function decodeCheckpointSig(w: WireCheckpointSig): CheckpointSig {
  * {@link Verifier}, which supplies its own clock + the directory's revocation set). */
 export type PresentationBundle = WireVector["presentation"];
 
+/** What a presenter sends to a {@link Verifier} — untrusted, all of it. The fields a conformance VECTOR uses to pin the
+ *  verifier's own policy are optional here and IGNORED: the clock, the audience, the freshness class and the revoked
+ *  delegates are the verifier's (its constructor and its `now` argument), never the bundle's (D-068, ADR-019). The
+ *  type says so, so a caller cannot mistake setting them for having set the policy. */
+export type PresentedBundle = Omit<PresentationBundle, "now" | "audience" | "freshness" | "revoked_delegates" | "mandate_revocations"> & {
+  /** Ignored: the verifier's clock is the `now` argument. */
+  now?: unknown;
+  /** Ignored: the audience is the verifier's own. */
+  audience?: unknown;
+  /** Ignored: the freshness class is the verifier's own. */
+  freshness?: unknown;
+  /** Ignored: revoked delegates come from the signed directory. */
+  revoked_delegates?: unknown;
+  /** Ignored: there is no dynamic mandate feed; the set is empty. */
+  mandate_revocations?: unknown;
+};
+
 /** Decode a wire presentation into verify inputs. `now` and `revoked` are supplied by the CALLER (the verifier's
  * own clock + the trusted directory's revoked-delegate set) — a presenter cannot dictate either. Throws `Reject`
  * on a malformed status list (fail closed); other decode errors propagate for the caller's try/catch. */
@@ -997,7 +1014,7 @@ export function decodeInstance(i: NonNullable<PresentationBundle["instance"]>): 
   };
 }
 
-function decodePresentation(pr: PresentationBundle, revoked: Set<string>, now: number, audience: string): Presentation {
+function decodePresentation(pr: PresentedBundle, revoked: Set<string>, now: number, audience: string): Presentation {
   return {
     claims: dec(pr.claims),
     issuerSig: { ed25519: dec(pr.issuer_sig.ed25519), mldsa65: dec(pr.issuer_sig.mldsa65) },
@@ -1007,14 +1024,16 @@ function decodePresentation(pr: PresentationBundle, revoked: Set<string>, now: n
     statusBits: unpackStatus(dec(pr.status_list), pr.status_len),
     statusBitLen: pr.status_len,
     statusIssuedAt: pr.status_issued_at,
-    freshness: pr.freshness,
+    // Read here only for the fixture path (a vector pins its class); the Verifier overwrites it with its own.
+    freshness: pr.freshness as PresentationBundle["freshness"],
     checkpoint: { origin: pr.checkpoint.origin, size: pr.checkpoint.size, root: dec(pr.checkpoint.root), rootB64: pr.checkpoint.root },
     checkpointSig: decodeCheckpointSig(pr.checkpoint_sig),
     leafIndex: pr.leaf_index,
     inclusionProof: pr.inclusion_proof.map((s) => dec(s)),
     mandatePath: [],
     mandateProofs: [],
-    mandateRevocations: new Set(pr.mandate_revocations),
+    // Likewise: a vector's revocation set; the Verifier replaces it with the empty authenticated set.
+    mandateRevocations: new Set(pr.mandate_revocations as PresentationBundle["mandate_revocations"]),
     revokedDelegates: revoked,
     instance: pr.instance ? decodeInstance(pr.instance) : undefined,
     audience,
@@ -1023,7 +1042,10 @@ function decodePresentation(pr: PresentationBundle, revoked: Set<string>, now: n
 
 /** Reconstruct a wire vector into verify inputs and produce the verdict. A Reject thrown while DECODING the
  * presentation (e.g. a truncated status list — review #3) fails closed to that reason, never a crash. The vector
- * carries its own `now` + `revoked_delegates` (the conformance corpus is self-contained). */
+ * carries its own `now` + `revoked_delegates` (the conformance corpus is self-contained). *
+ * @deprecated Import it from `@ainra/sdk/conformance`; the root export goes in 0.7.0. It replays a test vector and
+ * never decides whether to trust a presenter — use {@link Verifier}.
+ */
 export function runVector(v: WireVector): Verdict {
   try {
     const pr = v.presentation;
@@ -1064,7 +1086,7 @@ export type FreshnessClass = "F1" | "F2" | "F3";
  *   (c) the hybrid signature verifies over the canonical `{bit_len, issued_at, status_list, uri}` (mirrors the Rust
  *       `StatusSigning` body) under the registrar's status key.
  */
-function authenticateStatus(info: RegistrarInfo, claimedUri: string, bundle: PresentationBundle): void {
+function authenticateStatus(info: RegistrarInfo, claimedUri: string, bundle: PresentedBundle): void {
   const uri = bundle.status_uri;
   const sigEd = bundle.status_sig_ed25519;
   const sigMl = bundle.status_sig_mldsa65;
@@ -1102,7 +1124,7 @@ function authenticateStatus(info: RegistrarInfo, claimedUri: string, bundle: Pre
  */
 function authenticateCurrency(
   info: RegistrarInfo,
-  bundle: PresentationBundle,
+  bundle: PresentedBundle,
   now: number,
   seqSeen: Map<string, number>,
 ): void {
@@ -1225,7 +1247,7 @@ export class Verifier {
    * directory's revoked-delegate set, its own freshness policy, and an EMPTY mandate-revocation set; and it
    * authenticates the presented status list against the registrar's directory status key before trusting any bit.
    * The presenter cannot dictate any of these. Never throws. */
-  verify(bundle: PresentationBundle, now: number): Verdict {
+  verify(bundle: PresentedBundle, now: number): Verdict {
     try {
       // Steps 1–2 up front, on CHEAP inputs only — decode the small claims blob, resolve the registrar, and
       // AUTHENTICATE the status signature over the *compressed* bytes (a signature over the b64 string; no inflate).
@@ -1331,7 +1353,10 @@ export interface WireDeltaVector {
 }
 
 /** The accept/reason a delta or fresh-head vector reduces to under the sdk-ts verifier — the diff-harness compares
- *  this to the ainra-core-baked `expect`. */
+ *  this to the ainra-core-baked `expect`. *
+ * @deprecated Import it from `@ainra/sdk/conformance`; the root export goes in 0.7.0. It replays a test vector and
+ * never decides whether to trust a presenter — use {@link Verifier}.
+ */
 export function runDeltaVector(v: WireDeltaVector): { accept: boolean; reason?: string } {
   const rootKey = dec(v.root_pub_slh);
   const cert = decodeDeltaCert(v.cert);
@@ -1474,6 +1499,8 @@ export interface WireDirectoryVector {
   root_ed25519: string;
   root_slh: string;
 }
+/** @deprecated Import it from `@ainra/sdk/conformance`; the root export goes in 0.7.0. It replays a test vector and
+ * never decides whether to trust a presenter — use {@link Verifier}. */
 export function runDirectoryVector(v: WireDirectoryVector): { accept: boolean; registrars?: number } {
   const acc = verifyDirectory(v.directory, dec(v.root_ed25519), dec(v.root_slh));
   if (acc === null) return { accept: false };
@@ -1846,7 +1873,10 @@ export function linkFromIndex(index: LinkIndex, publication: StatusPublication, 
  *  the gate's own freshness class and audience, and verify the bundle at the gate's clock. This is what a gate
  *  decides — the directory checked against both roots, the status authenticated, nothing taken on the presenter's
  *  word — where {@link runVector} is the fixture-semantics verify function. `no_gate` when the directory does not
- *  verify: a gate that cannot establish trust does not exist. */
+ *  verify: a gate that cannot establish trust does not exist. *
+ * @deprecated Import it from `@ainra/sdk/conformance`; the root export goes in 0.7.0. It replays a test vector and
+ * never decides whether to trust a presenter — use {@link Verifier}.
+ */
 export function runGateVector(v: {
   directory: WireDirectory;
   roots: { root_ed25519: string; root_slh: string };
@@ -1863,7 +1893,10 @@ export function runGateVector(v: {
 
 /** Run one `vectors/v1-link` vector (D-078): the GA {@link Verifier} from the vector's directory and roots with the
  *  gate's own freshness class, then {@link Verifier.verifyLink} at the gate's clock for the key it verified and the
- *  capability the request exercises. `no_gate` when the directory does not verify. */
+ *  capability the request exercises. `no_gate` when the directory does not verify. *
+ * @deprecated Import it from `@ainra/sdk/conformance`; the root export goes in 0.7.0. It replays a test vector and
+ * never decides whether to trust a presenter — use {@link Verifier}.
+ */
 export function runLinkVector(v: {
   directory: WireDirectory;
   roots: { root_ed25519: string; root_slh: string };
@@ -2018,7 +2051,10 @@ export function verifyDecisionChain(lines: string[], gateKey: Uint8Array, anchor
   return { ok: true, count: lines.length };
 }
 
-/** Run one `vectors/v1-decision` vector. */
+/** Run one `vectors/v1-decision` vector. *
+ * @deprecated Import it from `@ainra/sdk/conformance`; the root export goes in 0.7.0. It replays a test vector and
+ * never decides whether to trust a presenter — use {@link Verifier}.
+ */
 export function runDecisionVector(v: { gate_key: string; lines: string[]; anchor: ChainAnchor | null }): ChainResult {
   const key = strictB64u(v.gate_key);
   if (key === null || key.length !== 32) return { ok: false, index: 0, problem: "schema" };

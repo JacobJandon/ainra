@@ -4,7 +4,7 @@
 // runDirectoryVector from dist), and prints one `<name>\t<result-json>` line per vector. No files, no network.
 //
 //   node tools/conformance/adapters/sdk.mjs <passport|delta|directory>   (requires: cd packages/sdk-ts && npm run build)
-import { runVector, runDeltaVector, runDirectoryVector } from "../../../packages/sdk-ts/dist/index.js";
+import { runVector, runDeltaVector, runDirectoryVector } from "../../../packages/sdk-ts/dist/conformance.js";
 
 const stable = (o) =>
   o === null || typeof o !== "object"

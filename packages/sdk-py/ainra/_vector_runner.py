@@ -17,13 +17,17 @@ import json
 import os
 import sys
 
-from ._b64 import decode as b64d
-from .decision import run_decision_vector
-from .delta import verify_delta_vector
-from .directory import verify_directory
-from .presentation import run_presentation_vector
-from .verifier import Verifier
-from .verify import verify as verify_passport
+from . import conformance as C
+
+RUN = {
+    "passport": C.run_vector,
+    "delta": C.run_delta_vector,
+    "directory": C.run_directory_vector,
+    "presentation": C.run_presentation_vector,
+    "gate": C.run_gate_vector,
+    "link": C.run_link_vector,
+    "decision": C.run_decision_vector,
+}
 
 
 def _stable(obj) -> str:
@@ -31,48 +35,15 @@ def _stable(obj) -> str:
 
 
 def run(kind: str, directory: str) -> int:
+    if kind not in RUN:
+        print(f"unknown kind: {kind}", file=sys.stderr)
+        return 2
     files = sorted(f for f in os.listdir(directory) if f.endswith(".json") and f != "manifest.json")
     out = []
     for f in files:
         with open(os.path.join(directory, f), encoding="utf-8") as fh:
             v = json.load(fh)
-        if kind == "passport":
-            pres = v["presentation"]
-            result = verify_passport(v["anchors"], pres, pres.get("now")).as_result()
-        elif kind == "delta":
-            result = verify_delta_vector(v)
-        elif kind == "directory":
-            result = verify_directory(v)
-        elif kind == "presentation":
-            result = run_presentation_vector(v)
-        elif kind == "gate":
-            # D-073 — what a GATE decides: the directory against both roots, then the GA Verifier with the gate's
-            # own audience and freshness class, at the gate's clock. Nothing is taken on the presenter's word.
-            gate = Verifier.from_directory(v["directory"], v["roots"]["root_ed25519"], v["roots"]["root_slh"],
-                                           audience=v["audience"], freshness=v["freshness"])
-            if gate is None:
-                result = {"verdict": "no_gate"}
-            else:
-                verdict = gate.verify(v["bundle"], v["now"])
-                result = {"verdict": "valid"} if verdict.valid else {"verdict": "invalid", "reason": verdict.reason}
-        elif kind == "decision":
-            # D-079 — a gate's signed, hash-chained decision log.
-            result = run_decision_vector(v)
-        elif kind == "link":
-            # D-078 — who stands behind a key the gate already verified, decided as a gate decides it.
-            gate = Verifier.from_directory(v["directory"], v["roots"]["root_ed25519"], v["roots"]["root_slh"],
-                                           freshness=v["freshness"])
-            key = b64d(v.get("presented_key"))
-            if gate is None:
-                result = {"verdict": "no_gate"}
-            elif key is None or len(key) != 32:
-                result = {"verdict": "invalid", "reason": "schema_violation"}
-            else:
-                result = gate.verify_link(v["link"], key, v["now"], v.get("capability"))
-        else:
-            print(f"unknown kind: {kind}", file=sys.stderr)
-            return 2
-        out.append(f"{v['name']}\t{_stable(result)}")
+        out.append(f"{v['name']}\t{_stable(RUN[kind](v))}")
     sys.stdout.write("\n".join(out) + ("\n" if out else ""))
     return 0
 

@@ -15,7 +15,8 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
-import { runVector, expectedVerdict, canonicalize, runDeltaVector, runDirectoryVector, runPresentationVector, runGateVector, runLinkVector, runDecisionVector } from "../../packages/sdk-ts/dist/index.js";
+import { canonicalize } from "../../packages/sdk-ts/dist/index.js";
+import { runVector, expectedVerdict, runDeltaVector, runDirectoryVector, runPresentationVector, runGateVector, runLinkVector, runDecisionVector } from "../../packages/sdk-ts/dist/conformance.js";
 
 const ROOT = fileURLToPath(new URL("../../", import.meta.url));
 const VEC = path.join(ROOT, "vectors/v1");

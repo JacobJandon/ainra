@@ -61,6 +61,8 @@ __all__ = [
     "link_from_index",
     "Verifier",
     "Verdict",
+    # Fixture semantics, kept for compatibility: it replays a vector and never decides trust. Use
+    # ainra.conformance.run_vector for replay and Verifier for decisions; this root export goes in 0.7.0.
     "verify",
     "verify_delta",
     "verify_head",

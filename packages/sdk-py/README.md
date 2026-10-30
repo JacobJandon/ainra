@@ -147,6 +147,12 @@ every vector, including the `alg-downgrade-*`, `noncanon-*`, `boundary-*`,
 DIFF OK: all implementations agree (core ↔ sdk ↔ P0 ↔ py)
 ```
 
+## Replaying the test vectors is a different import
+
+`ainra.conformance` holds the corpus runners (`run_vector`, `run_gate_vector`, `run_link_vector`, …). `run_vector`
+believes a vector's own clock, class and status list, so it must never decide trust: use `Verifier` for that (D-075).
+The root `ainra.verify` is the same fixture-semantics function, kept for compatibility; it goes in 0.7.0.
+
 ## Tests
 
 ```

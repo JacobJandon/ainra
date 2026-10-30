@@ -10,7 +10,19 @@ We **publicly own fixed security bugs** — hiding them would be the opposite of
 
 ## [Unreleased]
 
-Nothing yet.
+What 0.6.0 will carry.
+
+### Changed — replaying a test vector is no longer something you can do by accident
+
+- **`@ainra/mcp`: `ainra_verify` has no fixture mode.** Passing `anchors` (with or without `fixture: true`) is refused
+  with an explanation; every answer is a decision against a signed directory. The fidelity gate now holds the tool to
+  the SDK's gate over every `vectors/v1-gate` entry. **Breaking** for anyone who replayed vectors through the tool.
+- **`@ainra/sdk/conformance`** (new entry point, via `exports`) and **`ainra.conformance`** hold the corpus runners.
+  The root exports (`runVector` and the other `run*Vector`; Python's `ainra.verify`) still work, are marked
+  deprecated, and go in 0.7.0. The Python differential runner now reads every family through `ainra.conformance`.
+- **`PresentedBundle`**: `Verifier.verify` takes the untrusted bundle as its own type, in which the clock, audience,
+  freshness class, revoked delegates and mandate revocations are typed as *ignored* — the verifier's policy is never
+  the bundle's.
 
 ## [0.5.0] — 2026-10-29
 

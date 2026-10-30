@@ -41,8 +41,9 @@ freshness class and audience. Nothing a presenter put in the bundle is believed.
 
 > **In 0.4.1 this tool did not do that.** It replayed the bundle through the fixture-semantics verifier with the
 > bundle's own clock, freshness class and status list, so a revoked or expired presenter could be reported `valid`
-> (D-074). Upgrade. Replaying a conformance vector is still possible and is now a separate, labelled mode:
-> `anchors` plus `fixture: true`, which returns `decision: null`.
+> (D-074). Upgrade. In 0.5.0 replay was a separate, labelled mode (`anchors` plus `fixture: true`); since 0.6.0 the
+> tool has no replay mode at all and every answer is a decision. To replay a conformance vector, use
+> `@ainra/sdk/conformance`.
 
 `ainra_lookup` resolves a name to its public record; `ainra_status` reports the target's head — network, root label,
 registrar count, freshness window.

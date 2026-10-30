@@ -83,12 +83,8 @@ test("trust is required, whole, and checked", async () => {
   await assert.rejects(verify({ presentation: valid }), /needs the trust to verify against/);
 });
 
-test("replaying a vector is a mode you ask for by name, and it decides nothing", async () => {
+test("0.6.0: the tool no longer replays vectors — anchors or fixture are refused, with where replay lives now", async () => {
   const vec = JSON.parse(readFileSync(`${ROOT}vectors/v1/valid-0000.json`, "utf8"));
-  await assert.rejects(verify({ anchors: vec.anchors, presentation: vec.presentation }), /fixture: true/);
-  const r = await verify({ anchors: vec.anchors, presentation: vec.presentation, fixture: true });
-  assert.equal(r.mode, "fixture");
-  assert.equal(r.verdict, "valid");
-  assert.equal(r.decision, null);
-  assert.match(r.warning, /does not decide whether to trust a presenter/);
+  await assert.rejects(verify({ anchors: vec.anchors, presentation: vec.presentation }), /fixture mode was removed in 0.6.0.*@ainra\/sdk\/conformance/);
+  await assert.rejects(verify({ anchors: vec.anchors, presentation: vec.presentation, fixture: true }), /fixture mode was removed/);
 });

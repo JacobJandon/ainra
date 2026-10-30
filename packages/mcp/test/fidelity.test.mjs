@@ -1,39 +1,35 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 // Wrapper-fidelity differential: the MCP `ainra_verify` tool is a WRAPPER over @ainra/sdk — prove it stays one.
-// Over a sampled vector set, the tool's {verdict, reason} in FIXTURE mode must be BYTE-IDENTICAL to runVector() AND
-// to the vector's own expected verdict. Plus: safety annotations are correct, and write tools refuse without confirm.
-// Fixture mode replays a vector and decides nothing (D-074); what the tool DECIDES is held to vectors/v1-gate in
-// gate.test.mjs.
+// Over every vectors/v1-gate entry, the tool's {verdict, reason} must be BYTE-IDENTICAL to the SDK's gate
+// (runGateVector) AND to the vector's own expected answer. Since 0.6.0 the tool has no fixture mode (D-074): what it
+// returns is always a decision. Plus: safety annotations are correct, and write tools refuse without confirm.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { TOOL_BY_NAME, TOOLS } from "../src/tools.mjs";
-import { runVector } from "../../sdk-ts/dist/index.js";
+import { runGateVector } from "../../sdk-ts/dist/conformance.js";
 
 const ROOT = fileURLToPath(new URL("../../../", import.meta.url));
-const VDIR = ROOT + "vectors/v1";
-const files = readdirSync(VDIR).filter((f) => f.endsWith(".json") && f !== "manifest.json");
-// deterministic sample: every 7th vector (~106 of 746), covering every reason class by construction of the corpus.
-const sample = files.filter((_, i) => i % 7 === 0);
+const GDIR = ROOT + "vectors/v1-gate";
+const files = readdirSync(GDIR).filter((f) => f.endsWith(".json") && f !== "manifest.json");
 const norm = (v) => JSON.stringify({ verdict: v.verdict, reason: v.reason ?? null });
 
-test(`ainra_verify ≡ @ainra/sdk over ${sample.length} sampled vectors (byte-identical)`, async () => {
+test(`ainra_verify ≡ @ainra/sdk's gate over all ${files.length} gate vectors (byte-identical)`, async () => {
   const verify = TOOL_BY_NAME.ainra_verify.handler;
   let checked = 0;
-  for (const f of sample) {
-    const vec = JSON.parse(readFileSync(`${VDIR}/${f}`, "utf8"));
-    const sdk = runVector(vec);                                            // the reference
-    // The caller supplies the audience, exactly as it supplies the clock — `ainra_verify` never takes it off the
-    // bundle (ADR-019). Here the test IS the caller, and the corpus pins the audience a vector was minted for.
-    const mcp = await verify({ anchors: vec.anchors, fixture: true, presentation: vec.presentation, audience: vec.presentation.audience ?? "" }); // the wrapper
-    assert.equal(mcp.mode, "fixture");
-    assert.equal(mcp.decision, null, "a replayed vector is never a decision");
-    assert.equal(norm(mcp), norm(sdk), `MCP disagrees with SDK on ${f}`);  // wrapper fidelity
-    assert.equal(norm(mcp), norm(vec.expect), `MCP disagrees with expected on ${f}`); // and both match the frozen expectation
+  for (const f of files) {
+    const v = JSON.parse(readFileSync(`${GDIR}/${f}`, "utf8"));
+    const sdk = runGateVector(v);
+    const call = () => verify({ presentation: v.bundle, directory: v.directory, roots: v.roots, now: v.now, freshness: v.freshness, audience: v.audience });
+    if (v.expect.verdict === "no_gate") { await assert.rejects(call(), /does not verify/, f); checked++; continue; }
+    const mcp = await call();
+    assert.equal(mcp.mode, "gate");
+    assert.equal(norm(mcp), norm(sdk), `MCP disagrees with the SDK gate on ${f}`);
+    assert.equal(norm(mcp), norm(v.expect), `MCP disagrees with the corpus on ${f}`);
     checked++;
   }
-  assert.ok(checked > 50, "sample too small");
+  assert.ok(checked >= 27, "every gate vector");
 });
 
 test("safety annotations: read-only vs destructive are marked correctly", () => {

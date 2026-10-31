@@ -12,6 +12,17 @@ We **publicly own fixed security bugs** — hiding them would be the opposite of
 
 What 0.6.0 will carry.
 
+### Added — a cut tail is visible once a decision head is logged (D-081)
+
+- **Gates sign head statements, and registrars log them.** `createDecisionLog(...).statement()` (Python:
+  `DecisionLog.statement()`) signs where the log stands; a registrar's `POST /decision-head` appends it to its
+  transparency log and answers a receipt; `GET /decision-heads` lists them all. A gate's head never goes backwards at
+  a registrar.
+- **Checking a log against a receipt:** `Verifier.verifyHeadReceipt` + `verifyDecisionChainToHead` (Python:
+  `Verifier.verify_head_receipt` + `verify_chain_to_head`), and `ainra verify-decisions --receipt`. Records cut from
+  the end now read `truncated`; a replaced record at the head reads `forked`. `vectors/v1-decision` grows from 21 to 32
+  (d22–d32), and d17's invisible cut shows as `truncated` in d24.
+
 ### Added — a public demo door for links
 
 - **`POST /demo/link` and `POST /demo/link/revoke`** on the registrar: try AINRA Link without a token, as

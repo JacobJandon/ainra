@@ -1487,7 +1487,9 @@ pub fn run_decision_vector_json(vector_json: &str) -> String {
         .to_string()
 }
 
-/// Run one `vectors/v1-decision` vector.
+/// Run one `vectors/v1-decision` vector. A vector may also carry a head (D-081): `head`, a statement line the checker
+/// holds, or `receipt`, a registrar's receipt for one (with `directory`, `roots` and `now` to check it against). The
+/// head is checked first — a failure is `{"ok":false,"head":reason}` — and then the log against it.
 pub fn decision_vector_result(v: &serde_json::Value) -> serde_json::Value {
     let (Some(key), Some(lines)) = (v["gate_key"].as_str(), v["lines"].as_array()) else {
         return json!({ "ok": false, "index": 0, "problem": "schema" });
@@ -1496,7 +1498,92 @@ pub fn decision_vector_result(v: &serde_json::Value) -> serde_json::Value {
     let Some(lines) = lines else {
         return json!({ "ok": false, "index": 0, "problem": "schema" });
     };
-    decision_chain_result(key, &lines, v.get("anchor"))
+    let Ok(gate) = decode32(key) else {
+        return json!({ "ok": false, "index": 0, "problem": "schema" });
+    };
+    let head = match head_of(v, &gate) {
+        Ok(None) => return decision_chain_result(key, &lines, v.get("anchor")),
+        Ok(Some(h)) => h,
+        Err(r) => return json!({ "ok": false, "head": reason_str(r) }),
+    };
+    let anchor = match v.get("anchor") {
+        None | Some(serde_json::Value::Null) => None,
+        Some(a) => {
+            let (Some(seq), Some(at), Some(d)) = (
+                a["seq"].as_u64(),
+                a["at"].as_u64(),
+                a["digest"].as_str().and_then(|d| decode32(d).ok()),
+            ) else {
+                return json!({ "ok": false, "index": 0, "problem": "schema" });
+            };
+            Some(decision::ChainAnchor { seq, at, digest: d })
+        }
+    };
+    let refs: Vec<&[u8]> = lines.iter().map(|l| l.as_bytes()).collect();
+    match decision::verify_chain_to_head(&refs, &gate, anchor, &head) {
+        Ok(n) => json!({ "ok": true, "count": n }),
+        Err(b) => json!({ "ok": false, "index": b.index, "problem": b.problem.as_str() }),
+    }
+}
+
+/// A registrar's receipt for a logged decision head (D-081), as the registrar answers `POST /decision-head`.
+#[derive(Serialize, Deserialize, Clone)]
+pub struct WireHeadReceipt {
+    pub registrar: String,
+    pub statement: String,
+    pub leaf_index: u64,
+    pub inclusion_proof: Vec<String>,
+    pub checkpoint: WireCheckpoint,
+    pub checkpoint_sig: WireCheckpointSig,
+}
+
+/// The head a decision vector carries, checked: a receipt against the accredited directory, or a bare statement
+/// against the gate key alone. `Ok(None)` when it carries neither.
+fn head_of(
+    v: &serde_json::Value,
+    gate: &[u8; 32],
+) -> Result<Option<decision::HeadStatement>, Reason> {
+    if let Some(r) = v.get("receipt").filter(|r| !r.is_null()) {
+        let w: WireHeadReceipt =
+            serde_json::from_value(r.clone()).map_err(|_| Reason::SchemaViolation)?;
+        let acc: serde_json::Value = serde_json::from_str(&accredit_json(
+            &v["directory"].to_string(),
+            &v["roots"].to_string(),
+        ))
+        .unwrap_or(serde_json::Value::Null);
+        if acc["ok"] != json!(true) {
+            return Err(Reason::UnknownRegistrar);
+        }
+        let trust = gate_trust(&acc["trust"].to_string()).ok_or(Reason::SchemaViolation)?;
+        let now = v["now"].as_u64().ok_or(Reason::SchemaViolation)?;
+        let checkpoint = checkpoint::Checkpoint {
+            origin: w.checkpoint.origin.clone(),
+            tree_size: w.checkpoint.size,
+            root: decode32(&w.checkpoint.root)?,
+        };
+        let checkpoint_sig = decode_cp_sig(&w.checkpoint_sig)?;
+        let inclusion_proof = w
+            .inclusion_proof
+            .iter()
+            .map(|s| decode32(s))
+            .collect::<D<Vec<_>>>()?;
+        let chk = decision::HeadReceiptCheck {
+            statement: w.statement.as_bytes(),
+            gate_key: *gate,
+            registrar: &w.registrar,
+            checkpoint: &checkpoint,
+            checkpoint_sig: &checkpoint_sig,
+            leaf_index: w.leaf_index,
+            inclusion_proof: &inclusion_proof,
+            revoked_delegates: &trust.revoked_delegates,
+            now,
+        };
+        return decision::verify_head_receipt(&chk, &trust.anchors).map(Some);
+    }
+    match v.get("head").and_then(|h| h.as_str()) {
+        Some(h) => decision::HeadStatement::verify(h.as_bytes(), gate).map(Some),
+        None => Ok(None),
+    }
 }
 
 /// [`gate_vector_result`] from JSON text, for hosts that must never panic (the WASM boundary).

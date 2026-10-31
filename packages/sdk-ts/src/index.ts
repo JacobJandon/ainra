@@ -1297,6 +1297,18 @@ export class Verifier {
    *  request's signature with. Uses the directory's anchors and revoked delegates, this verifier's freshness class,
    *  and authenticates the status publication before reading a bit. `capability` is what the request exercises.
    *  A key with no link is the caller's outcome ("not linked") — this checks the link it is given. Never throws. */
+  /** Check a registrar's receipt for a gate's logged decision head (D-081) against this verifier's accredited
+   *  registrars: the statement names and was signed by `gateKey`, and it is logged under a checkpoint the
+   *  registrar's log key signed. Never throws. */
+  verifyHeadReceipt(receipt: WireHeadReceipt, gateKey: Uint8Array, now: number): HeadVerdict {
+    try {
+      return { verdict: "valid", statement: verifyHeadReceiptInner(receipt, this.anchors, this.revokedDelegates, gateKey, now) };
+    } catch (e) {
+      if (e instanceof Reject) return { verdict: "invalid", reason: e.reason };
+      return { verdict: "invalid", reason: "schema_violation" };
+    }
+  }
+
   verifyLink(link: WireLink, presentedKey: Uint8Array, now: number, capability?: string): LinkVerdict {
     try {
       return { verdict: "valid", ...verifyLinkInner(link, this.anchors, this.revokedDelegates, presentedKey, now, this.freshness, capability) };
@@ -1919,7 +1931,7 @@ export function runLinkVector(v: {
 // can check the log end to end. The field set is closed, so there is nowhere to put personal data.
 
 export const DECISION_V = "ainra-decision-1";
-export type ChainProblem = "schema" | "gate" | "signature" | "sequence" | "link" | "clock";
+export type ChainProblem = "schema" | "gate" | "signature" | "sequence" | "link" | "clock" | "truncated" | "forked";
 export type ChainResult = { ok: true; count: number } | { ok: false; index: number; problem: ChainProblem };
 /** The record a log segment continues from: its `seq`, `at` and digest (base64url). */
 export interface ChainAnchor { seq: number; at: number; digest: string }
@@ -2051,18 +2063,154 @@ export function verifyDecisionChain(lines: string[], gateKey: Uint8Array, anchor
   return { ok: true, count: lines.length };
 }
 
-/** Run one `vectors/v1-decision` vector. *
+// ── Logged heads (D-081) ────────────────────────────────────────────────────────────────────────────────────────
+// Written from D-081 and `ainra_core::decision`; held to `vectors/v1-decision` d22–d32. A chain shows every edit,
+// deletion and reordering but not records cut from its end. A gate signs a head statement — where its log stood —
+// and a registrar logs it; a log checked against a logged head that stops short reads `truncated`, and one with a
+// different record at that position reads `forked`.
+
+export const HEAD_V = "ainra-decision-head-1";
+/** A gate's signed statement of where its decision log stood. One canonical line. */
+export interface HeadStatement { v: string; gate: string; seq: number; at: number; head: string; sig: string }
+/** A registrar's receipt for a logged head, as `POST /decision-head` answers. */
+export interface WireHeadReceipt {
+  registrar: string;
+  statement: string;
+  leaf_index: number;
+  inclusion_proof: string[];
+  checkpoint: { origin: string; size: number; root: string };
+  checkpoint_sig: WireCheckpointSig;
+}
+export type HeadVerdict = { verdict: "valid"; statement: HeadStatement } | { verdict: "invalid"; reason: Reason };
+
+function parseHead(line: string): HeadStatement | null {
+  let o: unknown;
+  try {
+    o = JSON.parse(line);
+  } catch {
+    return null;
+  }
+  if (!exactObject(o, ["v", "gate", "seq", "at", "head", "sig"])) return null;
+  for (const k of ["v", "gate", "head", "sig"]) if (typeof o[k] !== "string") return null;
+  if (!isU64(o.seq) || !isU64(o.at)) return null;
+  try {
+    if (canonicalize(o) !== line) return null;
+  } catch {
+    return null;
+  }
+  const h = o as unknown as HeadStatement;
+  if (h.v !== HEAD_V || !b64Len(h.gate, 32) || !b64Len(h.head, 32) || !b64Len(h.sig, 64)) return null;
+  return h;
+}
+
+/** What the gate signs: the canonical statement without `sig`. */
+export function headSigningBytes(h: Omit<HeadStatement, "sig"> & { sig?: string }): Uint8Array {
+  const { sig: _sig, ...rest } = h;
+  void _sig;
+  return new TextEncoder().encode(canonicalize(rest));
+}
+
+function verifyHeadInner(line: string, gateKey: Uint8Array): HeadStatement {
+  const h = parseHead(line);
+  if (h === null) throw new Reject("schema_violation");
+  if (h.gate !== jwkThumbprintEd25519(gateKey)) throw new Reject("sig_invalid");
+  if (!ed25519Verify(gateKey, headSigningBytes(h), strictB64u(h.sig) as Uint8Array)) throw new Reject("sig_invalid");
+  return h;
+}
+
+/** Check a head statement line was signed by `gateKey` and names it. Never throws. */
+export function verifyHeadStatement(line: string, gateKey: Uint8Array): HeadVerdict {
+  try {
+    return { verdict: "valid", statement: verifyHeadInner(line, gateKey) };
+  } catch (e) {
+    if (e instanceof Reject) return { verdict: "invalid", reason: e.reason };
+    return { verdict: "invalid", reason: "schema_violation" };
+  }
+}
+
+/** The head statement for a log whose last line is `lastLine`, signed by the gate. What a gate hands a registrar. */
+export function signHeadStatement(lastLine: string, gatePublic: Uint8Array, sign: (msg: Uint8Array) => Uint8Array): string {
+  const r = parseDecision(lastLine);
+  if (r === null) throw new Error("the last line is not a decision record");
+  const h = {
+    v: HEAD_V, gate: jwkThumbprintEd25519(gatePublic), seq: r.seq, at: r.at,
+    head: b64uEncode(sha256(new TextEncoder().encode(lastLine))),
+  };
+  return canonicalize({ ...h, sig: b64uEncode(sign(headSigningBytes(h))) });
+}
+
+/** A registrar's receipt for a head: the statement, then that it is logged under a checkpoint the registrar's log key
+ *  signed — the same steps, in the same order, as a link's logged-before-valid check. */
+function verifyHeadReceiptInner(r: WireHeadReceipt, anchors: TrustAnchors, revokedDelegates: Set<string>, gateKey: Uint8Array, now: number): HeadStatement {
+  if (r === null || typeof r !== "object" || typeof r.statement !== "string" || typeof r.registrar !== "string") throw new Reject("schema_violation");
+  const h = verifyHeadInner(r.statement, gateKey);
+  if (!Object.hasOwn(anchors, r.registrar)) throw new Reject("unknown_registrar");
+  const reg = anchors[r.registrar];
+  if (!r.checkpoint || !isU64(r.leaf_index) || !isU64(r.checkpoint.size) || !Array.isArray(r.inclusion_proof)) throw new Reject("schema_violation");
+  const cpRoot = dec(r.checkpoint.root);
+  if (cpRoot.length !== 32) throw new Reject("schema_violation");
+  const cpSig = decodeCheckpointSig(r.checkpoint_sig);
+  const proof = r.inclusion_proof.map((x) => {
+    const b = dec(x);
+    if (b.length !== 32) throw new Reject("schema_violation");
+    return b;
+  });
+  if (!verifyCheckpointSig(reg.logRootKey, { origin: r.checkpoint.origin, rootB64: r.checkpoint.root, size: r.checkpoint.size }, cpSig, now))
+    throw new Reject("checkpoint_invalid");
+  if (cpSig.mode === "delegate" && revokedDelegates.has(certFingerprintB64(cpSig.cert))) throw new Reject("checkpoint_invalid");
+  if (!verifyInclusion(hashLeaf(new TextEncoder().encode(r.statement)), r.leaf_index, r.checkpoint.size, proof, cpRoot))
+    throw new Reject("not_logged");
+  return h;
+}
+
+/** Check a decision log against a logged head: the chain as {@link verifyDecisionChain} checks it, then — when the
+ *  head's record falls in or just before this segment — that the log reaches it and holds exactly that record. A log
+ *  that grew after the head was logged holds; one that stops short is `truncated`; a different record is `forked`. */
+export function verifyDecisionChainToHead(lines: string[], gateKey: Uint8Array, anchor: ChainAnchor | null | undefined, head: HeadStatement): ChainResult {
+  if (head.gate !== jwkThumbprintEd25519(gateKey)) return { ok: false, index: 0, problem: "gate" };
+  const r = verifyDecisionChain(lines, gateKey, anchor);
+  if (!r.ok) return r;
+  const first = anchor ? anchor.seq + 1 : 0;
+  if (head.seq < first) {
+    if (anchor && anchor.seq === head.seq && anchor.digest !== head.head) return { ok: false, index: 0, problem: "forked" };
+    return r;
+  }
+  const at = head.seq - first;
+  if (at >= lines.length) return { ok: false, index: lines.length, problem: "truncated" };
+  if (b64uEncode(sha256(new TextEncoder().encode(lines[at]))) !== head.head) return { ok: false, index: at, problem: "forked" };
+  return r;
+}
+
+export type HeadChainResult = ChainResult | { ok: false; head: Reason };
+
+/** Run one `vectors/v1-decision` vector. A vector may carry a head (D-081): `head`, a statement the checker holds, or
+ *  `receipt`, a registrar's receipt for one, with `directory`, `roots` and `now`. The head is checked first.
  * @deprecated Import it from `@ainra/sdk/conformance`; the root export goes in 0.7.0. It replays a test vector and
  * never decides whether to trust a presenter — use {@link Verifier}.
  */
-export function runDecisionVector(v: { gate_key: string; lines: string[]; anchor: ChainAnchor | null }): ChainResult {
+export function runDecisionVector(v: {
+  gate_key: string; lines: string[]; anchor: ChainAnchor | null;
+  head?: string; receipt?: WireHeadReceipt; directory?: WireDirectory; roots?: { root_ed25519: string; root_slh: string }; now?: number;
+}): HeadChainResult {
   const key = strictB64u(v.gate_key);
   if (key === null || key.length !== 32) return { ok: false, index: 0, problem: "schema" };
   if (v.anchor !== null && v.anchor !== undefined) {
     const d = strictB64u(v.anchor.digest);
     if (!isU64(v.anchor.seq) || !isU64(v.anchor.at) || d === null || d.length !== 32) return { ok: false, index: 0, problem: "schema" };
   }
-  return verifyDecisionChain(v.lines, key, v.anchor);
+  let head: HeadStatement | null = null;
+  if (v.receipt !== undefined && v.receipt !== null) {
+    const gate = v.directory && v.roots ? Verifier.fromDirectoryB64(v.directory, v.roots.root_ed25519, v.roots.root_slh, "F3") : null;
+    if (!gate) return { ok: false, head: "unknown_registrar" };
+    const hv = gate.verifyHeadReceipt(v.receipt, key, v.now ?? 0);
+    if (hv.verdict === "invalid") return { ok: false, head: hv.reason };
+    head = hv.statement;
+  } else if (typeof v.head === "string") {
+    const hv = verifyHeadStatement(v.head, key);
+    if (hv.verdict === "invalid") return { ok: false, head: hv.reason };
+    head = hv.statement;
+  }
+  return head ? verifyDecisionChainToHead(v.lines, key, v.anchor, head) : verifyDecisionChain(v.lines, key, v.anchor);
 }
 
 /** The digest a decision record keeps of a request: SHA-256 over the canonical `{authority, content_digest, method,
@@ -2097,6 +2245,11 @@ export function createDecisionLog(o: {
     },
     head(): string {
       return last === "" ? "" : b64uEncode(sha256(new TextEncoder().encode(last)));
+    },
+    /** The signed head statement for where the log stands now (D-081) — hand it to a registrar's
+     *  `POST /decision-head` with the gate's public key. `""` while the log is empty. */
+    statement(): string {
+      return last === "" ? "" : signHeadStatement(last, o.gatePublic, o.sign);
     },
   };
 }

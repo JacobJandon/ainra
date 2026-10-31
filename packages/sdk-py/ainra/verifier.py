@@ -157,6 +157,13 @@ class Verifier:
         v._anchors_authenticated = True
         return v
 
+    def verify_head_receipt(self, receipt: dict, gate_key: bytes, now: int) -> dict:
+        """Check a registrar's receipt for a gate's logged decision head (D-081) against this verifier's registrars:
+        the statement names and was signed by ``gate_key``, and it is logged under a checkpoint the registrar's log
+        key signed. ``{"verdict": "valid", "statement": {...}}`` or ``{"verdict": "invalid", "reason": r}``."""
+        from .decision import verify_head_receipt
+        return verify_head_receipt(self._anchors, self._revoked, receipt, gate_key, now)
+
     def verify(self, bundle: dict, now: int) -> Verdict:
         """Verify a presentation bundle at caller-supplied ``now``. Fail closed."""
         if not isinstance(bundle, dict):

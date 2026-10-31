@@ -5150,6 +5150,134 @@ fn decision_vectors() -> Vec<Value> {
         v["expect"] = got;
         out.push(v);
     }
+
+    // ── D-081 logged heads ──────────────────────────────────────────────────────────────────────────────────────
+    // The same genuine log, now checked against a head the gate signed: bare (the checker holds the statement), or
+    // as a registrar's receipt (logged under a checkpoint the registrar's log key signed, against a dual-root-signed
+    // directory). Their own seed, so every vector above stays byte-identical.
+    let mut hrng = ChaCha20Rng::seed_from_u64(0x4845_4144_0000_0081); // "HEAD" · D-081 — a public TEST seed
+    let head_line = |g: &crypto::TestDelegate, r: &DecisionRecord, edit: &dyn Fn(&mut Value)| {
+        let mut h = decision::HeadStatement {
+            v: decision::HEAD_V.into(),
+            gate: decision::gate_id(&g.public()),
+            seq: r.seq,
+            at: r.at,
+            head: b64::encode(&r.digest().expect("digest")),
+            sig: String::new(),
+        };
+        h.sig = b64::encode(&g.sign(&h.signing_bytes().expect("head bytes")));
+        let mut v = serde_json::to_value(&h).expect("ser head");
+        edit(&mut v);
+        canon::canonicalize(&v).expect("canon head")
+    };
+    let root_ed = crypto::TestDelegate::generate(&mut hrng);
+    let root_slh = crypto::TestRootSlh::generate(&mut hrng);
+    let log_root = crypto::TestRootSlh::generate(&mut hrng);
+    let foreign_log = crypto::TestRootSlh::generate(&mut hrng);
+    let issuer = crypto::HybridKeypair::generate(&mut hrng);
+    let status_key = crypto::HybridKeypair::generate(&mut hrng);
+    let reg = "registrar-07";
+    let directory = serde_json::to_value(dir_sign(
+        dir_base(
+            vec![ainra_core::directory::DirectoryEntry {
+                registrar: reg.to_string(),
+                issuer_ed25519: b64::encode(&issuer.public().ed25519),
+                issuer_mldsa65: b64::encode(&issuer.public().mldsa65),
+                log_root_slh: b64::encode(&log_root.public()),
+                status_ed25519: b64::encode(&status_key.public().ed25519),
+                status_mldsa65: b64::encode(&status_key.public().mldsa65),
+                status_uri: format!("status://{reg}/1"),
+                distrust_from_leaf: None,
+            }],
+            vec![],
+        ),
+        &root_ed,
+        &root_slh,
+    ))
+    .expect("ser dir");
+    let roots = json!({ "root_ed25519": b64::encode(&root_ed.public()), "root_slh": b64::encode(&root_slh.public()) });
+    let now = 2_000u64;
+    // A registrar log with two other entries around the statement, under one delegate-signed checkpoint.
+    let receipt = |statement: &str,
+                   signer: &crypto::TestRootSlh,
+                   registrar: &str,
+                   wrong_proof: bool,
+                   rng: &mut ChaCha20Rng| {
+        let mut log = merkle::TestLog::new();
+        log.append(b"a passport body");
+        let idx = log.append(statement.as_bytes());
+        log.append(b"a link body");
+        let cp = checkpoint::Checkpoint {
+            origin: format!("ainra-log/{reg}"),
+            tree_size: log.size(),
+            root: log.root(),
+        };
+        let proof = log
+            .inclusion_proof(if wrong_proof { 0 } else { idx })
+            .expect("proof");
+        json!({
+            "v": "ainra-decision-head-receipt-1",
+            "registrar": registrar,
+            "statement": statement,
+            "leaf_index": idx,
+            "inclusion_proof": proof.iter().map(|h| b64::encode(h)).collect::<Vec<_>>(),
+            "checkpoint": { "origin": cp.origin, "size": cp.tree_size, "root": b64::encode(&cp.root) },
+            "checkpoint_sig": serde_json::to_value(checkpoint_sig(&cp, signer, rng, true, None)).expect("ser cp sig"),
+        })
+    };
+    let at_head = head_line(&gate, &genuine[3], &|_| {});
+    let forked = {
+        let mut rs = genuine.clone();
+        let prev = b64::encode(&rs[2].digest().expect("digest"));
+        rs[3] = sign(
+            &gate,
+            rec(
+                &gate,
+                3,
+                1_030,
+                prev,
+                "passport",
+                "invalid",
+                Some("expired"),
+            ),
+        );
+        rs.iter().map(line).collect::<Vec<_>>()
+    };
+    let r_good = receipt(&at_head, &log_root, reg, false, &mut hrng);
+    // name, what it tests, the log, the bare head (or null), the receipt (or null), the answer.
+    type HeadCase<'a> = (&'a str, &'a str, Vec<String>, Value, Value, Value);
+    let heads: Vec<HeadCase> = vec![
+        ("d22-head-reached", "the whole log, checked against a head the gate signed at its last record", g_lines.clone(), json!(at_head), Value::Null, ok(4)),
+        ("d23-head-then-grown", "a head at the second record; the log grew after it was anchored, which is fine", g_lines.clone(), json!(head_line(&gate, &genuine[1], &|_| {})), Value::Null, ok(4)),
+        ("d24-tail-cut-is-visible", "d17's cut — the last record removed — against the head logged at that record: truncated", g_lines[..3].to_vec(), json!(at_head), Value::Null, brk(3, "truncated")),
+        ("d25-forked", "a different, genuinely signed record at the head's seq: the log was replaced after it was anchored", forked, json!(at_head), Value::Null, brk(3, "forked")),
+        ("d26-head-by-another-gate", "a head signed by another key (it names that key's gate)", g_lines.clone(), json!(head_line(&other, &genuine[3], &|_| {})), Value::Null, json!({ "ok": false, "head": "sig_invalid" })),
+        ("d27-head-edited", "a head whose seq was lowered after the gate signed it", g_lines.clone(), json!(head_line(&gate, &genuine[3], &|h| h["seq"] = json!(1))), Value::Null, json!({ "ok": false, "head": "sig_invalid" })),
+        ("d28-receipt", "a registrar's receipt for the head: logged under a checkpoint its log key signed", g_lines.clone(), Value::Null, r_good.clone(), ok(4)),
+        ("d29-receipt-tail-cut", "the same receipt, the last record removed: truncated", g_lines[..3].to_vec(), Value::Null, r_good, brk(3, "truncated")),
+        ("d30-receipt-wrong-proof", "a receipt whose inclusion proof is another leaf's", g_lines.clone(), Value::Null, receipt(&at_head, &log_root, reg, true, &mut hrng), json!({ "ok": false, "head": "not_logged" })),
+        ("d31-receipt-foreign-checkpoint", "a receipt under a checkpoint another log key signed", g_lines.clone(), Value::Null, receipt(&at_head, &foreign_log, reg, false, &mut hrng), json!({ "ok": false, "head": "checkpoint_invalid" })),
+        ("d32-receipt-unaccredited-registrar", "a receipt from a registrar the directory does not list", g_lines.clone(), Value::Null, receipt(&at_head, &log_root, "registrar-99", false, &mut hrng), json!({ "ok": false, "head": "unknown_registrar" })),
+    ];
+    for (name, what, lines, head, rcpt, want) in heads {
+        let mut v = json!({ "name": name, "description": what, "gate_key": key, "anchor": Value::Null, "lines": lines });
+        if !head.is_null() {
+            v["head"] = head;
+        }
+        if !rcpt.is_null() {
+            v["receipt"] = rcpt;
+            v["directory"] = directory.clone();
+            v["roots"] = roots.clone();
+            v["now"] = json!(now);
+        }
+        let got = ainra_adapter::decision_vector_result(&v);
+        if got != want {
+            eprintln!("DECISION VECTOR {name} exists to test {want} but the core says {got}");
+            std::process::exit(1);
+        }
+        v["expect"] = got;
+        out.push(v);
+    }
     out
 }
 
@@ -5172,7 +5300,7 @@ fn emit_decision(dir: &str) {
         "count": vectors.len(),
         "hold": holds,
         "break": vectors.len() - holds,
-        "note": "CC0 decision-log conformance vectors (D-079): a gate's signed, hash-chained decision records, one canonical record per line, with the gate's Ed25519 public key and an optional anchor for a segment. The answer is {ok, count} or the first break {index, problem}, problem one of schema, gate, signature, sequence, link, clock. d17 pins an honest limit: removing records from the END of a log is invisible to the chain itself. Real signing throughout; expect computed by ainra-adapter::decision_vector_result, each checked against the case it exists to test. Regenerate with `make vectors`.",
+        "note": "CC0 decision-log conformance vectors (D-079, D-081): a gate's signed, hash-chained decision records, one canonical record per line, with the gate's Ed25519 public key and an optional anchor for a segment. The answer is {ok, count} or the first break {index, problem}, problem one of schema, gate, signature, sequence, link, clock, truncated, forked. d17 pins an honest limit: removing records from the END of a log is invisible to the chain itself. d22-d32 close it (D-081): a vector may carry a head the gate signed (`head`), or a registrar's receipt for one (`receipt`, with `directory`, `roots`, `now`); the head is checked first — a failure is {ok:false, head:reason} in the frozen vocabulary — then the log against it, so d24 shows d17's cut as truncated. Real signing throughout; expect computed by ainra-adapter::decision_vector_result, each checked against the case it exists to test. Regenerate with `make vectors`.",
     });
     std::fs::write(
         Path::new(dir).join("manifest.json"),

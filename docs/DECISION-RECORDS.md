@@ -48,7 +48,7 @@ const decisions = createDecisionLog({
   lastLine,                    // the file's last line, to continue after a restart
 });
 app.use("/agent", ainraGate(verifier, { decisions }));
-// publish decisions.head() from time to time
+// from time to time: POST decisions.statement() and the gate key to a registrar's /decision-head (below)
 ```
 
 The same `decisions` option exists on every gate: `@ainra/edge`'s `createAinraEdgeGate` (it takes the log
@@ -68,13 +68,36 @@ Per record, in this order: **schema**, **gate**, **signature**, **sequence**, **
 therefore reads `signature`, and only records the gate really signed can read as deleted, reordered or re-dated.
 `--after SEQ:AT:DIGEST` checks a segment that continues from a record already checked.
 
-**The honest limit.** A chain cannot show what is missing after its end: cut the last records and what remains
-still holds (`vectors/v1-decision/d17` pins this). The defence is a **head**: the gate publishes the digest of its
-latest record from time to time, somewhere it cannot quietly rewrite, and the checker compares (`--head`). Without
-that, a log proves what it contains, not that it is complete.
+**The limit, and how it closes.** A chain alone cannot show what is missing after its end: cut the last records and
+what remains still holds (`vectors/v1-decision/d17` pins this). The defence is a **head** the gate cannot quietly
+replace (D-081):
+
+1. From time to time the gate signs a **head statement** — `{v: "ainra-decision-head-1", gate, seq, at, head}`, where
+   its log stood — with the same key it signs decisions with (`decisions.statement()` in the SDK, `statement()` in
+   Python).
+2. It hands the statement to a registrar: `POST /decision-head` with `{statement, gate_key}`. The registrar checks
+   the signature and appends the line to its transparency log — the same log its passports and links are in — and
+   answers a **receipt**: the statement, its leaf, and an inclusion proof under a signed checkpoint. The registrar
+   sees a digest, never a decision. A gate's head never goes backwards there: a lower `seq`, or a different head at a
+   `seq` already logged, is refused, so the registrar's log alone shows a gate that tried to rewind or fork.
+3. Anyone checks the log against the receipt:
+
+```
+ainra verify-decisions decisions.jsonl --gate-key <key> --receipt receipt.json --directory directory.json --roots roots.json
+HOLDS 1204 record(s), reaching the head the registrar logged
+```
+
+A log that grew after the head was logged holds. One that stops short reads **`truncated`**; one with a different
+record at that position reads **`forked`**. A receipt that does not check — another key's statement, a proof for
+another leaf, a checkpoint the registrar's log key did not sign, a registrar the directory does not list — is refused
+with the frozen reason before the log is read. `--head <digest>` remains for a head published some other way.
+
+Records cut after the most recent logged head are still invisible: how often a gate logs its head is how much it could
+quietly lose. The pilot logs on a schedule.
 
 ## Held to one corpus
 
-[`vectors/v1-decision`](../vectors/v1-decision) holds 21 logs with the answer to each, including the limit above.
-The Rust core, the TypeScript SDK and the Python package agree on all of them in `make diff`. Each check was removed
-once from each implementation, and a vector went red every time.
+[`vectors/v1-decision`](../vectors/v1-decision) holds 32 logs with the answer to each: 21 for the chain, including
+the limit above, and 11 for logged heads (d22–d32), including that same cut shown as `truncated` (d24). The Rust core,
+the TypeScript SDK and the Python package agree on all of them in `make diff`. Each check was removed once from each
+implementation, and a vector went red every time.

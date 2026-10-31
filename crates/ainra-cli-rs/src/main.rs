@@ -821,10 +821,12 @@ GATE (D-062 / D-068)
         who stands behind key K, as a gate decides it: the directory against both roots, the status authenticated,
         then the link. L is the link as a gate receives it (an index entry + checkpoint + signed status list).
   verify-decisions <log.jsonl> --gate-key K [--after SEQ:AT:DIGEST] [--head DIGEST]
+                   [--receipt R --directory D --roots RT [--now SECS]]
         does a gate's decision log hold? (D-079) Checks every record's signature under the gate's Ed25519 key K
         (base64url), its sequence, its link to the one before and the clock. --after continues a segment from a
-        record already checked; --head compares the last record with a digest the gate published, which is the
-        only way to see records cut from the END. Prints HOLDS n or the first break.
+        record already checked. Records cut from the END show only against a head: --head compares the last record
+        with a digest the gate published; --receipt checks a registrar's receipt for a logged head (D-081) against
+        the accredited directory, then the log against it (`truncated`, `forked`). Prints HOLDS n or the first break.
 
 REGISTRY
   seed [out-dir]                              build the fictional multi-registrar registry (+ self-check)
@@ -1014,7 +1016,8 @@ fn cmd_verify_link(a: &[String]) -> i32 {
 // ── verify-decisions: does a gate's decision log hold? (D-079) ───────────────────────────────────────────────────
 
 fn cmd_verify_decisions(a: &[String]) -> i32 {
-    let usage = "usage: ainra verify-decisions <log.jsonl> --gate-key K [--after SEQ:AT:DIGEST] [--head DIGEST]";
+    let usage = "usage: ainra verify-decisions <log.jsonl> --gate-key K [--after SEQ:AT:DIGEST] [--head DIGEST]\n       \
+                 [--receipt receipt.json --directory directory.json --roots roots.json [--now SECS]]";
     let (Some(path), Some(key)) = (pos(a, 0), opt(a, "gate-key")) else {
         eprintln!("{usage}");
         return 2;
@@ -1051,7 +1054,49 @@ fn cmd_verify_decisions(a: &[String]) -> i32 {
             }
         }
     };
-    let r = ainra_adapter::decision_chain_result(key, &lines, anchor.as_ref());
+    // D-081: a registrar's receipt for a logged head — checked against the accredited directory, then the log
+    // against the head it proves. This is what makes a cut tail visible.
+    let receipt = match opt(a, "receipt") {
+        None => None,
+        Some(rp) => {
+            let read = |f: &str| {
+                std::fs::read_to_string(f)
+                    .ok()
+                    .and_then(|t| serde_json::from_str::<serde_json::Value>(&t).ok())
+            };
+            let (Some(rc), Some(dir), Some(roots)) = (
+                read(rp),
+                opt(a, "directory").and_then(read),
+                opt(a, "roots").and_then(read),
+            ) else {
+                eprintln!("--receipt needs readable JSON for --receipt, --directory and --roots");
+                return 2;
+            };
+            let now = opt(a, "now")
+                .and_then(|n| n.parse::<u64>().ok())
+                .unwrap_or_else(|| {
+                    std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .map(|d| d.as_secs())
+                        .unwrap_or(0)
+                });
+            Some(serde_json::json!({ "receipt": rc, "directory": dir, "roots": roots, "now": now }))
+        }
+    };
+    let r = match &receipt {
+        None => ainra_adapter::decision_chain_result(key, &lines, anchor.as_ref()),
+        Some(extra) => {
+            let mut v = extra.clone();
+            v["gate_key"] = serde_json::json!(key);
+            v["lines"] = serde_json::json!(lines);
+            v["anchor"] = anchor.clone().unwrap_or(serde_json::Value::Null);
+            ainra_adapter::decision_vector_result(&v)
+        }
+    };
+    if let Some(reason) = r.get("head").and_then(|h| h.as_str()) {
+        println!("HEAD REFUSED: the receipt does not prove a logged head for this gate ({reason})");
+        return 1;
+    }
     if r["ok"] != serde_json::json!(true) {
         println!(
             "BREAKS at record {} (line {}): {}",
@@ -1074,7 +1119,9 @@ fn cmd_verify_decisions(a: &[String]) -> i32 {
     println!(
         "HOLDS {} record(s){}",
         lines.len(),
-        if opt(a, "head").is_some() {
+        if receipt.is_some() {
+            ", reaching the head the registrar logged"
+        } else if opt(a, "head").is_some() {
             ", ending at the published head"
         } else {
             ""

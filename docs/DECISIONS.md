@@ -2018,3 +2018,27 @@ binary through write, kill, start, read for each. With the fix removed, both tes
 2026-08-17 in 752697e, which introduced the gap). Exposed: anyone running `registrar-box` from a checkout of main
 since 2026-08-17 who revoked through `/revoke` and then restarted. `tools/stage.sh` revokes its staged passports
 exactly that way. See `SECURITY.md`.
+
+## D-081 — A decision log's head is logged at a registrar, so a cut tail is visible (M49)
+
+*Problem:* a decision log (D-079) is a hash chain signed by the gate, so an edited, deleted, inserted or reordered
+record is found — but records cut from the END leave a chain that still holds (`vectors/v1-decision/d17`). The only
+defence was a head the gate itself published (`/.well-known/ainra-decisions-head`), which the gate can rewrite.
+
+*Decision:* a gate signs a **head statement** — `{v: "ainra-decision-head-1", gate, seq, at, head}`, closed, canonical,
+Ed25519 under its decision key — and a registrar appends the signed line to its transparency log at
+`POST /decision-head`, answering a receipt (statement, leaf, inclusion proof, signed checkpoint). The statement
+authenticates itself, so the route is open, on its own rate limit. A gate's head never goes backwards at a registrar:
+a lower `seq` or a different head at a logged `seq` is refused. Checking a log against a receipt: the receipt first,
+in the frozen vocabulary (`schema_violation`, `sig_invalid`, `unknown_registrar`, `checkpoint_invalid`,
+`not_logged`), then the chain, then that it reaches the head — two new chain problems, `truncated` and `forked`.
+
+*Not changed:* the decision record format, and everything a registrar does with passports and links. The registrar
+learns a digest per head, never a decision.
+
+*Honest limit:* records cut after the latest logged head are still invisible; the logging interval bounds the loss.
+
+*Held to:* `vectors/v1-decision` d22–d32 in all three implementations (`make diff`), each check removed once per
+implementation with a vector going red; the registrar's floor and persistence against the real binary
+(`tests/registrar_restart.rs`). Plan: PLAN-M49.
+

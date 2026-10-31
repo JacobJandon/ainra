@@ -42,6 +42,7 @@ still true?*
 | `POST /link` | Body `{passport, key, pop, scope?, nbf, exp}` (`key` is the base64url Ed25519 public key). Refused unless the key signed its consent, the passport is this registrar's and not revoked, and the link fits inside it: window inside the passport's, scope inside its capabilities. Bearer token, rate limited. |
 | `GET /links` | The whole index. Each entry is registrar-signed and proven under one delegate-signed checkpoint. There is no lookup by key: you download the index, so nobody learns which key you asked about. |
 | `POST /link/revoke` | Body `{thumbprint, kind, suspect_since?}`. `kind` is `link` (this key is retired), `operator` (the passport's lineage is suspended, so every link flips) or `compromise` (the key was stolen; `suspect_since` marks when its actions stopped being the operator's). Bearer token, rate limited. |
+| `POST /demo/link`, `POST /demo/link/revoke` | The public demo door, for trying Link without a token: the same bodies, the same proof of control, but staging only, on the demo door's own rate limit, and only for demo specimens (passports from `POST /demo/issue`). A key cannot be linked to, and a link cannot be revoked from, any other passport through it. |
 
 Three rules:
 

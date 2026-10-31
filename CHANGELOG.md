@@ -12,6 +12,13 @@ We **publicly own fixed security bugs** — hiding them would be the opposite of
 
 What 0.6.0 will carry.
 
+### Added — a public demo door for links
+
+- **`POST /demo/link` and `POST /demo/link/revoke`** on the registrar: try AINRA Link without a token, as
+  `/demo/issue` lets you try a passport. Staging only, on the demo door's own rate limit, and only for demo specimens;
+  the key's proof of control is checked exactly as on `/link`. Tested against the real binary, with each refusal
+  witnessed (`tests/demo_link_door.rs`); in the published OpenAPI description of the registrar's public door.
+
 ### Tested — the pilot's passport mode, live
 
 - **`make pilot-e2e` now drills both modes.** Passport mode was wired but had no live test: an agent with its own key

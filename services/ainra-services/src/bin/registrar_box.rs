@@ -120,8 +120,9 @@ struct State {
     /// Coarse token bucket over the WRITE endpoints: at most `WRITE_BURST` in any `WRITE_WINDOW`. A blunt DoS/abuse
     /// guard for an internet-exposed staging registrar — not a substitute for real quotas.
     writes: VecDeque<Instant>,
-    /// M17: a SEPARATE bucket over the public demo door (`/demo/issue`, `/demo/revoke`), so a visitor completing the
-    /// lifecycle in the browser cannot exhaust the operator's own write budget, and vice versa.
+    /// M17: a SEPARATE bucket over the public demo door (`/demo/issue`, `/demo/revoke`, `/demo/link`,
+    /// `/demo/link/revoke`), so a visitor completing the lifecycle in the browser cannot exhaust the operator's own
+    /// write budget, and vice versa.
     demo_writes: VecDeque<Instant>,
 }
 
@@ -617,6 +618,99 @@ fn main() {
                         Err(e) => (400, json!({ "error": e.to_string() }).to_string()),
                     },
                     None => (400, r#"{"error":"sub required"}"#.to_string()),
+                }
+            }
+
+            // PLAN-M47 § Later — the public demo door, for links: what `/demo/issue` is for passports. No bearer
+            // token; staging only; the demo bucket; and it only touches demo specimens — it links a key to a
+            // specimen the door minted, and revokes only links to one. The proof of control is checked exactly as on
+            // `/link`, so a visitor still cannot link a key they do not hold.
+            ("POST", "/demo/link") => {
+                if !staging {
+                    return (
+                        403,
+                        r#"{"error":"the demo door is staging-only"}"#.to_string(),
+                    );
+                }
+                if !rate_ok(&mut st.demo_writes) {
+                    return (
+                        429,
+                        r#"{"error":"demo door rate limited — try again shortly"}"#.to_string(),
+                    );
+                }
+                let spec = match serde_json::from_str::<LinkSpec>(&req.body) {
+                    Ok(spec) => spec,
+                    Err(e) => {
+                        return (
+                            400,
+                            json!({ "error": format!("bad link spec: {e}") }).to_string(),
+                        )
+                    }
+                };
+                if !is_demo_specimen(&st.rb, &spec.passport) {
+                    return (
+                        403,
+                        r#"{"error":"the public door only links keys to demo specimens"}"#
+                            .to_string(),
+                    );
+                }
+                match st.rb.link(&spec) {
+                    Ok(rec) => {
+                        persist(&st.rb, &id);
+                        ok(&rec)
+                    }
+                    Err(e) => (400, json!({ "error": e.to_string() }).to_string()),
+                }
+            }
+            ("POST", "/demo/link/revoke") => {
+                if !staging {
+                    return (
+                        403,
+                        r#"{"error":"the demo door is staging-only"}"#.to_string(),
+                    );
+                }
+                if !rate_ok(&mut st.demo_writes) {
+                    return (
+                        429,
+                        r#"{"error":"demo door rate limited — try again shortly"}"#.to_string(),
+                    );
+                }
+                let v: serde_json::Value =
+                    serde_json::from_str(&req.body).unwrap_or(serde_json::Value::Null);
+                let Some(tp) = v
+                    .get("thumbprint")
+                    .and_then(|x| x.as_str())
+                    .map(String::from)
+                else {
+                    return (400, r#"{"error":"thumbprint required"}"#.to_string());
+                };
+                let Ok(kind) = serde_json::from_value::<RevocationKind>(
+                    v.get("kind").cloned().unwrap_or(serde_json::Value::Null),
+                ) else {
+                    return (
+                        400,
+                        r#"{"error":"kind must be link, operator or compromise"}"#.to_string(),
+                    );
+                };
+                let passport = st.rb.get_link(&tp).map(|l| l.passport.clone());
+                if !passport.is_some_and(|p| is_demo_specimen(&st.rb, &p)) {
+                    return (
+                        403,
+                        r#"{"error":"the public door only revokes links to demo specimens"}"#
+                            .to_string(),
+                    );
+                }
+                let suspect_since = v.get("suspect_since").and_then(|x| x.as_u64());
+                let now = v
+                    .get("now")
+                    .and_then(|x| x.as_u64())
+                    .unwrap_or_else(default_now);
+                match st.rb.revoke_link(&tp, kind, suspect_since, now) {
+                    Ok(rev) => {
+                        persist(&st.rb, &id);
+                        ok(&rev)
+                    }
+                    Err(e) => (400, json!({ "error": e.to_string() }).to_string()),
                 }
             }
 

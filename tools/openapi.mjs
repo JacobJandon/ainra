@@ -40,7 +40,8 @@ const DOOR = {
     title: "AINRA registrar — public door + read API",
     version: "1",
     description:
-      "A registrar-box's HTTP surface. READ endpoints are open. The PUBLIC DEMO DOOR (POST /demo/issue, /demo/revoke) " +
+      "A registrar-box's HTTP surface. READ endpoints are open. The PUBLIC DEMO DOOR (POST /demo/issue, /demo/revoke, " +
+      "/demo/link, /demo/link/revoke) " +
       "needs no token, is rate-limited, staging/TEST-ROOT only, and mints/revokes only a low-tier specimen — so a " +
       "stranger completes the whole lifecycle safely. Operator writes (/issue,/renew,/revoke) require a bearer token " +
       "(see the console spec). There is NO verify REST API: GET /present returns the signed bundle and you verify it LOCALLY.",
@@ -53,7 +54,10 @@ const DOOR = {
     "/record": { get: { summary: "The stored issued record for a subject.", parameters: [{ name: "sub", in: "query", required: true, schema: { type: "string" } }], responses: { 200: { description: "OK" }, 404: { description: "unknown subject" } } } },
     "/export": okGet("Full record export at ?now=."),
     "/status-list": okGet("Current signed status list segment at ?now=."),
+    "/links": okGet("The whole link index with inclusion proofs (D-078) — fetched whole; there is no lookup by key."),
     "/demo/issue": { post: { summary: "PUBLIC DOOR: mint a low-tier specimen:demo credential (no auth, rate-limited, staging only).", responses: { 200: { description: "IssuedRecord" }, 403: { description: "not staging" }, 429: { description: "rate limited" } } } },
+    "/demo/link": { post: { summary: "PUBLIC DOOR: link a key the visitor's agent holds to a demo specimen (no auth, rate-limited, staging only). The key's own signature over the consent bytes is required, as on /link.", requestBody: { required: true, content: { "application/json": { schema: { type: "object", required: ["passport", "key", "pop", "nbf", "exp"], properties: { passport: { type: "string" }, key: { type: "string", description: "Ed25519 public key, base64url" }, pop: { type: "string", description: "the key's signature over the link consent bytes, base64url" }, scope: { type: "array", items: { type: "string" } }, nbf: { type: "integer" }, exp: { type: "integer" } } } } } }, responses: { 200: { description: "LinkRecord" }, 400: { description: "bad spec / proof of control fails" }, 403: { description: "not a demo specimen / not staging" }, 429: { description: "rate limited" } } } },
+    "/demo/link/revoke": { post: { summary: "PUBLIC DOOR: revoke a link to a demo specimen (no auth, rate-limited, staging only).", requestBody: { required: true, content: { "application/json": { schema: { type: "object", required: ["thumbprint", "kind"], properties: { thumbprint: { type: "string" }, kind: { type: "string", enum: ["link", "operator", "compromise"] }, suspect_since: { type: "integer" }, now: { type: "integer" } } } } } }, responses: { 200: { description: "LinkRevocation" }, 403: { description: "not a link to a demo specimen / not staging" }, 429: { description: "rate limited" } } } },
     "/demo/revoke": { post: { summary: "PUBLIC DOOR: revoke a specimen this registrar minted (no auth, rate-limited, staging only).", requestBody: { required: true, content: { "application/json": { schema: { type: "object", required: ["sub"], properties: { sub: { type: "string" }, now: { type: "integer" } } } } } }, responses: { 200: { description: "revoked" }, 403: { description: "not a demo specimen / not staging" }, 429: { description: "rate limited" } } } },
   },
 };

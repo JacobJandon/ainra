@@ -15,6 +15,8 @@
 //   9. unsigned, replayed, and — after the passport is revoked — the post-revocation bundle are refused by name, and
 //      none of them reaches the upstream
 //  10. that pilot's decision log verifies and its last line is the published head
+//  11. its head, logged at the registrar (D-081): the receipt verifies against the published directory, the log
+//      reaches it — and with its last record cut, the chain alone still holds while the receipt says `truncated`
 // WITNESS: step 4's negative control (B), step 5 (A after revocation) and step 9 must be refused and must not reach
 // the upstream; the upstream counts what reached it, and step 8 asserts it never sees a presentation header.
 import http from "node:http";
@@ -30,7 +32,8 @@ import { sign, HTTP_MESSAGE_SIGNATURES_DIRECTORY } from "web-bot-auth";
 import { signerFromJWK } from "web-bot-auth/crypto";
 import { appendSignature } from "http-message-sig";
 import {
-  jwkThumbprintEd25519, linkPopSigningBytes, verifyDecisionChain, canonicalize, mintInstanceCredential,
+  jwkThumbprintEd25519, linkPopSigningBytes, verifyDecisionChain, verifyDecisionChainToHead, Verifier, canonicalize,
+  mintInstanceCredential,
   proveInstancePossession, signPresentation, splitPresentation, PRESENTATION_HEADER, POP_HEADER, PRIME_PATH,
 } from "../../packages/sdk-ts/dist/index.js";
 import { b64uEncode } from "../../packages/sdk-ts/dist/crypto.js";
@@ -161,7 +164,8 @@ async function presentation(b) {
 const ppPort = 20000 + Math.floor(Math.random() * 20000);
 const ppilot = spawn("node", [new URL("pilot.mjs", import.meta.url).pathname, "--upstream", `http://127.0.0.1:${upPort}`, "--listen", `127.0.0.1:${ppPort}`,
   "--directory", join(work, "directory.json"), "--roots", join(work, "roots.json"), "--mode", "passport", "--audience", AUD, "--freshness", "F3",
-  "--decisions", join(work, "passport-decisions.jsonl"), "--gate-key", join(work, "passport-gate.key")], { stdio: ["ignore", "ignore", "inherit"] });
+  "--decisions", join(work, "passport-decisions.jsonl"), "--gate-key", join(work, "passport-gate.key"),
+  "--publish-head", REG, "--head-every", "1000"], { stdio: ["ignore", "ignore", "inherit"] });
 const PP = `127.0.0.1:${ppPort}`;
 for (let i = 0; i < 100; i++) { try { await fetch(`http://${PP}/.well-known/ainra-decisions-head`); break; } catch { await new Promise((r) => setTimeout(r, 100)); } }
 async function primeVia(b) {
@@ -221,6 +225,27 @@ let ref;
     ? ok(`the decision log: ${chain.count} signed, chained records (${lines.map((l) => JSON.parse(l).reason ?? "valid").join(", ")}); its last line is the published head`)
     : fail(`log: ${JSON.stringify(chain)} head ${head.head} last ${last}`);
 }
+// 11 · the head, logged at the registrar — and the cut it now shows
+{
+  const lines = readFileSync(join(work, "passport-decisions.jsonl"), "utf8").trim().split("\n");
+  const h = await (await fetch(`http://${PP}/.well-known/ainra-decisions-head?flush=1`)).json();
+  const gateKey = Buffer.from(h.gate_key, "base64url");
+  const gate = Verifier.fromDirectoryB64(JSON.parse(readFileSync(join(work, "directory.json"), "utf8")),
+    ...(({ root_ed25519, root_slh }) => [root_ed25519, root_slh])(JSON.parse(readFileSync(join(work, "roots.json"), "utf8"))), "F3");
+  const hv = h.receipt ? gate.verifyHeadReceipt(h.receipt, gateKey, now()) : { verdict: "invalid", reason: "no receipt" };
+  hv.verdict === "valid" && hv.statement.seq === lines.length - 1
+    ? ok(`the pilot logged its head at the registrar: leaf ${h.receipt.leaf_index}, seq ${hv.statement.seq}; the receipt verifies against the published directory`)
+    : fail(`head receipt: ${JSON.stringify(hv)}`);
+  if (hv.verdict === "valid") {
+    const whole = verifyDecisionChainToHead(lines, gateKey, null, hv.statement);
+    const cut = lines.slice(0, -1);
+    const alone = verifyDecisionChain(cut, gateKey);
+    const against = verifyDecisionChainToHead(cut, gateKey, null, hv.statement);
+    whole.ok && alone.ok && !against.ok && against.problem === "truncated"
+      ? ok(`the last record cut: the chain alone still holds (${alone.count}), against the logged head it reads truncated`)
+      : fail(`cut: whole ${JSON.stringify(whole)} alone ${JSON.stringify(alone)} against ${JSON.stringify(against)}`);
+  }
+}
 ppilot.kill(); upstream.close(); dirSrv.close();
-console.log(bad ? "\nPILOT-E2E FAILED" : "\nPILOT-E2E OK: one command in front of a service, both modes; linked keys and signed passports in, unlinked, revoked, unsigned and replayed requests refused by name, every decision signed");
+console.log(bad ? "\nPILOT-E2E FAILED" : "\nPILOT-E2E OK: one command in front of a service, both modes; linked keys and signed passports in, unlinked, revoked, unsigned and replayed requests refused by name, every decision signed, and a cut tail caught by the head the registrar logged");
 process.exit(bad);

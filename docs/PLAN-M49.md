@@ -32,7 +32,7 @@ the checker already holds a head the gate cannot quietly replace, and today the 
 - **Gates** publish on a schedule, not per decision: the pilot gets `--publish-head URL` with "every N decisions or T
   seconds, whichever first"; the SDK's `createDecisionLog` gains `statement()` so any gate can do the same.
 
-**Steps.** *Steps 1–4 and 6 done 2026-10-31 (2a6432d, f559fed, and the commit that adds the corpus); step 5 next.*
+**Steps.** *All six steps done 2026-10-31 (2a6432d, f559fed, cc60191, and the pilot commit after it).*
 1. Core (`ainra_core::decision`): `HeadStatement`, its signing bytes, `verify_head_receipt`, `verify_chain_to_head`
    with the two new problems. Unit tests.
 2. Registrar: `POST /decision-head`, the leaf domain, per-gate floor, persistence across restart (the D-080 test

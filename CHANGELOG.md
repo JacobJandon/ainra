@@ -22,6 +22,9 @@ What 0.6.0 will carry.
   `Verifier.verify_head_receipt` + `verify_chain_to_head`), and `ainra verify-decisions --receipt`. Records cut from
   the end now read `truncated`; a replaced record at the head reads `forked`. `vectors/v1-decision` grows from 21 to 32
   (d22–d32), and d17's invisible cut shows as `truncated` in d24.
+- **The pilot logs its head on a schedule:** `--publish-head URL` (every `--head-every` decisions or `--head-seconds`,
+  whichever first), keeping the latest receipt beside the log. `make pilot-e2e` cuts the last record of a real log and
+  the logged head reads it as `truncated`.
 
 ### Added — a public demo door for links
 

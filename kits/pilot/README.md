@@ -18,11 +18,15 @@ node kits/pilot/pilot.mjs --upstream http://127.0.0.1:3000 --listen 127.0.0.1:80
 | `passport` | an AINRA presentation, signed per request by the agent's running copy (RFC 9421) | the standard `@ainra/middleware` gate, with send-once and single-use nonces |
 
 Forwarded requests carry `x-ainra-operator` and `x-ainra-passport-name`; the presentation headers are stripped.
-`GET /.well-known/ainra-decisions-head` returns the log's head digest and the gate's public key: publish it somewhere
-you cannot quietly rewrite, and anyone can then check the log with `ainra verify-decisions --head`.
+`GET /.well-known/ainra-decisions-head` returns the log's head digest, the gate's public key and the latest receipt.
+With `--publish-head https://registrar.example` the pilot hands its signed head to that registrar's transparency log
+every `--head-every` decisions (100) or `--head-seconds` (300), whichever comes first, and keeps the receipt in
+`<decisions>.receipt.json`; anyone can then check the log with `ainra verify-decisions --receipt` and see a cut tail as
+`truncated` ([D-081](../../docs/DECISION-RECORDS.md)). Records after the latest logged head are what it could still
+lose, so the interval is that bound.
 
 | Command | What it proves |
 |---|---|
-| `make pilot-e2e` (after `make live-up` and `make stage-up`; in `make live-drills`) | Both modes, live. **Link:** a linked key's request reaches the upstream with the operator named; an unlinked key is refused `not_linked` and a revoked one `revoked` (after the 10-second status cache), neither reaching the upstream. **Passport:** an agent with its own key and a passport for it sends its bundle once, then a signed request reaches the upstream with the operator named and no presentation headers; unsigned (`presentation_unsigned`), replayed (`presentation_replayed`) and post-revocation (`revoked`) requests are refused and never forwarded. Each pilot's decisions verify and the last is the published head. |
+| `make pilot-e2e` (after `make live-up` and `make stage-up`; in `make live-drills`) | Both modes, live. **Link:** a linked key's request reaches the upstream with the operator named; an unlinked key is refused `not_linked` and a revoked one `revoked` (after the 10-second status cache), neither reaching the upstream. **Passport:** an agent with its own key and a passport for it sends its bundle once, then a signed request reaches the upstream with the operator named and no presentation headers; unsigned (`presentation_unsigned`), replayed (`presentation_replayed`) and post-revocation (`revoked`) requests are refused and never forwarded. Each pilot's decisions verify and the last is the published head. **Heads:** the passport-mode pilot logs its head at the registrar; the receipt verifies against the published directory, and with the last record cut the chain alone still holds while the receipt reads `truncated`. |
 
 This is a test root over http on 127.0.0.1. It proves the mechanism; it is not evidence that anyone runs it.

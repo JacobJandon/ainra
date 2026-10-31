@@ -7,7 +7,7 @@
 //
 //   node kits/pilot/pilot.mjs --upstream http://127.0.0.1:3000 --listen 127.0.0.1:8080 \
 //     --directory D --roots R --mode link --registrar URL [--freshness F1] [--capability C] \
-//     [--decisions decisions.jsonl --gate-key gate.key]
+//     [--decisions decisions.jsonl --gate-key gate.key [--publish-head URL [--head-every N] [--head-seconds T]]]
 //
 // MODES
 //   link      the request is signed by a SIGNATURE AGENT (the Web Bot Auth profile): an independent open-source
@@ -17,7 +17,11 @@
 //   passport  the request carries an AINRA presentation and is signed by the agent's running copy (RFC 9421); the
 //             standard @ainra/middleware gate, with send-once and single-use nonces.
 // Forwarded requests carry `x-ainra-operator` and `x-ainra-passport-name`. `GET /.well-known/ainra-decisions-head`
-// returns the log's current head digest and the gate's public key — publish it somewhere you cannot quietly rewrite.
+// returns the log's current head digest, the gate's public key and the latest registrar receipt.
+// HEADS (D-081) `--publish-head URL` hands the log's signed head statement to that registrar's `POST /decision-head`
+//   every N decisions (`--head-every`, default 100) or T seconds (`--head-seconds`, default 300), whichever comes
+//   first, and keeps the latest receipt in `<decisions>.receipt.json`. Records cut after the latest logged head are
+//   the most a log can quietly lose, so the interval is that bound.
 // D and R are file paths or URLs (the signed directory and its two root keys). gate.key is created if missing (0600).
 import http from "node:http";
 import { readFileSync, writeFileSync, appendFileSync, existsSync } from "node:fs";
@@ -56,8 +60,40 @@ if (opt("decisions")) {
   gatePub = ed25519.getPublicKey(secret);
   const file = opt("decisions");
   const lastLine = existsSync(file) ? (readFileSync(file, "utf8").trim().split("\n").filter(Boolean).pop() ?? "") : "";
-  decisions = createDecisionLog({ gatePublic: gatePub, sign: (m) => ed25519.sign(m, secret), append: (l) => appendFileSync(file, l + "\n"), freshness, audience: opt("audience", ""), lastLine });
+  decisions = createDecisionLog({ gatePublic: gatePub, sign: (m) => ed25519.sign(m, secret), append: (l) => { appendFileSync(file, l + "\n"); headDue(); }, freshness, audience: opt("audience", ""), lastLine });
 }
+
+// D-081: log the head at a registrar on a schedule, and keep the latest receipt beside the log.
+const headTo = opt("publish-head");
+const headEvery = Number(opt("head-every", "100")), headSeconds = Number(opt("head-seconds", "300"));
+let sinceHead = 0, receipt = null, publishing = null;
+const receiptFile = opt("decisions") ? opt("decisions") + ".receipt.json" : null;
+if (receiptFile && existsSync(receiptFile)) { try { receipt = JSON.parse(readFileSync(receiptFile, "utf8")); } catch { receipt = null; } }
+async function publishHead() {
+  if (!headTo || !decisions || publishing) return publishing;
+  const statement = decisions.statement();
+  if (!statement) return null;
+  publishing = (async () => {
+    try {
+      const r = await fetch(`${headTo.replace(/\/$/, "")}/decision-head`, { method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ statement, gate_key: Buffer.from(gatePub).toString("base64url") }), signal: AbortSignal.timeout(5000) });
+      const body = await r.json();
+      if (!r.ok || body.statement !== statement) throw new Error(body.error ?? `HTTP ${r.status}`);
+      receipt = body;
+      writeFileSync(receiptFile, JSON.stringify(body) + "\n");
+      sinceHead = 0;
+    } catch (e) {
+      console.error(`ainra pilot: head not logged (${e.message}); will retry`); // the next decision or tick retries
+    } finally {
+      publishing = null;
+    }
+  })();
+  return publishing;
+}
+function headDue() {
+  if (headTo && ++sinceHead >= headEvery) publishHead();
+}
+if (headTo) setInterval(() => { if (sinceHead > 0) publishHead(); }, headSeconds * 1000).unref();
 
 // Link mode: who signed (the signature-agent profile, independently verified), then who stands behind that key.
 const dirCache = new Map();
@@ -114,9 +150,10 @@ if (mode === "link") {
 const server = http.createServer(async (req, res) => {
   const chunks = []; for await (const c of req) chunks.push(c);
   const body = Buffer.concat(chunks);
-  if (req.method === "GET" && req.url === "/.well-known/ainra-decisions-head") {
+  if (req.method === "GET" && req.url.split("?")[0] === "/.well-known/ainra-decisions-head") {
     res.setHeader("content-type", "application/json");
-    return res.end(JSON.stringify({ head: decisions?.head() ?? null, gate_key: gatePub ? Buffer.from(gatePub).toString("base64url") : null }));
+    if (new URL(req.url, "http://x").searchParams.get("flush") === "1") await publishHead(); // log the head now
+    return res.end(JSON.stringify({ head: decisions?.head() ?? null, gate_key: gatePub ? Buffer.from(gatePub).toString("base64url") : null, receipt }));
   }
   const shim = {
     status(c) { res.statusCode = c; return shim; },

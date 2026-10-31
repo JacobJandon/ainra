@@ -12,6 +12,13 @@ We **publicly own fixed security bugs** — hiding them would be the opposite of
 
 What 0.6.0 will carry.
 
+### Tested — the pilot's passport mode, live
+
+- **`make pilot-e2e` now drills both modes.** Passport mode was wired but had no live test: an agent with its own key
+  sends its bundle once, a signed request reaches the upstream with the operator named and no presentation headers,
+  and unsigned, replayed and revoked requests are refused by name and never forwarded. Witnessed: a pilot that
+  forwards the presentation header fails the drill.
+
 ### Changed — replaying a test vector is no longer something you can do by accident
 
 - **`@ainra/mcp`: `ainra_verify` has no fixture mode.** Passing `anchors` (with or without `fixture: true`) is refused

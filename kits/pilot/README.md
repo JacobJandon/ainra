@@ -23,9 +23,6 @@ you cannot quietly rewrite, and anyone can then check the log with `ainra verify
 
 | Command | What it proves |
 |---|---|
-| `make pilot-e2e` (after `make live-up` and `make stage-up`; in `make live-drills`) | Link mode, live: a linked key's request reaches the upstream with the operator named; an unlinked key is refused `not_linked` and a revoked one `revoked` (after the 10-second status cache), neither reaching the upstream; the three decisions verify and the last is the published head. |
-
-**Not yet drilled:** passport mode through the pilot. The gate it uses is the one the identity drills exercise, but this
-wiring of it has no live test of its own yet.
+| `make pilot-e2e` (after `make live-up` and `make stage-up`; in `make live-drills`) | Both modes, live. **Link:** a linked key's request reaches the upstream with the operator named; an unlinked key is refused `not_linked` and a revoked one `revoked` (after the 10-second status cache), neither reaching the upstream. **Passport:** an agent with its own key and a passport for it sends its bundle once, then a signed request reaches the upstream with the operator named and no presentation headers; unsigned (`presentation_unsigned`), replayed (`presentation_replayed`) and post-revocation (`revoked`) requests are refused and never forwarded. Each pilot's decisions verify and the last is the published head. |
 
 This is a test root over http on 127.0.0.1. It proves the mechanism; it is not evidence that anyone runs it.

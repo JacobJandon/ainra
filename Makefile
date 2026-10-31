@@ -280,8 +280,9 @@ signature-agent-e2e: sdk-build edge-build
 	cd packages/middleware && { [ -d node_modules ] || npm install --prefer-offline --no-audit --no-fund --silent; } && npm run -s build
 	cd kits/signature-agent && { [ -d node_modules ] || npm ci --no-audit --no-fund --silent; } && node e2e.mjs && node e2e.mjs --edge
 
-# PLAN-M47 step 4 — the pilot, live (needs `make live-up` and `make stage-up`): one command in front of a service; a
-# signature agent's linked key gets through with the operator named, unlinked and revoked keys are refused by name.
+# PLAN-M47 step 4 — the pilot, live (needs `make live-up` and `make stage-up`): one command in front of a service, both
+# modes. Link: a signature agent's linked key gets through with the operator named, unlinked and revoked keys are
+# refused by name. Passport: a signed presentation gets through; unsigned, replayed and revoked ones are refused.
 pilot-e2e: sdk-build wedge-build
 	cd kits/pilot && { [ -d node_modules ] || npm ci --no-audit --no-fund --silent; } && node pilot-e2e.mjs
 

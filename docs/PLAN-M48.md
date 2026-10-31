@@ -56,7 +56,7 @@ plan finishes the rest, adds what the 28 October research changed, and records t
    checkpoints that any mirror can serve; a stateless `POST /v1/verify` returns a signed decision record; a doorbell
    stream announces new heads; aggregate counters only. Code and deploy configuration; nothing is provisioned.
 6. **The pilot kit.** *Done 2026-10-29:* `kits/pilot` (link mode drilled live in `make pilot-e2e`, in live-drills;
-   passport mode wired but not yet drilled). Originally: One command puts a link-mode gate with a decision log in front of any endpoint.
+   passport mode drilled in the same command on 2026-10-31). Originally: One command puts a link-mode gate with a decision log in front of any endpoint.
 7. **0.6.0 surfaces.** *Built 2026-10-29 (the owner publishes, after 0.5.0):* `@ainra/sdk/conformance` and
    `ainra.conformance`; the MCP tool without fixture mode; `PresentedBundle` for what a presenter sends. The root
    runner exports are deprecated rather than removed, so the browser demo keeps working; they go in 0.7.0. Originally: The conformance entry points, the MCP tool without fixture mode, trusted and presented inputs

@@ -124,6 +124,9 @@ struct State {
     /// `/demo/link/revoke`), so a visitor completing the lifecycle in the browser cannot exhaust the operator's own
     /// write budget, and vice versa.
     demo_writes: VecDeque<Instant>,
+    /// D-081: logged decision heads are an open write (each statement is self-authenticating), so they get a bucket
+    /// of their own — a busy gate cannot starve issuance, and the demo door cannot starve a gate.
+    head_writes: VecDeque<Instant>,
 }
 
 const WRITE_BURST: usize = 30;
@@ -300,6 +303,7 @@ fn main() {
         issue_token: issue_token.clone(),
         writes: VecDeque::new(),
         demo_writes: VecDeque::new(),
+        head_writes: VecDeque::new(),
     });
     eprintln!(
         "registrar-box '{id}' data={dir}{}{}",
@@ -713,6 +717,43 @@ fn main() {
                     Err(e) => (400, json!({ "error": e.to_string() }).to_string()),
                 }
             }
+
+            // D-081: log a gate's decision head. Body {statement, gate_key}: the statement line exactly as the gate
+            // signed it, and the gate's base64url Ed25519 key. Open (the statement authenticates itself) and rate
+            // limited on its own bucket; answers a receipt — the statement, its leaf, and an inclusion proof under a
+            // signed checkpoint — that anyone can later hold a decision log against.
+            ("POST", "/decision-head") => {
+                if !rate_ok(&mut st.head_writes) {
+                    return (429, r#"{"error":"rate limited"}"#.to_string());
+                }
+                let v: serde_json::Value =
+                    serde_json::from_str(&req.body).unwrap_or(serde_json::Value::Null);
+                let (Some(statement), Some(gate_key)) = (
+                    v.get("statement").and_then(|x| x.as_str()),
+                    v.get("gate_key").and_then(|x| x.as_str()),
+                ) else {
+                    return (
+                        400,
+                        r#"{"error":"statement and gate_key required"}"#.to_string(),
+                    );
+                };
+                match st.rb.log_head(statement, gate_key) {
+                    Ok(receipt) => {
+                        persist(&st.rb, &id);
+                        (200, receipt.to_string())
+                    }
+                    Err(e) => (400, json!({ "error": e.to_string() }).to_string()),
+                }
+            }
+
+            // Every logged head, each proven under one checkpoint. Read-only, open, fetched whole.
+            ("GET", "/decision-heads") => match st.rb.decision_heads_index() {
+                Some(idx) => (200, idx.to_string()),
+                None => (
+                    500,
+                    r#"{"error":"inclusion proof unavailable"}"#.to_string(),
+                ),
+            },
 
             // D-078 AINRA Link: link a key the agent already has to one of this registrar's passports. Body: a
             // LinkSpec {passport, key, pop, scope?, nbf, exp}; `pop` is the key's own signature over the frozen

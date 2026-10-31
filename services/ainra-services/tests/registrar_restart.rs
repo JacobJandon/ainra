@@ -123,3 +123,52 @@ fn a_renewal_survives_a_restart() {
         "the renewed generation must still exist"
     );
 }
+
+/// D-081: a logged decision head is evidence against its gate. If it vanished on restart, the gate could rewind and
+/// the registrar would log the rewound head as if it were the first.
+#[test]
+fn a_logged_decision_head_survives_a_restart() {
+    use ainra_core::b64;
+    use ainra_core::crypto::TestDelegate;
+    use ainra_core::decision::{gate_id, HeadStatement, HEAD_V};
+    use rand_chacha::ChaCha20Rng;
+    use rand_core::SeedableRng;
+
+    let gate = TestDelegate::generate(&mut ChaCha20Rng::seed_from_u64(0xD0_81));
+    let statement = |seq: u64| {
+        let mut h = HeadStatement {
+            v: HEAD_V.into(),
+            gate: gate_id(&gate.public()),
+            seq,
+            at: 1_000 + seq,
+            head: b64::encode(&[seq as u8; 32]),
+            sig: String::new(),
+        };
+        h.sig = b64::encode(&gate.sign(&h.signing_bytes().unwrap()));
+        String::from_utf8(h.to_line().unwrap()).unwrap()
+    };
+    let body = |seq: u64| {
+        serde_json::json!({ "statement": statement(seq), "gate_key": b64::encode(&gate.public()) })
+            .to_string()
+    };
+    let d = dir("head");
+    let addr = format!("127.0.0.1:{}", free_port());
+    let leaf = {
+        let _rb = start(&addr, &d);
+        let receipt = post(&addr, "/decision-head", &body(5));
+        receipt["leaf_index"].as_u64().expect("logged")
+    };
+    let _rb = start(&addr, &d);
+    let index: Value = serde_json::from_str(&http_get(&addr, "/decision-heads").unwrap()).unwrap();
+    assert_eq!(
+        index["heads"][0]["leaf_index"].as_u64(),
+        Some(leaf),
+        "the logged head must still be there, at the same leaf"
+    );
+    assert!(
+        post(&addr, "/decision-head", &body(4))["error"]
+            .as_str()
+            .is_some_and(|e| e.contains("never goes backwards")),
+        "after a restart the gate still cannot rewind"
+    );
+}

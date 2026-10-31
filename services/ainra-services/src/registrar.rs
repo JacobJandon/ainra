@@ -28,6 +28,8 @@ use serde_json::json;
 use crate::log::Logd;
 use crate::status::Statusd;
 
+#[path = "registrar_heads.rs"]
+pub mod heads;
 /// AINRA Link (D-078): status and attribution for keys agents already have. A child module, so it shares this
 /// registrar's log, status segment and issuer key rather than growing a second copy of any of them.
 #[path = "registrar_link.rs"]
@@ -355,6 +357,8 @@ pub struct RegistrarBox {
     lineage_heads: BTreeMap<String, (String, String)>,
     /// D-078 links, keyed by the linked key's RFC 7638 thumbprint (one link per key, ever).
     links: BTreeMap<String, LinkRecord>,
+    /// D-081 logged decision heads, per gate (its key's thumbprint), in the order they were logged.
+    decision_heads: BTreeMap<String, Vec<heads::LoggedHead>>,
     next_status_idx: usize,
     status_capacity: usize,
     dir: PathBuf,
@@ -455,6 +459,7 @@ impl RegistrarBox {
             superseded: Vec::new(),
             lineage_heads: BTreeMap::new(),
             links: BTreeMap::new(),
+            decision_heads: BTreeMap::new(),
             next_status_idx: 0,
             status_capacity,
             dir: dir.to_path_buf(),
@@ -569,6 +574,15 @@ impl RegistrarBox {
                 let rec: LinkRecord = serde_json::from_value(l.clone())
                     .map_err(|e| IssueError::Malformed(format!("link: {e}")))?;
                 me.links.insert(rec.thumbprint.clone(), rec);
+            }
+        }
+        // D-081 logged heads. Absent in snapshots written before they existed: then there are none. The statements
+        // themselves are in `entries.log` at their leaf indices; this is only the per-gate index over them.
+        if let Some(logged) = snap["decision_heads"].as_array() {
+            for h in logged {
+                let e: heads::LoggedHead = serde_json::from_value(h.clone())
+                    .map_err(|e| IssueError::Malformed(format!("decision head: {e}")))?;
+                me.decision_heads.entry(e.gate.clone()).or_default().push(e);
             }
         }
         me.next_status_idx = snap["next_status_idx"].as_u64().unwrap_or(0) as usize;
@@ -1358,6 +1372,7 @@ impl RegistrarBox {
                 (k.clone(), json!({ "sub": sub, "leaf": leaf }))
             }).collect::<serde_json::Map<_, _>>(),
             "links": self.links.values().collect::<Vec<_>>(),
+            "decision_heads": self.decision_heads.values().flatten().collect::<Vec<_>>(),
         });
         let path = self.dir.join("registrar.json");
         std::fs::write(

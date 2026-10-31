@@ -15,6 +15,7 @@
 //! [`verify_chain`] checks a chain against the gate's public key. The result vocabulary is the chain's own
 //! ([`ChainProblem`]) — the frozen reasons describe credentials, not logs.
 
+use alloc::collections::BTreeSet;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -23,7 +24,8 @@ use sha2::{Digest, Sha256};
 
 use crate::name::AinraName;
 use crate::verdict::Reason;
-use crate::{b64, canon, crypto, link};
+use crate::verify::TrustAnchors;
+use crate::{b64, canon, checkpoint, crypto, link, merkle};
 
 /// The record's version tag. Frozen: it is inside what the gate signs.
 pub const DECISION_V: &str = "ainra-decision-1";
@@ -111,6 +113,10 @@ pub enum ChainProblem {
     Link,
     /// The gate's clock went backwards.
     Clock,
+    /// The chain ends before the record a logged head names (D-081): records were cut from the end.
+    Truncated,
+    /// The record at a logged head's `seq` is not the one the head names: the log was replaced after it was anchored.
+    Forked,
 }
 
 impl ChainProblem {
@@ -122,6 +128,8 @@ impl ChainProblem {
             ChainProblem::Sequence => "sequence",
             ChainProblem::Link => "link",
             ChainProblem::Clock => "clock",
+            ChainProblem::Truncated => "truncated",
+            ChainProblem::Forked => "forked",
         }
     }
 }
@@ -296,6 +304,177 @@ pub fn verify_chain(
         });
     }
     Ok(lines.len())
+}
+
+// ── Logged heads (D-081) ─────────────────────────────────────────────────────────────────────────────────────────
+// A chain shows every edit, deletion and reordering, but not records cut from its end. A gate closes that by signing
+// a head statement — where its log stood — and having a registrar append it to its transparency log. The registrar
+// sees a digest, never a decision. Once a head is logged, a log that stops short of it reads `truncated`, and one that
+// has a different record at that position reads `forked`.
+
+/// The head statement's version tag. Frozen: it is inside what the gate signs.
+pub const HEAD_V: &str = "ainra-decision-head-1";
+
+/// A gate's signed statement of where its decision log stood. Field names are frozen: they are what the gate signs.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct HeadStatement {
+    pub v: String,
+    /// RFC 7638 thumbprint of the gate's Ed25519 key.
+    pub gate: String,
+    /// The `seq` of the last record the head covers.
+    pub seq: u64,
+    /// That record's `at`.
+    pub at: u64,
+    /// base64url line digest of that record ([`line_digest`]).
+    pub head: String,
+    /// base64url Ed25519 signature by the gate's key over [`HeadStatement::signing_bytes`].
+    pub sig: String,
+}
+
+impl HeadStatement {
+    /// What the gate signs: the canonical statement without `sig`.
+    pub fn signing_bytes(&self) -> core::result::Result<Vec<u8>, Reason> {
+        let mut v = serde_json::to_value(self).map_err(|_| Reason::SchemaViolation)?;
+        if let Some(o) = v.as_object_mut() {
+            o.remove("sig");
+        }
+        Ok(canon::canonicalize(&v)
+            .map_err(|_| Reason::SchemaViolation)?
+            .into_bytes())
+    }
+
+    /// The full canonical statement, signature included: what the registrar logs and a receipt carries.
+    pub fn to_line(&self) -> core::result::Result<Vec<u8>, Reason> {
+        Ok(canon::canonicalize(self)
+            .map_err(|_| Reason::SchemaViolation)?
+            .into_bytes())
+    }
+
+    /// Parse a statement line, refusing anything that is not a well-formed version-1 statement in canonical form.
+    pub fn parse_checked(line: &[u8]) -> Option<Self> {
+        let h: HeadStatement = serde_json::from_slice(line).ok()?;
+        if h.to_line().ok()?.as_slice() != line || h.v != HEAD_V {
+            return None;
+        }
+        b64::decode_array::<32>(&h.gate).ok()?;
+        b64::decode_array::<32>(&h.head).ok()?;
+        b64::decode_array::<64>(&h.sig).ok()?;
+        Some(h)
+    }
+
+    /// Check the statement was signed by `gate_key` and names that key. What a registrar checks before logging it.
+    pub fn verify(line: &[u8], gate_key: &[u8; 32]) -> core::result::Result<Self, Reason> {
+        let h = Self::parse_checked(line).ok_or(Reason::SchemaViolation)?;
+        if h.gate != gate_id(gate_key) {
+            return Err(Reason::SigInvalid);
+        }
+        let sig: [u8; 64] = b64::decode_array(&h.sig).map_err(|_| Reason::SchemaViolation)?;
+        let msg = h.signing_bytes()?;
+        if !crypto::ed25519_verify(gate_key, &msg, &sig) {
+            return Err(Reason::SigInvalid);
+        }
+        Ok(h)
+    }
+}
+
+/// A registrar's receipt for a logged head, as a checker holds it.
+#[derive(Debug, Clone, Copy)]
+pub struct HeadReceiptCheck<'a> {
+    /// The statement line, exactly as logged.
+    pub statement: &'a [u8],
+    /// The gate key the checker holds; the statement must name it and be signed by it.
+    pub gate_key: [u8; 32],
+    /// The registrar that logged it, looked up in the checker's trust anchors.
+    pub registrar: &'a str,
+    pub checkpoint: &'a checkpoint::Checkpoint,
+    pub checkpoint_sig: &'a checkpoint::CheckpointSig,
+    pub leaf_index: u64,
+    pub inclusion_proof: &'a [[u8; 32]],
+    pub revoked_delegates: &'a BTreeSet<[u8; 32]>,
+    pub now: u64,
+}
+
+/// Check a head receipt: the statement (schema, gate, signature), then that it is logged at `leaf_index` under a
+/// checkpoint the registrar's log key signed — the same machinery, in the same order, as a link's step 8. First
+/// failure wins, in the frozen vocabulary: `schema_violation`, `sig_invalid`, `unknown_registrar`,
+/// `checkpoint_invalid`, `not_logged`.
+pub fn verify_head_receipt(
+    chk: &HeadReceiptCheck,
+    anchors: &TrustAnchors,
+) -> core::result::Result<HeadStatement, Reason> {
+    let h = HeadStatement::verify(chk.statement, &chk.gate_key)?;
+    let reg = anchors
+        .registrars
+        .get(chk.registrar)
+        .ok_or(Reason::UnknownRegistrar)?;
+    chk.checkpoint
+        .verify_sig_mode(&reg.log_root_key, chk.checkpoint_sig, chk.now)?;
+    if let checkpoint::CheckpointSig::Delegate { cert, .. } = chk.checkpoint_sig {
+        if chk.revoked_delegates.contains(&cert.fingerprint()) {
+            return Err(Reason::CheckpointInvalid);
+        }
+    }
+    checkpoint::verify_logged(
+        &merkle::hash_leaf(chk.statement),
+        chk.leaf_index,
+        chk.checkpoint,
+        chk.inclusion_proof,
+    )?;
+    Ok(h)
+}
+
+/// Check a decision log against a logged head: the chain as [`verify_chain`] checks it, then — if the head's record
+/// falls in or just before this segment — that the log reaches it and holds exactly that record there. A log that
+/// grew after the head was logged is fine; one that stops short is `truncated`; a different record is `forked`.
+pub fn verify_chain_to_head(
+    lines: &[&[u8]],
+    gate_key: &[u8; 32],
+    anchor: Option<ChainAnchor>,
+    head: &HeadStatement,
+) -> core::result::Result<usize, ChainBreak> {
+    if head.gate != gate_id(gate_key) {
+        return Err(ChainBreak {
+            index: 0,
+            problem: ChainProblem::Gate,
+        });
+    }
+    let n = verify_chain(lines, gate_key, anchor)?;
+    let want: [u8; 32] = b64::decode_array(&head.head).map_err(|_| ChainBreak {
+        index: 0,
+        problem: ChainProblem::Schema,
+    })?;
+    let first = anchor.map_or(0, |a| a.seq.wrapping_add(1));
+    if head.seq < first {
+        // The head is at or before where this segment starts. Only the record just before it can be compared: the
+        // anchor itself.
+        return match anchor {
+            Some(a) if a.seq == head.seq && a.digest != want => Err(ChainBreak {
+                index: 0,
+                problem: ChainProblem::Forked,
+            }),
+            _ => Ok(n),
+        };
+    }
+    let Ok(at) = usize::try_from(head.seq - first) else {
+        return Err(ChainBreak {
+            index: n,
+            problem: ChainProblem::Truncated,
+        });
+    };
+    if at >= n {
+        return Err(ChainBreak {
+            index: n,
+            problem: ChainProblem::Truncated,
+        });
+    }
+    if line_digest(lines[at]) != want {
+        return Err(ChainBreak {
+            index: at,
+            problem: ChainProblem::Forked,
+        });
+    }
+    Ok(n)
 }
 
 #[cfg(test)]
@@ -542,6 +721,198 @@ mod tests {
         assert_eq!(
             verify_chain(&tail, &g.public(), Some(wrong)),
             broke(0, ChainProblem::Link)
+        );
+    }
+
+    // ── D-081 logged heads ─────────────────────────────────────────────────────────────────────────────────────────
+
+    fn head_of(gate: &crypto::TestDelegate, r: &DecisionRecord) -> HeadStatement {
+        let mut h = HeadStatement {
+            v: HEAD_V.to_string(),
+            gate: gate_id(&gate.public()),
+            seq: r.seq,
+            at: r.at,
+            head: b64::encode(&r.digest().unwrap()),
+            sig: String::new(),
+        };
+        h.sig = b64::encode(&gate.sign(&h.signing_bytes().unwrap()));
+        h
+    }
+
+    fn to_head(
+        ls: &[Vec<u8>],
+        gate: &crypto::TestDelegate,
+        anchor: Option<ChainAnchor>,
+        h: &HeadStatement,
+    ) -> core::result::Result<usize, ChainBreak> {
+        let refs: Vec<&[u8]> = ls.iter().map(|l| l.as_slice()).collect();
+        verify_chain_to_head(&refs, &gate.public(), anchor, h)
+    }
+
+    #[test]
+    fn a_log_that_reaches_its_logged_head_holds_and_may_have_grown() {
+        let g = key(1);
+        let rs = chain(&g);
+        let ls = lines(&rs);
+        assert_eq!(to_head(&ls, &g, None, &head_of(&g, &rs[2])), Ok(3));
+        assert_eq!(to_head(&ls, &g, None, &head_of(&g, &rs[1])), Ok(3));
+    }
+
+    #[test]
+    fn a_cut_tail_reads_truncated_once_its_head_is_logged() {
+        let g = key(1);
+        let rs = chain(&g);
+        let ls = lines(&rs);
+        // Without a head, the shorter log is a perfectly good chain — the gap D-081 closes.
+        assert_eq!(check(&ls[..2], &g), Ok(2));
+        assert_eq!(
+            to_head(&ls[..2], &g, None, &head_of(&g, &rs[2])),
+            broke(2, ChainProblem::Truncated)
+        );
+    }
+
+    #[test]
+    fn a_replaced_record_reads_forked() {
+        let g = key(1);
+        let rs = chain(&g);
+        let h = head_of(&g, &rs[2]);
+        let mut other = rs.clone();
+        let mut r = base(&g, 2, 1030, b64::encode(&rs[1].digest().unwrap()));
+        r.verdict = "invalid".to_string();
+        r.reason = Some("expired".to_string());
+        other[2] = signed(&g, r);
+        assert_eq!(
+            to_head(&lines(&other), &g, None, &h),
+            broke(2, ChainProblem::Forked)
+        );
+    }
+
+    #[test]
+    fn a_segment_is_checked_against_a_head_at_its_anchor() {
+        let g = key(1);
+        let rs = chain(&g);
+        let ls = lines(&rs);
+        let anchor = ChainAnchor {
+            seq: rs[0].seq,
+            at: rs[0].at,
+            digest: rs[0].digest().unwrap(),
+        };
+        assert_eq!(
+            to_head(&ls[1..], &g, Some(anchor), &head_of(&g, &rs[0])),
+            Ok(2)
+        );
+        let mut forged = head_of(&g, &rs[0]);
+        forged.head = b64::encode(&[3u8; 32]);
+        assert_eq!(
+            to_head(&ls[1..], &g, Some(anchor), &forged),
+            broke(0, ChainProblem::Forked)
+        );
+        assert_eq!(
+            to_head(&ls[1..], &g, Some(anchor), &head_of(&g, &rs[2])),
+            Ok(2)
+        );
+    }
+
+    #[test]
+    fn a_head_names_and_is_signed_by_its_gate() {
+        let g = key(1);
+        let rs = chain(&g);
+        let line = head_of(&g, &rs[2]).to_line().unwrap();
+        assert!(HeadStatement::verify(&line, &g.public()).is_ok());
+        assert_eq!(
+            HeadStatement::verify(&line, &key(2).public()),
+            Err(Reason::SigInvalid)
+        );
+        let mut spaced = String::from_utf8(line.clone()).unwrap();
+        spaced.insert(1, ' ');
+        assert_eq!(
+            HeadStatement::verify(spaced.as_bytes(), &g.public()),
+            Err(Reason::SchemaViolation)
+        );
+        assert_eq!(
+            to_head(&lines(&rs), &key(2), None, &head_of(&g, &rs[2])),
+            broke(0, ChainProblem::Gate)
+        );
+    }
+
+    #[test]
+    fn a_receipt_proves_the_head_was_logged_by_the_registrar() {
+        use crate::verify::RegistrarInfo;
+        use alloc::collections::BTreeMap;
+        let mut rng = rand_chacha::ChaCha20Rng::seed_from_u64(0xD0_81);
+        let root = crypto::TestRootSlh::generate(&mut rng);
+        let issuer = crypto::HybridKeypair::generate(&mut rng);
+        let g = key(1);
+        let line = head_of(&g, &chain(&g)[2]).to_line().unwrap();
+        let mut log = merkle::TestLog::new();
+        log.append(b"another entry");
+        let leaf_index = log.append(&line);
+        log.append(b"a later entry");
+        let cp = checkpoint::Checkpoint {
+            origin: "ainra-log/registrar-01".to_string(),
+            tree_size: log.size(),
+            root: log.root(),
+        };
+        let cp_sig = checkpoint::CheckpointSig::Root {
+            slh: cp.sign_test_root(&root).unwrap(),
+        };
+        let proof = log.inclusion_proof(leaf_index).unwrap();
+        let other_proof = log.inclusion_proof(0).unwrap();
+        let mut registrars = BTreeMap::new();
+        registrars.insert(
+            "registrar-01".to_string(),
+            RegistrarInfo {
+                issuer_key: issuer.public(),
+                log_root_key: root.public(),
+                distrust_from_leaf: None,
+            },
+        );
+        let anchors = TrustAnchors { registrars };
+        let none = BTreeSet::new();
+        let chk = HeadReceiptCheck {
+            statement: &line,
+            gate_key: g.public(),
+            registrar: "registrar-01",
+            checkpoint: &cp,
+            checkpoint_sig: &cp_sig,
+            leaf_index,
+            inclusion_proof: &proof,
+            revoked_delegates: &none,
+            now: 1_000,
+        };
+        assert!(verify_head_receipt(&chk, &anchors).is_ok());
+        let wrong_proof = HeadReceiptCheck {
+            inclusion_proof: &other_proof,
+            ..chk
+        };
+        assert_eq!(
+            verify_head_receipt(&wrong_proof, &anchors),
+            Err(Reason::NotLogged)
+        );
+        let elsewhere = HeadReceiptCheck {
+            registrar: "registrar-99",
+            ..chk
+        };
+        assert_eq!(
+            verify_head_receipt(&elsewhere, &anchors),
+            Err(Reason::UnknownRegistrar)
+        );
+        let other_root = crypto::TestRootSlh::generate(&mut rng);
+        let forged_sig = checkpoint::CheckpointSig::Root {
+            slh: cp.sign_test_root(&other_root).unwrap(),
+        };
+        let forged = HeadReceiptCheck {
+            checkpoint_sig: &forged_sig,
+            ..chk
+        };
+        assert!(verify_head_receipt(&forged, &anchors).is_err());
+        let other_gate = HeadReceiptCheck {
+            gate_key: key(2).public(),
+            ..chk
+        };
+        assert_eq!(
+            verify_head_receipt(&other_gate, &anchors),
+            Err(Reason::SigInvalid)
         );
     }
 }

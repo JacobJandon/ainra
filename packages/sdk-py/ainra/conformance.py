@@ -42,7 +42,7 @@ def run_link_vector(v: dict) -> dict:
     key = _b64d(v.get("presented_key"))
     if gate is None:
         return {"verdict": "no_gate"}
-    if key is None or len(key) != 32:
+    if key is None or len(key) not in (32, 33):
         return {"verdict": "invalid", "reason": "schema_violation"}
     return gate.verify_link(v["link"], key, v["now"], v.get("capability"))
 

@@ -14,7 +14,7 @@
 //!     too, so the log alone says which keys were ever attributable and when that ended.
 
 use ainra_core::link::{
-    jwk_thumbprint_ed25519, pop_signing_bytes, Attribution, LinkCheck, LinkClaims, LINK_V,
+    pop_signing_bytes, Attribution, LinkCheck, LinkClaims, PresentedKey, LINK_V,
     SUBJECT_ALG_ED25519, SUBJECT_KIND_JWK,
 };
 use ainra_core::{b64, canon, crypto, merkle, status, Reason};
@@ -32,15 +32,24 @@ pub const LINK_REVOCATION_V: &str = "ainra-link-revocation-1";
 pub struct LinkSpec {
     /// The passport the key acts under (its `sub`), issued by this registrar.
     pub passport: String,
-    /// The Ed25519 public key, base64url (32 bytes): the JWK `x` member.
+    /// The key's algorithm: `Ed25519` (the default, so every existing caller is unchanged) or `ES256K` (D-082).
+    #[serde(default = "default_alg")]
+    pub alg: String,
+    /// The public key, base64url: 32 bytes for Ed25519 (the JWK `x` member), the 33-byte compressed SEC1 point for
+    /// ES256K.
     pub key: String,
-    /// base64url Ed25519 signature by that key over [`pop_signing_bytes`].
+    /// base64url 64-byte signature by that key, in its own algorithm, over [`pop_signing_bytes`]. ES256K signatures
+    /// are `r || s`, low-S.
     pub pop: String,
     /// Narrower than the passport's capabilities, or empty for "whatever the passport allows".
     #[serde(default)]
     pub scope: Vec<String>,
     pub nbf: u64,
     pub exp: u64,
+}
+
+fn default_alg() -> String {
+    SUBJECT_ALG_ED25519.to_string()
 }
 
 /// Why a link stopped being attributable.
@@ -110,13 +119,23 @@ impl RegistrarBox {
     /// Link `spec.key` to `spec.passport`. Refused, with nothing logged, unless the key signed its consent, the
     /// passport is this registrar's and in good standing, and the link fits inside it.
     pub fn link(&mut self, spec: &LinkSpec) -> Result<LinkRecord, IssueError> {
-        let key: [u8; 32] = b64::decode_array(&spec.key).map_err(|_| {
-            IssueError::Malformed("key must be a base64url 32-byte Ed25519 key".into())
-        })?;
+        let key = b64::decode(&spec.key)
+            .ok()
+            .and_then(|b| PresentedKey::from_bytes(&b))
+            .filter(|k| k.alg() == spec.alg)
+            .ok_or_else(|| {
+                IssueError::Malformed(
+                    "key must be base64url: a 32-byte Ed25519 key with alg Ed25519, or a 33-byte compressed \
+                     secp256k1 point with alg ES256K"
+                        .into(),
+                )
+            })?;
         let pop: [u8; 64] = b64::decode_array(&spec.pop).map_err(|_| {
             IssueError::HolderProof("pop must be a base64url 64-byte signature".into())
         })?;
-        let thumbprint = jwk_thumbprint_ed25519(&key);
+        let thumbprint = key
+            .thumbprint()
+            .ok_or_else(|| IssueError::Malformed("key is not a point on secp256k1".into()))?;
         if self.links.contains_key(&thumbprint) {
             return Err(IssueError::Duplicate(format!(
                 "key {thumbprint} is already linked (one link per key, ever: link a new key instead)"
@@ -145,7 +164,7 @@ impl RegistrarBox {
             )));
         }
         let msg = pop_signing_bytes(&self.id, &spec.passport, &thumbprint, spec.nbf);
-        if !crypto::ed25519_verify(&key, &msg, &pop) {
+        if !key.verify(&msg, &pop) {
             return Err(IssueError::HolderProof(
                 "the key did not sign this link (pop must cover registrar, passport, thumbprint and nbf)".into(),
             ));
@@ -161,7 +180,7 @@ impl RegistrarBox {
             "v": LINK_V,
             "registrar": self.id,
             "passport": spec.passport,
-            "subject": { "kind": SUBJECT_KIND_JWK, "alg": SUBJECT_ALG_ED25519, "thumbprint": thumbprint },
+            "subject": { "kind": SUBJECT_KIND_JWK, "alg": key.alg(), "thumbprint": thumbprint },
             "scope": spec.scope,
             "nbf": spec.nbf,
             "exp": spec.exp,
@@ -375,12 +394,12 @@ impl RegistrarBox {
     /// `None` means the key is not linked here: an outcome, not a reason, and a gate in link mode refuses it.
     pub fn verify_link_for(
         &self,
-        presented_key: &[u8; 32],
+        presented_key: &PresentedKey,
         now: u64,
         freshness: status::Freshness,
         capability: Option<&str>,
     ) -> Option<Result<Attribution, Reason>> {
-        let link = self.links.get(&jwk_thumbprint_ed25519(presented_key))?;
+        let link = self.links.get(&presented_key.thumbprint()?)?;
         let published = self.status.publish(now.saturating_sub(1));
         let compressed = b64::decode(&published.status_list_b64).unwrap_or_default();
         let Ok(list) = status::StatusList::decode(&compressed, published.bit_len as usize) else {
@@ -423,6 +442,7 @@ impl RegistrarBox {
 mod tests {
     use super::super::tests::{engine, spec, EXP, NBF, VERIFY_NOW};
     use super::*;
+    use ainra_core::link::jwk_thumbprint_ed25519;
     use crypto::TestDelegate as AgentKey;
     use rand_chacha::ChaCha20Rng;
     use rand_core::SeedableRng;
@@ -443,6 +463,7 @@ mod tests {
         let pop = sk.sign(&pop_signing_bytes(rb.id(), passport, &tp, nbf));
         LinkSpec {
             passport: passport.into(),
+            alg: SUBJECT_ALG_ED25519.into(),
             key: b64::encode(&pk),
             pop: b64::encode(&pop),
             scope: vec![],
@@ -463,7 +484,7 @@ mod tests {
     }
 
     fn check(rb: &RegistrarBox, sk: &AgentKey) -> Option<Result<Attribution, Reason>> {
-        rb.verify_link_for(&sk.public(), VERIFY_NOW, status::Freshness::F3, None)
+        rb.verify_link_for(&sk.public().into(), VERIFY_NOW, status::Freshness::F3, None)
     }
 
     #[test]
@@ -710,5 +731,64 @@ mod tests {
             )
             .unwrap();
         }
+    }
+
+    // ── D-082: a secp256k1 key, linked and attributed through the same path ───────────────────────────────────────
+
+    #[test]
+    fn an_es256k_key_links_and_is_attributed() {
+        use k256::ecdsa::signature::Signer as _;
+        let (mut rb, passport) = setup("es256k");
+        let sk = k256::ecdsa::SigningKey::from_bytes(&[0x4B; 32].into()).unwrap();
+        let pk: [u8; 33] = sk
+            .verifying_key()
+            .to_encoded_point(true)
+            .as_bytes()
+            .try_into()
+            .unwrap();
+        let tp = ainra_core::link::jwk_thumbprint_es256k(&pk).unwrap();
+        let sign = |msg: &[u8]| -> [u8; 64] {
+            let s: k256::ecdsa::Signature = sk.sign(msg);
+            s.to_bytes().into()
+        };
+        let consent = pop_signing_bytes(rb.id(), &passport, &tp, NBF);
+        let spec = |alg: &str, pop: &[u8]| LinkSpec {
+            passport: passport.clone(),
+            alg: alg.into(),
+            key: b64::encode(&pk),
+            pop: b64::encode(pop),
+            scope: vec![],
+            nbf: NBF,
+            exp: NBF + 30 * 24 * 60 * 60,
+        };
+        // A 33-byte key claimed as Ed25519 is refused before anything else.
+        assert!(matches!(
+            rb.link(&spec("Ed25519", &sign(&consent))),
+            Err(IssueError::Malformed(_))
+        ));
+        // The high-S twin of the key's own consent is refused, like a signature by another key.
+        let low = sign(&consent);
+        let s = k256::ecdsa::Signature::from_slice(&low).unwrap();
+        let (r, s_) = s.split_scalars();
+        let high: [u8; 64] = k256::ecdsa::Signature::from_scalars(r, -*s_)
+            .unwrap()
+            .to_bytes()
+            .into();
+        assert!(matches!(
+            rb.link(&spec("ES256K", &high)),
+            Err(IssueError::HolderProof(_))
+        ));
+        let rec = rb.link(&spec("ES256K", &low)).unwrap();
+        assert_eq!(rec.thumbprint, tp);
+        let a = rb
+            .verify_link_for(
+                &PresentedKey::Es256k(pk),
+                VERIFY_NOW,
+                status::Freshness::F3,
+                None,
+            )
+            .expect("linked")
+            .expect("valid");
+        assert_eq!(a.operator, "acme");
     }
 }

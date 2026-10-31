@@ -23,6 +23,7 @@ flate2 = { workspace = true }
 ed25519-dalek = { workspace = true }
 ml-dsa = { workspace = true }
 slh-dsa = { workspace = true }
+k256 = { workspace = true }
 signature = { workspace = true }
 rand_core = { workspace = true }
 

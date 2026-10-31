@@ -281,8 +281,8 @@ question across providers today.
   services for agent identity, discovery and transactions, with a logistics demonstration of agents that discover,
   negotiate and transact. It names no revocation or reputation mechanism; one freight company reports a pilot. No
   independent evidence of large-scale production use was found. **Relation:** a network whose agent keys could be
-  linked to accountable operators across networks. AINRA Link v1 takes Ed25519 keys only, so it would need another
-  key type first. <https://arxiv.org/abs/2510.18699>
+  linked to accountable operators across networks. AINRA Link takes Ed25519 and, since D-082, ES256K (secp256k1)
+  keys — the key type such networks sign with. <https://arxiv.org/abs/2510.18699>
 - **Attestix.** Open documentation tooling that produces Ed25519-signed, machine-readable EU AI Act evidence for
   agents (data governance, lineage, conformity records, verifiable presentations checkable "without contacting
   Attestix"). It says plainly it is not a conformity determination. No revocation or audit-log mechanism is

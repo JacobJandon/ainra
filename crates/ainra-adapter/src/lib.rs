@@ -1283,7 +1283,7 @@ pub struct WireLink {
     pub status_sig_mldsa65: Option<String>,
 }
 
-/// Verify a link AS A GATE (D-078 on top of D-072). `presented_key` is the Ed25519 key the gate has ALREADY verified
+/// Verify a link AS A GATE (D-078 on top of D-072). `presented_key` is the key the gate has ALREADY verified
 /// the request's signature with — this answers who stands behind that key, not whether the request is genuine.
 ///
 /// Order, fixed, first failure wins: the link's schema; its registrar is accredited; the status publication is
@@ -1294,7 +1294,7 @@ pub struct WireLink {
 pub fn verify_link_gate(
     w: &WireLink,
     trust: &GateTrust,
-    presented_key: &[u8; 32],
+    presented_key: &link::PresentedKey,
     now: u64,
     freshness: status::Freshness,
     capability: Option<&str>,
@@ -1373,7 +1373,7 @@ pub fn link_vector_result(v: &serde_json::Value) -> serde_json::Value {
         gate_trust(&acc["trust"].to_string()),
         v["freshness"].as_str().and_then(freshness_of),
         v["now"].as_u64(),
-        v["presented_key"].as_str().and_then(|k| decode32(k).ok()),
+        v["presented_key"].as_str().and_then(presented_key_of),
     ) else {
         return invalid("schema_violation");
     };
@@ -1450,7 +1450,7 @@ pub fn link_check_json(
         serde_json::from_str::<WireLink>(link_json),
         gate_trust(trust_json),
         freshness_of(freshness),
-        decode32(presented_key),
+        presented_key_of(presented_key).ok_or(Reason::SchemaViolation),
     ) else {
         return invalid("schema_violation");
     };
@@ -1466,6 +1466,11 @@ pub fn link_check_json(
         .to_string(),
         Err(r) => invalid(&reason_str(r)),
     }
+}
+
+/// A presented key from base64url, by length: 32 bytes Ed25519, 33 a compressed secp256k1 point (D-082).
+pub fn presented_key_of(b64u: &str) -> Option<link::PresentedKey> {
+    link::PresentedKey::from_bytes(&b64::decode(b64u).ok()?)
 }
 
 /// [`decision_chain_result`] from JSON text: `lines_json` is an array of log lines, `anchor_json` an anchor or `null`.

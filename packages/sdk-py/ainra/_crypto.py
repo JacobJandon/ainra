@@ -27,7 +27,10 @@ import ctypes
 import ctypes.util
 import hashlib
 
-from cryptography.hazmat.primitives.asymmetric import ed25519, mldsa
+from cryptography.exceptions import InvalidSignature
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import ec, ed25519, mldsa
+from cryptography.hazmat.primitives.asymmetric.utils import encode_dss_signature
 
 # Exact FIPS / RFC 8032 sizes — asserted as a conformance gate, matching the
 # Rust core's size asserts (a deviation means a broken dependency, not a code
@@ -51,6 +54,40 @@ def ed25519_verify(pub: bytes, sig: bytes, msg: bytes) -> bool:
     try:
         ed25519.Ed25519PublicKey.from_public_bytes(pub).verify(sig, msg)
         return True
+    except Exception:
+        return False
+
+
+# The order of the secp256k1 group: a signature's s must be at most half of it (low-S, D-082).
+_SECP256K1_N = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141
+
+
+def secp256k1_point(pub: bytes) -> tuple[bytes, bytes] | None:
+    """The affine x and y (32 bytes each) of a 33-byte compressed secp256k1 point, or None if it is not one."""
+    if len(pub) != 33 or pub[0] not in (2, 3):
+        return None
+    try:
+        n = ec.EllipticCurvePublicKey.from_encoded_point(ec.SECP256K1(), pub).public_numbers()
+    except Exception:
+        return None
+    return n.x.to_bytes(32, "big"), n.y.to_bytes(32, "big")
+
+
+def es256k_verify(pub: bytes, sig: bytes, msg: bytes) -> bool:
+    """ES256K (RFC 8812): ECDSA over secp256k1 with SHA-256 of ``msg``; ``sig`` is 64-byte ``r || s``. A high-S
+    signature is refused — its low-S twin is the canonical form — and so is anything that is not a compressed point
+    on the curve. Fail closed on any anomaly."""
+    if len(pub) != 33 or pub[0] not in (2, 3) or len(sig) != 64:
+        return False
+    r, s = int.from_bytes(sig[:32], "big"), int.from_bytes(sig[32:], "big")
+    if not (0 < r < _SECP256K1_N and 0 < s <= _SECP256K1_N // 2):
+        return False
+    try:
+        key = ec.EllipticCurvePublicKey.from_encoded_point(ec.SECP256K1(), pub)
+        key.verify(encode_dss_signature(r, s), msg, ec.ECDSA(hashes.SHA256()))
+        return True
+    except (InvalidSignature, ValueError):
+        return False
     except Exception:
         return False
 

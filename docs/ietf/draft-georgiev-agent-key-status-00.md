@@ -21,12 +21,19 @@ normative:
   RFC7638:
   RFC8032:
   RFC8037:
+  RFC8812:
   RFC6962:
   I-D.ietf-oauth-status-list:
 
 informative:
   RFC9421:
   RFC7942:
+  SEC1:
+    title: "SEC 1: Elliptic Curve Cryptography, Version 2.0"
+    target: https://www.secg.org/sec1-v2.pdf
+    author:
+      - org: Standards for Efficient Cryptography Group
+    date: 2009-05
   FIPS204:
     title: "Module-Lattice-Based Digital Signature Standard"
     target: https://doi.org/10.6028/NIST.FIPS.204
@@ -40,7 +47,7 @@ Software agents increasingly sign their requests with keys issued inside one sys
 workload identity domain, a platform's own key store. A relying party in another organisation can verify such a
 signature, but cannot learn who is accountable for the key or whether it has since been revoked, because revocation
 exists only inside the system that issued it. This document specifies a link record: a signed, logged statement by an
-accountable registrar that one existing Ed25519 key acts for one operator, carrying a status entry in a list any relying
+accountable registrar that one existing key — Ed25519, or secp256k1 as ES256K — acts for one operator, carrying a status entry in a list any relying
 party can check offline. It defines proof of control by the linked key, three kinds of revocation, a fixed verification
 procedure, and reuse of the Token Status List format for the status itself.
 
@@ -82,7 +89,7 @@ Registrar:
   decides which registrars it trusts.
 
 Linked key:
-: An Ed25519 {{RFC8032}} public key named in a link record by its JWK thumbprint {{RFC7638}} {{RFC8037}}.
+: A public key of one of the algorithms in {{algs}}, named in a link record by its JWK thumbprint {{RFC7638}}.
 
 Link record:
 : The signed statement defined in {{record}}.
@@ -97,7 +104,7 @@ integers only), and signed by the registrar over exactly those bytes. Its member
 | `v` | the string `ainra-link-1` |
 | `registrar` | the registrar's identifier |
 | `passport` | the operator's identifier at that registrar |
-| `subject` | `{kind: "jwk", alg: "Ed25519", thumbprint}`: the linked key's RFC 7638 thumbprint, base64url |
+| `subject` | `{kind: "jwk", alg, thumbprint}`: the key's algorithm ({{algs}}) and its RFC 7638 thumbprint, base64url |
 | `scope` | an array of capability strings, at most 256; empty means no narrowing |
 | `nbf`, `exp` | the validity window, seconds since the epoch, `nbf < exp` |
 | `status` | `{uri, idx}`: the link's own entry in the registrar's status list |
@@ -107,6 +114,18 @@ integers only), and signed by the registrar over exactly those bytes. Its member
 
 A record with any other member, a missing member, a member of the wrong type, or bytes that are not in canonical form
 MUST be rejected. The `passport` identifier MUST name the same registrar as `registrar`.
+
+## Key algorithms {#algs}
+
+| `alg` | Key, as presented | Thumbprint JWK | Signature over the consent bytes |
+|---|---|---|---|
+| `Ed25519` | the 32-byte public key {{RFC8032}} | `{crv: "Ed25519", kty: "OKP", x}` {{RFC8037}} | Ed25519, 64 bytes |
+| `ES256K` | the 33-byte compressed point {{SEC1}} on secp256k1 | `{crv: "secp256k1", kty: "EC", x, y}` {{RFC8812}} | ECDSA with SHA-256, 64-byte `r || s` with `s` at most half the group order |
+
+A verifier MUST refuse an ES256K signature whose `s` is greater than half the group order, even though the curve
+equation accepts it: each consent then has exactly one valid encoding. A key presented in one algorithm never
+verifies a link that names another. ES256K is the standard, ledger-neutral form; message formats specific to one
+ledger would be further `alg` values.
 
 ## Proof of control {#pop}
 
@@ -141,7 +160,7 @@ Revoke:
 
 # Verification
 
-A relying party has already verified a request's signature with an Ed25519 key, and holds a trusted set of registrars
+A relying party has already verified a signature with a key of one of the algorithms in {{algs}}, and holds a trusted set of registrars
 with their signature keys, status keys, status list URIs and log keys. It checks a link in this order; the first
 failure is the answer:
 
@@ -151,7 +170,8 @@ failure is the answer:
    names, and that URI equals the record's `status.uri`. Nothing in the list is read before this holds.
 4. The current time is within `[nbf, exp)`.
 5. The registrar's signature over the record verifies.
-6. The thumbprint of the key that verified the request equals `subject.thumbprint`, and `pop` verifies under that key.
+6. The key that verified the request is of the algorithm `subject.alg` names, its thumbprint equals
+   `subject.thumbprint`, and `pop` verifies under that key in that algorithm ({{algs}}).
 7. If the request exercises a capability and `scope` is not empty, the capability is in `scope`.
 8. The status list is fresh enough for the relying party's own policy; the link's entry is not set; the operator's
    entry is not set. An index at or beyond the end of the list is treated as set.
@@ -173,7 +193,7 @@ draft.
 (This section is to be removed before publication, per {{RFC7942}}.)
 
 A reference implementation with three independently written verifiers (Rust, TypeScript, Python) and a shared corpus of
-36 conformance vectors for link verification is available under open-source licences. It includes a registrar, gates
+43 conformance vectors for link verification, covering both key algorithms, is available under open-source licences. It includes a registrar, gates
 for HTTP servers and edge runtimes, and an interoperability test in which independent Token Status List and JOSE
 libraries read the status list. It runs on a test network; no production deployment exists.
 

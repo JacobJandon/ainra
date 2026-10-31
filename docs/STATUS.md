@@ -303,7 +303,7 @@ DECISIONS D-027/D-028, MTS ADR-017.
 ## Known limitations honestly stated
 
 - 1153 passport + 17 delta + 9 directory vectors, plus 46 request-signature vectors (`vectors/v1-presentation`,
-  D-067, D-070), 27 gate vectors (`vectors/v1-gate`, D-073), 36 link vectors (`vectors/v1-link`, D-078) and 32 decision vectors (`vectors/v1-decision`, D-079, D-081) — not the 10 k GA target; broad but not the full combinatorial cross-product.
+  D-067, D-070), 27 gate vectors (`vectors/v1-gate`, D-073), 43 link vectors (`vectors/v1-link`, D-078, D-082) and 32 decision vectors (`vectors/v1-decision`, D-079, D-081) — not the 10 k GA target; broad but not the full combinatorial cross-product.
 - Services persist to local files, bind 127.0.0.1, single-key signers — a working reference, not the hardened
   multi-region deployment (M4–M8). The CLI's `registrar.secret` is a TEST-labeled dev keystore, not an HSM.
 - Proof of possession, rung by rung. At **issuance**, the registrar certifies only a key the agent proves it holds

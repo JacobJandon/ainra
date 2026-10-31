@@ -17,21 +17,28 @@ still true?*
   "v": "ainra-link-1",
   "registrar": "registrar-07",
   "passport": "ainra:registrar-07:acme:invoicing@1.0.0",
-  "subject": { "kind": "jwk", "alg": "Ed25519", "thumbprint": "<RFC 7638 thumbprint, base64url>" },
+  "subject": { "kind": "jwk", "alg": "Ed25519 | ES256K", "thumbprint": "<RFC 7638 thumbprint, base64url>" },
   "scope": [],
   "nbf": 1775865600,
   "exp": 1778457600,
   "status": { "uri": "status://registrar-07/1", "idx": 5 },
   "passport_status": { "uri": "status://registrar-07/1", "idx": 3 },
-  "pop": "<Ed25519 signature by the linked key>",
+  "pop": "<64-byte signature by the linked key, in its own algorithm>",
   "log": { "leaf": "<RFC 6962 leaf of the record without `log`>" }
 }
 ```
 
 - The registrar signs these exact canonical bytes with its hybrid key (Ed25519 and ML-DSA-65, both or invalid).
-- `pop` is the linked key's own consent: an Ed25519 signature over the canonical
+- `pop` is the linked key's own consent, signed in its own algorithm over the canonical
   `{"nbf", "passport", "purpose": "ainra-link-pop-1", "registrar", "thumbprint"}`. Nobody can link a key they do not
   hold.
+- **Two key types (D-082).** `Ed25519`: the 32-byte key, thumbprint over `{"crv":"Ed25519","kty":"OKP","x"}`.
+  `ES256K` (RFC 8812), for agents on ledgers: the 33-byte compressed secp256k1 point, thumbprint over
+  `{"crv":"secp256k1","kty":"EC","x","y"}`, consent by ECDSA with SHA-256 as 64-byte `r || s`, **low-S only** — the
+  high-S twin of a valid signature is refused, so a consent has exactly one valid encoding. A verifier tells them
+  apart by the key it holds: 32 bytes is Ed25519, 33 is ES256K. secp256k1 comes from RustCrypto `k256` (the 0.13 line
+  NCC Group reviewed in 2023; the crate still says "use at your own risk"), `@noble/curves` and Python
+  `cryptography`.
 - `scope` empty means "whatever the passport allows"; otherwise the link refuses any capability it does not name.
 - Two bits: the link's own, and the passport's. Revoking the operator refuses every link it has.
 
@@ -39,7 +46,7 @@ still true?*
 
 | Route | What it does |
 |---|---|
-| `POST /link` | Body `{passport, key, pop, scope?, nbf, exp}` (`key` is the base64url Ed25519 public key). Refused unless the key signed its consent, the passport is this registrar's and not revoked, and the link fits inside it: window inside the passport's, scope inside its capabilities. Bearer token, rate limited. |
+| `POST /link` | Body `{passport, alg?, key, pop, scope?, nbf, exp}` (`alg` is `Ed25519`, the default, or `ES256K`; `key` the base64url public key in that algorithm's form). Refused unless the key signed its consent, the passport is this registrar's and not revoked, and the link fits inside it: window inside the passport's, scope inside its capabilities. Bearer token, rate limited. |
 | `GET /links` | The whole index. Each entry is registrar-signed and proven under one delegate-signed checkpoint. There is no lookup by key: you download the index, so nobody learns which key you asked about. |
 | `POST /link/revoke` | Body `{thumbprint, kind, suspect_since?}`. `kind` is `link` (this key is retired), `operator` (the passport's lineage is suspended, so every link flips) or `compromise` (the key was stolen; `suspect_since` marks when its actions stopped being the operator's). Bearer token, rate limited. |
 | `POST /demo/link`, `POST /demo/link/revoke` | The public demo door, for trying Link without a token: the same bodies, the same proof of control, but staging only, on the demo door's own rate limit, and only for demo specimens (passports from `POST /demo/issue`). A key cannot be linked to, and a link cannot be revoked from, any other passport through it. |

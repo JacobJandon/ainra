@@ -2042,3 +2042,25 @@ learns a digest per head, never a decision.
 implementation with a vector going red; the registrar's floor and persistence against the real binary
 (`tests/registrar_restart.rs`). Plan: PLAN-M49.
 
+## D-082 — Link accepts secp256k1 keys, as ES256K (M49)
+
+*Problem:* Link v1 attributed only Ed25519 keys. Agent networks that live on ledgers sign with secp256k1, and one of
+them describes identity, discovery and payments with no revocation; Link could not carry those agents' keys.
+
+*Decision:* `subject.alg` is `Ed25519` or `ES256K` — ECDSA over secp256k1 with SHA-256, as JOSE registers it (RFC 8812).
+The key is the 33-byte compressed SEC1 point; its RFC 7638 thumbprint is over `{crv: "secp256k1", kty: "EC", x, y}`;
+the consent is 64-byte `r || s` and must be **low-S** (the high-S twin of a valid signature is refused). Additive on
+the wire: `LinkSpec.alg` defaults to `Ed25519`, and verifiers tell the algorithms apart by the key they hold — 32 bytes
+Ed25519, 33 ES256K — so every existing caller, record and vector is unchanged. Ledger-specific message formats (a
+keccak-hashed personal-sign envelope, say) would be further `alg` values; they are not in this decision.
+
+*Libraries:* audited only — RustCrypto `k256`, the 0.13 line NCC Group reviewed in 2023 (two high findings, fixed
+before release; the crate still says "use at your own risk"), `@noble/curves` (floor raised to 1.9 for its compact
+signature format), Python `cryptography`.
+
+*Held to:* `vectors/v1-link` l37–l43 in all three implementations (`make diff`): a valid ES256K link, its high-S
+consent, consent by another key, each algorithm's key presented to the other's link, an uncompressed point, and the
+thumbprint of the wrong curve. Removing the low-S rule turns l38 red. The explicit algorithm comparison is defence in
+depth that no vector can witness on its own: a JWK thumbprint already names the key type and curve, so a key of one
+algorithm cannot match the other's thumbprint short of a SHA-256 collision. Plan: PLAN-M49.
+

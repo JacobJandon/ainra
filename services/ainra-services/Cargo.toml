@@ -47,3 +47,6 @@ path = "src/bin/scale_proof.rs"
 [[bin]]
 name = "witness-quorum-drill"
 path = "src/bin/witness_quorum_drill.rs"
+
+[dev-dependencies]
+k256 = { workspace = true }   # ES256K test keys (D-082); the registrar itself verifies through ainra-core

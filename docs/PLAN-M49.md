@@ -65,7 +65,7 @@ untouched.
 will repeat that). TypeScript: `@noble/curves` `secp256k1`, already a dependency. Python: `cryptography`
 (`ec.SECP256K1`), already a dependency.
 
-**Steps.**
+**Steps.** *All five done 2026-10-31.*
 1. Core (`ainra_core::link`): `alg` on the subject, ES256K thumbprint, low-S verification, consent check per alg.
    Unit tests, including a high-S signature refused.
 2. Registrar `/link` and `/demo/link` take `alg`.

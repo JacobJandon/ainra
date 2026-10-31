@@ -4058,6 +4058,34 @@ fn link_record(
     (claims, sig, leaf, body_bytes)
 }
 
+/// A link record for a key of any algorithm (D-082): the subject's `alg` and `thumbprint` and the consent signature are
+/// given, so a case can pair any of them wrongly on purpose. Otherwise exactly [`link_record`].
+fn link_record_alg(
+    s: &LinkSpecV,
+    alg: &str,
+    thumbprint: &str,
+    pop: &[u8],
+    signer: &crypto::HybridKeypair,
+) -> (Vec<u8>, crypto::HybridSig, Vec<u8>) {
+    let mut body = json!({
+        "v": ainra_core::link::LINK_V,
+        "registrar": s.registrar,
+        "passport": s.passport,
+        "subject": { "kind": "jwk", "alg": alg, "thumbprint": thumbprint },
+        "scope": s.scope,
+        "nbf": s.nbf,
+        "exp": s.exp,
+        "status": { "uri": s.uri, "idx": s.link_idx },
+        "passport_status": { "uri": s.uri, "idx": s.passport_idx },
+        "pop": b64::encode(pop),
+    });
+    let body_bytes = canon::canonicalize(&body).expect("canon body").into_bytes();
+    body["log"] = json!({ "leaf": b64::encode(&merkle::hash_leaf(&body_bytes)) });
+    let claims = canon::canonicalize(&body).expect("canon link").into_bytes();
+    let sig = signer.sign(&claims).expect("sign link");
+    (claims, sig, body_bytes)
+}
+
 /// A status publication over `bits` (64 by default), signed by `key` under `uri`, issued at `issued_at`.
 fn link_status(
     revoked: &[u64],
@@ -4674,6 +4702,111 @@ fn link_vectors() -> Vec<Value> {
         want: "valid",
     });
 
+    // ── D-082 ES256K: a secp256k1 key, as agents on ledgers hold one ─────────────────────────────────────────────
+    // Their own seed, so every Ed25519 vector above stays byte-identical. The key is a compressed SEC1 point; the
+    // consent is ECDSA-SHA256, `r || s`, low-S.
+    {
+        use k256::ecdsa::signature::Signer as _;
+        use k256::elliptic_curve::sec1::ToEncodedPoint as _;
+        let mut krng = ChaCha20Rng::seed_from_u64(0x4553_3235_364B_0082); // "ES256K" · D-082 — a public TEST seed
+        let k1 = |seed: u8| {
+            let sk = k256::ecdsa::SigningKey::from_bytes(&[seed; 32].into()).expect("k1 key");
+            let pk: [u8; 33] = sk
+                .verifying_key()
+                .to_encoded_point(true)
+                .as_bytes()
+                .try_into()
+                .expect("33 bytes");
+            (sk, pk)
+        };
+        let (k1_sk, k1_pk) = k1(0x4B);
+        let (k1_other, _) = k1(0x4C);
+        let k1_tp = ainra_core::link::jwk_thumbprint_es256k(&k1_pk).expect("on curve");
+        let consent = |tp: &str| {
+            ainra_core::link::pop_signing_bytes(&base.registrar, &base.passport, tp, base.nbf)
+        };
+        let sign_k1 = |sk: &k256::ecdsa::SigningKey, msg: &[u8]| -> [u8; 64] {
+            let sig: k256::ecdsa::Signature = sk.sign(msg);
+            sig.to_bytes().into()
+        };
+        let low = sign_k1(&k1_sk, &consent(&k1_tp));
+        let high: [u8; 64] = {
+            let s = k256::ecdsa::Signature::from_slice(&low).expect("sig");
+            let (r, s_) = s.split_scalars();
+            k256::ecdsa::Signature::from_scalars(r, -*s_)
+                .expect("high-s")
+                .to_bytes()
+                .into()
+        };
+        let mut k1_link = |alg: &str, tp: &str, pop: &[u8]| {
+            let (claims, sig, logged) = link_record_alg(&base, alg, tp, pop, &w.issuer);
+            with_status(
+                assemble(&claims, &sig, &logged, &mut krng).0,
+                clear(now - 10),
+            )
+        };
+        let valid = k1_link("ES256K", &k1_tp, &low);
+        let high_s = k1_link("ES256K", &k1_tp, &high);
+        let other = k1_link("ES256K", &k1_tp, &sign_k1(&k1_other, &consent(&k1_tp)));
+        // The thumbprint of an Ed25519 key with the same 32 bytes as the point's x: the right bytes, the wrong curve.
+        let ed_tp = ainra_core::link::jwk_thumbprint_ed25519(&k1_pk[1..].try_into().expect("32"));
+        let wrong_curve = k1_link("ES256K", &ed_tp, &sign_k1(&k1_sk, &consent(&ed_tp)));
+        let k1_key = b64::encode(&k1_pk);
+        let uncompressed = b64::encode(
+            k256::PublicKey::from_sec1_bytes(&k1_pk)
+                .expect("point")
+                .to_encoded_point(false)
+                .as_bytes(),
+        );
+        add!("l37-es256k", "an ES256K (secp256k1) key, linked with its own low-S consent, presented as a compressed point", valid.clone(), k1_key.clone(), now, None, "valid");
+        add!("l38-es256k-high-s-consent", "the same consent with s replaced by n - s: valid curve math, refused as the non-canonical twin", high_s, k1_key.clone(), now, None, "sig_invalid");
+        add!(
+            "l39-es256k-consent-by-another-key",
+            "the link names this key, but another secp256k1 key signed the consent",
+            other,
+            k1_key.clone(),
+            now,
+            None,
+            "sig_invalid"
+        );
+        add!(
+            "l40-es256k-link-ed25519-key",
+            "an ES256K link, and the gate presents an Ed25519 key",
+            valid.clone(),
+            key(&agent),
+            now,
+            None,
+            "sig_invalid"
+        );
+        add!(
+            "l41-ed25519-link-es256k-key",
+            "an Ed25519 link, and the gate presents a secp256k1 key",
+            with_status(good.clone(), clear(now - 10)),
+            k1_key.clone(),
+            now,
+            None,
+            "sig_invalid"
+        );
+        add!(
+            "l42-es256k-uncompressed-key",
+            "the secp256k1 key presented as an uncompressed point: not a key Link takes",
+            valid,
+            uncompressed,
+            now,
+            None,
+            "schema_violation"
+        );
+        add!(
+            "l43-es256k-thumbprint-of-another-curve",
+            "alg ES256K with the thumbprint of an Ed25519 key made of the point's x bytes",
+            wrong_curve,
+            k1_key,
+            now,
+            None,
+            "sig_invalid"
+        );
+    }
+
     cases.sort_by(|a, b| a.name.cmp(b.name));
     let mut out = Vec::new();
     for c in cases {
@@ -4725,7 +4858,7 @@ fn emit_link(dir: &str) {
         "count": vectors.len(),
         "accept": accept,
         "reject": vectors.len() - accept,
-        "note": "CC0 AINRA Link conformance vectors (D-078): a dual-root-signed directory, one link as a gate receives it (record, registrar signature, inclusion proof, checkpoint, signed status publication), the Ed25519 key the gate already verified the request with, and the gate's own clock, freshness class and capability. A valid answer names the registrar, operator, passport and scope. Real signing throughout; expect computed by ainra-adapter::link_vector_result after accredit, each checked against the case it exists to test. Regenerate with `make vectors`.",
+        "note": "CC0 AINRA Link conformance vectors (D-078, D-082): a dual-root-signed directory, one link as a gate receives it (record, registrar signature, inclusion proof, checkpoint, signed status publication), the key the gate already verified the request with — 32 bytes is Ed25519, 33 a compressed secp256k1 point (ES256K, RFC 8812; l37-l43) — and the gate's own clock, freshness class and capability. A valid answer names the registrar, operator, passport and scope. Real signing throughout; expect computed by ainra-adapter::link_vector_result after accredit, each checked against the case it exists to test. Regenerate with `make vectors`.",
     });
     std::fs::write(
         Path::new(dir).join("manifest.json"),

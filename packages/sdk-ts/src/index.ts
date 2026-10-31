@@ -13,7 +13,9 @@ import {
   b64uDecode,
   b64uEncode,
   ed25519Verify,
+  es256kVerify,
   hashLeaf,
+  secp256k1Affine,
   sha256,
   slhVerify,
   verifyHybrid,
@@ -1293,7 +1295,8 @@ export class Verifier {
     }
   }
 
-  /** AINRA Link (D-078): who stands behind `presentedKey`, a 32-byte Ed25519 key this gate has ALREADY verified the
+  /** AINRA Link (D-078): who stands behind `presentedKey` — a 32-byte Ed25519 key, or a 33-byte compressed secp256k1
+   *  point (ES256K, D-082) — a key this gate has ALREADY verified the
    *  request's signature with. Uses the directory's anchors and revoked delegates, this verifier's freshness class,
    *  and authenticates the status publication before reading a bit. `capability` is what the request exercises.
    *  A key with no link is the caller's outcome ("not linked") — this checks the link it is given. Never throws. */
@@ -1695,6 +1698,7 @@ export type LinkVerdict = ({ verdict: "valid" } & LinkAttribution) | { verdict: 
 interface LinkClaims {
   registrar: string;
   passport: string;
+  alg: "Ed25519" | "ES256K";
   thumbprint: string;
   scope: string[];
   nbf: number;
@@ -1752,7 +1756,7 @@ function parseLinkChecked(raw: Uint8Array): LinkClaims {
     throw new Reject("schema_violation");
   }
   if (!eqBytes(new TextEncoder().encode(again), raw)) throw new Reject("schema_violation");
-  if (v !== LINK_V || kind !== "jwk" || alg !== "Ed25519") throw new Reject("schema_violation");
+  if (v !== LINK_V || kind !== "jwk" || (alg !== "Ed25519" && alg !== "ES256K")) throw new Reject("schema_violation");
   const tp = strictB64u(thumbprint);
   const pop = strictB64u(popB64);
   const leaf = strictB64u(leafB64);
@@ -1767,9 +1771,22 @@ function parseLinkChecked(raw: Uint8Array): LinkClaims {
   // A registrar links only passports it issued itself.
   if (passport.split(":")[1] !== registrar) throw new Reject("schema_violation");
   return {
-    registrar, passport, thumbprint, scope, nbf: o.nbf, exp: o.exp,
+    registrar, passport, alg, thumbprint, scope, nbf: o.nbf, exp: o.exp,
     statusUri, statusIdx: status.idx, passportIdx: pstatus.idx, pop, leaf,
   };
+}
+
+/** RFC 7638 thumbprint of a secp256k1 key given as a 33-byte compressed point (D-082): base64url(SHA-256(
+ *  `{"crv":"secp256k1","kty":"EC","x":"…","y":"…"}`)), the names RFC 8812 registers. `null` for anything else. */
+export function jwkThumbprintEs256k(pk: Uint8Array): string | null {
+  const p = secp256k1Affine(pk);
+  if (!p) return null;
+  return b64uEncode(sha256(new TextEncoder().encode(canonicalize({ crv: "secp256k1", kty: "EC", x: b64uEncode(p.x), y: b64uEncode(p.y) }))));
+}
+
+/** The thumbprint of a presented key, by length: 32 bytes Ed25519, 33 a compressed secp256k1 point. */
+function jwkThumbprintOf(pk: Uint8Array): string | null {
+  return pk.length === 32 ? jwkThumbprintEd25519(pk) : pk.length === 33 ? jwkThumbprintEs256k(pk) : null;
 }
 
 /** RFC 7638 thumbprint of an Ed25519 public key: base64url(SHA-256(`{"crv":"Ed25519","kty":"OKP","x":"…"}`)). */
@@ -1823,8 +1840,11 @@ function verifyLinkInner(
   const r = verifyHybrid(reg.issuerKey, raw, sig);
   if (r) throw new Reject(r);
   // the key the gate verified is the linked key, and that key consented to this link
-  if (presentedKey.length !== 32 || jwkThumbprintEd25519(presentedKey) !== c.thumbprint) throw new Reject("sig_invalid");
-  if (!ed25519Verify(presentedKey, linkPopSigningBytes(c.registrar, c.passport, c.thumbprint, c.nbf), c.pop))
+  // — same algorithm (by length: 32 bytes Ed25519, 33 a compressed secp256k1 point, D-082), same thumbprint
+  const presentedAlg = presentedKey.length === 32 ? "Ed25519" : presentedKey.length === 33 ? "ES256K" : null;
+  if (presentedAlg !== c.alg || jwkThumbprintOf(presentedKey) !== c.thumbprint) throw new Reject("sig_invalid");
+  const consent = linkPopSigningBytes(c.registrar, c.passport, c.thumbprint, c.nbf);
+  if (!(presentedAlg === "Ed25519" ? ed25519Verify(presentedKey, consent, c.pop) : es256kVerify(presentedKey, consent, c.pop)))
     throw new Reject("sig_invalid");
   // scope
   if (capability !== undefined && c.scope.length > 0 && !c.scope.includes(capability)) throw new Reject("ceiling_exceeded");
@@ -1921,7 +1941,7 @@ export function runLinkVector(v: {
   const gate = Verifier.fromDirectoryB64(v.directory, v.roots.root_ed25519, v.roots.root_slh, v.freshness);
   if (!gate) return { verdict: "no_gate" };
   const key = strictB64u(v.presented_key);
-  if (key === null || key.length !== 32) return { verdict: "invalid", reason: "schema_violation" };
+  if (key === null || (key.length !== 32 && key.length !== 33)) return { verdict: "invalid", reason: "schema_violation" };
   return gate.verifyLink(v.link, key, v.now, v.capability ?? undefined);
 }
 

@@ -44,8 +44,56 @@ pub const LINK_V: &str = "ainra-link-1";
 pub const LINK_POP_PURPOSE: &str = "ainra-link-pop-1";
 /// The only subject kind in version 1: a JWK, named by its RFC 7638 thumbprint.
 pub const SUBJECT_KIND_JWK: &str = "jwk";
-/// The only key algorithm in version 1. Signature-agent keys and AINRA's own workload keys are Ed25519.
+/// Signature-agent keys and AINRA's own workload keys are Ed25519.
 pub const SUBJECT_ALG_ED25519: &str = "Ed25519";
+/// ES256K (RFC 8812): ECDSA over secp256k1 with SHA-256 — the keys agents that live on ledgers already hold (D-082).
+/// Signatures are 64-byte `r || s` and must be low-S, so no signature can be re-encoded into a second valid one.
+pub const SUBJECT_ALG_ES256K: &str = "ES256K";
+
+/// A key a caller has already verified a signature with, as Link names it. By length: 32 bytes is an Ed25519 key,
+/// 33 a compressed SEC1 secp256k1 point — so every caller that passes a 32-byte key keeps meaning Ed25519.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PresentedKey {
+    Ed25519([u8; 32]),
+    Es256k([u8; 33]),
+}
+
+impl PresentedKey {
+    /// `None` for any other length.
+    pub fn from_bytes(b: &[u8]) -> Option<Self> {
+        match b.len() {
+            32 => b.try_into().ok().map(PresentedKey::Ed25519),
+            33 => b.try_into().ok().map(PresentedKey::Es256k),
+            _ => None,
+        }
+    }
+    pub fn alg(&self) -> &'static str {
+        match self {
+            PresentedKey::Ed25519(_) => SUBJECT_ALG_ED25519,
+            PresentedKey::Es256k(_) => SUBJECT_ALG_ES256K,
+        }
+    }
+    /// The RFC 7638 thumbprint; `None` for bytes that are not a point on secp256k1.
+    pub fn thumbprint(&self) -> Option<String> {
+        match self {
+            PresentedKey::Ed25519(k) => Some(jwk_thumbprint_ed25519(k)),
+            PresentedKey::Es256k(k) => jwk_thumbprint_es256k(k),
+        }
+    }
+    /// Verify a 64-byte signature by this key over `msg`, in the key's own algorithm.
+    pub fn verify(&self, msg: &[u8], sig: &[u8; 64]) -> bool {
+        match self {
+            PresentedKey::Ed25519(k) => crypto::ed25519_verify(k, msg, sig),
+            PresentedKey::Es256k(k) => es256k_verify(k, msg, sig),
+        }
+    }
+}
+
+impl From<[u8; 32]> for PresentedKey {
+    fn from(k: [u8; 32]) -> Self {
+        PresentedKey::Ed25519(k)
+    }
+}
 /// Most capabilities a link may name (the same bound as an instance credential, D-053).
 pub const MAX_LINK_SCOPE: usize = crate::instance::MAX_CAPABILITIES;
 
@@ -105,7 +153,7 @@ impl LinkClaims {
         }
         if c.v != LINK_V
             || c.subject.kind != SUBJECT_KIND_JWK
-            || c.subject.alg != SUBJECT_ALG_ED25519
+            || !(c.subject.alg == SUBJECT_ALG_ED25519 || c.subject.alg == SUBJECT_ALG_ES256K)
         {
             return Err(Reason::SchemaViolation);
         }
@@ -151,6 +199,55 @@ pub fn jwk_thumbprint_ed25519(pk: &[u8; 32]) -> String {
     b64::encode(&Sha256::digest(s.as_bytes()))
 }
 
+/// RFC 7638 thumbprint of a secp256k1 key given as a compressed SEC1 point: base64url(SHA-256(
+/// `{"crv":"secp256k1","kty":"EC","x":"…","y":"…"}`)), the member names and curve name RFC 8812 registers. `None`
+/// when the bytes are not a compressed point on the curve.
+pub fn jwk_thumbprint_es256k(sec1: &[u8; 33]) -> Option<String> {
+    use k256::elliptic_curve::sec1::ToEncodedPoint;
+    #[derive(Serialize)]
+    struct Jwk<'a> {
+        crv: &'a str,
+        kty: &'a str,
+        x: String,
+        y: String,
+    }
+    use sha2::{Digest, Sha256};
+    if !matches!(sec1[0], 0x02 | 0x03) {
+        return None;
+    }
+    let pk = k256::PublicKey::from_sec1_bytes(sec1).ok()?;
+    let p = pk.to_encoded_point(false);
+    let j = Jwk {
+        crv: "secp256k1",
+        kty: "EC",
+        x: b64::encode(p.x()?),
+        y: b64::encode(p.y()?),
+    };
+    let s = canon::canonicalize(&j).ok()?;
+    Some(b64::encode(&Sha256::digest(s.as_bytes())))
+}
+
+/// ES256K verification (RFC 8812): ECDSA over secp256k1 with SHA-256 of `msg`, the signature as 64-byte `r || s`.
+/// A high-S signature is refused even though the curve math accepts it: its low-S twin is the canonical form, and
+/// accepting both would give every consent two valid encodings.
+pub fn es256k_verify(sec1: &[u8; 33], msg: &[u8], sig: &[u8; 64]) -> bool {
+    use k256::ecdsa::signature::Verifier as _;
+    use k256::ecdsa::{Signature, VerifyingKey};
+    if !matches!(sec1[0], 0x02 | 0x03) {
+        return false;
+    }
+    let (Ok(vk), Ok(s)) = (
+        VerifyingKey::from_sec1_bytes(sec1),
+        Signature::from_slice(sig),
+    ) else {
+        return false;
+    };
+    if s.normalize_s().is_some() {
+        return false;
+    }
+    vk.verify(msg, &s).is_ok()
+}
+
 /// What the linked key signs to consent to the link. Frozen.
 pub fn pop_signing_bytes(registrar: &str, passport: &str, thumbprint: &str, nbf: u64) -> Vec<u8> {
     #[derive(Serialize)]
@@ -179,8 +276,8 @@ pub struct LinkCheck<'a> {
     /// The exact signed link claims.
     pub claims: &'a [u8],
     pub registrar_sig: crypto::HybridSig,
-    /// The Ed25519 key the caller ALREADY verified the request's signature with.
-    pub presented_key: [u8; 32],
+    /// The key the caller ALREADY verified the request's signature with, in its algorithm.
+    pub presented_key: PresentedKey,
     pub now: u64,
     pub status_list: &'a status::StatusList,
     pub status_issued_at: u64,
@@ -229,13 +326,15 @@ pub fn verify_link(
     // 4. the registrar signed exactly these bytes, with both halves of its key
     crypto::verify_hybrid(&reg.issuer_key, chk.claims, &chk.registrar_sig)?;
 
-    // 5. the key the caller verified is the linked key, and that key consented to this link
-    if jwk_thumbprint_ed25519(&chk.presented_key) != c.subject.thumbprint {
+    // 5. the key the caller verified is the linked key — same algorithm, same thumbprint — and that key consented
+    if chk.presented_key.alg() != c.subject.alg
+        || chk.presented_key.thumbprint().as_deref() != Some(c.subject.thumbprint.as_str())
+    {
         return Err(Reason::SigInvalid);
     }
     let pop: [u8; 64] = b64::decode_array(&c.pop).map_err(|_| Reason::SchemaViolation)?;
     let msg = pop_signing_bytes(&c.registrar, &c.passport, &c.subject.thumbprint, c.nbf);
-    if !crypto::ed25519_verify(&chk.presented_key, &msg, &pop) {
+    if !chk.presented_key.verify(&msg, &pop) {
         return Err(Reason::SigInvalid);
     }
 
@@ -405,7 +504,7 @@ mod tests {
             &LinkCheck {
                 claims: &f.claims,
                 registrar_sig: f.sig.clone(),
-                presented_key: f.key,
+                presented_key: f.key.into(),
                 now,
                 status_list: &f.list,
                 status_issued_at: issued_at,
@@ -606,5 +705,95 @@ mod tests {
         f.leaf_index = 0;
         f.proof = f.other_proof.clone();
         assert_eq!(run(&f, 1_500, 1_495, None), Err(Reason::NotLogged));
+    }
+
+    // ── D-082 ES256K ───────────────────────────────────────────────────────────────────────────────────────────────
+
+    fn k1(seed: u8) -> (k256::ecdsa::SigningKey, [u8; 33]) {
+        let sk = k256::ecdsa::SigningKey::from_bytes(&[seed; 32].into()).unwrap();
+        let pk: [u8; 33] = sk
+            .verifying_key()
+            .to_encoded_point(true)
+            .as_bytes()
+            .try_into()
+            .unwrap();
+        (sk, pk)
+    }
+
+    fn k1_sign(sk: &k256::ecdsa::SigningKey, msg: &[u8]) -> [u8; 64] {
+        use k256::ecdsa::signature::Signer as _;
+        let s: k256::ecdsa::Signature = sk.sign(msg);
+        s.to_bytes().into()
+    }
+
+    #[test]
+    fn an_es256k_signature_verifies_and_its_high_s_twin_does_not() {
+        let (sk, pk) = k1(7);
+        let msg = b"consent";
+        let sig = k1_sign(&sk, msg);
+        assert!(es256k_verify(&pk, msg, &sig));
+        assert!(!es256k_verify(&pk, b"something else", &sig));
+        // The same (r, s) with s replaced by n - s: valid curve math, refused as non-canonical.
+        let parsed = k256::ecdsa::Signature::from_slice(&sig).unwrap();
+        let (r, s_) = parsed.split_scalars();
+        let high = k256::ecdsa::Signature::from_scalars(r, -*s_).unwrap();
+        let high: [u8; 64] = high.to_bytes().into();
+        assert_ne!(high, sig);
+        assert!(!es256k_verify(&pk, msg, &high));
+        let (_, other) = k1(8);
+        assert!(!es256k_verify(&other, msg, &sig));
+    }
+
+    #[test]
+    fn an_es256k_key_is_a_compressed_point_on_the_curve() {
+        let (_, pk) = k1(7);
+        let tp = jwk_thumbprint_es256k(&pk).unwrap();
+        assert_eq!(b64::decode_array::<32>(&tp).unwrap().len(), 32);
+        assert_eq!(
+            PresentedKey::from_bytes(&pk).unwrap().thumbprint(),
+            Some(tp)
+        );
+        let mut not_compressed = pk;
+        not_compressed[0] = 0x04;
+        assert_eq!(jwk_thumbprint_es256k(&not_compressed), None);
+        let mut off_curve = pk;
+        off_curve[32] ^= 1;
+        off_curve[1] ^= 0xff;
+        let maybe = jwk_thumbprint_es256k(&off_curve);
+        // Flipping bits either leaves a point (another key, another thumbprint) or not a point at all.
+        assert_ne!(maybe, jwk_thumbprint_es256k(&pk));
+        assert_eq!(PresentedKey::from_bytes(&[0u8; 65]), None);
+        assert_eq!(PresentedKey::from_bytes(&[0u8; 31]), None);
+        assert_eq!(
+            PresentedKey::from_bytes(&[1u8; 32]).unwrap().alg(),
+            SUBJECT_ALG_ED25519
+        );
+    }
+
+    #[test]
+    fn an_ed25519_key_never_answers_for_an_es256k_link_or_the_reverse() {
+        let f = build();
+        let (_, k1pk) = k1(7);
+        let none = BTreeSet::new();
+        // An ES256K key presented for this (Ed25519) link: refused on the algorithm before the thumbprint.
+        let r = verify_link(
+            &LinkCheck {
+                claims: &f.claims,
+                registrar_sig: f.sig.clone(),
+                presented_key: PresentedKey::Es256k(k1pk),
+                now: 1_500,
+                status_list: &f.list,
+                status_issued_at: 1_495,
+                freshness: status::Freshness::F1,
+                checkpoint: &f.cp,
+                checkpoint_sig: &f.cp_sig,
+                leaf_index: f.leaf_index,
+                inclusion_proof: &f.proof,
+                revoked_delegates: &none,
+                capability: None,
+            },
+            &f.anchors,
+        );
+        assert_eq!(r, Err(Reason::SigInvalid));
     }
 }

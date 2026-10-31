@@ -1,7 +1,7 @@
 {
-  "accept": 6,
-  "count": 36,
-  "note": "CC0 AINRA Link conformance vectors (D-078): a dual-root-signed directory, one link as a gate receives it (record, registrar signature, inclusion proof, checkpoint, signed status publication), the Ed25519 key the gate already verified the request with, and the gate's own clock, freshness class and capability. A valid answer names the registrar, operator, passport and scope. Real signing throughout; expect computed by ainra-adapter::link_vector_result after accredit, each checked against the case it exists to test. Regenerate with `make vectors`.",
-  "reject": 30,
+  "accept": 7,
+  "count": 43,
+  "note": "CC0 AINRA Link conformance vectors (D-078, D-082): a dual-root-signed directory, one link as a gate receives it (record, registrar signature, inclusion proof, checkpoint, signed status publication), the key the gate already verified the request with — 32 bytes is Ed25519, 33 a compressed secp256k1 point (ES256K, RFC 8812; l37-l43) — and the gate's own clock, freshness class and capability. A valid answer names the registrar, operator, passport and scope. Real signing throughout; expect computed by ainra-adapter::link_vector_result after accredit, each checked against the case it exists to test. Regenerate with `make vectors`.",
+  "reject": 36,
   "version": "v1-link"
 }

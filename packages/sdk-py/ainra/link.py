@@ -19,7 +19,8 @@ from . import reasons as R
 from ._b64 import decode as b64d
 from ._b64 import encode as b64e
 from ._canon import CanonError, canon_bytes
-from ._crypto import ED25519_SIG_LEN, MLDSA65_SIG_LEN, ed25519_verify, mldsa65_verify, sha256
+from ._crypto import (ED25519_SIG_LEN, MLDSA65_SIG_LEN, ed25519_verify, es256k_verify, mldsa65_verify,
+                      secp256k1_point, sha256)
 from ._merkle import leaf_hash, root_from_inclusion
 from .verify import FRESHNESS, MAX_CAPABILITIES, MAX_STATUS_BITS, _verify_delegate_checkpoint, _decode_proof
 
@@ -102,7 +103,7 @@ def _parse_checked(raw: bytes) -> dict:
             raise _Reject(R.SCHEMA_VIOLATION)
     except CanonError:
         raise _Reject(R.SCHEMA_VIOLATION) from None
-    if o["v"] != LINK_V or subject["kind"] != "jwk" or subject["alg"] != "Ed25519":
+    if o["v"] != LINK_V or subject["kind"] != "jwk" or subject["alg"] not in ("Ed25519", "ES256K"):
         raise _Reject(R.SCHEMA_VIOLATION)
     tp, pop, leaf = b64d(subject["thumbprint"]), b64d(o["pop"]), b64d(log["leaf"])
     if tp is None or len(tp) != 32 or pop is None or len(pop) != 64 or leaf is None or len(leaf) != 32:
@@ -122,6 +123,20 @@ def _parse_checked(raw: bytes) -> dict:
         raise _Reject(R.SCHEMA_VIOLATION)
     o["_operator"], o["_pop"], o["_leaf"] = name[1], pop, leaf
     return o
+
+
+def jwk_thumbprint_es256k(pk: bytes) -> str | None:
+    """RFC 7638 thumbprint of a secp256k1 key given as a 33-byte compressed point (D-082):
+    base64url(SHA-256(``{"crv":"secp256k1","kty":"EC","x":"…","y":"…"}``)). None if it is not a point on the curve."""
+    p = secp256k1_point(pk)
+    if p is None:
+        return None
+    return b64e(sha256(canon_bytes({"crv": "secp256k1", "kty": "EC", "x": b64e(p[0]), "y": b64e(p[1])})))
+
+
+def _presented_alg(pk: bytes) -> str | None:
+    """By length: 32 bytes is an Ed25519 key, 33 a compressed secp256k1 point."""
+    return "Ed25519" if len(pk) == 32 else "ES256K" if len(pk) == 33 else None
 
 
 def jwk_thumbprint_ed25519(pk: bytes) -> str:
@@ -225,10 +240,14 @@ def _verify(anchors: dict, revoked_delegates: list, link: dict, presented_key: b
             b64d(key.get("mldsa65")) or b"", sig_ml, raw):
         raise _Reject(R.SIG_INVALID)
     # the key the gate verified is the linked key, and that key consented to this link
-    tp = c["subject"]["thumbprint"]
-    if len(presented_key) != 32 or jwk_thumbprint_ed25519(presented_key) != tp:
+    # — same algorithm and thumbprint (by length: 32 bytes Ed25519, 33 a compressed secp256k1 point, D-082)
+    tp, alg = c["subject"]["thumbprint"], _presented_alg(presented_key)
+    held = jwk_thumbprint_ed25519(presented_key) if alg == "Ed25519" else jwk_thumbprint_es256k(presented_key)
+    if alg != c["subject"]["alg"] or held != tp:
         raise _Reject(R.SIG_INVALID)
-    if not ed25519_verify(presented_key, c["_pop"], pop_signing_bytes(c["registrar"], c["passport"], tp, c["nbf"])):
+    consent = pop_signing_bytes(c["registrar"], c["passport"], tp, c["nbf"])
+    verify = ed25519_verify if alg == "Ed25519" else es256k_verify
+    if not verify(presented_key, c["_pop"], consent):
         raise _Reject(R.SIG_INVALID)
     # scope
     if capability is not None and c["scope"] and capability not in c["scope"]:

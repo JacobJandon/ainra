@@ -12,6 +12,14 @@ We **publicly own fixed security bugs** — hiding them would be the opposite of
 
 What 0.6.0 will carry.
 
+### Added — Link for secp256k1 keys, as ES256K (D-082)
+
+- **Link takes ES256K keys** (RFC 8812: ECDSA over secp256k1 with SHA-256) beside Ed25519, for agents that sign on
+  ledgers. The key is the 33-byte compressed point; consent is `r || s`, low-S only. `LinkSpec.alg` (registrar
+  `/link`, `/demo/link`, `ainra link --alg ES256K`) defaults to `Ed25519`; every verifier tells the two apart by the
+  key it holds (32 or 33 bytes), so no existing call changes. `vectors/v1-link` grows from 36 to 43 (l37–l43).
+- `@ainra/sdk` requires `@noble/curves` ^1.9.0 (was ^1.6.0) for its compact ECDSA signature format.
+
 ### Added — a cut tail is visible once a decision head is logged (D-081)
 
 - **Gates sign head statements, and registrars log them.** `createDecisionLog(...).statement()` (Python:

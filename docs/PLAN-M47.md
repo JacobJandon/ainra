@@ -174,7 +174,7 @@ The owner chose to defer these on 28 October 2026. Each stays listed here until 
   real binary in `services/ainra-services/tests/demo_link_door.rs`). The browser step that uses it is on get.html
   — a key made in the browser, linked, verified, revoked — and runs wherever a registrar is reachable, as minting
   does.*
-- **More key types for links.** *Planned in PLAN-M49 (D-082, ES256K), approved 2026-10-31.* Version 1 links Ed25519 keys. Networks whose agents use other curves, such as the
+- **More key types for links.** *ES256K done in PLAN-M49 (D-082), 2026-10-31.* Version 1 links Ed25519 keys. Networks whose agents use other curves, such as the
   secp256k1 keys common on ledgers, need a new `alg` and vectors first.
 - **The tail of a decision log.** *Planned in PLAN-M49 (D-081, heads in the registrar's log), approved 2026-10-31.* Records cut from the end are invisible without a published head; gates should
   publish their head somewhere they cannot quietly rewrite. The format exists (`--head`); where to publish it does not.

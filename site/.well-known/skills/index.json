@@ -12,7 +12,7 @@
         "command": "node",
         "args": ["packages/mcp/src/server.mjs"],
         "env": { "AINRA_TARGET": "http://127.0.0.1:8091" },
-        "note": "the reference MCP server ships in the AINRA repo as @ainra/mcp; npm publish at genesis"
+        "note": "the reference MCP server is @ainra/mcp on npm; this entry runs it from a checkout of the AINRA repo"
       },
       "conventions": ["skills", "mcp", "http"],
       "status": { "network": "staging", "root": "test-root", "production_logs_sealed": 0 }

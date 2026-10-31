@@ -75,18 +75,15 @@ try {
       // only way out is editing the checker mid-release — the exact moment nobody should be editing a checker.
       const words = { 1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six", 7: "seven", 8: "eight",
                       9: "nine", 10: "ten", 11: "eleven", 12: "twelve" };
-      // "Current version" and "how many releases have boards" are DIFFERENT facts and must be read from different
-      // places, or the two surfaces contradict each other mid-release. tools/site.sh already mandates one source
-      // for the version — every vX.Y.Z printed in a page must equal apps/cli-node/package.json — so llms.txt reads
-      // from that same source. Checking it against the newest board file instead made the HTML and the agent map
-      // disagree at exactly the moment a release is being cut, which is the defect M27 spent a milestone removing.
-      const cliV = (() => {
-        try { return "v" + JSON.parse(readFileSync(ROOT + "apps/cli-node/package.json", "utf8")).version; } catch { return null; }
-      })();
+      // "current:" names the newest board-proven release, read from the same board files as the count below, so the
+      // HTML (tools/site.sh reads the same files) and this map cannot disagree mid-release — the defect M27 removed. It
+      // used to read the CLI's version instead, and said v0.3.3 while v0.4.0, v0.4.1 and v0.5.0 shipped, because the
+      // zero-dependency CLI had no reason to change. The CLI's version is a separate fact, printed only as the CLI's.
+      // WITNESS: an llms.txt naming any release but the newest board fails here.
       const cur = txt.match(/current:\s*(v[0-9][0-9.]*)/i);
       if (!cur) fail(`${rel}: no "current: vX.Y.Z" statement — the agent map must name the version it describes`);
-      else if (cliV && cur[1] !== cliV) fail(`${rel}: says current: ${cur[1]}, but the implementation is ${cliV} (apps/cli-node/package.json — the site's one source of truth)`);
-      else pass(`${rel} names the current version — ${cur[1]}`);
+      else if (cur[1] !== tags[0]) fail(`${rel}: says current: ${cur[1]}, but the newest board-proven release is ${tags[0]} (docs/releases/)`);
+      else pass(`${rel} names the current release — ${cur[1]}`);
       // Every release-count claim ANYWHERE the site publishes prose, not just this file. The first version of this
       // check looked only at llms.txt and only for a parenthesised "(two signed" — so the identical stale sentence
       // in foundation.html's description and share card ("a reference CLI, two signed releases") walked straight

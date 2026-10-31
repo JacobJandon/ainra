@@ -56,11 +56,14 @@ echo "  the download CLI == apps/cli-node (canonical); the Standard == docs/AINR
 # M17: keep the content pages' shared header/footer in sync from site/_includes/ (one source of truth, no drift).
 node tools/site-includes.mjs
 
-# No version drift (Task 6): AFTER the include sync, every three-part vX.Y.Z printed in a page IS the CLI version.
-# The Standard is vN.N (two parts, unmatched) and passport examples use @N.N.N (no `v`, unmatched), so this catches
-# ONLY a stale CLI label — in a page OR in the shared header/footer include it was just synced from.
-BADVER="$(grep -rhoE 'v[0-9]+\.[0-9]+\.[0-9]+' "$SITE"/*.html 2>/dev/null | grep -vx "v${VER}" | sort -u || true)"
-[ -z "$BADVER" ] || { echo "✗ site version drift: page(s) say $(echo "$BADVER" | tr '\n' ' ') but the CLI is v${VER} — one source of truth is apps/cli-node/package.json"; exit 1; }
+# No version drift (Task 6): AFTER the include sync, every three-part vX.Y.Z printed in a page is one of exactly two
+# facts, each with one source: the downloadable CLI's version (apps/cli-node/package.json) and the newest board-proven
+# release (docs/releases/<v>-board.md — the same definition the release count uses). Allowing only the CLI version made
+# the site call v0.3.3 "current" for three releases after it. The Standard is vN.N (two parts, unmatched) and passport
+# examples use @N.N.N (no `v`, unmatched), so this catches ONLY a stale label — in a page or a shared include.
+REL="$(ls docs/releases/ | sed -nE 's/^(v[0-9]+\.[0-9]+\.[0-9]+)-board\.md$/\1/p' | sort -V | tail -1)"
+BADVER="$(grep -rhoE 'v[0-9]+\.[0-9]+\.[0-9]+' "$SITE"/*.html 2>/dev/null | grep -vx -e "v${VER}" -e "${REL:-v${VER}}" | sort -u || true)"
+[ -z "$BADVER" ] || { echo "✗ site version drift: page(s) say $(echo "$BADVER" | tr '\n' ' ') but the CLI is v${VER} and the newest release is ${REL} — sources: apps/cli-node/package.json, docs/releases/"; exit 1; }
 
 # M17 Task 3 — the agent-first surface: markdown mirrors, OpenAPI specs, and the served copy of the onboarding file.
 node tools/site-mirrors.mjs

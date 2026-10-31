@@ -13,6 +13,5 @@
   "tools/render-samples.mjs",
   "tools/s7-lint.mjs",
   "tools/soak-ingest-check.mjs",
-  "tools/status-consistency.mjs",
   "tools/verify-60s.mjs"
 ]

@@ -31,10 +31,12 @@ ed25519-dalek = { version = "2", default-features = false, features = ["alloc", 
 ml-dsa = { version = "0.1.1", default-features = false, features = ["alloc"] }
 slh-dsa = { version = "0.0.3" }
 sha2 = { version = "0.10", default-features = false }
-# secp256k1 for ES256K link keys (D-082): RustCrypto k256, the 0.13 line NCC Group reviewed in 2023 (two high
-# findings, fixed before release; the crate itself still says "use at your own risk"). ECDSA verify + SHA-256 only;
-# default features off so nothing pulls an RNG onto the verify path or into wasm32.
-k256 = { version = "0.13", default-features = false, features = ["ecdsa", "sha256"] }
+# secp256k1 for ES256K link keys (D-082): RustCrypto k256. NCC Group reviewed its 0.13 line in 2023 (two high findings,
+# fixed before release). We use 0.14, that line's successor from the same maintainers, because 0.13 depends on
+# crypto-bigint 0.5, which carries RUSTSEC-2026-0387 (timing variability) with a fix only in crypto-bigint >= 0.7.6.
+# The crate still says "use at your own risk". ECDSA verify + SHA-256 only; default features off so nothing pulls an RNG
+# onto the verify path or into wasm32.
+k256 = { version = "0.14", default-features = false, features = ["ecdsa", "sha256"] }
 signature = { version = "2", default-features = false }
 rand_core = { version = "0.6", default-features = false }
 # Encoding

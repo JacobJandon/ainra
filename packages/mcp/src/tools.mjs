@@ -9,7 +9,7 @@
 import { readFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
-import { Verifier, verdictEvent, serializeVerdictEvent, linkFromIndex, jwkThumbprintEd25519, strictB64u } from "@ainra/sdk";  // file:../sdk-ts in a checkout; ^x.y.z when published
+import { Verifier, verdictEvent, serializeVerdictEvent, linkFromIndex, presentedKeyThumbprint, strictB64u } from "@ainra/sdk";  // file:../sdk-ts in a checkout; ^x.y.z when published
 export { verdictEvent, serializeVerdictEvent }; // one event shape across CLI, middleware, MCP (docs/PRESENTATION.md)
 
 const ROOT = fileURLToPath(new URL("../../../", import.meta.url));
@@ -177,12 +177,12 @@ export const TOOLS = [
   {
     name: "ainra_verify_link",
     title: "Who stands behind this agent key?",
-    description: "AINRA Link (D-078): after you have verified a request's signature with an agent's Ed25519 key, ask which accountable operator stands behind that key and whether the link is still good. Pass the key (`key`, base64url), and either the `link` as a gate receives it, or the registrar's link `index` (GET /links) and its signed `status` publication (GET /status-list), from which the link for your key is found. Trust is YOURS: the signed `directory` and the two `roots` (omit both to use AINRA_TARGET's). The status list is authenticated before it is read; the clock, freshness class and capability are yours. Returns `decision` (accept or refuse), the operator and passport on accept, or the named reason. Read-only. A key with no link at all is refused as not_linked.",
+    description: "AINRA Link (D-078): after you have verified a signature with an agent's key — Ed25519, or secp256k1 as ES256K (D-082) — ask which accountable operator stands behind that key and whether the link is still good. Pass the key (`key`, base64url), and either the `link` as a gate receives it, or the registrar's link `index` (GET /links) and its signed `status` publication (GET /status-list), from which the link for your key is found. Trust is YOURS: the signed `directory` and the two `roots` (omit both to use AINRA_TARGET's). The status list is authenticated before it is read; the clock, freshness class and capability are yours. Returns `decision` (accept or refuse), the operator and passport on accept, or the named reason. Read-only. A key with no link at all is refused as not_linked.",
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     inputSchema: {
       type: "object",
       properties: {
-        key: { type: "string", description: "The Ed25519 public key (base64url, 32 bytes) you ALREADY verified the request's signature with." },
+        key: { type: "string", description: "The public key (base64url) you ALREADY verified the signature with: 32 bytes for Ed25519, the 33-byte compressed point for ES256K (secp256k1)." },
         link: { type: "object", description: "The link as a gate receives it (an index entry with the checkpoint and the signed status publication)." },
         index: { type: "object", description: "Instead of `link`: the registrar's whole link index (GET /links)." },
         status: { type: "object", description: "With `index`: the registrar's signed status publication (GET /status-list)." },
@@ -196,11 +196,16 @@ export const TOOLS = [
     },
     async handler(input) {
       const keyBytes = typeof input.key === "string" ? strictB64u(input.key) : null;
-      if (!keyBytes || keyBytes.length !== 32) throw new Error("`key` must be a base64url Ed25519 public key (32 bytes). Nothing was verified.");
+      if (!keyBytes) throw new Error("`key` must be base64url. Nothing was verified.");
+      // By length, as every verifier: 32 bytes Ed25519, 33 a compressed secp256k1 point (D-082). Any other key is
+      // refused by name, as the core refuses it — not an input error, a decision.
+      if (keyBytes.length !== 32 && keyBytes.length !== 33)
+        return { decision: "refuse", verdict: "invalid", reason: "schema_violation" };
       let link = input.link;
       if (link === undefined) {
         if (!input.index || !input.status) throw new Error("pass either `link`, or both `index` (GET /links) and `status` (GET /status-list). Nothing was verified.");
-        link = linkFromIndex(input.index, input.status, jwkThumbprintEd25519(keyBytes));
+        const tp = presentedKeyThumbprint(keyBytes);
+        link = tp === null ? null : linkFromIndex(input.index, input.status, tp);
         if (!link)
           return { decision: "refuse", verdict: "invalid", reason: "not_linked",
                    explanation: "This key has no link at this registrar: a valid signature from it is not, by itself, an accountable operator." };

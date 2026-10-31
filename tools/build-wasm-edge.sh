@@ -10,10 +10,12 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 OUT=packages/edge/wasm
-# 640 KiB until 2026-10-31; raised to 704 for D-082, when secp256k1 (k256, ES256K links) took the engine to 646 KiB.
-# The platforms' script limits are megabytes: the ceiling is ours, so that growth is a decision — and that one was.
-# Leaving secp256k1 out of the edge build instead would make this gate answer ES256K links unlike the other two.
-CEILING_KB=${CEILING_KB:-704}
+# 640 KiB until 2026-10-31. Raised that day for D-082: secp256k1 (k256 0.13, ES256K links) took the engine to 646 KiB,
+# and moving to k256 0.14 — whose crypto-bigint 0.7 carries the fix for RUSTSEC-2026-0387, which 0.13's 0.5 never
+# will — took it to 719. The platforms' script limits are megabytes: the ceiling is ours, so that growth is a decision,
+# and this one was. The alternatives were a vulnerable dependency, or a gate that answers ES256K links unlike the
+# other two.
+CEILING_KB=${CEILING_KB:-768}
 command -v wasm-bindgen >/dev/null 2>&1 || { echo "wasm-bindgen not found — see tools/build-wasm.sh" >&2; exit 1; }
 cargo build -p ainra-wasm --features edge --target wasm32-unknown-unknown --profile wasm-release \
   --target-dir target/wasm-edge

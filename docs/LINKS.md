@@ -36,9 +36,9 @@ still true?*
   `ES256K` (RFC 8812), for agents on ledgers: the 33-byte compressed secp256k1 point, thumbprint over
   `{"crv":"secp256k1","kty":"EC","x","y"}`, consent by ECDSA with SHA-256 as 64-byte `r || s`, **low-S only** — the
   high-S twin of a valid signature is refused, so a consent has exactly one valid encoding. A verifier tells them
-  apart by the key it holds: 32 bytes is Ed25519, 33 is ES256K. secp256k1 comes from RustCrypto `k256` (the 0.13 line
-  NCC Group reviewed in 2023; the crate still says "use at your own risk"), `@noble/curves` and Python
-  `cryptography`.
+  apart by the key it holds: 32 bytes is Ed25519, 33 is ES256K. secp256k1 comes from RustCrypto `k256` 0.14 (the
+  successor of the 0.13 line NCC Group reviewed in 2023, chosen because 0.13 carries RUSTSEC-2026-0387 through
+  `crypto-bigint`; the crate still says "use at your own risk"), `@noble/curves` and Python `cryptography`.
 - `scope` empty means "whatever the passport allows"; otherwise the link refuses any capability it does not name.
 - Two bits: the link's own, and the passport's. Revoking the operator refuses every link it has.
 

@@ -60,9 +60,9 @@ base64url. Proof of control is the same consent bytes, signed with the key's own
 presented key together with its algorithm; a bare 32-byte key keeps meaning Ed25519. Existing links and vectors are
 untouched.
 
-**Libraries, audited only.** Rust: `k256` from RustCrypto, pinned to the 0.13 line that NCC Group reviewed in 2023
-(two high-severity findings, both fixed before release; the crate still says "use at your own risk", and our docs
-will repeat that). TypeScript: `@noble/curves` `secp256k1`, already a dependency. Python: `cryptography`
+**Libraries, audited only.** Rust: `k256` from RustCrypto — planned on the 0.13 line that NCC Group reviewed in 2023,
+shipped on 0.14, its successor, because 0.13 carries RUSTSEC-2026-0387 through `crypto-bigint` 0.5 (see D-082; the
+crate still says "use at your own risk", and our docs repeat that). TypeScript: `@noble/curves` `secp256k1`, already a dependency. Python: `cryptography`
 (`ec.SECP256K1`), already a dependency.
 
 **Steps.** *All five done 2026-10-31.*

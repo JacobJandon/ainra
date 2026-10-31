@@ -22,6 +22,8 @@ What 0.6.0 will carry.
   index by `presentedKeyThumbprint` (Python `presented_key_thumbprint`), by its length. `make link-parity` holds on all
   43 vectors across the three gates.
 - `@ainra/sdk` requires `@noble/curves` ^1.9.0 (was ^1.6.0) for its compact ECDSA signature format.
+- Rust uses RustCrypto `k256` 0.14, not the NCC-reviewed 0.13: 0.13's `crypto-bigint` 0.5 carries RUSTSEC-2026-0387,
+  fixed only in 0.7.6+. `ainra_verify_link` (`@ainra/mcp`) takes either key and refuses any other length by name.
 
 ### Added — a cut tail is visible once a decision head is logged (D-081)
 

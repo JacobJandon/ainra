@@ -742,7 +742,7 @@ mod tests {
         let sk = k256::ecdsa::SigningKey::from_bytes(&[0x4B; 32].into()).unwrap();
         let pk: [u8; 33] = sk
             .verifying_key()
-            .to_encoded_point(true)
+            .to_sec1_point(true)
             .as_bytes()
             .try_into()
             .unwrap();

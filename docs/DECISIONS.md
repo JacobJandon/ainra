@@ -1446,7 +1446,7 @@ and brings an empty revocation list.
   instance key the credential carries; the nonce is returned only after both hold, for the host to check once.
 - **Two WebAssembly builds.** The gate's bindings sit behind a `edge` feature: the browser verifier stays at 392 KiB
   under its 460 KiB ceiling (with them it was 464 KiB — code a page never uses); the edge engine is 464 KiB under
-  its own ceiling (`tools/build-wasm-edge.sh`; 640 KiB then, 704 since D-082).
+  its own ceiling (`tools/build-wasm-edge.sh`; 640 KiB then, 768 since D-082).
 
 *Evidence:* `make edge-test` — the WASM build answers all 33 request-signature vectors as the core recorded them;
 every credential verdict equals `@ainra/sdk`'s on the same bundle and clock (valid, revoked, an hour later); an F3
@@ -2054,9 +2054,12 @@ the wire: `LinkSpec.alg` defaults to `Ed25519`, and verifiers tell the algorithm
 Ed25519, 33 ES256K — so every existing caller, record and vector is unchanged. Ledger-specific message formats (a
 keccak-hashed personal-sign envelope, say) would be further `alg` values; they are not in this decision.
 
-*Libraries:* audited only — RustCrypto `k256`, the 0.13 line NCC Group reviewed in 2023 (two high findings, fixed
-before release; the crate still says "use at your own risk"), `@noble/curves` (floor raised to 1.9 for its compact
-signature format), Python `cryptography`.
+*Libraries:* RustCrypto `k256` 0.14 — NCC Group reviewed the 0.13 line in 2023 (two high findings, fixed before
+release); 0.14 is its successor from the same maintainers, and the version we use, because 0.13 depends on
+`crypto-bigint` 0.5, which carries RUSTSEC-2026-0387 (timing variability in operations meant to be constant-time) with
+a fix only in 0.7.6+. Verification handles no secrets, but a reviewed version with an open advisory is not a better
+choice than a patched successor. The crate still says "use at your own risk". `@noble/curves` (floor raised to 1.9 for
+its compact signature format), Python `cryptography`.
 
 *Held to:* `vectors/v1-link` l37–l43 in all three implementations (`make diff`): a valid ES256K link, its high-S
 consent, consent by another key, each algorithm's key presented to the other's link, an uncompressed point, and the
@@ -2067,6 +2070,8 @@ algorithm cannot match the other's thumbprint short of a SHA-256 collision. Plan
 *Found on the way:* `make link-parity` sent l37–l43 through the three gates and all three refused even the valid
 ES256K link: the verifiers took a 33-byte key, but the Node, Python and edge link gates still accepted only 32 bytes
 and looked keys up by their Ed25519 thumbprint. Each gate now finds the key by `presentedKeyThumbprint` /
-`presented_key_thumbprint` (by length), and the parity holds on all 43. The edge engine grew to 646 KiB with
-secp256k1; its own ceiling went from 640 to 704 KiB, recorded where it is set.
+`presented_key_thumbprint` (by length), and the parity holds on all 43. `cargo-audit` caught RUSTSEC-2026-0387 in
+k256 0.13's `crypto-bigint` on the first push; k256 0.14 fixed it, and the ES256K vectors regenerate byte-identically
+under it (RFC 6979 signing is deterministic). The edge engine grew from under 640 KiB to 719 KiB across both steps; its
+own ceiling is now 768 KiB, with the reason where it is set. The browser verifier did not grow (394 KiB).
 

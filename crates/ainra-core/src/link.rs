@@ -203,7 +203,7 @@ pub fn jwk_thumbprint_ed25519(pk: &[u8; 32]) -> String {
 /// `{"crv":"secp256k1","kty":"EC","x":"…","y":"…"}`)), the member names and curve name RFC 8812 registers. `None`
 /// when the bytes are not a compressed point on the curve.
 pub fn jwk_thumbprint_es256k(sec1: &[u8; 33]) -> Option<String> {
-    use k256::elliptic_curve::sec1::ToEncodedPoint;
+    use k256::elliptic_curve::sec1::ToSec1Point;
     #[derive(Serialize)]
     struct Jwk<'a> {
         crv: &'a str,
@@ -216,7 +216,7 @@ pub fn jwk_thumbprint_es256k(sec1: &[u8; 33]) -> Option<String> {
         return None;
     }
     let pk = k256::PublicKey::from_sec1_bytes(sec1).ok()?;
-    let p = pk.to_encoded_point(false);
+    let p = pk.to_sec1_point(false);
     let j = Jwk {
         crv: "secp256k1",
         kty: "EC",
@@ -242,7 +242,9 @@ pub fn es256k_verify(sec1: &[u8; 33], msg: &[u8], sig: &[u8; 64]) -> bool {
     ) else {
         return false;
     };
-    if s.normalize_s().is_some() {
+    // High-S when normalising changes it: the same test on every k256 line (0.13 returned an Option here, 0.14 the
+    // signature itself).
+    if s.normalize_s() != s {
         return false;
     }
     vk.verify(msg, &s).is_ok()
@@ -713,7 +715,7 @@ mod tests {
         let sk = k256::ecdsa::SigningKey::from_bytes(&[seed; 32].into()).unwrap();
         let pk: [u8; 33] = sk
             .verifying_key()
-            .to_encoded_point(true)
+            .to_sec1_point(true)
             .as_bytes()
             .try_into()
             .unwrap();

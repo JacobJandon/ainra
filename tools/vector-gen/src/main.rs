@@ -4707,13 +4707,13 @@ fn link_vectors() -> Vec<Value> {
     // consent is ECDSA-SHA256, `r || s`, low-S.
     {
         use k256::ecdsa::signature::Signer as _;
-        use k256::elliptic_curve::sec1::ToEncodedPoint as _;
+        use k256::elliptic_curve::sec1::ToSec1Point as _;
         let mut krng = ChaCha20Rng::seed_from_u64(0x4553_3235_364B_0082); // "ES256K" · D-082 — a public TEST seed
         let k1 = |seed: u8| {
             let sk = k256::ecdsa::SigningKey::from_bytes(&[seed; 32].into()).expect("k1 key");
             let pk: [u8; 33] = sk
                 .verifying_key()
-                .to_encoded_point(true)
+                .to_sec1_point(true)
                 .as_bytes()
                 .try_into()
                 .expect("33 bytes");
@@ -4755,7 +4755,7 @@ fn link_vectors() -> Vec<Value> {
         let uncompressed = b64::encode(
             k256::PublicKey::from_sec1_bytes(&k1_pk)
                 .expect("point")
-                .to_encoded_point(false)
+                .to_sec1_point(false)
                 .as_bytes(),
         );
         add!("l37-es256k", "an ES256K (secp256k1) key, linked with its own low-S consent, presented as a compressed point", valid.clone(), k1_key.clone(), now, None, "valid");

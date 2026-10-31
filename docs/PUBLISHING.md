@@ -1,7 +1,8 @@
 <!-- SPDX-License-Identifier: Apache-2.0 OR MIT -->
 # Publishing to npm and PyPI — everything that is done, and the two things that are not
 
-**Status: PUBLISHED — npm and PyPI. v0.4.0 on 2026-09-15, v0.4.1 on 2026-09-19.** All four artifacts are live on
+**Status: PUBLISHED — npm and PyPI. v0.4.0 on 2026-09-15, v0.4.1 on 2026-09-19, v0.5.0 on 2026-10-31 (all but
+`@ainra/mcp`, below).** All four artifacts are live on
 the public registries **with Sigstore provenance** — built on a GitHub-hosted runner via
 `.github/workflows/publish.yml`, which is the only publish path because provenance cannot be retrofitted onto a
 version that is already public. v0.4.1 added `@ainra/mcp`, published for the first time once it could be installed
@@ -30,6 +31,14 @@ had just shipped. The same lag, on `@ainra/mcp`'s first publish, returned a 404 
 publish into a red run: `+ @ainra/mcp@0.4.1` and a Sigstore provenance statement are in that run's log. Failing
 green and failing red for the same reason is the signature of a check that asks the wrong source. It now reads the
 name and version from the manifest it just published and polls the attestation endpoint for two minutes.
+
+**The sixth, on v0.5.0 (2026-10-31): two minutes was not enough.** `@ainra/sdk` and `@ainra/middleware` 0.5.0
+published with provenance and both runs went red on the confirmation step; the attestations appeared on the
+registry a few minutes later. The poll now waits up to ten minutes. Same rule as before: check the registry before
+re-running anything. **And one real refusal:** `@ainra/mcp` 0.5.0 was built and its provenance statement written to
+the transparency log, then the upload got `E404 … you do not have permission` — the `NPM_TOKEN` secret could publish
+the other two packages but not this one. Pending: a token with write on `@ainra/mcp` (or the scope), then a re-run of
+that run's failed job from the tag.
 
 **Still to do on npm:** configure a Trusted Publisher per package (GitHub Actions · `JacobJandon` · `ainra` ·
 `publish.yml` · environment **blank** — the npm job declares no environment), then **delete `NPM_TOKEN`** from

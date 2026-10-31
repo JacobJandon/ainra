@@ -11,7 +11,7 @@ the kit exits nonzero and writes no attestation — that is by design, not a bug
 
 ### 1. `Cannot find package '@ainra/sdk'`
 The kit's only dependency isn't installed. Run `npm install` inside `kits/verifier/`. As an outsider, first set
-`"@ainra/sdk": "^0.5.0"` (until 0.5.0 is on the registry, a `^0.4` range installs 0.4.1) in `kits/verifier/package.json` (inside this repo it points at the local build, which you
+`"@ainra/sdk": "^0.5.0"` in `kits/verifier/package.json` (inside this repo it points at the local build, which you
 won't have). If you cloned the whole repo, run `make sdk-build` once at the root first.
 
 ### 2. `the directory is not trust-anchored by the given roots`

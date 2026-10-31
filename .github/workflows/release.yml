@@ -40,16 +40,26 @@ jobs:
         run: echo "version=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
 
       - name: THE ONE RELEASE RULE — board evidence must exist for this version
+        id: board
         run: |
           set -euo pipefail
           V="${{ steps.v.outputs.version }}"
           BOARD="docs/releases/${V}-board.md"
-          if [ ! -f "$BOARD" ]; then
-            echo "::error::Release REFUSED — no board evidence at $BOARD. The one release rule (D-040): no full board"
-            echo "::error::from a clean clone at the release commit ⇒ no release. Run the board, commit the evidence, re-tag."
-            exit 1
+          # The board runs AT the release commit, so it is committed one commit AFTER it (RELEASING.md); the tag then
+          # points at the commit the board names. Accept either: the board inside the tagged tree, or the board on
+          # main naming this exact commit. WITNESS: a board on main that names another commit refuses (v0.5.0 was
+          # refused before this, with its board one commit past the tag).
+          if [ -f "$BOARD" ]; then
+            echo "ref=${V}" >> "$GITHUB_OUTPUT"; echo "board evidence present in the tagged tree: $BOARD"; exit 0
           fi
-          echo "board evidence present: $BOARD"
+          git fetch -q origin main
+          SHORT="$(git rev-parse --short=7 HEAD)"
+          if git show "origin/main:$BOARD" 2>/dev/null | grep -q "\`${SHORT}"; then
+            echo "ref=main" >> "$GITHUB_OUTPUT"; echo "board evidence on main names ${SHORT}: $BOARD"; exit 0
+          fi
+          echo "::error::Release REFUSED — no board evidence for ${SHORT} at $BOARD (tagged tree or main). The one release"
+          echo "::error::rule (D-040): no full board from a clean clone at the release commit ⇒ no release."
+          exit 1
 
       - name: reproducible build — artifacts + provenance + SBOM + manifest
         run: |
@@ -74,7 +84,7 @@ jobs:
             echo "enters CI (D-042). Verify per \`RELEASE-VERIFY.md\`: check the signature, check every artifact against the"
             echo "signed manifest, then rebuild the corpus byte-for-byte from this tag (needs no key at all)."
             echo
-            echo "Board evidence (the one release rule): [\`docs/releases/${V}-board.md\`](https://github.com/${GITHUB_REPOSITORY}/blob/${V}/docs/releases/${V}-board.md)"
+            echo "Board evidence (the one release rule): [\`docs/releases/${V}-board.md\`](https://github.com/${GITHUB_REPOSITORY}/blob/${{ steps.board.outputs.ref }}/docs/releases/${V}-board.md)"
           } > "$NOTES"
           gh release create "$V" dist/* --draft --title "AINRA ${V}" --notes-file "$NOTES" --verify-tag \
             || gh release upload "$V" dist/* --clobber

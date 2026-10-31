@@ -141,13 +141,13 @@ jobs:
           P=$(node -p "require('./$DIR/package.json').name")
           V=$(node -p "require('./$DIR/package.json').version")
           echo "confirming $P@$V (the version this run published, not whatever the packument currently says)"
-          for i in $(seq 1 12); do
+          for i in $(seq 1 60); do
             if curl -sf "https://registry.npmjs.org/-/npm/v1/attestations/$P@$V" >/dev/null; then
               echo "attestation present ✓ for $P@$V (after ~$((i*10))s)"; exit 0
             fi
             sleep 10
           done
-          echo "::error::$P@$V has no attestation on the registry after 2 minutes"; exit 1
+          echo "::error::$P@$V has no attestation on the registry after 10 minutes"; exit 1
 
   pypi:
     name: PyPI — trusted publishing + PEP 740 attestations

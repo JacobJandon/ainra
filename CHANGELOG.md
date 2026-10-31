@@ -26,8 +26,10 @@ What 0.6.0 will carry.
 
 ## [0.5.0] — 2026-10-29
 
-The release commit; its board is `docs/releases/v0.5.0-board.md`. Tagging and publishing to npm and PyPI are the
-maintainer's steps — until they happen, the registries still serve 0.4.1.
+The release commit; its board is `docs/releases/v0.5.0-board.md`. Tagged (signed) at `e6870bc` on 2026-10-31 and
+published from the tag the same day: `@ainra/sdk`, `@ainra/middleware` and `ainra` (PyPI) are at 0.5.0 with
+provenance. `@ainra/mcp` 0.5.0 is not yet on npm — the registry refused its upload (see `docs/PUBLISHING.md`) — so
+npm still serves `@ainra/mcp` 0.4.1.
 
 ### Security — fixed, and owned
 

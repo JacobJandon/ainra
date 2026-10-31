@@ -355,7 +355,7 @@ class AinraLinkGate:
         if scope.get("type") != "http":
             await self.app(scope, receive, send)
             return
-        from .link import jwk_thumbprint_ed25519, link_from_index
+        from .link import link_from_index, presented_key_thumbprint
 
         headers: dict[str, str] = {}
         for k, v in scope.get("headers", []):
@@ -366,11 +366,11 @@ class AinraLinkGate:
             key = self.verified_key(scope, headers)
         except Exception:
             key = None
-        tp = None
-        if not isinstance(key, (bytes, bytearray)) or len(key) != 32:
+        # A key of either Link algorithm (D-082): 32 bytes Ed25519, 33 a compressed secp256k1 point.
+        tp = presented_key_thumbprint(bytes(key)) if isinstance(key, (bytes, bytearray)) else None
+        if tp is None:
             result = {"verdict": "invalid", "reason": "sig_invalid"}
         else:
-            tp = jwk_thumbprint_ed25519(bytes(key))
             try:
                 index, status = self.source()
                 link = link_from_index(index, status, tp)

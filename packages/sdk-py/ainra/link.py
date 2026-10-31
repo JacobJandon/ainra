@@ -134,6 +134,16 @@ def jwk_thumbprint_es256k(pk: bytes) -> str | None:
     return b64e(sha256(canon_bytes({"crv": "secp256k1", "kty": "EC", "x": b64e(p[0]), "y": b64e(p[1])})))
 
 
+def presented_key_thumbprint(pk: bytes) -> str | None:
+    """The RFC 7638 thumbprint of a key a gate has verified, by length: 32 bytes Ed25519, 33 a compressed secp256k1
+    point (ES256K, D-082). None for anything else — a gate refuses that key (``sig_invalid``)."""
+    if len(pk) == 32:
+        return jwk_thumbprint_ed25519(pk)
+    if len(pk) == 33:
+        return jwk_thumbprint_es256k(pk)
+    return None
+
+
 def _presented_alg(pk: bytes) -> str | None:
     """By length: 32 bytes is an Ed25519 key, 33 a compressed secp256k1 point."""
     return "Ed25519" if len(pk) == 32 else "ES256K" if len(pk) == 33 else None

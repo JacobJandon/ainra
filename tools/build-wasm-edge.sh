@@ -10,7 +10,10 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 OUT=packages/edge/wasm
-CEILING_KB=${CEILING_KB:-640}
+# 640 KiB until 2026-10-31; raised to 704 for D-082, when secp256k1 (k256, ES256K links) took the engine to 646 KiB.
+# The platforms' script limits are megabytes: the ceiling is ours, so that growth is a decision — and that one was.
+# Leaving secp256k1 out of the edge build instead would make this gate answer ES256K links unlike the other two.
+CEILING_KB=${CEILING_KB:-704}
 command -v wasm-bindgen >/dev/null 2>&1 || { echo "wasm-bindgen not found — see tools/build-wasm.sh" >&2; exit 1; }
 cargo build -p ainra-wasm --features edge --target wasm32-unknown-unknown --profile wasm-release \
   --target-dir target/wasm-edge

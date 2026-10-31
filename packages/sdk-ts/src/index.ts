@@ -1784,7 +1784,13 @@ export function jwkThumbprintEs256k(pk: Uint8Array): string | null {
   return b64uEncode(sha256(new TextEncoder().encode(canonicalize({ crv: "secp256k1", kty: "EC", x: b64uEncode(p.x), y: b64uEncode(p.y) }))));
 }
 
-/** The thumbprint of a presented key, by length: 32 bytes Ed25519, 33 a compressed secp256k1 point. */
+/** The RFC 7638 thumbprint of a key a gate has verified, by length: 32 bytes is Ed25519, 33 a compressed secp256k1
+ *  point (ES256K, D-082). `null` for anything else — a gate refuses that key (`sig_invalid`). This is how a gate finds
+ *  the key's entry in a link index. */
+export function presentedKeyThumbprint(pk: Uint8Array): string | null {
+  return jwkThumbprintOf(pk);
+}
+
 function jwkThumbprintOf(pk: Uint8Array): string | null {
   return pk.length === 32 ? jwkThumbprintEd25519(pk) : pk.length === 33 ? jwkThumbprintEs256k(pk) : null;
 }

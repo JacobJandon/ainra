@@ -11,7 +11,7 @@
 import {
   Verifier, verdictEvent, serializeVerdictEvent, decodeInstance, verifyPresentation,
   isPresentationRef, splitPresentation, joinPresentation, presentationRef, POP_HEADER, PRIME_PATH,
-  decisionRequestDigest, linkFromIndex, jwkThumbprintEd25519,
+  decisionRequestDigest, linkFromIndex, presentedKeyThumbprint,
   type LinkIndex, type StatusPublication, type LinkVerdict,
   type PresentationBundle, type Verdict, type VerdictEvent, type PresentationReason, type DecisionLog,
 } from "@ainra/sdk";
@@ -365,10 +365,12 @@ export function ainraLinkGate(verifier: Verifier, opts: LinkGateOptions) {
     try { key = await opts.verifiedKey(req); } catch { key = null; }
     let r: LinkVerdict | { verdict: "invalid"; reason: string };
     let tp: string | null = null;
-    if (!key || key.length !== 32) {
+    // A key of either Link algorithm (D-082): 32 bytes Ed25519, 33 a compressed secp256k1 point. Anything else, or
+    // bytes that are no point on the curve, is not a key this gate verified.
+    tp = key ? presentedKeyThumbprint(key) : null;
+    if (!key || tp === null) {
       r = { verdict: "invalid", reason: "sig_invalid" };
     } else {
-      tp = jwkThumbprintEd25519(key);
       let link = null;
       try {
         const { index, status } = await opts.source();

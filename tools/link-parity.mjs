@@ -9,7 +9,8 @@
 // WITNESS: could this fail? Yes, and it has: with the Python link verifier's scope check removed, vector
 // l13-outside-scope reads 200 there and 403 ceiling_exceeded in the other two, and this goes red (2026-10-29). Any
 // gate that drops a check, believes an unauthenticated status, or picks the wrong index entry disagrees with the
-// other two on at least one of the 36 vectors.
+// other two on at least one of the vectors. On 2026-10-31 it caught all three gates refusing ES256K keys the
+// verifiers accepted (D-082): the gates still took only 32-byte keys.
 import { readFileSync, readdirSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
@@ -28,7 +29,7 @@ const served = (v) => {
   };
 };
 await initAinra(readFileSync(ROOT + "packages/edge/wasm/ainra_wasm_bg.wasm"));
-const { jwkThumbprintEd25519 } = await import("../packages/sdk-ts/dist/index.js");
+const { presentedKeyThumbprint } = await import("../packages/sdk-ts/dist/index.js");
 
 async function node(v) {
   const verifier = Verifier.fromDirectoryB64(v.directory, v.roots.root_ed25519, v.roots.root_slh, v.freshness);
@@ -46,7 +47,10 @@ async function edge(v) {
   try { check = await createAinraLinkCheck({ directory: v.directory, roots: v.roots, freshness: v.freshness, now: () => v.now }); }
   catch { return { status: "no_gate", reason: null, operator: null }; }
   const { index, status } = served(v);
-  const link = edgeLinkFromIndex(index, status, jwkThumbprintEd25519(b64(v.presented_key)));
+  // As the Node and Python gates do: the key's thumbprint by its length (D-082), and no thumbprint, no key.
+  const tp = presentedKeyThumbprint(b64(v.presented_key));
+  if (tp === null) return { status: 403, reason: "sig_invalid", operator: null };
+  const link = edgeLinkFromIndex(index, status, tp);
   if (!link) return { status: 403, reason: "not_linked", operator: null };
   const r = check(link, v.presented_key, v.capability ?? "");
   return r.verdict === "valid" ? { status: 200, reason: null, operator: r.operator } : { status: 403, reason: r.reason, operator: null };

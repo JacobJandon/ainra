@@ -18,6 +18,9 @@ What 0.6.0 will carry.
   ledgers. The key is the 33-byte compressed point; consent is `r || s`, low-S only. `LinkSpec.alg` (registrar
   `/link`, `/demo/link`, `ainra link --alg ES256K`) defaults to `Ed25519`; every verifier tells the two apart by the
   key it holds (32 or 33 bytes), so no existing call changes. `vectors/v1-link` grows from 36 to 43 (l37–l43).
+- The link gates (`ainraLinkGate`, Python `AinraLinkGate`, `@ainra/edge`) take either key: a key is found in the
+  index by `presentedKeyThumbprint` (Python `presented_key_thumbprint`), by its length. `make link-parity` holds on all
+  43 vectors across the three gates.
 - `@ainra/sdk` requires `@noble/curves` ^1.9.0 (was ^1.6.0) for its compact ECDSA signature format.
 
 ### Added — a cut tail is visible once a decision head is logged (D-081)

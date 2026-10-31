@@ -1446,7 +1446,7 @@ and brings an empty revocation list.
   instance key the credential carries; the nonce is returned only after both hold, for the host to check once.
 - **Two WebAssembly builds.** The gate's bindings sit behind a `edge` feature: the browser verifier stays at 392 KiB
   under its 460 KiB ceiling (with them it was 464 KiB — code a page never uses); the edge engine is 464 KiB under
-  its own 640 KiB ceiling (`tools/build-wasm-edge.sh`).
+  its own ceiling (`tools/build-wasm-edge.sh`; 640 KiB then, 704 since D-082).
 
 *Evidence:* `make edge-test` — the WASM build answers all 33 request-signature vectors as the core recorded them;
 every credential verdict equals `@ainra/sdk`'s on the same bundle and clock (valid, revoked, an hour later); an F3
@@ -2063,4 +2063,10 @@ consent, consent by another key, each algorithm's key presented to the other's l
 thumbprint of the wrong curve. Removing the low-S rule turns l38 red. The explicit algorithm comparison is defence in
 depth that no vector can witness on its own: a JWK thumbprint already names the key type and curve, so a key of one
 algorithm cannot match the other's thumbprint short of a SHA-256 collision. Plan: PLAN-M49.
+
+*Found on the way:* `make link-parity` sent l37–l43 through the three gates and all three refused even the valid
+ES256K link: the verifiers took a 33-byte key, but the Node, Python and edge link gates still accepted only 32 bytes
+and looked keys up by their Ed25519 thumbprint. Each gate now finds the key by `presentedKeyThumbprint` /
+`presented_key_thumbprint` (by length), and the parity holds on all 43. The edge engine grew to 646 KiB with
+secp256k1; its own ceiling went from 640 to 704 KiB, recorded where it is set.
 

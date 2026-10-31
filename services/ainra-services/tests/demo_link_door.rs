@@ -107,7 +107,10 @@ fn the_demo_door_links_and_revokes_only_specimens() {
     // Consent signed by a different key is refused: nobody links a key they do not hold.
     let other = TestDelegate::generate(&mut rng);
     let forged = post(&addr, "/demo/link", &link_spec(&specimen, &key, &other));
-    assert!(forged["thumbprint"].is_null(), "linked without the key's consent: {forged}");
+    assert!(
+        forged["thumbprint"].is_null(),
+        "linked without the key's consent: {forged}"
+    );
 
     // With the key's own consent, the door links it — no token.
     let linked = post(&addr, "/demo/link", &link_spec(&specimen, &key, &key));
@@ -131,7 +134,10 @@ fn the_demo_door_links_and_revokes_only_specimens() {
         "the door linked a key to a real passport: {refused}"
     );
     let real_link = post(&addr, "/link", &link_spec(&real, &real_key, &real_key));
-    let real_tp = real_link["thumbprint"].as_str().expect("operator link").to_string();
+    let real_tp = real_link["thumbprint"]
+        .as_str()
+        .expect("operator link")
+        .to_string();
     let refused = post(
         &addr,
         "/demo/link/revoke",

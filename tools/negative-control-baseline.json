@@ -1,7 +1,6 @@
 [
   "tools/ainra-verify.mjs",
   "tools/bench-gate.mjs",
-  "tools/changelog-board-guard.mjs",
   "tools/demo-walkthrough.mjs",
   "tools/deploy-current.mjs",
   "tools/license-check.mjs",

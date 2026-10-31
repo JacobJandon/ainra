@@ -24,6 +24,14 @@ if (!versions.length) {
   process.exit(1);
 }
 
+// A CI build OF A TAG checks out the release commit, and the board is committed one commit after it (RELEASING.md:
+// the board runs at the release commit, so it cannot be inside it). For that one version, in that one build, the
+// board cannot be in the tree by construction — v0.5.0's tag build went red here with every real job green. The proof
+// is checked where it can be: release.yml (with network) refuses the release unless the board on main names the
+// tagged commit. This job is no-network, so it defers to that check instead of fetching.
+// WITNESS: on main, locally, or in a tag build for any OTHER version, a missing board still fails.
+const TAG = process.env.GITHUB_REF_TYPE === "tag" ? process.env.GITHUB_REF_NAME : null;
+
 const missing = [];
 for (const ver of versions) {
   if (GRANDFATHERED.has(ver)) {
@@ -32,7 +40,9 @@ for (const ver of versions) {
   }
   const rel = `docs/releases/${ver}-board.md`;
   if (existsSync(resolve(ROOT, rel))) console.log(`  ✓ ${ver} — board evidence present (${rel})`);
-  else {
+  else if (ver === TAG) {
+    console.log(`  · ${ver} — this is the tag build; its board follows the release commit and release.yml checks it on main`);
+  } else {
     missing.push(ver);
     console.error(`  ✗ ${ver} — CHANGELOG claims it, but ${rel} is ABSENT`);
   }

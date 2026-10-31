@@ -1765,8 +1765,8 @@ function _createCurveFields(type, CURVE, curveOpts = {}, FpFnLE) {
   const Fp2 = createField(CURVE.p, curveOpts.Fp, FpFnLE);
   const Fn2 = createField(CURVE.n, curveOpts.Fn, FpFnLE);
   const _b2 = type === "weierstrass" ? "b" : "d";
-  const params = ["Gx", "Gy", "a", _b2];
-  for (const p of params) {
+  const params2 = ["Gx", "Gy", "a", _b2];
+  for (const p of params2) {
     if (!Fp2.isValid(CURVE[p]))
       throw new Error(`CURVE.${p} must be valid field element of CURVE.Fp`);
   }
@@ -1786,8 +1786,8 @@ function isEdValidXY(Fp2, CURVE, x2, y) {
   const right = Fp2.add(Fp2.ONE, Fp2.mul(CURVE.d, Fp2.mul(x22, y2)));
   return Fp2.eql(left, right);
 }
-function edwards(params, extraOpts = {}) {
-  const validated = _createCurveFields("edwards", params, extraOpts, extraOpts.FpFnLE);
+function edwards(params2, extraOpts = {}) {
+  const validated = _createCurveFields("edwards", params2, extraOpts, extraOpts.FpFnLE);
   const { Fp: Fp2, Fn: Fn2 } = validated;
   let CURVE = validated.CURVE;
   const { h: cofactor } = CURVE;
@@ -4665,6 +4665,386 @@ function verifyInclusion(leaf, index, treeSize, proof, root) {
   return sn === 0 && eq(r, root);
 }
 
+// src/presentation.ts
+var SIG_LABEL = "ainra";
+var SIG_ALG = "ainra-hybrid-v1";
+var PRESENTATION_HEADER = "x-ainra-passport";
+var PRIME_PATH = "/.well-known/ainra-presentation";
+var POP_HEADER = "x-ainra-pop";
+var REF_RE = /^sha-256=:[A-Za-z0-9+/]{43}=:$/;
+function isPresentationRef(v) {
+  return REF_RE.test(v.trim());
+}
+function splitPresentation(bundle) {
+  if (!bundle.instance || typeof bundle.instance !== "object") return { stable: { ...bundle }, pop: null };
+  const { pop, ...instance } = bundle.instance;
+  return { stable: { ...bundle, instance }, pop: pop ?? null };
+}
+function joinPresentation(stable, pop) {
+  if (pop === null || pop === void 0 || !stable.instance) return { ...stable };
+  return { ...stable, instance: { ...stable.instance, pop } };
+}
+function presentationRef(bundle) {
+  const { stable } = splitPresentation(bundle);
+  return `sha-256=:${b64std(sha2563(enc2.encode(canonicalize(stable))))}:`;
+}
+var MAX_AGE_SECS = 300;
+var MAX_FUTURE_SECS = 30;
+var enc2 = new TextEncoder();
+function headerValue(h, name) {
+  const lines = [];
+  for (const k of Object.keys(h)) {
+    if (k.toLowerCase() !== name) continue;
+    const v = h[k];
+    if (v === void 0) continue;
+    for (const line of Array.isArray(v) ? v : [v]) lines.push(String(line).trim());
+  }
+  return lines.length ? lines.join(", ") : null;
+}
+function members(field) {
+  const out = [];
+  let start = 0, depth = 0, quoted = false, escaped = false;
+  for (let i2 = 0; i2 < field.length; i2++) {
+    const c = field[i2];
+    if (quoted) {
+      if (escaped) escaped = false;
+      else if (c === "\\") escaped = true;
+      else if (c === '"') quoted = false;
+      continue;
+    }
+    if (c === '"') quoted = true;
+    else if (c === "(") {
+      if (depth) return null;
+      depth = 1;
+    } else if (c === ")") {
+      if (!depth) return null;
+      depth = 0;
+    } else if (c === "," && !depth) {
+      out.push(trimOws(field.slice(start, i2)));
+      start = i2 + 1;
+    }
+  }
+  if (quoted || depth) return null;
+  out.push(trimOws(field.slice(start)));
+  return out.every((m) => /^[a-z*][a-z0-9_.*-]*$/.test(memberKey(m))) ? out : null;
+}
+var trimOws = (s) => s.replace(/^[ \t]+|[ \t]+$/g, "");
+var memberKey = (m) => m.slice(0, m.search(/[=;]/) < 0 ? m.length : m.search(/[=;]/));
+function ownMember(ms) {
+  const own = ms.filter((m) => memberKey(m) === SIG_LABEL);
+  return own.length > 1 ? void 0 : own[0] ?? null;
+}
+function b64std(bytes) {
+  const u = b64uEncode(bytes).replace(/-/g, "+").replace(/_/g, "/");
+  return u + "=".repeat((4 - u.length % 4) % 4);
+}
+function b64stdDecode(s) {
+  if (!/^[A-Za-z0-9+/]+={0,2}$/.test(s)) return null;
+  const u = s.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  try {
+    const raw = b64uDecode(u);
+    return b64uEncode(raw) === u ? raw : null;
+  } catch {
+    return null;
+  }
+}
+function contentDigest(body) {
+  return `sha-256=:${b64std(sha2563(body))}:`;
+}
+function coveredComponents(hasBody) {
+  return hasBody ? ["@method", "@authority", "@path", "content-digest", PRESENTATION_HEADER] : ["@method", "@authority", "@path", PRESENTATION_HEADER];
+}
+function signatureBase(req, components, p) {
+  const lines = [];
+  for (const c of components) {
+    let v;
+    if (c === "@method") v = req.method.toUpperCase();
+    else if (c === "@authority") v = req.authority.toLowerCase();
+    else if (c === "@path") v = req.path;
+    else if (c.startsWith("@")) return null;
+    else v = headerValue(req.headers, c);
+    if (v === null) return null;
+    lines.push(`"${c}": ${v}`);
+  }
+  const list = components.map((c) => `"${c}"`).join(" ");
+  lines.push(`"@signature-params": (${list});created=${p.created};keyid="${p.keyid}";alg="${SIG_ALG}";nonce="${p.nonce}"`);
+  return lines.join("\n");
+}
+async function signPresentation(args) {
+  const priorInput = headerValue(args.req.headers, "signature-input");
+  const priorSig = headerValue(args.req.headers, "signature");
+  if (priorInput === null !== (priorSig === null))
+    throw new Error("cannot sign: the request carries half of another signature");
+  if (priorInput !== null && priorSig !== null) {
+    const im = members(priorInput), sm = members(priorSig);
+    if (!im || !sm) throw new Error("cannot sign: the request's signature fields do not split into members");
+    if (ownMember(im) !== null || ownMember(sm) !== null)
+      throw new Error("cannot sign: the request already carries an ainra signature");
+  }
+  const out = {};
+  const headers = { ...args.req.headers };
+  if (args.req.body && args.req.body.length) {
+    out["content-digest"] = contentDigest(args.req.body);
+    headers["content-digest"] = out["content-digest"];
+  }
+  const components = coveredComponents(Boolean(args.req.body && args.req.body.length));
+  const p = { created: args.created, keyid: args.keyid, nonce: args.nonce };
+  const base = signatureBase({ ...args.req, headers }, components, p);
+  if (base === null) throw new Error(`cannot sign: a covered component is missing (${components.join(", ")})`);
+  const sig = await args.instanceSign(enc2.encode(base));
+  if (sig.ed25519.length !== ED25519_SIG || sig.mldsa65.length !== MLDSA65_SIG)
+    throw new Error("instanceSign returned a non-hybrid signature \u2014 both halves are mandatory (D-047)");
+  const joined = new Uint8Array(ED25519_SIG + MLDSA65_SIG);
+  joined.set(sig.ed25519, 0);
+  joined.set(sig.mldsa65, ED25519_SIG);
+  const input = `${SIG_LABEL}=(${components.map((c) => `"${c}"`).join(" ")});created=${p.created};keyid="${p.keyid}";alg="${SIG_ALG}";nonce="${p.nonce}"`;
+  const signature = `${SIG_LABEL}=:${b64std(joined)}:`;
+  out["signature-input"] = priorInput === null ? input : `${priorInput}, ${input}`;
+  out["signature"] = priorSig === null ? signature : `${priorSig}, ${signature}`;
+  return out;
+}
+var INPUT_RE = new RegExp(
+  `^${SIG_LABEL}=\\(([^)]*)\\);created=(\\d{1,15});keyid="([^"]{1,64})";alg="([^"]{1,32})";nonce="([A-Za-z0-9._~-]{1,128})"$`
+);
+function verifyPresentation(args) {
+  const inputField = headerValue(args.req.headers, "signature-input");
+  const signatureField = headerValue(args.req.headers, "signature");
+  if (inputField === null || signatureField === null) return { ok: false, reason: "presentation_unsigned" };
+  const inputs = members(inputField), signatures = members(signatureField);
+  if (!inputs || !signatures) return { ok: false, reason: "presentation_sig_invalid" };
+  const input = ownMember(inputs), signature = ownMember(signatures);
+  if (input === void 0 || signature === void 0) return { ok: false, reason: "presentation_sig_invalid" };
+  if (input === null || signature === null) return { ok: false, reason: "presentation_unsigned" };
+  const m = INPUT_RE.exec(input);
+  if (!m) return { ok: false, reason: "presentation_sig_invalid" };
+  const [, listRaw, createdRaw, keyid, alg, nonce] = m;
+  if (alg !== SIG_ALG) return { ok: false, reason: "presentation_sig_invalid" };
+  if (keyid !== args.instance.iid) return { ok: false, reason: "presentation_sig_invalid" };
+  const components = listRaw.length ? listRaw.split(" ").map((s) => s.replace(/^"|"$/g, "")) : [];
+  const hasBody = Boolean(args.req.body && args.req.body.length);
+  const required = coveredComponents(hasBody);
+  if (components.length !== required.length || components.some((c, i2) => c !== required[i2]))
+    return { ok: false, reason: "presentation_sig_invalid" };
+  const created = Number(createdRaw);
+  const age = args.now - created;
+  if (age > (args.maxAgeSecs ?? MAX_AGE_SECS) || -age > MAX_FUTURE_SECS) return { ok: false, reason: "presentation_stale" };
+  if (hasBody) {
+    const expected = contentDigest(args.req.body);
+    if (headerValue(args.req.headers, "content-digest") !== expected)
+      return { ok: false, reason: "presentation_sig_invalid" };
+  }
+  const sigField = new RegExp(`^${SIG_LABEL}=:([A-Za-z0-9+/]+={0,2}):$`).exec(signature);
+  if (!sigField) return { ok: false, reason: "presentation_sig_invalid" };
+  const raw = b64stdDecode(sigField[1]);
+  if (!raw || raw.length !== ED25519_SIG + MLDSA65_SIG) return { ok: false, reason: "presentation_sig_invalid" };
+  const base = signatureBase(args.req, components, { created, keyid, nonce });
+  if (base === null) return { ok: false, reason: "presentation_sig_invalid" };
+  const sig = { ed25519: raw.slice(0, ED25519_SIG), mldsa65: raw.slice(ED25519_SIG) };
+  if (verifyHybrid(args.instance.ikey, enc2.encode(base), sig) !== null)
+    return { ok: false, reason: "presentation_sig_invalid" };
+  if (args.seenNonce && args.seenNonce(nonce)) return { ok: false, reason: "presentation_replayed" };
+  return { ok: true, nonce, created };
+}
+function runPresentationVector(v) {
+  const headers = {};
+  for (const [k, val] of v.request.headers) (headers[k.toLowerCase()] ??= []).push(val);
+  const r = verifyPresentation({
+    req: {
+      method: v.request.method,
+      authority: v.request.authority,
+      path: v.request.path,
+      headers,
+      body: v.request.body_b64u === null ? void 0 : b64uDecode(v.request.body_b64u)
+    },
+    instance: { iid: v.instance.iid, ikey: { ed25519: b64uDecode(v.instance.ikey.ed25519), mldsa65: b64uDecode(v.instance.ikey.mldsa65) } },
+    now: v.now,
+    maxAgeSecs: v.max_age_secs,
+    seenNonce: (n) => v.seen_nonces.includes(n)
+  });
+  return r.ok ? { ok: true, nonce: r.nonce, created: r.created } : { ok: false, reason: r.reason };
+}
+
+// src/wimse.ts
+var WIT_HEADER = "workload-identity-token";
+var WIT_TYP = "wit+jwt";
+var WIMSE_TAG = "wimse-workload-to-workload";
+var WIT_MAX_SECS = 3600;
+var WIMSE_SIG_MAX_SECS = 300;
+var SKEW = 30;
+var enc3 = new TextEncoder();
+var strict = (s) => {
+  if (typeof s !== "string" || !/^[A-Za-z0-9_-]+$/.test(s)) return null;
+  try {
+    const b = b64uDecode(s);
+    return b64uEncode(b) === s ? b : null;
+  } catch {
+    return null;
+  }
+};
+function trustDomainOf(name) {
+  const m = /^(?:ainra|did:ainra):([a-z0-9-]+):([a-z0-9-]+):([a-z0-9-]+)(?:@.*)?$/.exec(name);
+  return m ? `${m[3]}.${m[2]}.${m[1]}.ainra.org` : null;
+}
+function wimseIdentifier(name, iid) {
+  const td2 = trustDomainOf(name);
+  return td2 && /^[A-Za-z0-9._~-]{1,64}$/.test(iid) ? `wimse://${td2}/${iid}` : null;
+}
+function passportOf(bundle) {
+  try {
+    const claims = JSON.parse(Buffer.from(b64uDecode(bundle.claims)).toString("utf8"));
+    const ed = strict(claims?.keys?.[0]?.ed25519);
+    return typeof claims.sub === "string" && ed && ed.length === 32 ? { sub: claims.sub, ed25519: ed } : null;
+  } catch {
+    return null;
+  }
+}
+async function mintWit(args) {
+  const claims = JSON.parse(Buffer.from(b64uDecode(args.passportClaimsB64)).toString("utf8"));
+  const sub = wimseIdentifier(claims.sub, args.iid);
+  if (!sub) throw new Error("cannot mint a WIT: the passport name or the instance id does not form a WIMSE identifier");
+  if (args.instanceEd25519Public.length !== 32) throw new Error("cannot mint a WIT: the instance key must be Ed25519");
+  const life = Math.min(args.lifetimeSecs ?? WIT_MAX_SECS, WIT_MAX_SECS);
+  const exp = Math.min(args.now + life, claims.exp);
+  const header = { alg: "EdDSA", typ: WIT_TYP };
+  const payload = {
+    iss: claims.sub.replace(/@.*$/, "").replace(/^ainra:/, "did:ainra:"),
+    sub,
+    iat: args.now,
+    exp,
+    jti: args.iid,
+    cnf: { jwk: { kty: "OKP", crv: "Ed25519", x: b64uEncode(args.instanceEd25519Public), alg: "EdDSA" } }
+  };
+  const input = `${b64uEncode(enc3.encode(JSON.stringify(header)))}.${b64uEncode(enc3.encode(JSON.stringify(payload)))}`;
+  const sig = await args.controlSignEd25519(enc3.encode(input));
+  if (sig.length !== 64) throw new Error("controlSignEd25519 must return a 64-byte Ed25519 signature");
+  return `${input}.${b64uEncode(sig)}`;
+}
+function pathAndQuery(target) {
+  const i2 = target.indexOf("?");
+  return i2 < 0 ? [target, "?"] : [target.slice(0, i2), target.slice(i2)];
+}
+var COVERED_IF_PRESENT = ["content-type", "content-digest", "authorization", "txn-token", WIT_HEADER];
+function signatureBase2(req, components, params2) {
+  const [p, q] = pathAndQuery(req.path);
+  const lines = [];
+  for (const c of components) {
+    let v;
+    if (c === "@method") v = req.method.toUpperCase();
+    else if (c === "@path") v = p;
+    else if (c === "@query") v = q;
+    else if (c === "@authority") v = req.authority.toLowerCase();
+    else if (c.startsWith("@")) return null;
+    else v = headerValue(req.headers, c);
+    if (v === null) return null;
+    lines.push(`"${c}": ${v}`);
+  }
+  lines.push(`"@signature-params": ${params2}`);
+  return lines.join("\n");
+}
+async function signWimseRequest(args) {
+  if (!/^[A-Za-z0-9._~-]{8,128}$/.test(args.nonce)) throw new Error("cannot sign: nonce must be 8-128 of A-Z a-z 0-9 . _ ~ -");
+  if (/["\\]/.test(args.audience) || !args.audience) throw new Error("cannot sign: audience must be a non-empty string without quotes");
+  const out = { [WIT_HEADER]: args.wit };
+  const headers = { ...args.req.headers, [WIT_HEADER]: args.wit };
+  if (args.req.body && args.req.body.length) {
+    out["content-digest"] = contentDigest(args.req.body);
+    headers["content-digest"] = out["content-digest"];
+  }
+  const components = ["@method", "@path", "@query", ...COVERED_IF_PRESENT.filter((h) => headerValue(headers, h) !== null)];
+  const expires = args.created + Math.min(args.expiresInSecs ?? 120, WIMSE_SIG_MAX_SECS);
+  const params2 = `(${components.map((c) => `"${c}"`).join(" ")});created=${args.created};expires=${expires};nonce="${args.nonce}";tag="${WIMSE_TAG}";wimse-aud="${args.audience}"`;
+  const base = signatureBase2({ ...args.req, headers }, components, params2);
+  if (base === null) throw new Error("cannot sign: a covered component is missing");
+  const sig = await args.instanceSignEd25519(enc3.encode(base));
+  if (sig.length !== 64) throw new Error("instanceSignEd25519 must return a 64-byte Ed25519 signature");
+  const priorInput = headerValue(args.req.headers, "signature-input");
+  const priorSig = headerValue(args.req.headers, "signature");
+  const label = "wimse";
+  if (priorInput && (members(priorInput) ?? []).some((m) => memberKey(m) === label))
+    throw new Error(`cannot sign: the request already carries a "${label}" signature`);
+  const input = `${label}=${params2}`;
+  const signature = `${label}=:${Buffer.from(sig).toString("base64")}:`;
+  out["signature-input"] = priorInput ? `${priorInput}, ${input}` : input;
+  out["signature"] = priorSig ? `${priorSig}, ${signature}` : signature;
+  return out;
+}
+function params(rest) {
+  const out = /* @__PURE__ */ new Map();
+  const re = /^;([a-z*][a-z0-9_.*-]*)(?:=(?:(\d{1,15})|"((?:[^"\\]|\\.)*)"))?/;
+  let s = rest;
+  while (s.length) {
+    const m = re.exec(s);
+    if (!m || out.has(m[1])) return null;
+    out.set(m[1], m[2] !== void 0 ? Number(m[2]) : m[3] !== void 0 ? m[3] : true);
+    s = s.slice(m[0].length);
+  }
+  return out;
+}
+function verifyWimseRequest(args) {
+  const v = args.verifier.verify(args.bundle, args.now);
+  if (v.verdict !== "valid") return { ok: false, reason: v.reason };
+  const passport = passportOf(args.bundle);
+  if (!passport) return { ok: false, reason: "instance_sig_invalid" };
+  const wit = headerValue(args.req.headers, WIT_HEADER);
+  if (wit === null) return { ok: false, reason: "presentation_unsigned" };
+  const parts = wit.split(".");
+  if (parts.length !== 3) return { ok: false, reason: "instance_sig_invalid" };
+  let header, claims;
+  try {
+    const h = strict(parts[0]), c = strict(parts[1]);
+    if (!h || !c) return { ok: false, reason: "instance_sig_invalid" };
+    header = JSON.parse(Buffer.from(h).toString("utf8"));
+    claims = JSON.parse(Buffer.from(c).toString("utf8"));
+  } catch {
+    return { ok: false, reason: "instance_sig_invalid" };
+  }
+  const witSig = strict(parts[2]);
+  if (header.typ !== WIT_TYP || header.alg !== "EdDSA" || !witSig || !ed25519Verify(passport.ed25519, enc3.encode(`${parts[0]}.${parts[1]}`), witSig))
+    return { ok: false, reason: "instance_sig_invalid" };
+  const td2 = trustDomainOf(passport.sub);
+  const sub = typeof claims.sub === "string" ? claims.sub : "";
+  if (!td2 || !sub.startsWith(`wimse://${td2}/`)) return { ok: false, reason: "instance_sig_invalid" };
+  const exp = claims.exp, iat = claims.iat;
+  if (typeof exp !== "number" || typeof iat !== "number" || exp - iat > WIT_MAX_SECS || iat > args.now + SKEW)
+    return { ok: false, reason: "instance_sig_invalid" };
+  if (args.now >= exp) return { ok: false, reason: "instance_expired" };
+  const jwk = claims.cnf?.jwk;
+  const ikey = strict(jwk?.x);
+  if (!jwk || jwk.kty !== "OKP" || jwk.crv !== "Ed25519" || jwk.alg !== "EdDSA" || !ikey || ikey.length !== 32)
+    return { ok: false, reason: "instance_sig_invalid" };
+  const inputField = headerValue(args.req.headers, "signature-input");
+  const sigField = headerValue(args.req.headers, "signature");
+  if (inputField === null || sigField === null) return { ok: false, reason: "presentation_unsigned" };
+  const inputs = members(inputField), sigs = members(sigField);
+  if (!inputs || !sigs) return { ok: false, reason: "presentation_sig_invalid" };
+  const tagged = inputs.filter((m2) => /;tag="wimse-workload-to-workload"(;|$)/.test(m2));
+  if (tagged.length === 0) return { ok: false, reason: "presentation_unsigned" };
+  if (tagged.length > 1) return { ok: false, reason: "presentation_sig_invalid" };
+  const label = memberKey(tagged[0]);
+  const m = /^[a-z*][a-z0-9_.*-]*=\(([^)]*)\)(.*)$/.exec(tagged[0]);
+  const ownSig = sigs.filter((x2) => memberKey(x2) === label);
+  if (!m || ownSig.length !== 1) return { ok: false, reason: "presentation_sig_invalid" };
+  const components = m[1].length ? m[1].split(" ").map((c) => /^"[^"]+"$/.test(c) ? c.slice(1, -1) : "\0") : [];
+  const p = params(m[2]);
+  if (!p || components.includes("\0") || p.has("keyid") || p.has("alg")) return { ok: false, reason: "presentation_sig_invalid" };
+  const need = ["@method", "@path", "@query", ...COVERED_IF_PRESENT.filter((h) => headerValue(args.req.headers, h) !== null)];
+  if (need.some((c) => !components.includes(c))) return { ok: false, reason: "presentation_sig_invalid" };
+  const created = p.get("created"), expires = p.get("expires"), nonce = p.get("nonce");
+  if (typeof created !== "number" || typeof expires !== "number" || typeof nonce !== "string" || !nonce || p.get("wimse-aud") !== args.audience || expires - created > WIMSE_SIG_MAX_SECS || expires < created)
+    return { ok: false, reason: "presentation_sig_invalid" };
+  if (args.now > expires || created > args.now + SKEW) return { ok: false, reason: "presentation_stale" };
+  if (args.req.body && args.req.body.length && headerValue(args.req.headers, "content-digest") !== contentDigest(args.req.body))
+    return { ok: false, reason: "presentation_sig_invalid" };
+  const sm = /^[a-z*][a-z0-9_.*-]*=:([A-Za-z0-9+/]+={0,2}):$/.exec(ownSig[0]);
+  if (!sm) return { ok: false, reason: "presentation_sig_invalid" };
+  const raw = new Uint8Array(Buffer.from(sm[1], "base64"));
+  if (Buffer.from(raw).toString("base64") !== sm[1]) return { ok: false, reason: "presentation_sig_invalid" };
+  const base = signatureBase2(args.req, components, `(${m[1]})${m[2]}`);
+  if (base === null || !ed25519Verify(ikey, enc3.encode(base), raw)) return { ok: false, reason: "presentation_sig_invalid" };
+  if (args.seenNonce && args.seenNonce(nonce)) return { ok: false, reason: "presentation_replayed" };
+  return { ok: true, sub, nonce };
+}
+
 // src/index.ts
 var VALID = { verdict: "valid" };
 var invalid = (reason) => ({ verdict: "invalid", reason });
@@ -4871,7 +5251,8 @@ function parseChecked(claims) {
     statusUri,
     logLeaf,
     act_chain,
-    mandates
+    mandates,
+    keys
   };
 }
 var FRESHNESS_MAX = Object.assign(/* @__PURE__ */ Object.create(null), { F1: 30, F2: 300, F3: 86400 });
@@ -4908,6 +5289,34 @@ function checkMandatePath(path, revoked) {
     if (path[i2].parent !== path[i2 - 1].id) throw new Reject("schema_violation");
   }
   if (path.some((n) => revoked.has(n.id))) throw new Reject("mandate_revoked");
+}
+var INSTANCE_CRED_DEFAULT_SECS = 60 * 60;
+var POP_MAX_SKEW_SECS = 30;
+var POP_MAX_FUTURE_SECS = 5;
+var MAX_IID_LEN = 64;
+var MAX_CAPABILITIES = 256;
+function instanceSigningBytes(ic) {
+  return new TextEncoder().encode(canonicalize({
+    aud: ic.aud,
+    capabilities: ic.capabilities,
+    exp: ic.exp,
+    iid: ic.iid,
+    ikey: { ed25519: b64uEncode(ic.ikey.ed25519), mldsa65: b64uEncode(ic.ikey.mldsa65) },
+    nbf: ic.nbf,
+    passport_leaf: b64uEncode(ic.passportLeaf),
+    sub: ic.sub
+  }));
+}
+function instanceCredDigest(ic) {
+  return sha2563(instanceSigningBytes(ic));
+}
+function popSigningBytes(pop, ic) {
+  return new TextEncoder().encode(canonicalize({
+    aud: pop.aud,
+    cred: b64uEncode(instanceCredDigest(ic)),
+    nonce: pop.nonce,
+    ts: pop.ts
+  }));
 }
 var SCOPE_CHECKPOINT = "checkpoint-daily";
 var DELEGATE_CERT_MAX_SECS = 92 * 24 * 60 * 60;
@@ -5080,6 +5489,8 @@ function verifyInner(pres, anchors) {
   if (!verifyInclusion(claimedLeaf, pres.leafIndex, pres.checkpoint.size, pres.inclusionProof, pres.checkpoint.root)) {
     throw new Reject("not_logged");
   }
+  if (reg.distrustFromLeaf !== void 0 && pres.leafIndex >= reg.distrustFromLeaf)
+    throw new Reject("registrar_distrusted");
   for (let i2 = 0; i2 < p.act_chain.length; i2++) {
     const hop = p.act_chain[i2];
     const anchored = dec(hop.log_leaf, "not_logged");
@@ -5088,7 +5499,25 @@ function verifyInner(pres, anchors) {
     const hp = pres.hopProofs[i2];
     if (!verifyInclusion(anchored, hp.leafIndex, pres.checkpoint.size, hp.proof, pres.checkpoint.root))
       throw new Reject("not_logged");
+    if (reg.distrustFromLeaf !== void 0 && hp.leafIndex >= reg.distrustFromLeaf)
+      throw new Reject("registrar_distrusted");
   }
+  if (pres.instance) {
+    verifyInstance(pres.instance.ic, pres.instance.pop, p, expectedLeaf, pres.now, pres.audience ?? "");
+  }
+}
+function verifyInstance(ic, pop, p, passportLeaf, now, expectedAud) {
+  if (ic.sub !== p.sub || !eqBytes(ic.passportLeaf, passportLeaf)) throw new Reject("instance_sig_invalid");
+  if (ic.exp <= ic.nbf || ic.exp - ic.nbf > INSTANCE_CRED_DEFAULT_SECS) throw new Reject("instance_expired");
+  if (now < ic.nbf || now >= ic.exp) throw new Reject("instance_expired");
+  if (ic.capabilities.length > MAX_CAPABILITIES || p.capabilities.length > MAX_CAPABILITIES) throw new Reject("schema_violation");
+  if (!ic.capabilities.every((c) => p.capabilities.includes(c))) throw new Reject("instance_scope_exceeds");
+  const pkey = { ed25519: dec(p.keys[0].ed25519, "instance_sig_invalid"), mldsa65: dec(p.keys[0].mldsa65, "instance_sig_invalid") };
+  if (verifyHybrid(pkey, instanceSigningBytes(ic), ic.sig)) throw new Reject("instance_sig_invalid");
+  if (expectedAud === "" || ic.aud === "" || pop.aud === "") throw new Reject("instance_pop_invalid");
+  if (ic.aud !== expectedAud || pop.aud !== expectedAud) throw new Reject("instance_pop_invalid");
+  if (now - pop.ts > POP_MAX_SKEW_SECS || pop.ts - now > POP_MAX_FUTURE_SECS) throw new Reject("instance_pop_invalid");
+  if (verifyHybrid(ic.ikey, popSigningBytes(pop, ic), pop.sig)) throw new Reject("instance_pop_invalid");
 }
 function prelogLeaf(claims) {
   let body;
@@ -5120,7 +5549,41 @@ function decodeCheckpointSig(w) {
     sigEd25519: dec(w.sig_ed25519 ?? "")
   };
 }
-function decodePresentation(pr, revoked, now) {
+function decodeInstance(i2) {
+  const int = (v) => {
+    if (typeof v !== "number" || !Number.isInteger(v) || Object.is(v, -0) || v < 0) throw new Reject("schema_violation");
+    return v;
+  };
+  const str = (v) => {
+    if (typeof v !== "string") throw new Reject("schema_violation");
+    return v;
+  };
+  if (!i2.pop || typeof i2.pop !== "object") throw new Reject("schema_violation");
+  if (!Array.isArray(i2.capabilities) || i2.capabilities.some((c) => typeof c !== "string"))
+    throw new Reject("schema_violation");
+  if (typeof i2.iid !== "string" || i2.iid.length > MAX_IID_LEN) throw new Reject("schema_violation");
+  if (i2.capabilities.length > MAX_CAPABILITIES) throw new Reject("schema_violation");
+  return {
+    ic: {
+      sub: str(i2.sub),
+      iid: str(i2.iid),
+      ikey: { ed25519: dec(i2.ikey.ed25519), mldsa65: dec(i2.ikey.mldsa65) },
+      nbf: int(i2.nbf),
+      exp: int(i2.exp),
+      capabilities: i2.capabilities,
+      aud: str(i2.aud),
+      passportLeaf: dec(i2.passport_leaf),
+      sig: { ed25519: dec(i2.sig.ed25519), mldsa65: dec(i2.sig.mldsa65) }
+    },
+    pop: {
+      aud: str(i2.pop.aud),
+      nonce: str(i2.pop.nonce),
+      ts: int(i2.pop.ts),
+      sig: { ed25519: dec(i2.pop.sig.ed25519), mldsa65: dec(i2.pop.sig.mldsa65) }
+    }
+  };
+}
+function decodePresentation(pr, revoked, now, audience) {
   return {
     claims: dec(pr.claims),
     issuerSig: { ed25519: dec(pr.issuer_sig.ed25519), mldsa65: dec(pr.issuer_sig.mldsa65) },
@@ -5130,6 +5593,7 @@ function decodePresentation(pr, revoked, now) {
     statusBits: unpackStatus(dec(pr.status_list), pr.status_len),
     statusBitLen: pr.status_len,
     statusIssuedAt: pr.status_issued_at,
+    // Read here only for the fixture path (a vector pins its class); the Verifier overwrites it with its own.
     freshness: pr.freshness,
     checkpoint: { origin: pr.checkpoint.origin, size: pr.checkpoint.size, root: dec(pr.checkpoint.root), rootB64: pr.checkpoint.root },
     checkpointSig: decodeCheckpointSig(pr.checkpoint_sig),
@@ -5137,8 +5601,11 @@ function decodePresentation(pr, revoked, now) {
     inclusionProof: pr.inclusion_proof.map((s) => dec(s)),
     mandatePath: [],
     mandateProofs: [],
+    // Likewise: a vector's revocation set; the Verifier replaces it with the empty authenticated set.
     mandateRevocations: new Set(pr.mandate_revocations),
-    revokedDelegates: revoked
+    revokedDelegates: revoked,
+    instance: pr.instance ? decodeInstance(pr.instance) : void 0,
+    audience
   };
 }
 function runVector(v) {
@@ -5148,11 +5615,15 @@ function runVector(v) {
     for (const [id2, r] of Object.entries(v.anchors)) {
       anchors[id2] = {
         issuerKey: { ed25519: dec(r.issuer_key.ed25519), mldsa65: dec(r.issuer_key.mldsa65) },
-        logRootKey: dec(r.log_root_key)
+        logRootKey: dec(r.log_root_key),
+        // D-044: wire is snake_case, the TS surface is camelCase. Forgetting this mapping is precisely how an
+        // implementation silently returns VALID where the reference returns registrar_distrusted — which is what
+        // `make diff` caught on the first run of these vectors.
+        distrustFromLeaf: r.distrust_from_leaf ?? void 0
       };
     }
     const revoked = new Set(decodeFingerprints(pr.revoked_delegates ?? []) ?? (pr.revoked_delegates ?? []));
-    return verify(decodePresentation(pr, revoked, pr.now), anchors);
+    return verify(decodePresentation(pr, revoked, pr.now, pr.audience ?? ""), anchors);
   } catch (e) {
     if (e instanceof Reject) return invalid(e.reason);
     throw e;
@@ -5207,24 +5678,29 @@ var Verifier = class _Verifier {
   freshness;
   /** Currency mode: require + verify + head-hash-bind the fresh head and enforce a monotonic seq (D-021, M6). */
   currency;
+  /** This verifier's own audience (ADR-019). An instance credential addressed elsewhere is refused. Empty string
+   *  = this verifier accepts no instance credentials, which is the fail-closed default: a service that has not
+   *  said who it is cannot be the intended recipient of anything. */
+  audience;
   /** Per-uri highest fresh-head `seq` this verifier has observed (currency mode). A lower seq is a replay. */
   seqSeen = /* @__PURE__ */ new Map();
-  constructor(acc, freshness, currency) {
+  constructor(acc, freshness, currency, audience) {
     this.anchors = acc.anchors;
     this.revokedDelegates = acc.revokedDelegates;
     this.epoch = acc.epoch;
     this.freshness = freshness;
     this.currency = currency;
+    this.audience = audience;
   }
   /** Verify the dual-root-signed directory and build a Verifier; `null` if the directory is not authentic.
    *  `freshness` sets the verifier's own status-freshness policy (default `"F2"` = 5 min). `currency` (default
    *  `false`) enables the fresh-head + monotonic-seq replay defence (see the class docs). */
-  static fromDirectory(d, rootEd25519, rootSlh, freshness = "F2", currency = false) {
+  static fromDirectory(d, rootEd25519, rootSlh, freshness = "F2", currency = false, audience = "") {
     const acc = verifyDirectory(d, rootEd25519, rootSlh);
-    return acc === null ? null : new _Verifier(acc, freshness, currency);
+    return acc === null ? null : new _Verifier(acc, freshness, currency, audience);
   }
   /** Convenience: build from a directory + the ceremony's base64url root keys (as published in `roots.json`). */
-  static fromDirectoryB64(d, rootEd25519B64, rootSlhB64, freshness = "F2", currency = false) {
+  static fromDirectoryB64(d, rootEd25519B64, rootSlhB64, freshness = "F2", currency = false, audience = "") {
     let ed, slh;
     try {
       ed = dec(rootEd25519B64);
@@ -5232,7 +5708,7 @@ var Verifier = class _Verifier {
     } catch {
       return null;
     }
-    return _Verifier.fromDirectory(d, ed, slh, freshness, currency);
+    return _Verifier.fromDirectory(d, ed, slh, freshness, currency, audience);
   }
   /** Verify one presentation at the verifier's own `now` (unix seconds). The verifier supplies the clock, the
    * directory's revoked-delegate set, its own freshness policy, and an EMPTY mandate-revocation set; and it
@@ -5248,13 +5724,25 @@ var Verifier = class _Verifier {
       if (!info.statusKey) throw new Reject("stale_status");
       authenticateStatus(info, p.statusUri, bundle);
       if (this.currency) authenticateCurrency(info, bundle, now, this.seqSeen);
-      const pres = decodePresentation(bundle, this.revokedDelegates, now);
+      const pres = decodePresentation(bundle, this.revokedDelegates, now, this.audience);
       pres.mandateRevocations = /* @__PURE__ */ new Set();
       pres.freshness = this.freshness;
       return verify(pres, this.anchors);
     } catch (e) {
       if (e instanceof Reject) return invalid(e.reason);
       return invalid("schema_violation");
+    }
+  }
+  /** AINRA Link (D-078): who stands behind `presentedKey`, a 32-byte Ed25519 key this gate has ALREADY verified the
+   *  request's signature with. Uses the directory's anchors and revoked delegates, this verifier's freshness class,
+   *  and authenticates the status publication before reading a bit. `capability` is what the request exercises.
+   *  A key with no link is the caller's outcome ("not linked") — this checks the link it is given. Never throws. */
+  verifyLink(link, presentedKey, now, capability) {
+    try {
+      return { verdict: "valid", ...verifyLinkInner(link, this.anchors, this.revokedDelegates, presentedKey, now, this.freshness, capability) };
+    } catch (e) {
+      if (e instanceof Reject) return { verdict: "invalid", reason: e.reason };
+      return { verdict: "invalid", reason: "schema_violation" };
     }
   }
 };
@@ -5337,7 +5825,11 @@ function verifyDirectory(d, rootEd25519, rootSlh) {
     const lr = strictB64u(e.log_root_slh);
     if (ed === null || ml === null || lr === null) return null;
     if (ed.length !== 32) return null;
-    const info = { issuerKey: { ed25519: ed, mldsa65: ml }, logRootKey: lr };
+    const info = {
+      issuerKey: { ed25519: ed, mldsa65: ml },
+      logRootKey: lr,
+      distrustFromLeaf: typeof e.distrust_from_leaf === "number" ? e.distrust_from_leaf : void 0
+    };
     const sEd = strictB64u(e.status_ed25519 ?? "");
     const sMl = strictB64u(e.status_mldsa65 ?? "");
     if (sEd !== null && sEd.length === 32 && sMl !== null && sMl.length > 0 && e.status_uri.length > 0) {
@@ -5376,30 +5868,412 @@ function verdictEvent(pres, verdict, now) {
     if (typeof pres.status_issued_at === "number") age = Math.max(0, Math.trunc(now - pres.status_issued_at));
   } catch {
   }
-  return { status: verdict.verdict, reason: verdict.verdict === "valid" ? null : verdict.reason, name, number, tier, freshness_age_s: age };
+  const inst = pres.instance;
+  const instance_iid = typeof inst?.iid === "string" && inst.iid.length <= MAX_IID_LEN ? inst.iid : null;
+  const instance_exp = typeof inst?.exp === "number" ? inst.exp : null;
+  return { status: verdict.verdict, reason: verdict.verdict === "valid" ? null : verdict.reason, name, number, tier, freshness_age_s: age, instance_iid, instance_exp };
 }
 function serializeVerdictEvent(e) {
-  return JSON.stringify({ status: e.status, reason: e.reason, name: e.name, number: e.number, tier: e.tier, freshness_age_s: e.freshness_age_s });
+  return JSON.stringify({ status: e.status, reason: e.reason, name: e.name, number: e.number, tier: e.tier, freshness_age_s: e.freshness_age_s, instance_iid: e.instance_iid, instance_exp: e.instance_exp });
+}
+async function mintInstanceCredential(args) {
+  const claims = strictB64u(args.passportClaimsB64);
+  if (!claims) throw new Error("passportClaimsB64 is not canonical base64url");
+  const parsed = JSON.parse(new TextDecoder().decode(claims));
+  const life = Math.min(args.lifetimeSecs ?? INSTANCE_CRED_DEFAULT_SECS, INSTANCE_CRED_DEFAULT_SECS);
+  const extra = args.capabilities.filter((c) => !parsed.capabilities.includes(c));
+  if (extra.length) throw new Error(`instance capabilities must narrow: ${extra.join(", ")} not held by the passport`);
+  const ic = {
+    sub: parsed.sub,
+    iid: args.iid,
+    ikey: args.instancePublic,
+    nbf: args.now,
+    exp: args.now + life,
+    capabilities: args.capabilities,
+    aud: args.audience,
+    passportLeaf: prelogLeaf(claims),
+    sig: { ed25519: new Uint8Array(), mldsa65: new Uint8Array() }
+  };
+  ic.sig = await args.controlSign(instanceSigningBytes(ic));
+  return ic;
+}
+async function proveInstancePossession(args) {
+  if (!args.credential || typeof args.credential !== "object") throw new Reject("schema_violation");
+  if (!args.audience) throw new Reject("schema_violation");
+  if (args.credential.aud !== args.audience) throw new Reject("schema_violation");
+  const pop = {
+    aud: args.audience,
+    nonce: args.nonce,
+    ts: args.now,
+    sig: { ed25519: new Uint8Array(), mldsa65: new Uint8Array() }
+  };
+  pop.sig = await args.instanceSign(popSigningBytes(pop, args.credential));
+  return pop;
+}
+var LINK_V = "ainra-link-1";
+var LINK_POP_PURPOSE = "ainra-link-pop-1";
+var ALLOWED_LINK = /* @__PURE__ */ new Set(["v", "registrar", "passport", "subject", "scope", "nbf", "exp", "status", "passport_status", "pop", "log"]);
+var ALLOWED_LINK_SUBJECT = /* @__PURE__ */ new Set(["kind", "alg", "thumbprint"]);
+var ALLOWED_LINK_LOG = /* @__PURE__ */ new Set(["leaf"]);
+function isU64(v) {
+  return typeof v === "number" && Number.isSafeInteger(v) && v >= 0;
+}
+function parseLinkChecked(raw) {
+  let o;
+  try {
+    o = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(raw));
+  } catch {
+    throw new Reject("schema_violation");
+  }
+  if (typeof o !== "object" || o === null || Array.isArray(o)) throw new Reject("schema_violation");
+  denyUnknown(o, ALLOWED_LINK);
+  for (const k of ALLOWED_LINK) if (!Object.hasOwn(o, k)) throw new Reject("schema_violation");
+  const subject = o.subject;
+  const status = o.status;
+  const pstatus = o.passport_status;
+  const log = o.log;
+  for (const [obj, allowed] of [[subject, ALLOWED_LINK_SUBJECT], [status, ALLOWED_STATUSREF], [pstatus, ALLOWED_STATUSREF], [log, ALLOWED_LINK_LOG]]) {
+    if (typeof obj !== "object" || obj === null || Array.isArray(obj)) throw new Reject("schema_violation");
+    denyUnknown(obj, allowed);
+    for (const k of allowed) if (!Object.hasOwn(obj, k)) throw new Reject("schema_violation");
+  }
+  const v = reqString(o.v);
+  const registrar = reqString(o.registrar);
+  const passport = reqString(o.passport);
+  const kind = reqString(subject.kind);
+  const alg = reqString(subject.alg);
+  const thumbprint = reqString(subject.thumbprint);
+  const scope = reqStringArray(o.scope);
+  const popB64 = reqString(o.pop);
+  const leafB64 = reqString(log.leaf);
+  const statusUri = reqString(status.uri);
+  const passportUri = reqString(pstatus.uri);
+  if (!isU64(o.nbf) || !isU64(o.exp) || !isU64(status.idx) || !isU64(pstatus.idx)) throw new Reject("schema_violation");
+  let again;
+  try {
+    again = canonicalize(o);
+  } catch {
+    throw new Reject("schema_violation");
+  }
+  if (!eqBytes(new TextEncoder().encode(again), raw)) throw new Reject("schema_violation");
+  if (v !== LINK_V || kind !== "jwk" || alg !== "Ed25519") throw new Reject("schema_violation");
+  const tp = strictB64u(thumbprint);
+  const pop = strictB64u(popB64);
+  const leaf = strictB64u(leafB64);
+  if (tp === null || tp.length !== 32 || pop === null || pop.length !== 64 || leaf === null || leaf.length !== 32)
+    throw new Reject("schema_violation");
+  if (scope.length > MAX_CAPABILITIES || scope.some((s) => s.length === 0 || new TextEncoder().encode(s).length > 128))
+    throw new Reject("schema_violation");
+  if (statusUri !== passportUri || status.idx === pstatus.idx) throw new Reject("schema_violation");
+  if (o.nbf >= o.exp) throw new Reject("schema_violation");
+  if (!parseName(passport)) throw new Reject("name_malformed");
+  if (passport.split(":")[1] !== registrar) throw new Reject("schema_violation");
+  return {
+    registrar,
+    passport,
+    thumbprint,
+    scope,
+    nbf: o.nbf,
+    exp: o.exp,
+    statusUri,
+    statusIdx: status.idx,
+    passportIdx: pstatus.idx,
+    pop,
+    leaf
+  };
+}
+function jwkThumbprintEd25519(pk) {
+  return b64uEncode(sha2563(new TextEncoder().encode(canonicalize({ crv: "Ed25519", kty: "OKP", x: b64uEncode(pk) }))));
+}
+function linkPopSigningBytes(registrar, passport, thumbprint, nbf) {
+  return new TextEncoder().encode(canonicalize({ purpose: LINK_POP_PURPOSE, registrar, passport, thumbprint, nbf }));
+}
+function verifyLinkInner(w, anchors, revokedDelegates, presentedKey, now, freshness, capability) {
+  const raw = dec(w.claims);
+  const c = parseLinkChecked(raw);
+  if (!Object.hasOwn(anchors, c.registrar)) throw new Reject("unknown_registrar");
+  const reg = anchors[c.registrar];
+  if (!reg.statusKey) throw new Reject("stale_status");
+  authenticateStatus(reg, c.statusUri, w);
+  const packed = (() => {
+    const z = strictB64u(w.status_list);
+    if (z === null) throw new Reject("stale_status");
+    return unpackStatus(z, w.status_len);
+  })();
+  const sig = { ed25519: dec(w.registrar_sig.ed25519), mldsa65: dec(w.registrar_sig.mldsa65) };
+  const cpRoot = dec(w.checkpoint.root);
+  if (cpRoot.length !== 32) throw new Reject("schema_violation");
+  const cpSig = decodeCheckpointSig(w.checkpoint_sig);
+  const proof = w.inclusion_proof.map((h) => {
+    const b = dec(h);
+    if (b.length !== 32) throw new Reject("schema_violation");
+    return b;
+  });
+  if (!isU64(w.leaf_index) || !isU64(w.status_issued_at) || !isU64(w.checkpoint.size)) throw new Reject("schema_violation");
+  if (now < c.nbf) throw new Reject("not_yet_valid");
+  if (now >= c.exp) throw new Reject("expired");
+  const r = verifyHybrid(reg.issuerKey, raw, sig);
+  if (r) throw new Reject(r);
+  if (presentedKey.length !== 32 || jwkThumbprintEd25519(presentedKey) !== c.thumbprint) throw new Reject("sig_invalid");
+  if (!ed25519Verify(presentedKey, linkPopSigningBytes(c.registrar, c.passport, c.thumbprint, c.nbf), c.pop))
+    throw new Reject("sig_invalid");
+  if (capability !== void 0 && c.scope.length > 0 && !c.scope.includes(capability)) throw new Reject("ceiling_exceeded");
+  if (freshnessStale(freshness, now, w.status_issued_at)) throw new Reject("stale_status");
+  if (statusBit(packed, w.status_len, c.statusIdx)) throw new Reject("revoked");
+  if (statusBit(packed, w.status_len, c.passportIdx)) throw new Reject("revoked");
+  if (!verifyCheckpointSig(reg.logRootKey, { origin: w.checkpoint.origin, rootB64: w.checkpoint.root, size: w.checkpoint.size }, cpSig, now))
+    throw new Reject("checkpoint_invalid");
+  if (cpSig.mode === "delegate" && revokedDelegates.has(certFingerprintB64(cpSig.cert))) throw new Reject("checkpoint_invalid");
+  if (!eqBytes(c.leaf, prelogLeaf(raw))) throw new Reject("not_logged");
+  if (!verifyInclusion(c.leaf, w.leaf_index, w.checkpoint.size, proof, cpRoot)) throw new Reject("not_logged");
+  if (reg.distrustFromLeaf !== void 0 && w.leaf_index >= reg.distrustFromLeaf) throw new Reject("registrar_distrusted");
+  return { registrar: c.registrar, operator: c.passport.split(":")[2], passport: c.passport, scope: c.scope };
+}
+function linkFromIndex(index, publication, thumbprint) {
+  const e = index.links.find((l) => l.thumbprint === thumbprint);
+  if (!e) return null;
+  return {
+    claims: e.claims,
+    registrar_sig: e.registrar_sig,
+    leaf_index: e.leaf_index,
+    inclusion_proof: e.inclusion_proof,
+    checkpoint: index.checkpoint,
+    checkpoint_sig: index.checkpoint_sig,
+    status_list: publication.status_list_b64,
+    status_len: publication.bit_len,
+    status_issued_at: publication.issued_at,
+    status_uri: publication.uri,
+    status_sig_ed25519: publication.sig_ed25519,
+    status_sig_mldsa65: publication.sig_mldsa65
+  };
+}
+function runGateVector(v) {
+  const gate = Verifier.fromDirectoryB64(v.directory, v.roots.root_ed25519, v.roots.root_slh, v.freshness, false, v.audience);
+  if (!gate) return { verdict: "no_gate" };
+  const r = gate.verify(v.bundle, v.now);
+  return r.verdict === "valid" ? { verdict: "valid" } : { verdict: "invalid", reason: r.reason };
+}
+function runLinkVector(v) {
+  const gate = Verifier.fromDirectoryB64(v.directory, v.roots.root_ed25519, v.roots.root_slh, v.freshness);
+  if (!gate) return { verdict: "no_gate" };
+  const key = strictB64u(v.presented_key);
+  if (key === null || key.length !== 32) return { verdict: "invalid", reason: "schema_violation" };
+  return gate.verifyLink(v.link, key, v.now, v.capability ?? void 0);
+}
+var DECISION_V = "ainra-decision-1";
+var DECISION_FIELDS = /* @__PURE__ */ new Set(["v", "gate", "seq", "at", "kind", "subject", "passport", "operator", "verdict", "reason", "request", "status", "checkpoint", "policy", "prev", "sig"]);
+var DECISION_OPTIONAL = /* @__PURE__ */ new Set(["passport", "operator", "reason", "status", "checkpoint"]);
+var FROZEN_REASONS = /* @__PURE__ */ new Set([
+  "registrar_distrusted",
+  "sig_invalid",
+  "alg_downgrade",
+  "expired",
+  "not_yet_valid",
+  "revoked",
+  "mandate_revoked",
+  "chain_widening",
+  "chain_expired",
+  "not_logged",
+  "checkpoint_invalid",
+  "stale_status",
+  "name_malformed",
+  "ceiling_exceeded",
+  "unknown_registrar",
+  "schema_violation",
+  "instance_expired",
+  "instance_scope_exceeds",
+  "instance_sig_invalid",
+  "instance_pop_invalid"
+]);
+var PRESENTATION_REASONS = /* @__PURE__ */ new Set(["presentation_unsigned", "presentation_sig_invalid", "presentation_stale", "presentation_replayed"]);
+function b64Len(s, n) {
+  if (typeof s !== "string") return false;
+  const b = strictB64u(s);
+  return b !== null && b.length === n;
+}
+function exactObject(o, fields) {
+  if (o === null || typeof o !== "object" || Array.isArray(o)) return false;
+  const keys = Object.keys(o);
+  return keys.length === fields.length && fields.every((f) => Object.hasOwn(o, f));
+}
+function parseDecision(line) {
+  let o;
+  try {
+    o = JSON.parse(line);
+  } catch {
+    return null;
+  }
+  if (o === null || typeof o !== "object" || Array.isArray(o)) return null;
+  for (const k of Object.keys(o)) if (!DECISION_FIELDS.has(k)) return null;
+  for (const k of DECISION_FIELDS) {
+    if (!Object.hasOwn(o, k)) {
+      if (!DECISION_OPTIONAL.has(k)) return null;
+      continue;
+    }
+    if (o[k] === null) return null;
+  }
+  for (const k of ["v", "gate", "kind", "subject", "verdict", "request", "prev", "sig"]) if (typeof o[k] !== "string") return null;
+  for (const k of ["passport", "operator", "reason"]) if (k in o && typeof o[k] !== "string") return null;
+  if (!isU64(o.seq) || !isU64(o.at)) return null;
+  const st = o.status, cp = o.checkpoint, pol = o.policy;
+  if (st !== void 0 && !(exactObject(st, ["uri", "issued_at", "list"]) && typeof st.uri === "string" && isU64(st.issued_at) && b64Len(st.list, 32))) return null;
+  if (cp !== void 0 && !(exactObject(cp, ["origin", "size", "root"]) && typeof cp.origin === "string" && isU64(cp.size) && b64Len(cp.root, 32))) return null;
+  if (!(exactObject(pol, ["freshness", "audience"]) && typeof pol.audience === "string" && ["F1", "F2", "F3"].includes(pol.freshness))) return null;
+  try {
+    if (canonicalize(o) !== line) return null;
+  } catch {
+    return null;
+  }
+  const r = o;
+  if (r.v !== DECISION_V || !b64Len(r.gate, 32) || !b64Len(r.request, 32) || !b64Len(r.sig, 64)) return null;
+  if (!(r.seq === 0 && r.prev === "") && !b64Len(r.prev, 32)) return null;
+  if (r.kind === "passport") {
+    if (!parseName(r.subject) || r.passport !== void 0) return null;
+  } else if (r.kind === "link") {
+    if (!b64Len(r.subject, 32) || r.passport !== void 0 && !parseName(r.passport)) return null;
+  } else return null;
+  const okVerdict = r.verdict === "valid" && r.reason === void 0 || r.verdict === "invalid" && r.reason === "not_linked" && r.kind === "link" || r.verdict === "invalid" && r.reason !== void 0 && (FROZEN_REASONS.has(r.reason) || PRESENTATION_REASONS.has(r.reason));
+  if (!okVerdict) return null;
+  if (r.operator !== void 0 && (r.operator.length === 0 || new TextEncoder().encode(r.operator).length > 63)) return null;
+  return r;
+}
+function decisionSigningBytes(r) {
+  const { sig: _sig, ...rest } = r;
+  void _sig;
+  return new TextEncoder().encode(canonicalize(rest));
+}
+function signDecision(r, gatePublic, prevLine, sign) {
+  const prev = prevLine === "" ? null : parseDecision(prevLine);
+  if (prevLine !== "" && prev === null) throw new Error("the previous line is not a decision record");
+  const rec = {
+    ...r,
+    v: DECISION_V,
+    gate: jwkThumbprintEd25519(gatePublic),
+    seq: prev ? prev.seq + 1 : 0,
+    prev: prev ? b64uEncode(sha2563(new TextEncoder().encode(prevLine))) : ""
+  };
+  for (const k of Object.keys(rec)) if (rec[k] === void 0) delete rec[k];
+  const line = canonicalize({ ...rec, sig: b64uEncode(sign(decisionSigningBytes(rec))) });
+  if (parseDecision(line) === null) throw new Error("this record would not verify: a field is outside the vocabulary");
+  return line;
+}
+function verifyDecisionChain(lines, gateKey, anchor) {
+  const gate = jwkThumbprintEd25519(gateKey);
+  let last = anchor ?? null;
+  for (let index = 0; index < lines.length; index++) {
+    const fail = (problem) => ({ ok: false, index, problem });
+    const r = parseDecision(lines[index]);
+    if (r === null) return fail("schema");
+    if (r.gate !== gate) return fail("gate");
+    if (!ed25519Verify(gateKey, decisionSigningBytes(r), strictB64u(r.sig))) return fail("signature");
+    const wantSeq = last ? last.seq + 1 : 0;
+    if (r.seq !== wantSeq) return fail("sequence");
+    if (r.prev !== (last ? last.digest : "")) return fail("link");
+    if (last && r.at < last.at) return fail("clock");
+    last = { seq: r.seq, at: r.at, digest: b64uEncode(sha2563(new TextEncoder().encode(lines[index]))) };
+  }
+  return { ok: true, count: lines.length };
+}
+function runDecisionVector(v) {
+  const key = strictB64u(v.gate_key);
+  if (key === null || key.length !== 32) return { ok: false, index: 0, problem: "schema" };
+  if (v.anchor !== null && v.anchor !== void 0) {
+    const d = strictB64u(v.anchor.digest);
+    if (!isU64(v.anchor.seq) || !isU64(v.anchor.at) || d === null || d.length !== 32) return { ok: false, index: 0, problem: "schema" };
+  }
+  return verifyDecisionChain(v.lines, key, v.anchor);
+}
+function decisionRequestDigest(req) {
+  return b64uEncode(sha2563(new TextEncoder().encode(canonicalize({
+    authority: req.authority,
+    content_digest: req.contentDigest ?? "",
+    method: req.method,
+    path: req.path
+  }))));
+}
+function createDecisionLog(o) {
+  let last = o.lastLine ?? "";
+  return {
+    record(d) {
+      const line = signDecision({ ...d, policy: { freshness: o.freshness, audience: o.audience ?? "" } }, o.gatePublic, last, o.sign);
+      o.append(line);
+      last = line;
+      return line;
+    },
+    head() {
+      return last === "" ? "" : b64uEncode(sha2563(new TextEncoder().encode(last)));
+    }
+  };
 }
 export {
+  DECISION_V,
+  INSTANCE_CRED_DEFAULT_SECS,
+  MAX_AGE_SECS,
+  MAX_CAPABILITIES,
+  MAX_FUTURE_SECS,
+  MAX_IID_LEN,
   PASSPORT_VALIDITY_DEFAULT_SECS,
+  POP_HEADER,
+  POP_MAX_FUTURE_SECS,
+  POP_MAX_SKEW_SECS,
+  PRESENTATION_HEADER,
+  PRIME_PATH,
   RENEWAL_LEAD_SECS,
+  SIG_ALG,
+  SIG_LABEL,
   Verifier,
+  WIMSE_SIG_MAX_SECS,
+  WIMSE_TAG,
+  WIT_HEADER,
+  WIT_MAX_SECS,
+  WIT_TYP,
   canonicalize,
+  contentDigest,
+  coveredComponents,
+  createDecisionLog,
+  decisionRequestDigest,
+  decisionSigningBytes,
+  decodeInstance,
   expectedVerdict,
   headHash,
+  instanceCredDigest,
+  instanceSigningBytes,
+  isPresentationRef,
+  joinPresentation,
+  jwkThumbprintEd25519,
+  linkFromIndex,
+  linkPopSigningBytes,
+  mintInstanceCredential,
+  mintWit,
   numberFromName,
+  popSigningBytes,
+  presentationRef,
+  proveInstancePossession,
   renewalDue,
+  runDecisionVector,
   runDeltaVector,
   runDirectoryVector,
+  runGateVector,
+  runLinkVector,
+  runPresentationVector,
   runVector,
   serializeVerdictEvent,
+  signDecision,
+  signPresentation,
+  signWimseRequest,
+  signatureBase,
+  splitPresentation,
   strictB64u,
+  trustDomainOf,
   verdictEvent,
   verify,
+  verifyDecisionChain,
   verifyDelta,
   verifyDirectory,
-  verifyFreshHead
+  verifyFreshHead,
+  verifyPresentation,
+  verifyWimseRequest,
+  wimseIdentifier
 };
 /*! Bundled license information:
 

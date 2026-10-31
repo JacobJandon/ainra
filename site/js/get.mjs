@@ -2,7 +2,9 @@
 // M18 — "Get your agent an AINRA passport." A real, three-step issuance flow against a registrar's public door on a
 // TEST-ROOT: NAME your agent → GET the passport (minted + logged, with real crypto) → USE it (verify locally, carry
 // it, or revoke it). If no registrar is reachable (a public static deploy), the flow degrades to an honest note.
-import { runVector, verdictEvent, serializeVerdictEvent } from "../vendor/ainra-sdk.js";
+import {
+  runVector, verdictEvent, serializeVerdictEvent, Verifier, linkFromIndex, jwkThumbprintEd25519, linkPopSigningBytes,
+} from "../vendor/ainra-sdk.js";
 import { fetchT, why } from "./net.mjs";
 
 const qs = new URLSearchParams(location.search);
@@ -62,7 +64,9 @@ async function boot() {
   $("#g-verify").addEventListener("click", verify);
   $("#g-download").addEventListener("click", download);
   $("#g-revoke").addEventListener("click", revoke);
-  $("#g-again").addEventListener("click", () => { rec = null; step(1); $("#g-verdict").textContent = "—"; $("#g-verdict").className = "g-verdict pend"; });
+  $("#g-link")?.addEventListener("click", linkKey);
+  $("#g-lrevoke")?.addEventListener("click", revokeLink);
+  $("#g-again").addEventListener("click", () => { rec = null; linked = null; resetLink(); step(1); $("#g-verdict").textContent = "—"; $("#g-verdict").className = "g-verdict pend"; });
   $("#g-copyprompt")?.addEventListener("click", () => { const p = $("#g-prompt"); navigator.clipboard?.writeText(p.textContent).then(() => { $("#g-copyprompt").textContent = "COPIED"; setTimeout(() => ($("#g-copyprompt").textContent = "COPY"), 1400); }, () => {}); });
   step(1);
 }
@@ -129,6 +133,72 @@ async function _revoke() {
     const rv = await (await fetchT(REG + "/demo/revoke", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sub: rec.sub, now: NOW }) })).json();
     if (rv.revoked !== rec.sub) throw new Error(rv.error || "revoke failed");
     await verify(); // re-verify → INVALID·revoked
+  } catch (e) { fail("Revoke failed: " + e.message); }
+}
+
+// ── Link (D-078): a key the agent already has, attributed to this passport ──────────────────────────────────────
+// The browser holds the key; the registrar never sees the secret. The verdict is the SDK's own link verifier, over the
+// registrar's whole link index and its signed status list, against the published directory — nothing is taken on
+// the registrar's word. The public door links keys only to demo specimens like this one.
+let linked = null; // { key: CryptoKeyPair, pub: Uint8Array, tp }
+const b64u = (u) => btoa(String.fromCharCode(...u)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+function resetLink() {
+  const v = $("#g-lverdict"); if (v) { v.textContent = "—"; v.className = "g-verdict pend"; }
+  const e = $("#g-levent"); if (e) e.textContent = "press “Link a new key”.";
+  const r = $("#g-lrevoke"); if (r) r.hidden = true;
+}
+async function linkVerifier() {
+  if (!CONTRACT) throw new Error("no published directory to verify against — pass ?net=<url>");
+  const [directory, roots] = await Promise.all([
+    fetchT(CONTRACT + "/directory.json", { cache: "no-store" }).then((r) => r.json()),
+    fetchT(CONTRACT + "/roots.json", { cache: "no-store" }).then((r) => r.json()),
+  ]);
+  const v = Verifier.fromDirectoryB64(directory, roots.root_ed25519, roots.root_slh, "F3");
+  if (!v) throw new Error("the published directory does not verify against its roots");
+  return v;
+}
+async function checkLink() {
+  const v = $("#g-lverdict"), e = $("#g-levent");
+  v.textContent = "…"; v.className = "g-verdict pend";
+  const [index, publication, verifier] = await Promise.all([
+    fetchT(`${REG}/links?now=${NOW}`, { cache: "no-store" }).then((r) => r.json()),
+    fetchT(`${REG}/status-list?now=${NOW}`, { cache: "no-store" }).then((r) => r.json()),
+    linkVerifier(),
+  ]);
+  const link = linkFromIndex(index, publication, linked.tp);
+  if (!link) { v.textContent = "NOT LINKED"; v.className = "g-verdict no"; e.textContent = "the key is not in the registrar's link index"; return; }
+  const r = verifier.verifyLink(link, linked.pub, NOW);
+  const ok = r.verdict === "valid";
+  v.textContent = ok ? "VALID" : "INVALID · " + (r.reason || ""); v.className = "g-verdict " + (ok ? "ok" : "no");
+  e.textContent = JSON.stringify(ok ? { status: "valid", key: linked.tp, operator: r.operator, passport: r.passport } : { status: "invalid", reason: r.reason, key: linked.tp }, null, 2);
+}
+async function linkKey() {
+  const b = $("#g-link"); b.disabled = true; b.textContent = "Linking…";
+  try {
+    let key;
+    try { key = await crypto.subtle.generateKey({ name: "Ed25519" }, true, ["sign", "verify"]); }
+    catch { throw new Error("this browser cannot make Ed25519 keys (WebCrypto) — any current browser can"); }
+    const pub = new Uint8Array(await crypto.subtle.exportKey("raw", key.publicKey));
+    const tp = jwkThumbprintEd25519(pub);
+    const consent = linkPopSigningBytes(REGID, rec.sub, tp, rec.nbf);
+    const pop = new Uint8Array(await crypto.subtle.sign({ name: "Ed25519" }, key.privateKey, consent));
+    const res = await (await fetchT(REG + "/demo/link", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ passport: rec.sub, key: b64u(pub), pop: b64u(pop), nbf: rec.nbf, exp: rec.exp }) })).json();
+    if (res.thumbprint !== tp) throw new Error(res.error || "link failed");
+    linked = { key, pub, tp };
+    await checkLink();
+    $("#g-lrevoke").hidden = false;
+  } catch (e) { fail("Could not link: " + e.message); }
+  finally { b.disabled = false; b.textContent = linked ? "Link another key" : "Link a new key"; }
+}
+async function revokeLink() {
+  if (!linked) return;
+  try {
+    const rv = await (await fetchT(REG + "/demo/link/revoke", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ thumbprint: linked.tp, kind: "link", now: NOW }) })).json();
+    if (rv.kind !== "link") throw new Error(rv.error || "revoke failed");
+    $("#g-lrevoke").hidden = true;
+    await checkLink(); // → INVALID · revoked: the same key, the same index, one status bit
   } catch (e) { fail("Revoke failed: " + e.message); }
 }
 

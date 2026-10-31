@@ -121,6 +121,9 @@ input.txt{width:100%;padding:11px 13px;border:1px solid var(--line);border-radiu
 .pass-foot{border-top:1px dashed var(--line);margin:0 20px;padding:12px 0;display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:10px;letter-spacing:.06em;color:var(--green)}
 .pass-foot i{width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block}
 .g-verdict{font-family:var(--display);font-weight:800;font-size:26px}
+.g-link{margin-top:28px;padding-top:22px;border-top:1px solid var(--line)}
+.g-link h3{font-family:var(--display);font-size:19px;margin:0 0 6px}
+.g-link [hidden]{display:none}
 .g-verdict.ok{color:var(--green)}.g-verdict.no{color:var(--red)}.g-verdict.pend{color:var(--muted)}
 .event{font-family:var(--mono);font-size:11px;color:#c9d2e0;background:var(--ink);border-radius:10px;padding:12px 14px;margin-top:12px;white-space:pre-wrap;word-break:break-word;line-height:1.6}
 .onboard{background:var(--ink);border-radius:12px;overflow:hidden;margin-top:16px}
@@ -326,6 +329,16 @@ nav .nav-links a[aria-current="page"],nav .ndocs[aria-current="page"]{text-decor
           <div class="grow">
             <button class="btn btn-ghost" id="g-revoke">Revoke it (watch it fail closed)</button>
             <button class="btn btn-ghost" id="g-again">Mint another</button>
+          </div>
+          <div class="g-link">
+            <h3>Or link a key your agent already has.</h3>
+            <p class="lede">Your browser makes an Ed25519 key, signs its consent, and the registrar links it to this passport. Then the verifier says who stands behind the key — until you revoke the link.</p>
+            <div style="display:flex;align-items:baseline;gap:12px"><span class="g-verdict pend" id="g-lverdict">—</span><span style="font-family:var(--mono);font-size:11px;color:var(--muted)">the link, verified in this tab</span></div>
+            <div class="event" id="g-levent">press “Link a new key”.</div>
+            <div class="grow">
+              <button class="btn btn-ghost" id="g-link">Link a new key</button>
+              <button class="btn btn-ghost" id="g-lrevoke" hidden>Revoke the link</button>
+            </div>
           </div>
         </div>
       </div>

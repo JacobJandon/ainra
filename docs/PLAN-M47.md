@@ -171,8 +171,9 @@ The owner chose to defer these on 28 October 2026. Each stays listed here until 
 
 - **A public demo door for links** (`POST /demo/link`, staging only, demo specimens only), so a visitor can link a
   key from a browser. *The door is built (2026-10-31: `POST /demo/link` and `/demo/link/revoke`, tested against the
-  real binary in `services/ainra-services/tests/demo_link_door.rs`). The browser page that uses it waits for the
-  owner's decision on the site.*
+  real binary in `services/ainra-services/tests/demo_link_door.rs`). The browser step that uses it is on get.html
+  — a key made in the browser, linked, verified, revoked — and runs wherever a registrar is reachable, as minting
+  does.*
 - **More key types for links.** Version 1 links Ed25519 keys. Networks whose agents use other curves, such as the
   secp256k1 keys common on ledgers, need a new `alg` and vectors first.
 - **The tail of a decision log.** Records cut from the end are invisible without a published head; gates should

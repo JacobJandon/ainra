@@ -18,6 +18,10 @@ What 0.6.0 will carry.
   `/demo/issue` lets you try a passport. Staging only, on the demo door's own rate limit, and only for demo specimens;
   the key's proof of control is checked exactly as on `/link`. Tested against the real binary, with each refusal
   witnessed (`tests/demo_link_door.rs`); in the published OpenAPI description of the registrar's public door.
+- **The site's passport flow links a key too** (get.html): the browser makes an Ed25519 key, signs its consent,
+  links it through the door, and the SDK's own link verifier says who stands behind it — then the link is revoked
+  and the same check refuses it. Like minting, it runs wherever a registrar is reachable. The site's browser bundle
+  of the SDK is rebuilt from the current source (it was from July and had no Link at all).
 
 ### Tested — the pilot's passport mode, live
 

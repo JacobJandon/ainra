@@ -19,9 +19,6 @@
   "dependencies": {
     "@ainra/sdk": "file:../sdk-ts"
   },
-  "peerDependencies": {
-    "@ainra/sdk": "*"
-  },
   "homepage": "https://ainra.org/",
   "repository": {
     "type": "git",

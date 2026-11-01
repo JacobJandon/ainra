@@ -1,8 +1,8 @@
 <!-- SPDX-License-Identifier: Apache-2.0 OR MIT -->
 # Publishing to npm and PyPI — everything that is done, and the two things that are not
 
-**Status: PUBLISHED — npm and PyPI. v0.4.0 on 2026-09-15, v0.4.1 on 2026-09-19, v0.5.0 on 2026-10-31 (all but
-`@ainra/mcp`, below).** All four artifacts are live on
+**Status: PUBLISHED — npm and PyPI. v0.4.0 on 2026-09-15, v0.4.1 on 2026-09-19, v0.5.0 on 2026-10-31 (`@ainra/mcp` on
+2026-11-01, below).** All four artifacts are live on
 the public registries **with Sigstore provenance** — built on a GitHub-hosted runner via
 `.github/workflows/publish.yml`, which is the only publish path because provenance cannot be retrofitted onto a
 version that is already public. v0.4.1 added `@ainra/mcp`, published for the first time once it could be installed
@@ -37,12 +37,23 @@ published with provenance and both runs went red on the confirmation step; the a
 registry a few minutes later. The poll now waits up to ten minutes. Same rule as before: check the registry before
 re-running anything. **And one real refusal:** `@ainra/mcp` 0.5.0 was built and its provenance statement written to
 the transparency log, then the upload got `E404 … you do not have permission` — the `NPM_TOKEN` secret could publish
-the other two packages but not this one. Pending: a token with write on `@ainra/mcp` (or the scope), then a re-run of
-that run's failed job from the tag.
+the other two packages but not this one. A replacement token got `EOTP` (no 2FA bypass, and npm is retiring tokens
+that bypass it for publishing).
 
-**Still to do on npm:** configure a Trusted Publisher per package (GitHub Actions · `JacobJandon` · `ainra` ·
-`publish.yml` · environment **blank** — the npm job declares no environment), then **delete `NPM_TOKEN`** from
-both npm and the repo secrets. The workflow detects the absent secret and switches to OIDC on its own.
+**The way through, on 2026-11-01: trusted publishing.** A Trusted Publisher on `@ainra/mcp` (GitHub Actions ·
+`JacobJandon` · `ainra` · `publish.yml` · environment **blank** — the npm job declares no environment), `NPM_TOKEN`
+deleted from the repo secrets, and the failed job re-run from the tag: the workflow saw no secret, authenticated by
+OIDC, and published 0.5.0 with provenance. A re-run before the Trusted Publisher was saved got `ENEEDAUTH` — that is
+what a missing or mismatched publisher looks like. The run still went red on the two-minute attestation poll, because a
+re-run uses the workflow as it was at the tag.
+
+**The seventh: the published range was not the written one.** The workflow sets `@ainra/sdk` to `^x.y.z` before
+uploading `@ainra/mcp`, but the package also declared the SDK as a `*` peer, and npm published the dependency as `*` —
+in 0.4.1 and again in 0.5.0. `peerDependencies` is gone from `packages/mcp`, and `publish-preflight` blocks any
+package whose SDK peer would override the range.
+
+**Still to do on npm:** a Trusted Publisher on `@ainra/sdk` and `@ainra/middleware` too — with `NPM_TOKEN` deleted,
+their next publish authenticates only that way.
 
 **PyPI went token-free from its very first version**, which is the difference worth remembering: its pending
 publisher (project `ainra` · `JacobJandon` · `ainra` · `publish.yml` · environment **`pypi`** — this job *does*

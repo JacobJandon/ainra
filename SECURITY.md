@@ -246,7 +246,8 @@ be asked for by name. If you build a Python verifier from raw anchors, move to `
 to the anchors.
 
 **What you should do.** If you run `@ainra/mcp` 0.4.1 and rely on `ainra_verify` for a trust decision:
-upgrade to 0.5.0 when it is published, and until then verify with `@ainra/sdk`'s `Verifier` directly.
+upgrade to 0.5.0 (on npm since 2026-11-01), together with `@ainra/sdk` 0.5.0 — the 0.5.0 package accepts any SDK
+version, so an older one already in your project would stay.
 
 ## Verifying what you run
 You do not have to trust us: the SDK is byte-differential-tested against the Rust core over the public CC0 vectors

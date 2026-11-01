@@ -12,6 +12,12 @@ We **publicly own fixed security bugs** — hiding them would be the opposite of
 
 What 0.6.0 will carry.
 
+### Fixed — `@ainra/mcp` depends on the SDK it was released with
+
+- `@ainra/mcp` 0.4.1 and 0.5.0 reached npm depending on `@ainra/sdk` `*`: the package declared the SDK as a `*` peer,
+  which overrode the `^x.y.z` the publish workflow writes. The peer entry is gone, and `publish-preflight` blocks a
+  package whose SDK peer would override the published range (witnessed with the entry put back).
+
 ### Added — Link for secp256k1 keys, as ES256K (D-082)
 
 - **Link takes ES256K keys** (RFC 8812: ECDSA over secp256k1 with SHA-256) beside Ed25519, for agents that sign on
@@ -73,8 +79,9 @@ What 0.6.0 will carry.
 
 The release commit; its board is `docs/releases/v0.5.0-board.md`. Tagged (signed) at `e6870bc` on 2026-10-31 and
 published from the tag the same day: `@ainra/sdk`, `@ainra/middleware` and `ainra` (PyPI) are at 0.5.0 with
-provenance. `@ainra/mcp` 0.5.0 is not yet on npm — the registry refused its upload (see `docs/PUBLISHING.md`) — so
-npm still serves `@ainra/mcp` 0.4.1.
+provenance. `@ainra/mcp` 0.5.0 followed on 2026-11-01, by trusted publishing, with provenance (its first upload was
+refused; see `docs/PUBLISHING.md`). Like 0.4.1, it reached npm depending on `@ainra/sdk` `*` rather than `^0.5.0`: a
+fresh install gets SDK 0.5.0, but an older SDK already in a project would satisfy it. Fixed for 0.6.0.
 
 ### Security — fixed, and owned
 

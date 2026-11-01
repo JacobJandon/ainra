@@ -70,6 +70,15 @@ for pkg in sdk-ts middleware mcp; do
   else
     pass "$name deps" "no local file:/link: dependencies"
   fi
+  # A peerDependencies entry for the SDK overrides the range the upload rewrites: @ainra/mcp 0.4.1 and 0.5.0 both
+  # reached npm depending on "@ainra/sdk": "*" although the workflow set ^x.y.z, because the package also declared the
+  # SDK as a "*" peer. WITNESS: put the peer entry back and this row blocks.
+  peer=$(node -p "((require('$ROOT/$dir/package.json').peerDependencies)||{})['@ainra/sdk']||''")
+  if [ -n "$peer" ]; then
+    block "$name sdk range" "peerDependencies.@ainra/sdk = \"$peer\" — npm publishes the dependency with that range, not ^$V_SDK"
+  else
+    pass "$name sdk range" "the published @ainra/sdk range is the one the upload writes"
+  fi
   if [ -f "$dir/README.md" ]; then pass "$name readme" "README.md ships with the package"; else
     block "$name readme" "no README.md — the registry page would be blank for the package that is the front door"; fi
   lic=$(node -p "require('$ROOT/$dir/package.json').license||''")

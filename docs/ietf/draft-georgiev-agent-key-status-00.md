@@ -3,7 +3,7 @@ title: "Status and Attribution for Externally Issued Agent Keys"
 abbrev: "Agent Key Status"
 docname: draft-georgiev-agent-key-status-00
 category: info
-submissiontype: independent
+submissiontype: IETF
 ipr: trust200902
 area: Security
 keyword: [AI agents, revocation, status list, attribution, transparency log]
@@ -55,8 +55,8 @@ procedure, and reuse of the Token Status List format for the status itself.
 
 # Introduction
 
-A relying party that receives a signed request from an agent typically answers one question: did this key sign this
-request? It cannot answer two others that matter once agents act across organisations: which accountable party stands
+A relying party that receives a signed request from an agent — for example one signed with HTTP Message Signatures
+{{RFC9421}} — typically answers one question: did this key sign this request? It cannot answer two others that matter once agents act across organisations: which accountable party stands
 behind the key, and whether that is still true. Short-lived credentials bound the damage of a stolen key by their
 lifetime inside one provider; they do not tell a party outside that provider that a key has been withdrawn.
 

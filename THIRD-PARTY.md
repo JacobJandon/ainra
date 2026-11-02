@@ -11,26 +11,26 @@ every third-party dependency and confirms the design rule from MTS §24 / N3:
 Standards themselves (IETF RFCs, NIST FIPS, C2SP, W3C) are specifications, not code — they impose no license on an
 implementation. What follows is the actual *code* we depend on.
 
-## Rust workspace — 115 transitive crates, all OSI-permissive
+## Rust workspace — 153 transitive crates, all OSI-permissive
 
 Generated from `cargo metadata` (authoritative — each crate's own `license` field). License histogram:
 
 | Count | License expression |
 |------:|--------------------|
-| 65 | MIT OR Apache-2.0 |
-| 18 | Apache-2.0 OR MIT |
+| 82 | MIT OR Apache-2.0 |
+| 37 | Apache-2.0 OR MIT |
+| 7 | MIT/Apache-2.0 |
 | 6 | MIT |
-| 5 | MIT/Apache-2.0 |
 | 4 | Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT |
 | 4 | BSD-2-Clause OR Apache-2.0 OR MIT |
 | 3 | BSD-3-Clause |
-| 2 | Unlicense OR MIT |
 | 2 | MIT OR Apache-2.0 OR LGPL-2.1-or-later |
-| 1 | 0BSD OR MIT OR Apache-2.0 |
-| 1 | MIT OR Apache-2.0 OR BSD-1-Clause |
-| 1 | Apache-2.0 / MIT |
-| 1 | MIT OR Zlib OR Apache-2.0 |
+| 2 | Unlicense OR MIT |
 | 1 | (MIT OR Apache-2.0) AND Unicode-3.0 |
+| 1 | 0BSD OR MIT OR Apache-2.0 |
+| 1 | Apache-2.0 / MIT |
+| 1 | MIT OR Apache-2.0 OR BSD-1-Clause |
+| 1 | MIT OR Zlib OR Apache-2.0 |
 | 1 | Zlib OR MIT OR Apache-2.0 |
 
 **No forced copyleft.** Every crate is usable under a permissive license:
@@ -47,6 +47,7 @@ The pure verify/issue library — the only code a relying party's verifier links
 | `ml-dsa` | ML-DSA-65 (FIPS 204) | Apache-2.0 OR MIT |
 | `slh-dsa` | SLH-DSA (FIPS 205) root suite | Apache-2.0 OR MIT |
 | `sha2` | SHA-256 (FIPS 180-4) | MIT OR Apache-2.0 |
+| `k256` | secp256k1 ECDSA verification for ES256K link keys (RFC 8812, D-082) — 0.14, the successor of the 0.13 line NCC Group reviewed in 2023; 0.13 carries RUSTSEC-2026-0387 | Apache-2.0 OR MIT |
 | `base64ct` | constant-time Base64 | Apache-2.0 OR MIT |
 | `flate2` | DEFLATE (status-list codec) | MIT OR Apache-2.0 |
 | `signature` | signature traits | MIT OR Apache-2.0 |

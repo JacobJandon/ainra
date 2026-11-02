@@ -1,9 +1,10 @@
 <!-- SPDX-License-Identifier: Apache-2.0 OR MIT -->
 # Releasing & verifying a release
 
-A release is the **public counterpart to reproducible builds**: because every published artifact rebuilds byte-for-byte
-from the committed source (`make repro` → `MANIFEST.sha256`), a downloader can confirm that what they fetched matches
-the source they can read — trusting the bytes, not us.
+A release is the **public counterpart to reproducible builds**: the conformance corpus that defines correctness rebuilds
+byte-for-byte from the committed source (`make repro` → `MANIFEST.sha256`), so a downloader can confirm that what they
+fetched matches the source they can read — trusting the bytes, not us. The per-platform CLI binary and the SDKs' build
+output are held to that corpus for behaviour, not rebuilt bit-for-bit (below).
 
 ## The one rule — the board runs at the release commit, or the release does not exist (M23.1)
 

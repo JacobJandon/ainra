@@ -95,7 +95,8 @@ per week).
 
 Free, no entity, no approval — the ones this pass did not turn on: **ClusterFuzzLite** (continuous fuzzing on
 Actions, Rust supported, no eligibility bar — the honest substitute for OSS-Fuzz), **Miri** (`cargo +nightly miri
-test` — cheap and pointed straight at the hand-rolled CBOR/COSE parsing), **Trivy** (vulns + secrets + SBOM across
+test` — cheap and pointed straight at the hand-written parsers: canonical JSON, the passport body, the Token
+Status List codec and Merkle inclusion proofs), **Trivy** (vulns + secrets + SBOM across
 Cargo/npm/pip — **SHA-pin the action**: third-party reporting describes a March 2026 compromise of its version tags),
 **Semgrep OSS CLI**, **cargo-audit**, **deps.rs** badge, **Codecov *or* Coveralls** (pick one), and **CodSpeed**
 (free for OSS, covers Rust + Python + Node — AINRA makes *speed* claims about offline verification, and those should

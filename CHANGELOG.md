@@ -10,7 +10,14 @@ We **publicly own fixed security bugs** — hiding them would be the opposite of
 
 ## [Unreleased]
 
-What 0.6.0 will carry.
+Nothing yet.
+
+## [0.6.0] — 2026-11-02
+
+The release commit; its board is `docs/releases/v0.6.0-board.md`. Tagging and publishing to npm and PyPI are the
+maintainer's steps — until they happen, the registries serve 0.5.0. What it carries: Link for secp256k1 keys (ES256K),
+a decision log whose cut tail is visible once its head is logged at a registrar, a public demo door for links,
+`@ainra/mcp` depending on the SDK it was released with, and test replay moved out of the paths that decide.
 
 ### Fixed — `@ainra/mcp` depends on the SDK it was released with
 

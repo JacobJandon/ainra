@@ -1,0 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0 OR MIT
+# The key that signs AINRA's release TAGS (git namespace). Fingerprint SHA256:xMs+HR4wHqKjK0JT2w+CrR/UTl5ZUK36cXqQt4mz9Us.
+# Verify a tag: git -c gpg.ssh.allowedSignersFile=release/tag_signers verify-tag vX.Y.Z
+dev@ainra.local namespaces="git" ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGg3qvamI6HXj5Y/Kj1tMSOYKoV6BiyzsdscklJ7KecN AINRA release-tag signing key

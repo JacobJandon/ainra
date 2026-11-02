@@ -26,6 +26,21 @@ private key is **offline**, never in the repo or CI. Its public half + fingerpri
 > **Pinned key fingerprint:** `SHA256:V1ZbCNdPDEe5plpYq07dGCsoensF4Q+MPPQQkcj5pi4` (principal `release@ainra.org`).
 > Confirm it out of band before trusting a download.
 
+## Step 0 — the tag is the one the maintainer signed
+
+Release tags (`vX.Y.Z`) are signed with a second SSH Ed25519 key, the maintainer's tag key, separate from the offline
+artifact key above. Its public half is pinned at `release/tag_signers`; fingerprint
+`SHA256:xMs+HR4wHqKjK0JT2w+CrR/UTl5ZUK36cXqQt4mz9Us` (principal `dev@ainra.local`). From any clone, with no other setup:
+
+```sh
+git -c gpg.ssh.allowedSignersFile=release/tag_signers verify-tag v0.5.0
+# Good "git" signature for dev@ainra.local with ED25519 key SHA256:xMs+HR4w…
+```
+
+Until 2026-11-02 that key was published nowhere, so the tags could be verified only on the maintainer's machine — and
+GitHub, which does not know the key, still shows them as unverified. Checked from a fresh clone of the public repository
+against v0.2.0, v0.4.1 and v0.5.0.
+
 ## Step 1 — the signature is authentic
 
 ```sh

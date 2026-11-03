@@ -42,8 +42,9 @@ where the failures were found.
 make probe-drill      # from the repo root
 ```
 
-Runs the probe against an honest registrar, then against four dishonest ones
-([`dishonest-registrar.mjs`](dishonest-registrar.mjs)), requiring the **named** check to fail each time. The four are
+Runs the probe against an honest registrar, then against five dishonest ones (four through
+[`dishonest-registrar.mjs`](dishonest-registrar.mjs), and the real registrar built to revoke only one generation of a
+renewed lineage), requiring the **named** check to fail each time. All five are
 real behaviours, not synthetic errors — the sharpest is `suppress-revocation`, which forges nothing: every byte it
 serves was signed by the real registrar, it just keeps serving a genuine pre-revocation snapshot forever.
 

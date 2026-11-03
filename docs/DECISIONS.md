@@ -974,6 +974,10 @@ a stranger's registrar can today fail this requirement without the probe noticin
 
 *Status:* NEW. Requirement stated and proven for the reference registrar; third-party probing is not built.
 
+*Amended 2026-11-03 (PLAN-M50 step 4):* third-party probing is built. The probe renews one lineage twice through a
+public door (`POST /demo/renew`, staging only, demo specimens only), mints a running copy under the oldest generation,
+revokes the newest, and requires every generation and the copy to read `revoked` (P6). `make probe-drill` catches a
+registrar built to revoke only the generation it is asked about, with every earlier check passing.
 
 ## D-056 — The amendment gate exists primarily against its own author
 

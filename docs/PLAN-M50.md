@@ -36,7 +36,7 @@ D-072, D-074 and D-075 lived. Additive kinds, `report_version: "2"`, and a `prof
 valid) or `full`. WITNESS: an adapter that skips status authentication — the D-072 shape — passes `core` and must fail
 `full`.
 
-**4. The probe follows a renewal (D-055).** The probe kit issues and revokes, but never renews. Issue, renew twice,
+**4. The probe follows a renewal (D-055).** *Done 2026-11-03 (P6).* The probe kit issues and revokes, but never renews. Issue, renew twice,
 mint an instance credential under an old generation, revoke the lineage: every generation and its instance credentials
 must read revoked. WITNESS: a dishonest registrar mode that flips only the newest generation's bit must be caught.
 

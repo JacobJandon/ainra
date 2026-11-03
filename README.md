@@ -124,7 +124,7 @@ make ceremony-dry-run # rehearse the 5-of-9 ceremony choreography; a witness rec
 make soak-smoke       # measure revocation propagation (p50/95/99) into a signed, tamper-evident report
 make repro            # rebuild every published artifact byte-for-byte from source (838 files)
 make verify-mirror MIRROR=<dir>   # any third party byte-verifies a mirror, root dark
-make probe-drill      # measure a registrar from OUTSIDE holding nothing it issued — and catch four dishonest ones
+make probe-drill      # measure a registrar from OUTSIDE holding nothing it issued — and catch five dishonest ones
 make miri             # undefined behaviour in the byte-handling code (needs nightly + miri)
 ```
 

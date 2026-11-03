@@ -64,6 +64,12 @@ mode on), every latency wall-clock measured:
 | **P3** | the revocation becomes visible to an outsider in < 60 s | measured against the published fabric, not the registrar's internal state |
 | **P4** | the pre-revocation bundle, replayed at the same clock, is REFUSED | a genuine older snapshot cannot outlive the revocation |
 | **P5** | the published status sequence only moved forward, and it did move | a rewind is a split view; standing still under a write is one too |
+| **P6a** | a lineage renewed twice through the public door: all three generations, and a running copy under the oldest, verify | the positive control for P6b and P6c |
+| **P6b** | revoking the newest generation revokes every generation of the lineage | revocation is per lineage, so renewal is no bypass (D-055) |
+| **P6c** | the running copy minted under the oldest generation reads revoked | an instance credential dies with its lineage, whichever generation it came from |
+
+**P6 needs a public renewal door** (`POST /demo/renew` on the reference registrar). A registrar without one is
+recorded as a skip — *unmeasured*, never *met*.
 
 **P2d skips itself, loudly, when the log holds a single leaf** — a correct proof for the only leaf in a one-leaf tree
 *is* empty, so deleting it is not a manipulation and the check could not fail. A skip is recorded as `pass: null`,
@@ -71,8 +77,8 @@ printed with its reason, and excluded from the verdict. It is never reported as 
 
 ## Proof the instrument can observe failure
 
-`make probe-drill` runs the probe against an honest registrar and against four dishonest ones
-(`kits/probe/dishonest-registrar.mjs`), and requires the **named** check to be the one that fails — because a probe
+`make probe-drill` runs the probe against an honest registrar and against five dishonest ones
+(four through `kits/probe/dishonest-registrar.mjs`, one the real daemon built with fault injection), and requires the **named** check to be the one that fails — because a probe
 that fails for the wrong reason will pass for the wrong reason later.
 
 | Sabotage | Verdict required | Check required to fail |
@@ -81,6 +87,11 @@ that fails for the wrong reason will pass for the wrong reason later.
 | `drop-log` — serves presentations with the proof removed | NON-COMPLIANT | P2a |
 | `suppress-revocation` — accepts the revoke, answers 200, publishes nothing | NON-COMPLIANT | P3 |
 | `rewind-seq` — serves a sequence below what it already published | NON-COMPLIANT | P5 |
+| `one-generation` — the real registrar (feature `drill-sabotage`) revoking only the generation it is asked about | NON-COMPLIANT, with every check before P6 passing | P6b |
+
+`one-generation` cannot be a proxy: the status list is signed, so only the registrar can publish a revocation that
+skips a bit. The drill builds the daemon with the `drill-sabotage` feature, copies it aside, rebuilds the clean binary,
+and restarts the registrar on its own state with the sabotaged one. No published build enables the feature.
 
 `suppress-revocation` is the important one, and it forges nothing: **every byte it serves was signed by the real
 registrar.** It simply keeps serving a genuine older snapshot. There is no broken signature to notice, which is the
@@ -105,9 +116,8 @@ in any single green report.
 
 The subject's name is not published in the report (only its SHA-256). A named probe subject is a marked probe.
 
-**Renewal is not probed.** [D-055](DECISIONS.md) makes it a registrar requirement that revoking a lineage flips
-every unexpired generation's status index, because ADR-017 renewal allocates a new one and the verifier cannot
-reach the old index from a presented passport. The probe has no renewal journey, so a registrar that revokes only
-the current generation would pass all nine checks above while leaving the superseded generation — and every
-instance credential under it — alive for the length of the overlap. The reference registrar is tested for this;
-a stranger's is not measured for it.
+**Renewal is probed through a public door** (P6, since PLAN-M50 step 4). [D-055](DECISIONS.md) makes it a registrar
+requirement that revoking a lineage flips every unexpired generation's status index, because ADR-017 renewal
+allocates a new one and the verifier cannot reach the old index from a presented passport. P6 follows one lineage
+through two renewals; it does not prove every renewal path a registrar offers (an operator's own `/renew`, a renewal
+under a delegation) sweeps the same way, and a registrar with no public renewal door is unmeasured for it.

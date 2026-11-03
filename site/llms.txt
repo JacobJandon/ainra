@@ -52,7 +52,7 @@ Public reference implementation (nine signed, board-proven releases; current: v0
 
 - [openapi/artifact-contract.yaml](openapi/artifact-contract.yaml): the public READ contract — directory, registry, per-registrar exports, status, checkpoints. CORS, cacheable, no auth.
 - [/net/](net/registry.json): a served snapshot of that contract — `registry.json`, `directory.json`, `roots.json`, per-registrar artifacts — the staging network's published record, readable right here with no network of your own.
-- [openapi/registrar-door.yaml](openapi/registrar-door.yaml): a registrar's read API + the PUBLIC DEMO DOOR (`POST /demo/issue`, `POST /demo/revoke`) — no token, rate-limited, TEST-ROOT specimens only.
+- [openapi/registrar-door.yaml](openapi/registrar-door.yaml): a registrar's read API + the PUBLIC DEMO DOOR (`POST /demo/issue`, `POST /demo/renew`, `POST /demo/revoke`) — no token, rate-limited, TEST-ROOT specimens only.
 - [openapi/console.yaml](openapi/console.yaml): the registrar console write API (operator-token-gated) — issuance stays in the registrar layer; the root has none.
 
 ## Conformance

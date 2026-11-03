@@ -297,6 +297,21 @@ fn main() {
         .ok()
         .filter(|t| !t.is_empty());
     let staging = std::env::var("AINRA_STAGE").ok().as_deref() == Some("1");
+    // `make probe-drill`'s dishonest registrar (PLAN-M50 step 4). Asked for by name, honoured only by a build with the
+    // `drill-sabotage` feature and only on staging; any other combination refuses to start rather than run honestly
+    // while the drill believes it is running a cheat (or the reverse).
+    if let Ok(mode) = std::env::var("AINRA_DRILL_SABOTAGE") {
+        if mode != "revoke-one-generation" || !staging || !cfg!(feature = "drill-sabotage") {
+            eprintln!(
+                "registrar-box: AINRA_DRILL_SABOTAGE={mode} needs AINRA_STAGE=1 and a build with the drill-sabotage \
+                 feature (mode: revoke-one-generation) — refusing to start"
+            );
+            std::process::exit(2);
+        }
+        #[cfg(feature = "drill-sabotage")]
+        ainra_services::registrar::sabotage::set_revoke_one_generation();
+        eprintln!("registrar-box '{id}': DRILL SABOTAGE — revocation flips only the generation named (D-055 broken)");
+    }
     let state = Mutex::new(State {
         rb,
         rng,
@@ -497,6 +512,57 @@ fn main() {
                     Ok(_) => {
                         persist(&st.rb, &id);
                         (200, json!({ "revoked": sub, "now": now }).to_string())
+                    }
+                    Err(e) => (400, json!({ "error": e.to_string() }).to_string()),
+                }
+            }
+
+            // PLAN-M50 step 4 — renewal through the public demo door, so the compliance probe (which holds no
+            // credential) can follow a lineage across generations and check that revoking it reaches all of them
+            // (D-055). Staging only, the demo bucket, demo specimens only; a version is required so that every
+            // generation stays presentable under its own name.
+            ("POST", "/demo/renew") => {
+                if !staging {
+                    return (
+                        403,
+                        r#"{"error":"the demo door is staging-only"}"#.to_string(),
+                    );
+                }
+                if !rate_ok(&mut st.demo_writes) {
+                    return (
+                        429,
+                        r#"{"error":"demo door rate limited — try again shortly"}"#.to_string(),
+                    );
+                }
+                let v: serde_json::Value =
+                    serde_json::from_str(&req.body).unwrap_or(serde_json::Value::Null);
+                let (Some(sub), Some(version)) = (
+                    v.get("sub").and_then(|x| x.as_str()).map(String::from),
+                    v.get("new_version")
+                        .and_then(|x| x.as_str())
+                        .map(String::from),
+                ) else {
+                    return (
+                        400,
+                        r#"{"error":"sub and new_version required"}"#.to_string(),
+                    );
+                };
+                if !is_demo_specimen(&st.rb, &sub) {
+                    return (
+                        403,
+                        r#"{"error":"the public door only renews demo specimens it minted"}"#
+                            .to_string(),
+                    );
+                }
+                let now = v
+                    .get("now")
+                    .and_then(|x| x.as_u64())
+                    .unwrap_or_else(default_renew_now);
+                let State { rb, rng, .. } = &mut *st;
+                match rb.reissue(&sub, Some(&version), now, None, rng) {
+                    Ok(rec) => {
+                        persist(rb, &id);
+                        ok(&rec)
                     }
                     Err(e) => (400, json!({ "error": e.to_string() }).to_string()),
                 }

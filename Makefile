@@ -604,7 +604,7 @@ names-check:     ## no tracked candidate's name may appear in any git-tracked fi
 # D-046 — measure a registrar's accreditation invariants from OUTSIDE, holding nothing it issued, and prove the
 # instrument can observe a dishonest one (four sabotage controls). Compliance by self-report is compliance until
 # the day it isn't.
-probe-drill:     ## the compliance probe: passes an honest registrar, catches four dishonest ones
+probe-drill:     ## the compliance probe: passes an honest registrar, catches five dishonest ones
 	bash tools/probe-drill.sh
 
 # The same command CI runs. A check only CI can run is a check nobody reads until it has been broken for 40 runs.

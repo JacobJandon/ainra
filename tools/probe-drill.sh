@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: Apache-2.0 OR MIT
 # make probe-drill (D-046) — prove the compliance probe works, in the only way that counts: run it against an honest
-# registrar and against four dishonest ones, and require the right verdict from each.
+# registrar and against five dishonest ones, and require the right verdict from each.
 #
 # The positive run alone would prove nothing. A probe that always says COMPLIANT says COMPLIANT about a registrar
 # suppressing revocations too — so the four controls are the deliverable and the honest run is the baseline.
@@ -26,6 +26,11 @@ cleanup() {
 trap cleanup EXIT
 
 echo "== build =="
+# The fifth dishonest registrar is the real daemon built with fault injection (PLAN-M50 step 4): a proxy cannot fake a
+# revocation that skips a generation, because the status list is signed. Built first and copied aside, then the clean
+# binary is rebuilt (from cache) so nothing outside this drill ever runs the sabotaged one.
+cargo build --release -q -p ainra-services --features drill-sabotage --bin registrar-box
+cp target/release/registrar-box "$WORK/registrar-box-one-generation"
 cargo build --release -q -p ainra-services --bin registrar-box -p ainra-ceremony --bin accredit
 (cd packages/sdk-ts && { [ -d node_modules ] || npm install --prefer-offline --no-audit --no-fund --silent; } && npm run build >/dev/null 2>&1)
 (cd kits/probe && npm install --prefer-offline --no-audit --no-fund --silent)
@@ -39,7 +44,8 @@ fi
 # A write token, so P0 has something real to be refused BY. Never passed to the probe. The variable name matters:
 # with no token configured the registrar's write door is OPEN (local-dev default), and P0 caught exactly that when
 # this driver first ran with the name spelled wrong. The check found a real open door on its first outing.
-AINRA_STAGE=1 AINRA_STAGE_ISSUE_TOKEN="$(node -e 'console.log(require("crypto").randomBytes(16).toString("hex"))')" \
+TOKEN="$(node -e 'console.log(require("crypto").randomBytes(16).toString("hex"))')"
+AINRA_STAGE=1 AINRA_STAGE_ISSUE_TOKEN="$TOKEN" \
   ./target/release/registrar-box "127.0.0.1:$PORT" registrar-07 "$WORK/rb" >/dev/null 2>"$WORK/rb.err" &
 RB=$!
 for _ in $(seq 1 40); do curl -sf "http://127.0.0.1:$PORT/accreditation" >/dev/null 2>&1 && break; sleep 0.2; done
@@ -72,7 +78,7 @@ const r = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
 if (r.verdict !== "COMPLIANT") { console.error("FAIL: verdict " + r.verdict); process.exit(1); }
 if (r.measured.revocation_visible_ms === null) { console.error("FAIL: no revocation latency was measured"); process.exit(1); }
 const ids = r.checks.filter(c => c.pass).map(c => c.id);
-for (const need of ["P0","P1","P2a","P2b","P2c","P2d","P3","P4","P5"]) {
+for (const need of ["P0","P1","P2a","P2b","P2c","P2d","P3","P4","P5","P6a","P6b","P6c"]) {
   if (!ids.includes(need)) { console.error("FAIL: " + need + " did not pass on the honest registrar"); process.exit(1); }
 }
 // The tree was grown on purpose above, so nothing may be skipped here. A skip in this run means the driver stopped
@@ -119,9 +125,43 @@ control drop-log           NON-COMPLIANT  P2a
 control suppress-revocation NON-COMPLIANT P3
 control rewind-seq         NON-COMPLIANT  P5
 
+# ── the fifth: the real registrar, revoking only the generation it is asked about (D-055) ────────────────────────
+# Same keys, same state, same accreditation: the daemon restarts on its own data with the sabotaged build. Every byte
+# it serves is genuine and signed; it simply never flips the earlier generations' bits. Everything before P6 must still
+# pass — the cheat is invisible to a probe that never renews, which is the point of P6.
 echo
-echo "probe-drill PASS: the probe passes an honest registrar and catches all four dishonest ones"
+echo "== NEGATIVE · a registrar that revokes one generation, not the lineage · expect NON-COMPLIANT with P6b failing =="
+kill "$RB" 2>/dev/null || true; wait "$RB" 2>/dev/null || true; RB=0
+for _ in $(seq 1 40); do (exec 3<>"/dev/tcp/127.0.0.1/$PORT") 2>/dev/null || break; sleep 0.2; done
+AINRA_STAGE=1 AINRA_STAGE_ISSUE_TOKEN="$TOKEN" AINRA_DRILL_SABOTAGE=revoke-one-generation \
+  "$WORK/registrar-box-one-generation" "127.0.0.1:$PORT" registrar-07 "$WORK/rb" >/dev/null 2>"$WORK/rb-sabotage.err" &
+RB=$!
+for _ in $(seq 1 40); do curl -sf "http://127.0.0.1:$PORT/accreditation" >/dev/null 2>&1 && break; sleep 0.2; done
+kill -0 "$RB" 2>/dev/null || { echo "FAIL: the sabotaged registrar died — $(tail -1 "$WORK/rb-sabotage.err" 2>/dev/null)"; exit 1; }
+grep -q 'DRILL SABOTAGE' "$WORK/rb-sabotage.err" || { echo "FAIL: the registrar did not confirm the sabotage — it may be running honestly"; exit 1; }
+set +e
+run_probe "http://127.0.0.1:$PORT" "$WORK/one-generation" >"$WORK/probe-one-generation.log" 2>&1
+rc=$?
+set -e
+sed -n '1,40p' "$WORK/probe-one-generation.log" | sed 's/^/     /'
+if [ "$rc" -eq 0 ]; then
+  echo "FAIL: the probe passed a registrar whose revocations skip earlier generations — D-055 is unmeasured"
+  exit 1
+fi
+node -e '
+const r = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
+const failed = r.checks.filter(c => c.pass === false).map(c => c.id);
+if (r.verdict !== "NON-COMPLIANT") { console.error("FAIL: verdict " + r.verdict + ", wanted NON-COMPLIANT"); process.exit(1); }
+if (!failed.includes("P6b")) { console.error("FAIL: P6b did not fail; failures were [" + failed.join(",") + "]"); process.exit(1); }
+const other = failed.filter(id => !id.startsWith("P6"));
+if (other.length) { console.error("FAIL: the cheat should be visible only to P6, but [" + other.join(",") + "] failed too"); process.exit(1); }
+console.log("  ✓ caught: NON-COMPLIANT · failed [" + failed.join(",") + "] · everything before P6 passed, as it would without P6");
+' "$WORK/one-generation/probe-report.json"
+
+echo
+echo "probe-drill PASS: the probe passes an honest registrar and catches all five dishonest ones"
 echo "  · open-write-door    → the run is voided, not scored: a probe with write access is a self-report"
 echo "  · drop-log           → logged-before-valid is enforced by the verifier, not by the registrar's word"
 echo "  · suppress-revocation → a 200 on /revoke means nothing; only what a stranger can observe counts"
 echo "  · rewind-seq         → a history that moves backwards is refused from outside as well as inside (D-045)"
+echo "  · one-generation     → a revocation that leaves an earlier generation alive is caught by renewing first (D-055)"

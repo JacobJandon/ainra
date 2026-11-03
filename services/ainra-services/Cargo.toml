@@ -48,5 +48,12 @@ path = "src/bin/scale_proof.rs"
 name = "witness-quorum-drill"
 path = "src/bin/witness_quorum_drill.rs"
 
+[features]
+# FAULT INJECTION for `make probe-drill` and nothing else (PLAN-M50 step 4). With it, a registrar can be started that
+# revokes only the generation it is handed and leaves the lineage's other generations alive — the D-055 failure — so
+# the drill can prove the compliance probe catches it. No published build, no release and no stage enables it; the
+# drill builds it, copies the binary aside and rebuilds the clean one.
+drill-sabotage = []
+
 [dev-dependencies]
 k256 = { workspace = true }   # ES256K test keys (D-082); the registrar itself verifies through ainra-core

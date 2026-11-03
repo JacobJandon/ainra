@@ -25,8 +25,16 @@
 // It does not prove they always hold. That is why the value is in the schedule, not in any single run.
 
 import { writeFileSync, mkdirSync, readFileSync } from "node:fs";
-import { createHash } from "node:crypto";
-import { Verifier } from "@ainra/sdk";
+import { createHash, randomBytes } from "node:crypto";
+import { createRequire } from "node:module";
+import { pathToFileURL } from "node:url";
+import { Verifier, canonicalize, mintInstanceCredential, proveInstancePossession } from "@ainra/sdk";
+
+// The holder key P6 brings is signed with the SDK's own copies of the libraries — the versions its verifier checks with.
+const sdkRequire = createRequire(import.meta.resolve("@ainra/sdk/package.json"));
+const lib = async (m) => import(pathToFileURL(sdkRequire.resolve(m)).href);
+const { ed25519 } = await lib("@noble/curves/ed25519");
+const { ml_dsa65 } = await lib("@noble/post-quantum/ml-dsa");
 
 const A = (n, d) => { const i = process.argv.indexOf(`--${n}`); return i >= 0 && i + 1 < process.argv.length ? process.argv[i + 1] : d; };
 const registrar = (A("registrar") || "").replace(/\/$/, "");
@@ -213,6 +221,92 @@ if (!aborted) {
   check("P5", "the published status sequence only moved forward, and it did move", nonDecreasing && advanced,
     `status_seq ${seqStart} → ${seqEnd}${latencyMs !== null ? " (one revocation published in between)" : ""}`,
     "a shorter or older status history served after an outage is a split view, not a recovery (D-045, seen from outside)");
+}
+
+// ── P6 · revocation follows a lineage through its renewals (D-055) ──────────────────────────────────────────────
+// Renewal issues each generation under a new status index, and every generation stays valid through the overlap. A
+// registrar that flips only the generation it is asked about leaves the others — and every instance credential minted
+// under them — alive: renewal as a revocation bypass. No verifier can see it from one passport (D-055), so the probe
+// walks the journey: its own key, two renewals, a running copy under the OLDEST generation, then revoke the newest.
+if (!aborted) {
+  const b64u = (x) => Buffer.from(x).toString("base64url");
+  const edSk = ed25519.utils.randomPrivateKey();
+  const ml = ml_dsa65.keygen(randomBytes(32));
+  const holderKey = { ed25519: b64u(ed25519.getPublicKey(edSk)), mldsa65: b64u(ml.publicKey) };
+  const holderSign = (m) => ({ ed25519: ed25519.sign(m, edSk), mldsa65: ml_dsa65.sign(ml.secretKey, m) });
+  const hpop = holderSign(new TextEncoder().encode(canonicalize({ holder: holderKey, purpose: "ainra-holder-pop-v1", registrar: sub.split(":")[1] })));
+  const tag = Date.now().toString(36).slice(-5);
+  const g1 = (await post("/demo/issue", { operator: "meadowlark", lineage: `report-relay-${tag}`, holder_key: holderKey,
+    holder_pop: { ed25519: b64u(hpop.ed25519), mldsa65: b64u(hpop.mldsa65) } })).json?.sub ?? null;
+  const r2 = g1 ? await post("/demo/renew", { sub: g1, new_version: "1.1.0", now }) : null;
+  const g2 = r2?.json?.sub ?? null;
+  const g3 = g2 ? (await post("/demo/renew", { sub: g2, new_version: "1.2.0", now })).json?.sub ?? null : null;
+
+  if (g1 && r2 && (r2.status === 404 || r2.status === 405)) {
+    skip("P6", "revoking a renewed lineage revokes every generation and the running copies under them",
+      `the registrar offers no public renewal door (POST /demo/renew → HTTP ${r2.status}), so a stranger cannot renew — D-055 is unmeasured here, not met`,
+      "a renewal journey needs a door the probe can use without a credential");
+  } else if (!(g1 && g2 && g3)) {
+    check("P6a", "a lineage can be renewed twice through the public door", false,
+      `generations: ${[g1, g2, g3].map((g) => g ?? "—").join(" → ")}${r2 && !g2 ? ` · renew → HTTP ${r2.status} ${r2.text.slice(0, 100)}` : ""}`,
+      "the renewal journey is open to a party the registrar has no relationship with");
+  } else {
+    // A running copy under the OLDEST generation, minted with the probe's own key — the credential a newest-only
+    // revocation misses twice over.
+    const AUD = "https://orders.example";
+    const iv = Verifier.fromDirectoryB64(directory, roots.root_ed25519, roots.root_slh, "F1", true, AUD);
+    const iEd = ed25519.utils.randomPrivateKey(), iMl = ml_dsa65.keygen(randomBytes(32));
+    const instanceSign = (m) => ({ ed25519: ed25519.sign(m, iEd), mldsa65: ml_dsa65.sign(iMl.secretKey, m) });
+    const g1Bundle = (await presentOf(g1)).json;
+    const ic = await mintInstanceCredential({ passportClaimsB64: g1Bundle.claims,
+      instancePublic: { ed25519: ed25519.getPublicKey(iEd), mldsa65: iMl.publicKey }, capabilities: ["demo:specimen"],
+      audience: AUD, now, lifetimeSecs: 900, iid: "i-" + randomBytes(4).toString("hex"), controlSign: holderSign });
+    const wire = (x) => ({ ed25519: b64u(x.ed25519), mldsa65: b64u(x.mldsa65) });
+    const withInstance = async (b) => {
+      const p = await proveInstancePossession({ audience: AUD, credential: ic, nonce: "p-" + randomBytes(6).toString("hex"), now, instanceSign });
+      return { ...b, instance: { sub: ic.sub, iid: ic.iid, ikey: wire(ic.ikey), nbf: ic.nbf, exp: ic.exp, capabilities: ic.capabilities,
+        aud: ic.aud, passport_leaf: b64u(ic.passportLeaf), sig: wire(ic.sig), pop: { aud: p.aud, nonce: p.nonce, ts: p.ts, sig: wire(p.sig) } } };
+    };
+    const show = (v) => `${v.verdict}${v.reason ? "/" + v.reason : ""}`;
+    const read = async () => {
+      const out = {};
+      for (const [k, g] of [["g1", g1], ["g2", g2], ["g3", g3]]) {
+        const p = await presentOf(g);
+        out[k] = p.json ? verdictOf(p.json) : { verdict: "invalid", reason: `HTTP ${p.status}` };
+        if (k === "g1" && p.json) out.instance = iv.verify(await withInstance(p.json), now);
+      }
+      return out;
+    };
+
+    // Before: everything valid, so that every "revoked" below is caused by the revocation and nothing else.
+    const before = await read();
+    const allValid = ["g1", "g2", "g3", "instance"].every((k) => before[k]?.verdict === "valid");
+    check("P6a", "a lineage renewed twice: all three generations and a running copy under the oldest verify", allValid,
+      `g1 ${show(before.g1)} · g2 ${show(before.g2)} · g3 ${show(before.g3)} · copy under g1 ${show(before.instance ?? { verdict: "—" })}`,
+      "the positive control: the readings below can only turn because of the revocation");
+
+    if (allValid) {
+      const rev = await post("/demo/revoke", { sub: g3, now });
+      let after = null;
+      if (rev.status === 200) {
+        // Wait until the NEWEST generation reads revoked — the one the registrar was asked about — then read the rest.
+        const deadline = Date.now() + timeoutSec * 1000;
+        while (Date.now() < deadline) {
+          after = await read();
+          if (after.g3.verdict === "invalid") break;
+          await new Promise((r) => setTimeout(r, pollMs));
+        }
+      }
+      const isRevoked = (v) => v?.verdict === "invalid" && v.reason === "revoked";
+      check("P6b", "revoking the newest generation revokes every generation of the lineage",
+        rev.status === 200 && ["g1", "g2", "g3"].every((k) => isRevoked(after?.[k])),
+        rev.status !== 200 ? `POST /demo/revoke → HTTP ${rev.status}` : `after: g1 ${show(after.g1)} · g2 ${show(after.g2)} · g3 ${show(after.g3)}`,
+        "revocation is per lineage: a renewal cannot keep an earlier generation alive through the overlap (D-055)");
+      check("P6c", "the running copy minted under the oldest generation reads revoked", rev.status === 200 && isRevoked(after?.instance),
+        rev.status !== 200 ? `POST /demo/revoke → HTTP ${rev.status}` : `copy under g1: ${show(after.instance ?? { verdict: "—" })}`,
+        "an instance credential dies with its lineage, whichever generation it was minted under");
+    }
+  }
 }
 
 // ── report ───────────────────────────────────────────────────────────────────────────────────────────────────────

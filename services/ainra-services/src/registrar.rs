@@ -1139,7 +1139,12 @@ impl RegistrarBox {
             .records
             .get(sub)
             .ok_or_else(|| IssueError::Malformed(format!("unknown subject: {sub}")))?;
-        let key = format!("{}:{}", rec.operator, rec.lineage);
+        // The drill's dishonest registrar (feature `drill-sabotage`) matches no other generation, so it flips one bit.
+        let key = if sabotage::revoke_one_generation() {
+            String::new()
+        } else {
+            format!("{}:{}", rec.operator, rec.lineage)
+        };
         let mut idxs = vec![rec.status_idx as usize];
         let mut marked: Vec<String> = vec![rec.sub.clone()];
         for r in self.records.values() {
@@ -1578,6 +1583,31 @@ fn decode_proof(hashes: &[String]) -> Option<Vec<[u8; 32]>> {
         .iter()
         .map(|h| b64::decode(h).ok()?.try_into().ok())
         .collect()
+}
+
+/// Fault injection for `make probe-drill` (feature `drill-sabotage`, PLAN-M50 step 4). Without the feature there is no
+/// switch at all: `revoke_one_generation` is the constant `false`.
+pub mod sabotage {
+    #[cfg(feature = "drill-sabotage")]
+    static REVOKE_ONE_GENERATION: core::sync::atomic::AtomicBool =
+        core::sync::atomic::AtomicBool::new(false);
+
+    /// Make every later revocation flip only the generation named — the D-055 failure the probe must catch.
+    #[cfg(feature = "drill-sabotage")]
+    pub fn set_revoke_one_generation() {
+        REVOKE_ONE_GENERATION.store(true, core::sync::atomic::Ordering::SeqCst);
+    }
+
+    pub fn revoke_one_generation() -> bool {
+        #[cfg(feature = "drill-sabotage")]
+        {
+            REVOKE_ONE_GENERATION.load(core::sync::atomic::Ordering::SeqCst)
+        }
+        #[cfg(not(feature = "drill-sabotage"))]
+        {
+            false
+        }
+    }
 }
 
 #[cfg(test)]

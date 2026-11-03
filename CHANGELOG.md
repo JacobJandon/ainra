@@ -35,6 +35,16 @@ We **publicly own fixed security bugs** — hiding them would be the opposite of
   authentication switched off, passes `core` and fails `full`. `make conformance` fails if either ever changes.
 - `--adapter` in the docs page and the divergence issue template was never a runner flag; it is `--impl`.
 
+### Added — the probe follows a lineage through its renewals (D-055, PLAN-M50 step 4)
+
+- **P6 in `kits/probe`:** the probe brings its own key, renews one lineage twice, mints a running copy under the
+  oldest generation, revokes the newest, and requires every generation and the copy to read `revoked`. A registrar
+  that revokes only the generation it is asked about passes every earlier check and fails P6b.
+- **`POST /demo/renew`** on the reference registrar: renewal through the public demo door, staging only, demo
+  specimens only, a new version required.
+- **`make probe-drill` catches a fifth dishonest registrar:** the real daemon built with the `drill-sabotage` feature
+  (fault injection, in no published build), restarted on its own state. A proxy could not fake it: the list is signed.
+
 ## [0.6.0] — 2026-11-02
 
 The release commit; its board is `docs/releases/v0.6.0-board.md`. Tagging and publishing to npm and PyPI are the

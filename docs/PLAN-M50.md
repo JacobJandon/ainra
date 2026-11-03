@@ -16,7 +16,7 @@ maintainer, who holds the key.
 
 ## The steps
 
-**1. Directory rollback is refused (the fail-open fix).** `Directory.epoch` exists so a verifier can refuse an older
+**1. Directory rollback is refused (the fail-open fix).** *Done 2026-11-03 (D-083).* `Directory.epoch` exists so a verifier can refuse an older
 signed directory — one that still lists a de-accredited registrar or omits a revoked delegate — but no verifier does.
 An optional floor (`min_epoch` / `minEpoch`) on directory acceptance in the Rust core, the TypeScript and Python SDKs
 and the edge gate; a directory below it is refused (`directory_rollback`). Long-lived holders (middleware, edge gate,

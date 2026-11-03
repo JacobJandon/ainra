@@ -282,7 +282,7 @@ all fixed and gate-tested before this status:
 | Real recorded ceremony (live custodian entropy, ≥5 jurisdictions, published transcript hash) | the M4 rehearsal is deterministic (labeled TEST seed), single-host | D-018 (M8) |
 | Dynamic (AP2) mandates | needs the AP2 mandate-object model; still fail-closed rejected | D-013 |
 | Tessera-backed production log; FROST **witness** thresholding + witness-network onboarding | storage swap / external ceremony work; M2's single-witness fork drill stands | D-005/D-011 |
-| Directory distribution + rollback-monotonicity across fetches | the type carries `epoch`; the fetch/rollback policy is deployment work | D-019 (M5/M7) |
+| Directory distribution + persisting the rollback floor across restarts | refusing an older directory is built (D-083: a holder in every verifier, `--min-epoch` on the hosted verifier, `minEpoch` on the edge gate); distributing directories and keeping the floor across restarts is deployment work | D-019 (M5/M7), D-083 |
 | Verifier middleware + TS SDK GA + live testbed · reproducible-build proof · `make genesis-local` | M5 / M7 / M8 | MTS §27 |
 | registrar-box hardening (auth, TLS, origin allow-list, real key mgmt/HSM); real cargo-fuzz soak | daemons are local reference tools (documented); fuzz smoke ships now | D-017 |
 

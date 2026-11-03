@@ -190,6 +190,81 @@ impl Directory {
     }
 }
 
+// ── Directory rollback (PLAN-M50 step 1) ───────────────────────────────────────────────────────────────────────────
+// `epoch` exists so a verifier can refuse an OLDER signed directory: one that still accredits a registrar the root has
+// since withdrawn, or omits a delegate it has since revoked. Both roots signed that old directory too, so authenticity
+// alone cannot refuse it — only the epoch can. Authenticity is checked first: a forged directory claiming a high epoch
+// is refused as unauthentic and never raises anyone's floor.
+
+/// Why a directory was not accepted. Its own small vocabulary, deliberately outside the frozen credential reasons:
+/// refusing a directory is not a verdict on any one credential.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DirectoryRefusal {
+    /// Not signed by both roots, not canonical, or malformed — no registrar is accredited by it.
+    Unauthentic,
+    /// Authentic, but older than the floor the verifier holds: a rollback.
+    Rollback { epoch: u64, floor: u64 },
+}
+
+impl DirectoryRefusal {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            DirectoryRefusal::Unauthentic => "unauthentic",
+            DirectoryRefusal::Rollback { .. } => "rollback",
+        }
+    }
+}
+
+impl Directory {
+    /// [`Directory::accredit`], then refuse an authentic directory whose epoch is below `min_epoch`.
+    pub fn accredit_at_least(
+        &self,
+        root_ed25519: &[u8; 32],
+        root_slh: &[u8],
+        min_epoch: u64,
+    ) -> core::result::Result<AccreditedSet, DirectoryRefusal> {
+        let acc = self
+            .accredit(root_ed25519, root_slh)
+            .map_err(|_| DirectoryRefusal::Unauthentic)?;
+        if acc.epoch < min_epoch {
+            return Err(DirectoryRefusal::Rollback {
+                epoch: acc.epoch,
+                floor: min_epoch,
+            });
+        }
+        Ok(acc)
+    }
+}
+
+/// What a long-lived verifier keeps between directory refreshes: the highest epoch it has accepted. Each accepted
+/// directory raises the floor to its own epoch, so the holder never goes back. A restart starts again from the floor
+/// it is constructed with — persisting the floor across restarts is the deployment's job.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct DirectoryHolder {
+    floor: u64,
+}
+
+impl DirectoryHolder {
+    pub const fn new(min_epoch: u64) -> Self {
+        Self { floor: min_epoch }
+    }
+    /// The epoch below which a directory is refused.
+    pub const fn floor(&self) -> u64 {
+        self.floor
+    }
+    /// Accept `d` if it is authentic and not older than anything accepted before; then raise the floor to its epoch.
+    pub fn accept(
+        &mut self,
+        d: &Directory,
+        root_ed25519: &[u8; 32],
+        root_slh: &[u8],
+    ) -> core::result::Result<AccreditedSet, DirectoryRefusal> {
+        let acc = d.accredit_at_least(root_ed25519, root_slh, self.floor)?;
+        self.floor = acc.epoch;
+        Ok(acc)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -360,5 +435,68 @@ mod tests {
         fn registrars_len(&self) -> usize {
             self.anchors.registrars.len()
         }
+    }
+
+    // ── PLAN-M50 step 1: rollback ─────────────────────────────────────────────────────────────────────────────────
+
+    /// The same entries, signed by both roots at `epoch`.
+    fn at_epoch(
+        epoch: u64,
+        entries: Vec<DirectoryEntry>,
+        ed: &ed25519_dalek::SigningKey,
+        slh: &crypto::TestRootSlh,
+    ) -> Directory {
+        use ed25519_dalek::Signer as _;
+        let mut d = signed_directory(entries, vec![], ed, slh);
+        d.epoch = epoch;
+        let msg = d.signing_bytes().unwrap();
+        d.sig_root_ed25519 = b64::encode(&ed.sign(&msg).to_bytes());
+        d.sig_root_slh = b64::encode(&slh.sign(&msg).unwrap());
+        d
+    }
+
+    #[test]
+    fn a_holder_never_goes_back_and_a_forgery_never_raises_its_floor() {
+        let mut rng = seeded();
+        let root_ed = ed25519_dalek::SigningKey::generate(&mut rng);
+        let root_slh = crypto::TestRootSlh::generate(&mut rng);
+        let issuer = crypto::HybridKeypair::generate(&mut rng);
+        let log_root = crypto::TestRootSlh::generate(&mut rng);
+        let entries = vec![entry("registrar-07", &issuer.public(), &log_root.public())];
+        let ed_pk = root_ed.verifying_key().to_bytes();
+        let slh_pk = root_slh.public();
+        let d1 = at_epoch(1, entries.clone(), &root_ed, &root_slh);
+        let d2 = at_epoch(2, entries.clone(), &root_ed, &root_slh);
+        let d3 = at_epoch(3, entries.clone(), &root_ed, &root_slh);
+
+        let mut h = DirectoryHolder::new(0);
+        assert!(h.accept(&d2, &ed_pk, &slh_pk).is_ok());
+        assert_eq!(h.floor(), 2);
+        // Both roots signed epoch 1 too; only the epoch can refuse it.
+        assert!(d1.accredit(&ed_pk, &slh_pk).is_ok());
+        assert_eq!(
+            h.accept(&d1, &ed_pk, &slh_pk).err(),
+            Some(DirectoryRefusal::Rollback { epoch: 1, floor: 2 })
+        );
+        assert!(
+            h.accept(&d2, &ed_pk, &slh_pk).is_ok(),
+            "the same epoch again is fine"
+        );
+        // A forged directory claiming epoch 9 is unauthentic and leaves the floor where it was.
+        let mut forged = d3.clone();
+        forged.epoch = 9;
+        assert_eq!(
+            h.accept(&forged, &ed_pk, &slh_pk).err(),
+            Some(DirectoryRefusal::Unauthentic)
+        );
+        assert_eq!(h.floor(), 2);
+        assert!(h.accept(&d3, &ed_pk, &slh_pk).is_ok());
+        assert_eq!(h.floor(), 3);
+        // The one-shot form, with a floor the caller holds.
+        assert!(d2.accredit_at_least(&ed_pk, &slh_pk, 2).is_ok());
+        assert_eq!(
+            d2.accredit_at_least(&ed_pk, &slh_pk, 3).err(),
+            Some(DirectoryRefusal::Rollback { epoch: 2, floor: 3 })
+        );
     }
 }

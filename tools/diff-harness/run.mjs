@@ -16,7 +16,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
 import { canonicalize } from "../../packages/sdk-ts/dist/index.js";
-import { runVector, expectedVerdict, runDeltaVector, runDirectoryVector, runPresentationVector, runGateVector, runLinkVector, runDecisionVector } from "../../packages/sdk-ts/dist/conformance.js";
+import { runVector, expectedVerdict, runDeltaVector, runDirectoryVector, runPresentationVector, runGateVector, runLinkVector, runDecisionVector, runDirectoryEpochVector } from "../../packages/sdk-ts/dist/conformance.js";
 
 const ROOT = fileURLToPath(new URL("../../", import.meta.url));
 const VEC = path.join(ROOT, "vectors/v1");
@@ -26,6 +26,7 @@ const VEC_PRES = path.join(ROOT, "vectors/v1-presentation");
 const VEC_GATE = path.join(ROOT, "vectors/v1-gate");
 const VEC_LINK = path.join(ROOT, "vectors/v1-link");
 const VEC_DECISION = path.join(ROOT, "vectors/v1-decision");
+const VEC_EPOCH = path.join(ROOT, "vectors/v1-directory-epoch");
 const P0 = path.join(ROOT, "apps/cli-node/bin/ainra.js");
 let failures = 0;
 
@@ -287,6 +288,26 @@ if (fs.existsSync(VEC_DECISION)) {
   }
   console.log(`(J) decision diff core↔sdk     : ${dpass}/${dfiles.length} agree`);
   pyPhase("decision diff    ", "decision", VEC_DECISION, (v) => v.expect);
+}
+
+// ── (K) Directory rollback (PLAN-M50) — a verifier never goes back to an older, genuinely signed directory ─────────
+// Each vector hands directories in order to a holder that keeps the highest epoch it accepted; the answers are the
+// core's `DirectoryHolder`. An implementation that drops the epoch comparison accepts e03, e04, e08 and e09.
+if (fs.existsSync(VEC_EPOCH)) {
+  const efiles = fs.readdirSync(VEC_EPOCH).filter((f) => f.endsWith(".json") && f !== "manifest.json");
+  let kpass = 0;
+  for (const f of efiles) {
+    const v = JSON.parse(fs.readFileSync(path.join(VEC_EPOCH, f), "utf8"));
+    const got = stable(runDirectoryEpochVector(v));
+    const want = stable(v.expect);
+    if (got === want) kpass++;
+    else {
+      failures++;
+      console.error(`  DIRECTORY-EPOCH MISMATCH ${v.name}: core=${want} sdk=${got}`);
+    }
+  }
+  console.log(`(K) directory-epoch core↔sdk   : ${kpass}/${efiles.length} agree`);
+  pyPhase("directory-epoch  ", "directory-epoch", VEC_EPOCH, (v) => v.expect);
 }
 
 if (failures) {

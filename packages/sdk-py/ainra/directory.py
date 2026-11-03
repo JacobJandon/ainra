@@ -93,3 +93,67 @@ def _verify_directory(v: dict) -> dict:
         return _reject()
 
     return {"accept": True, "registrars": len(entries)}
+
+
+# ── Directory rollback (PLAN-M50) ────────────────────────────────────────────────────────────────────────────────────
+# Written from ``ainra_core::directory::{accredit_at_least, DirectoryHolder}``, independently of the TypeScript SDK;
+# held to ``vectors/v1-directory-epoch`` in ``make diff``. Both roots signed every old directory too, so authenticity
+# cannot refuse a replayed one — only the epoch can. Authenticity is checked first, so a forged directory claiming a
+# high epoch never raises the floor.
+
+def _epoch_of(directory: dict):
+    e = directory.get("epoch") if isinstance(directory, dict) else None
+    return e if isinstance(e, int) and not isinstance(e, bool) and 0 <= e < 2 ** 64 else None
+
+
+def verify_directory_at_least(directory: dict, root_ed25519: str, root_slh: str, min_epoch: int = 0) -> dict:
+    """``{"ok": True, "epoch": e, "registrars": n}``, ``{"ok": False, "refusal": "unauthentic"}``, or
+    ``{"ok": False, "refusal": "rollback", "epoch": e, "floor": f}`` for an authentic directory older than
+    ``min_epoch``. The root keys are base64url, as published in ``roots.json``."""
+    r = verify_directory({"directory": directory, "root_ed25519": root_ed25519, "root_slh": root_slh})
+    epoch = _epoch_of(directory)
+    if not r.get("accept") or epoch is None:
+        return {"ok": False, "refusal": "unauthentic"}
+    if epoch < min_epoch:
+        return {"ok": False, "refusal": "rollback", "epoch": epoch, "floor": min_epoch}
+    return {"ok": True, "epoch": epoch, "registrars": r["registrars"]}
+
+
+class DirectoryHolder:
+    """What a long-lived verifier keeps between directory refreshes: the highest epoch it has accepted. Hand it each
+    new directory; it refuses anything older than what it already accepted. A restart starts again from ``min_epoch``
+    — persisting the floor across restarts is the deployment's job."""
+
+    def __init__(self, root_ed25519: str, root_slh: str, min_epoch: int = 0) -> None:
+        self._ed, self._slh, self._floor = root_ed25519, root_slh, min_epoch
+
+    @property
+    def floor(self) -> int:
+        """The epoch below which a directory is refused."""
+        return self._floor
+
+    def accept(self, directory: dict) -> dict:
+        r = verify_directory_at_least(directory, self._ed, self._slh, self._floor)
+        if r["ok"]:
+            self._floor = r["epoch"]
+        return r
+
+    def verifier(self, directory: dict, audience: str = "", freshness: str = "F2"):
+        """A ``Verifier`` built from ``directory``, only if this holder accepts it; otherwise the refusal dict."""
+        r = self.accept(directory)
+        if not r["ok"]:
+            return r
+        from .verifier import Verifier
+        return Verifier.from_directory(directory, self._ed, self._slh, audience, freshness)
+
+
+def run_directory_epoch_vector(v: dict) -> list:
+    """One ``vectors/v1-directory-epoch`` vector: its directories, in order, to a holder starting at ``min_epoch``."""
+    holder = DirectoryHolder(v.get("root_ed25519") or "", v.get("root_slh") or "", v.get("min_epoch") or 0)
+    out = []
+    for d in v.get("directories") or []:
+        r = holder.accept(d)
+        out.append({"accept": True, "epoch": r["epoch"], "registrars": r["registrars"]} if r["ok"]
+                   else {"accept": False, "refusal": r["refusal"]})
+    return out
+

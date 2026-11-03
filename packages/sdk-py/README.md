@@ -106,6 +106,20 @@ inclusion to a signed checkpoint (root **SLH-DSA-SHA2-128s** or a scope-limited,
 in-window, unrevoked delegate); the signed status delta / fresh-head classes; and
 the dual-root-signed directory. Fail closed everywhere; `.verify` never raises.
 
+## Never go back to an older directory
+
+Both ceremony roots signed every old directory too, so a signature check alone cannot refuse a replayed one. If you
+refresh the directory, keep a `DirectoryHolder`: it remembers the highest epoch it accepted and refuses anything
+older (`refusal: "rollback"`), and a forged directory claiming a higher epoch is refused as unauthentic without
+raising the floor.
+
+```python
+from ainra.directory import DirectoryHolder
+holder = DirectoryHolder(root_ed25519, root_slh, min_epoch=saved_floor)
+v = holder.verifier(fetched_directory)   # a Verifier, or {"ok": False, "refusal": ...}
+save_floor(holder.floor)                 # persisting it across restarts is yours to do
+```
+
 ## Cryptography — shared primitives, independent logic (state precisely, D-041)
 
 The verification **logic** is independent; the cryptographic **primitives** are

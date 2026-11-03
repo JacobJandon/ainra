@@ -99,6 +99,14 @@ function deny(status, reason, event, extra = {}) {
   return { allow: false, reason, event, response: new Response(JSON.stringify({ error: "ainra: request refused", reason }), { status, headers }) };
 }
 
+/** The directory against both roots and the rollback floor, through the core. `minEpoch` must be a non-negative
+ *  integer; anything else is refused rather than read as 0. */
+function accreditAtLeast(directoryJson, rootsJson, minEpoch) {
+  if (!(Number.isSafeInteger(minEpoch) && minEpoch >= 0) && typeof minEpoch !== "bigint")
+    throw new Error("@ainra/edge: minEpoch must be a non-negative integer");
+  return JSON.parse(core.accredit_at_least(directoryJson, rootsJson, BigInt(minEpoch)));
+}
+
 /**
  * Create the gate. Resolves to a function from a `Request` to `{ allow: true, event, nonce }` — forward the
  * request — or `{ allow: false, reason, response }` — return `response`. A request to PRIME_PATH is answered by the
@@ -106,18 +114,22 @@ function deny(status, reason, event, extra = {}) {
  *
  * Options: `directory` + `roots` (the published, root-signed directory and the two ceremony root keys), `audience`
  * (who THIS service is — ADR-019; never taken from the request), `freshness` ("F1" | "F2" | "F3", default "F2"),
- * `now` (seconds), `store`, `nonces`, `primePath`, `maxPrimeBytes`. Rejects if the directory does not verify.
+ * `now` (seconds), `store`, `nonces`, `primePath`, `maxPrimeBytes`, and `minEpoch` (PLAN-M50): the lowest directory
+ * epoch this gate accepts — pass the highest epoch a previous gate accepted when you rebuild it on a directory refresh.
+ * Rejects if the directory does not verify, or is older than `minEpoch` (a rollback).
  */
 export async function createAinraEdgeGate({ directory, roots, audience, freshness = "F2",
   now = () => Math.floor(Date.now() / 1000), store = createStore(), nonces = createNonceCache(),
-  primePath = PRIME_PATH, maxPrimeBytes = 256 * 1024, decisions = null } = {}) {
+  primePath = PRIME_PATH, maxPrimeBytes = 256 * 1024, decisions = null, minEpoch = 0 } = {}) {
   if (typeof audience !== "string" || !audience) throw new Error("createAinraEdgeGate: `audience` is required — the gate must know who it is (ADR-019)");
   if (!["F1", "F2", "F3"].includes(freshness)) throw new Error(`createAinraEdgeGate: freshness must be F1, F2 or F3, not ${freshness}`);
   if (!ready) throw new Error("@ainra/edge: call initAinra(wasm) before creating a gate");
   await ready;
   const str = (x) => (typeof x === "string" ? x : JSON.stringify(x));
-  const acc = JSON.parse(core.accredit(str(directory), str(roots)));
-  if (!acc.ok) throw new Error("createAinraEdgeGate: the directory does not verify against the roots — refusing to start");
+  const acc = accreditAtLeast(str(directory), str(roots), minEpoch);
+  if (!acc.ok) throw new Error(acc.refusal === "rollback"
+    ? `createAinraEdgeGate: directory epoch ${acc.epoch} is older than ${acc.floor} — a rollback; refusing to start`
+    : "createAinraEdgeGate: the directory does not verify against the roots — refusing to start");
   const trust = JSON.stringify(acc.trust);
 
   // D-079: with `decisions` (a log from `createDecisionLog` in @ainra/sdk), every decision about a named passport is
@@ -229,13 +241,15 @@ export function linkFromIndex(index, publication, thumbprint) {
 /** A link checker built from a root-signed directory, once (like the gate). Resolves to
  *  `check(link, presentedKeyB64u, capability?)` → `{verdict:"valid", registrar, operator, passport, scope}` or
  *  `{verdict:"invalid", reason}`. `presentedKeyB64u` is the Ed25519 key the host ALREADY verified the request with. */
-export async function createAinraLinkCheck({ directory, roots, freshness = "F2", now = () => Math.floor(Date.now() / 1000) } = {}) {
+export async function createAinraLinkCheck({ directory, roots, freshness = "F2", now = () => Math.floor(Date.now() / 1000), minEpoch = 0 } = {}) {
   if (!["F1", "F2", "F3"].includes(freshness)) throw new Error(`createAinraLinkCheck: freshness must be F1, F2 or F3, not ${freshness}`);
   if (!ready) throw new Error("@ainra/edge: call initAinra(wasm) before creating a link check");
   await ready;
   const str = (x) => (typeof x === "string" ? x : JSON.stringify(x));
-  const acc = JSON.parse(core.accredit(str(directory), str(roots)));
-  if (!acc.ok) throw new Error("createAinraLinkCheck: the directory does not verify against the roots — refusing to start");
+  const acc = accreditAtLeast(str(directory), str(roots), minEpoch);
+  if (!acc.ok) throw new Error(acc.refusal === "rollback"
+    ? `createAinraLinkCheck: directory epoch ${acc.epoch} is older than ${acc.floor} — a rollback; refusing to start`
+    : "createAinraLinkCheck: the directory does not verify against the roots — refusing to start");
   const trust = JSON.stringify(acc.trust);
   return (link, presentedKeyB64u, capability = "") =>
     JSON.parse(core.link_check(JSON.stringify(link), trust, presentedKeyB64u, now(), freshness, capability ?? ""));

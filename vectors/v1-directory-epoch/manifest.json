@@ -1,0 +1,5 @@
+{
+  "count": 9,
+  "note": "CC0 directory-rollback conformance vectors (PLAN-M50). Each vector hands a list of dual-root-signed directories, in order, to a verifier that starts at `min_epoch` (0 when absent) and keeps the highest epoch it accepts; `expect` is one answer per directory: {accept:true, epoch, registrars} or {accept:false, refusal}, refusal one of rollback, unauthentic. Authenticity is checked before the epoch, so a forged directory never raises the floor. Real signing; expect computed by ainra-adapter::directory_epoch_vector_result, each checked against the case it exists to test. Regenerate with `make vectors`.",
+  "version": "v1-directory-epoch"
+}

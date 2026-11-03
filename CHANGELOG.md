@@ -10,7 +10,13 @@ We **publicly own fixed security bugs** — hiding them would be the opposite of
 
 ## [Unreleased]
 
-Nothing yet.
+### Fixed — a verifier never goes back to an older directory (D-083)
+
+- **Directory rollback is refused.** Both roots signed every old directory too, so a replayed one passed every check
+  while still accrediting a withdrawn registrar or missing a revoked delegate. `createDirectoryHolder` /
+  `verifyDirectoryAtLeast` (TypeScript), `DirectoryHolder` / `verify_directory_at_least` (Python), `minEpoch` on
+  `createAinraEdgeGate` and `createAinraLinkCheck`, `--min-epoch` on the hosted verifier. Optional: no existing call
+  changes. `vectors/v1-directory-epoch` (9) holds every implementation to it.
 
 ## [0.6.0] — 2026-11-02
 

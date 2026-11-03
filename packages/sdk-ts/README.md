@@ -51,6 +51,22 @@ vendor in it to remove.
   the middleware, and this SDK are identical.
 - HTTP request gating lives in **[`@ainra/middleware`](https://www.npmjs.com/package/@ainra/middleware)**.
 
+## Never go back to an older directory
+
+Both ceremony roots signed every old directory too, so a signature check alone cannot refuse a replayed one — and an
+old directory may still accredit a registrar the root has withdrawn, or miss a delegate it has revoked. If you refresh
+the directory, keep a holder; it remembers the highest epoch it accepted and refuses anything older:
+
+```js
+import { createDirectoryHolder } from "@ainra/sdk";
+const holder = createDirectoryHolder({ rootEd25519, rootSlh, minEpoch: savedFloor });
+const v = holder.verifier(fetchedDirectory);   // a Verifier, or { ok: false, refusal: "rollback" | "unauthentic" }
+saveFloor(holder.floor());                      // persisting it across restarts is yours to do
+```
+
+`verifyDirectoryAtLeast(directory, rootEd25519, rootSlh, minEpoch)` is the one-shot form. Held to
+`vectors/v1-directory-epoch` with the Rust core and the Python package.
+
 ## Replaying the test vectors is a different import
 
 ```ts

@@ -15,5 +15,6 @@ export {
   runGateVector,
   runLinkVector,
   runDecisionVector,
+  runDirectoryEpochVector,
 } from "./index.js";
 export { runPresentationVector } from "./presentation.js";

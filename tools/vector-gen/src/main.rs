@@ -2516,6 +2516,129 @@ fn check_directory(dir: &str) {
     println!("checked {total} directory vectors: all reproduce their recorded expectation");
 }
 
+// ── v1-directory-epoch — a verifier never goes back to an older directory (PLAN-M50 step 1) ─────────────────────
+//
+// Both roots signed every old directory too, so authenticity cannot refuse a replayed one; only the epoch can. Each
+// vector hands a list of directories, in order, to a holder that starts at `min_epoch`; the answer is one result per
+// directory. Each case declares its answers and the generator refuses one the core disagrees with.
+
+fn directory_epoch_vectors() -> Vec<Value> {
+    let mut rng = ChaCha20Rng::seed_from_u64(0x4550_4f43_4800_0050); // "EPOCH" · M50 — a public TEST seed
+    let root_ed = crypto::TestDelegate::generate(&mut rng);
+    let root_slh = crypto::TestRootSlh::generate(&mut rng);
+    let reg07 = dir_entry("registrar-07", &mut rng);
+    let reg11 = dir_entry("registrar-11", &mut rng);
+    let at =
+        |epoch: u64, entries: Vec<ainra_core::directory::DirectoryEntry>, revoked: Vec<String>| {
+            let mut d = dir_base(entries, revoked);
+            d.epoch = epoch;
+            d.issued_at = 1_000_000 + epoch * 86_400;
+            serde_json::to_value(dir_sign(d, &root_ed, &root_slh)).expect("ser dir")
+        };
+    let both = vec![reg07.clone(), reg11.clone()];
+    let d1 = at(1, both.clone(), vec![]);
+    let d2 = at(2, both.clone(), vec![]);
+    let d3 = at(3, both.clone(), vec![]);
+    // Epoch 3 withdraws registrar-07; epoch 2 still accredits it.
+    let d3_withdrawn = at(3, vec![reg11.clone()], vec![]);
+    // Epoch 3 revokes a checkpoint delegate; epoch 2 does not know it.
+    let d3_revoked = at(3, both.clone(), vec![b64::encode(&[0x5Au8; 32])]);
+    // A forgery: epoch 3's signatures over a directory that claims epoch 9.
+    let mut forged = d3.clone();
+    forged["epoch"] = json!(9);
+    let roots = (
+        b64::encode(&root_ed.public()),
+        b64::encode(&root_slh.public()),
+    );
+    let ok = |epoch: u64, n: usize| json!({ "accept": true, "epoch": epoch, "registrars": n });
+    let no = |why: &str| json!({ "accept": false, "refusal": why });
+    // name, what it tests, the starting floor, the directories in order, the answers.
+    type EpochCase<'a> = (&'a str, &'a str, Option<u64>, Vec<Value>, Vec<Value>);
+    let cases: Vec<EpochCase> = vec![
+        ("e01-newer-each-time", "directories at epochs 1, 2 and 3, in order: each is accepted", None, vec![d1.clone(), d2.clone(), d3.clone()], vec![ok(1, 2), ok(2, 2), ok(3, 2)]),
+        ("e02-same-epoch-again", "the same directory twice: an equal epoch is not a rollback", None, vec![d2.clone(), d2.clone()], vec![ok(2, 2), ok(2, 2)]),
+        ("e03-rollback", "epoch 2, then the older epoch 1: both are genuinely signed, and the second is refused", None, vec![d2.clone(), d1.clone()], vec![ok(2, 2), no("rollback")]),
+        ("e04-floor-held", "a verifier that starts with floor 3 is handed epoch 2", Some(3), vec![d2.clone()], vec![no("rollback")]),
+        ("e05-floor-equal", "a verifier that starts with floor 2 is handed epoch 2", Some(2), vec![d2.clone()], vec![ok(2, 2)]),
+        ("e06-no-floor", "no floor at all: the first authentic directory is accepted whatever its epoch", None, vec![d1.clone()], vec![ok(1, 2)]),
+        ("e07-forgery-never-raises-the-floor", "epoch 2; then a forgery claiming epoch 9 (refused as unauthentic); then epoch 3, still accepted because the forgery raised nothing", None, vec![d2.clone(), forged, d3.clone()], vec![ok(2, 2), no("unauthentic"), ok(3, 2)]),
+        ("e08-withdrawn-registrar-replayed", "epoch 3 withdraws registrar-07; the older epoch 2, which still accredits it, is replayed", None, vec![d3_withdrawn, d2.clone()], vec![ok(3, 1), no("rollback")]),
+        ("e09-revoked-delegate-replayed", "epoch 3 revokes a checkpoint delegate; the older epoch 2, which does not know it, is replayed", None, vec![d3_revoked, d2.clone()], vec![ok(3, 2), no("rollback")]),
+    ];
+    let mut out = Vec::new();
+    for (name, what, floor, dirs, want) in cases {
+        let mut v = json!({ "name": name, "description": what, "root_ed25519": roots.0, "root_slh": roots.1, "directories": dirs });
+        if let Some(f) = floor {
+            v["min_epoch"] = json!(f);
+        }
+        let got = ainra_adapter::directory_epoch_vector_result(&v);
+        if got != Value::Array(want.clone()) {
+            eprintln!(
+                "DIRECTORY-EPOCH VECTOR {name} exists to test {} but the core says {got}",
+                Value::Array(want)
+            );
+            std::process::exit(1);
+        }
+        v["expect"] = got;
+        out.push(v);
+    }
+    out
+}
+
+fn emit_directory_epoch(dir: &str) {
+    let vectors = directory_epoch_vectors();
+    std::fs::create_dir_all(dir).expect("create dir");
+    for v in &vectors {
+        std::fs::write(
+            Path::new(dir).join(format!("{}.json", v["name"].as_str().unwrap())),
+            serde_json::to_string_pretty(v).unwrap(),
+        )
+        .expect("write directory-epoch vector");
+    }
+    let manifest = json!({
+        "version": "v1-directory-epoch",
+        "count": vectors.len(),
+        "note": "CC0 directory-rollback conformance vectors (PLAN-M50). Each vector hands a list of dual-root-signed directories, in order, to a verifier that starts at `min_epoch` (0 when absent) and keeps the highest epoch it accepts; `expect` is one answer per directory: {accept:true, epoch, registrars} or {accept:false, refusal}, refusal one of rollback, unauthentic. Authenticity is checked before the epoch, so a forged directory never raises the floor. Real signing; expect computed by ainra-adapter::directory_epoch_vector_result, each checked against the case it exists to test. Regenerate with `make vectors`.",
+    });
+    std::fs::write(
+        Path::new(dir).join("manifest.json"),
+        serde_json::to_string_pretty(&manifest).unwrap(),
+    )
+    .expect("write manifest");
+    println!("wrote {} directory-epoch vectors to {dir}", vectors.len());
+}
+
+fn check_directory_epoch(dir: &str) {
+    let mut entries: Vec<_> = std::fs::read_dir(dir)
+        .expect("read dir")
+        .filter_map(|e| e.ok())
+        .map(|e| e.path())
+        .filter(|p| {
+            p.extension().is_some_and(|x| x == "json")
+                && p.file_name().is_some_and(|f| f != "manifest.json")
+        })
+        .collect();
+    entries.sort();
+    let (mut total, mut fails) = (0, 0);
+    for path in entries {
+        let v: Value = serde_json::from_slice(&std::fs::read(&path).expect("read")).expect("parse");
+        let got = ainra_adapter::directory_epoch_vector_result(&v);
+        total += 1;
+        if got != v["expect"] {
+            eprintln!(
+                "DIRECTORY-EPOCH CHECK MISMATCH {}: expected {} got {got}",
+                v["name"], v["expect"]
+            );
+            fails += 1;
+        }
+    }
+    if fails > 0 {
+        eprintln!("{fails}/{total} directory-epoch vectors mismatched");
+        std::process::exit(1);
+    }
+    println!("checked {total} directory-epoch vectors: all reproduce their recorded expectation");
+}
+
 // ── v1-presentation — RFC 9421 request signatures (PLAN-M34 Task 3, D-062) ────────────────────────────────────
 //
 // The request exactly as a gate sees it, with the instance key that should have signed it. Every vector declares the
@@ -5492,6 +5615,8 @@ fn main() {
     let mut link_out: Option<String> = None;
     let mut check_link_dir: Option<String> = None;
     let mut decision_out: Option<String> = None;
+    let mut directory_epoch_out: Option<String> = None;
+    let mut check_directory_epoch_dir: Option<String> = None;
     let mut check_decision_dir: Option<String> = None;
     let mut canon_file: Option<String> = None;
     let mut emit_kind: Option<String> = None;
@@ -5512,6 +5637,8 @@ fn main() {
             "--link-out" => link_out = it.next().cloned(),
             "--check-link" => check_link_dir = it.next().cloned(),
             "--decision-out" => decision_out = it.next().cloned(),
+            "--directory-epoch-out" => directory_epoch_out = it.next().cloned(),
+            "--check-directory-epoch" => check_directory_epoch_dir = it.next().cloned(),
             "--check-decision" => check_decision_dir = it.next().cloned(),
             "--canon" => canon_file = it.next().cloned(),
             "--emit" => emit_kind = it.next().cloned(),
@@ -5550,6 +5677,14 @@ fn main() {
     }
     if let Some(dir) = check_presentation_dir {
         check_presentation(&dir);
+        return;
+    }
+    if let Some(dir) = directory_epoch_out {
+        emit_directory_epoch(&dir);
+        return;
+    }
+    if let Some(dir) = check_directory_epoch_dir {
+        check_directory_epoch(&dir);
         return;
     }
     if let Some(dir) = decision_out {

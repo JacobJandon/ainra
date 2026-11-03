@@ -1506,6 +1506,79 @@ export function verifyDirectory(d: WireDirectory, rootEd25519: Uint8Array, rootS
   return { anchors, revokedDelegates: new Set(revNorm), epoch: d.epoch };
 }
 
+// ── Directory rollback (PLAN-M50) ─────────────────────────────────────────────────────────────────────────────────
+// Written from `ainra_core::directory::{accredit_at_least, DirectoryHolder}`; held to `vectors/v1-directory-epoch` in
+// `make diff`. Both roots signed every old directory too, so authenticity cannot refuse a replayed one — only the
+// epoch can: an older directory may still accredit a registrar the root has withdrawn, or omit a revoked delegate.
+// Authenticity is checked first, so a forged directory claiming a high epoch never raises anyone's floor.
+
+/** Why a directory was not accepted. Its own vocabulary, outside the frozen credential reasons. */
+export type DirectoryRefusal = "unauthentic" | "rollback";
+export type DirectoryAcceptance =
+  | { ok: true; accredited: AccreditedSet }
+  | { ok: false; refusal: "unauthentic" }
+  | { ok: false; refusal: "rollback"; epoch: number; floor: number };
+
+/** {@link verifyDirectory}, then refuse an authentic directory whose epoch is below `minEpoch`. */
+export function verifyDirectoryAtLeast(d: WireDirectory, rootEd25519: Uint8Array, rootSlh: Uint8Array, minEpoch: number): DirectoryAcceptance {
+  const acc = verifyDirectory(d, rootEd25519, rootSlh);
+  if (acc === null) return { ok: false, refusal: "unauthentic" };
+  if (acc.epoch < minEpoch) return { ok: false, refusal: "rollback", epoch: acc.epoch, floor: minEpoch };
+  return { ok: true, accredited: acc };
+}
+
+/** What a long-lived verifier keeps between directory refreshes: the highest epoch it has accepted. Hand it each new
+ *  directory; it refuses anything older than what it already accepted. A restart starts again from `minEpoch` —
+ *  persisting the floor across restarts is the deployment's job. */
+export function createDirectoryHolder(o: { rootEd25519: Uint8Array; rootSlh: Uint8Array; minEpoch?: number }) {
+  let floor = o.minEpoch ?? 0;
+  return {
+    /** The epoch below which a directory is refused. */
+    floor(): number {
+      return floor;
+    },
+    accept(d: WireDirectory): DirectoryAcceptance {
+      const r = verifyDirectoryAtLeast(d, o.rootEd25519, o.rootSlh, floor);
+      if (r.ok) floor = r.accredited.epoch;
+      return r;
+    },
+    /** A {@link Verifier} built from `d`, only if this holder accepts it; otherwise the refusal. */
+    verifier(d: WireDirectory, freshness: FreshnessClass = "F2", currency = false, audience = ""): Verifier | Exclude<DirectoryAcceptance, { ok: true }> {
+      const r = this.accept(d);
+      if (!r.ok) return r;
+      // Through the public constructor path, which re-verifies both root signatures: there is deliberately no way to
+      // build a Verifier from a trust set that did not come from a verified directory.
+      return Verifier.fromDirectory(d, o.rootEd25519, o.rootSlh, freshness, currency, audience) as Verifier;
+    },
+  };
+}
+export type DirectoryHolder = ReturnType<typeof createDirectoryHolder>;
+
+/** `vectors/v1-directory-epoch`: the vector's directories, in order, to a holder starting at `min_epoch`. */
+export interface WireDirectoryEpochVector {
+  name: string;
+  root_ed25519: string;
+  root_slh: string;
+  min_epoch?: number;
+  directories: WireDirectory[];
+}
+export type DirectoryEpochResult = { accept: true; epoch: number; registrars: number } | { accept: false; refusal: DirectoryRefusal };
+export function runDirectoryEpochVector(v: WireDirectoryEpochVector): DirectoryEpochResult[] {
+  let ed: Uint8Array | null = null, slh: Uint8Array | null = null;
+  try {
+    ed = dec(v.root_ed25519);
+    slh = dec(v.root_slh);
+  } catch {
+    ed = slh = null;
+  }
+  const holder = ed && slh && ed.length === 32 ? createDirectoryHolder({ rootEd25519: ed, rootSlh: slh, minEpoch: v.min_epoch ?? 0 }) : null;
+  return (v.directories ?? []).map((d): DirectoryEpochResult => {
+    if (!holder) return { accept: false, refusal: "unauthentic" };
+    const r = holder.accept(d);
+    return r.ok ? { accept: true, epoch: r.accredited.epoch, registrars: Object.keys(r.accredited.anchors).length } : { accept: false, refusal: r.refusal };
+  });
+}
+
 /** Directory conformance vector (mirror the vector-gen directory corpus): accept + registrar count, or reject. */
 export interface WireDirectoryVector {
   name: string;

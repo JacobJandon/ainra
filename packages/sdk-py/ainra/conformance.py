@@ -14,6 +14,7 @@ from ._b64 import decode as _b64d
 from .decision import run_decision_vector
 from .delta import verify_delta_vector as run_delta_vector
 from .directory import verify_directory as run_directory_vector
+from .directory import run_directory_epoch_vector
 from .presentation import run_presentation_vector
 from .verifier import Verifier
 from .verify import verify as _verify_fixture
@@ -47,5 +48,5 @@ def run_link_vector(v: dict) -> dict:
     return gate.verify_link(v["link"], key, v["now"], v.get("capability"))
 
 
-__all__ = ["run_vector", "run_delta_vector", "run_directory_vector", "run_presentation_vector", "run_gate_vector",
+__all__ = ["run_vector", "run_delta_vector", "run_directory_vector", "run_directory_epoch_vector", "run_presentation_vector", "run_gate_vector",
            "run_link_vector", "run_decision_vector"]

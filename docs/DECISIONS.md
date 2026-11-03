@@ -2075,3 +2075,29 @@ k256 0.13's `crypto-bigint` on the first push; k256 0.14 fixed it, and the ES256
 under it (RFC 6979 signing is deterministic). The edge engine grew from under 640 KiB to 719 KiB across both steps; its
 own ceiling is now 768 KiB, with the reason where it is set. The browser verifier did not grow (394 KiB).
 
+## D-083 — A verifier never goes back to an older directory (M50)
+
+*Problem:* the directory carries an `epoch` "so a verifier accepts only `epoch ≥` the last one it saw", but rollback
+protection was left to the caller and no caller implemented it — not the Rust core, the SDKs, the gates or the hosted
+verifier. Both roots signed every old directory too, so a replayed one passes every signature check, while still
+accrediting a registrar the root has since withdrawn or missing a delegate it has since revoked. That was the one known
+fail-open path in the verifiers (found by the M50 survey).
+
+*Decision:* authenticity first, then the epoch. `Directory::accredit_at_least` refuses an authentic directory below a
+floor; `DirectoryHolder` keeps the highest epoch it accepted and raises the floor only on acceptance, so a forgery
+claiming a high epoch is refused as unauthentic and raises nothing. The refusal has its own two-word vocabulary,
+`unauthentic` and `rollback`, outside the frozen credential reasons: refusing a directory is not a verdict on a
+credential. Mirrored in TypeScript (`verifyDirectoryAtLeast`, `createDirectoryHolder`, whose `verifier()` builds only
+through `Verifier.fromDirectory`), Python (`verify_directory_at_least`, `DirectoryHolder`), the edge gate and link check
+(`minEpoch`, through a new WASM export) and the hosted verifier (`--min-epoch`). The floor is optional: making it
+mandatory would break every caller.
+
+*Not changed:* the directory format, the frozen reasons, and every caller that passes no floor.
+
+*Honest limit:* a holder starts again from its configured floor after a restart; persisting the floor is the
+deployment's job, and distributing directories is still deployment work (STATUS, D-019).
+
+*Held to:* `vectors/v1-directory-epoch` (9 vectors, including a withdrawn registrar and a revoked delegate replayed)
+in `make diff` for the core, TypeScript and Python, in the edge tests through the WASM build, and in CI's
+regenerate-and-compare. Removing the comparison from any one implementation turns e03, e04, e08 and e09 red.
+

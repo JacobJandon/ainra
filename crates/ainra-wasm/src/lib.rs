@@ -66,6 +66,14 @@ pub fn accredit(directory_json: &str, roots_json: &str) -> String {
     ainra_adapter::accredit_json(directory_json, roots_json)
 }
 
+/// [`accredit`] with a rollback floor (PLAN-M50): an authentic directory older than `min_epoch` is refused with
+/// `{"ok":false,"refusal":"rollback","epoch":e,"floor":f}`; an unauthentic one with `{"ok":false,"refusal":"unauthentic"}`.
+#[cfg(feature = "edge")]
+#[wasm_bindgen]
+pub fn accredit_at_least(directory_json: &str, roots_json: &str, min_epoch: u64) -> String {
+    ainra_adapter::accredit_json_at_least(directory_json, roots_json, min_epoch)
+}
+
 /// The credential alone, under the gate's policy (its trust, clock, audience and freshness class).
 #[cfg(feature = "edge")]
 #[wasm_bindgen]

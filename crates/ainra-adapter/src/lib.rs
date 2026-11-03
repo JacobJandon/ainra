@@ -1012,23 +1012,11 @@ pub fn presentation_ref_json(bundle_json: &str) -> Option<String> {
 /// SLH-DSA), and what comes back is its anchors AND its revoked delegates — the verifier's, never the presenter's.
 /// Returns `{"ok":true,"trust":{"anchors":{…},"revoked_delegates":[…]},"epoch":n}` or `{"ok":false}`; a host
 /// that gets `ok:false` must not start. The trust object is what every [`gate_json`] call then receives.
-pub fn accredit_json(directory_json: &str, roots_json: &str) -> String {
-    let fail = || json!({ "ok": false }).to_string();
-    let (Ok(d), Ok(roots)) = (
-        serde_json::from_str::<ainra_core::directory::Directory>(directory_json),
-        serde_json::from_str::<serde_json::Value>(roots_json),
-    ) else {
-        return fail();
-    };
-    let (Some(ed), Some(slh)) = (roots["root_ed25519"].as_str(), roots["root_slh"].as_str()) else {
-        return fail();
-    };
-    let (Ok(ed), Ok(slh)) = (b64::decode_array::<32>(ed), b64::decode(slh)) else {
-        return fail();
-    };
-    let Ok(acc) = d.accredit(&ed, &slh) else {
-        return fail();
-    };
+/// The trust object a gate is built from, for a directory that has just been accredited.
+fn trust_json(
+    d: &ainra_core::directory::Directory,
+    acc: &ainra_core::directory::AccreditedSet,
+) -> serde_json::Value {
     let anchors: serde_json::Map<String, serde_json::Value> = acc
         .anchors
         .registrars
@@ -1067,7 +1055,87 @@ pub fn accredit_json(directory_json: &str, roots_json: &str) -> String {
         })
         .collect();
     json!({ "ok": true, "trust": { "anchors": anchors, "revoked_delegates": revoked, "status": status }, "epoch": acc.epoch })
-        .to_string()
+}
+
+pub fn accredit_json(directory_json: &str, roots_json: &str) -> String {
+    let fail = || json!({ "ok": false }).to_string();
+    let (Ok(d), Ok(roots)) = (
+        serde_json::from_str::<ainra_core::directory::Directory>(directory_json),
+        serde_json::from_str::<serde_json::Value>(roots_json),
+    ) else {
+        return fail();
+    };
+    let (Some(ed), Some(slh)) = (roots["root_ed25519"].as_str(), roots["root_slh"].as_str()) else {
+        return fail();
+    };
+    let (Ok(ed), Ok(slh)) = (b64::decode_array::<32>(ed), b64::decode(slh)) else {
+        return fail();
+    };
+    let Ok(acc) = d.accredit(&ed, &slh) else {
+        return fail();
+    };
+    trust_json(&d, &acc).to_string()
+}
+
+/// [`accredit_json`] with a rollback floor (PLAN-M50): an authentic directory whose epoch is below `min_epoch` is
+/// refused. `{"ok":false,"refusal":"unauthentic"}`, `{"ok":false,"refusal":"rollback","epoch":e,"floor":f}`, or the
+/// same `{"ok":true, trust, epoch}` as [`accredit_json`]. A caller that refreshes its directory passes the highest
+/// epoch it has accepted.
+pub fn accredit_json_at_least(directory_json: &str, roots_json: &str, min_epoch: u64) -> String {
+    let unauthentic = || json!({ "ok": false, "refusal": "unauthentic" }).to_string();
+    let (Ok(d), Ok(roots)) = (
+        serde_json::from_str::<ainra_core::directory::Directory>(directory_json),
+        serde_json::from_str::<serde_json::Value>(roots_json),
+    ) else {
+        return unauthentic();
+    };
+    let (Some(ed), Some(slh)) = (roots["root_ed25519"].as_str(), roots["root_slh"].as_str()) else {
+        return unauthentic();
+    };
+    let (Ok(ed), Ok(slh)) = (b64::decode_array::<32>(ed), b64::decode(slh)) else {
+        return unauthentic();
+    };
+    match d.accredit_at_least(&ed, &slh, min_epoch) {
+        Ok(acc) => trust_json(&d, &acc).to_string(),
+        Err(ainra_core::directory::DirectoryRefusal::Rollback { epoch, floor }) => {
+            json!({ "ok": false, "refusal": "rollback", "epoch": epoch, "floor": floor })
+                .to_string()
+        }
+        Err(_) => unauthentic(),
+    }
+}
+
+/// One `vectors/v1-directory-epoch` vector: a holder that starts at `min_epoch` is handed each directory in turn.
+/// Each answer is `{"accept":true,"epoch":e,"registrars":n}` or `{"accept":false,"refusal":"rollback"|"unauthentic"}`.
+pub fn directory_epoch_vector_result(v: &serde_json::Value) -> serde_json::Value {
+    let refused = |r: &str| json!({ "accept": false, "refusal": r });
+    let roots = (
+        v["root_ed25519"]
+            .as_str()
+            .and_then(|s| b64::decode_array::<32>(s).ok()),
+        v["root_slh"].as_str().and_then(|s| b64::decode(s).ok()),
+    );
+    let Some(list) = v["directories"].as_array() else {
+        return json!([]);
+    };
+    let mut holder =
+        ainra_core::directory::DirectoryHolder::new(v["min_epoch"].as_u64().unwrap_or(0));
+    let mut out = Vec::with_capacity(list.len());
+    for d in list {
+        let (Some(ed), Some(slh)) = (&roots.0, &roots.1) else {
+            out.push(refused("unauthentic"));
+            continue;
+        };
+        let Ok(dir) = serde_json::from_value::<ainra_core::directory::Directory>(d.clone()) else {
+            out.push(refused("unauthentic"));
+            continue;
+        };
+        out.push(match holder.accept(&dir, ed, slh) {
+            Ok(acc) => json!({ "accept": true, "epoch": acc.epoch, "registrars": acc.anchors.registrars.len() }),
+            Err(r) => refused(r.as_str()),
+        });
+    }
+    serde_json::Value::Array(out)
 }
 
 /// Decode the trust object [`accredit_json`] produced. `None` — fail closed — for anything malformed.

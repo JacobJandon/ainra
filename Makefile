@@ -24,6 +24,7 @@ vectors:
 	cargo run --release -q -p ainra-vector-gen -- --gate-out vectors/v1-gate
 	cargo run --release -q -p ainra-vector-gen -- --link-out vectors/v1-link
 	cargo run --release -q -p ainra-vector-gen -- --decision-out vectors/v1-decision
+	cargo run --release -q -p ainra-vector-gen -- --directory-epoch-out vectors/v1-directory-epoch
 	@echo "vectors present:" && ls vectors/v1/*.json 2>/dev/null | wc -l
 	@echo "delta vectors:" && ls vectors/v1-delta/*.json 2>/dev/null | wc -l
 	@echo "directory vectors:" && ls vectors/v1-directory/*.json 2>/dev/null | wc -l
@@ -31,6 +32,7 @@ vectors:
 	@echo "gate vectors:" && ls vectors/v1-gate/*.json 2>/dev/null | wc -l
 	@echo "link vectors:" && ls vectors/v1-link/*.json 2>/dev/null | wc -l
 	@echo "decision vectors:" && ls vectors/v1-decision/*.json 2>/dev/null | wc -l
+	@echo "directory-epoch vectors:" && ls vectors/v1-directory-epoch/*.json 2>/dev/null | wc -l
 
 # Replay every vector back through ainra-core (the generator holding itself honest).
 vectors-check:
@@ -41,6 +43,7 @@ vectors-check:
 	cargo run --release -q -p ainra-vector-gen -- --check-gate vectors/v1-gate
 	cargo run --release -q -p ainra-vector-gen -- --check-link vectors/v1-link
 	cargo run --release -q -p ainra-vector-gen -- --check-decision vectors/v1-decision
+	cargo run --release -q -p ainra-vector-gen -- --check-directory-epoch vectors/v1-directory-epoch
 
 # 3-way differential: same vectors through ainra-core, sdk-ts, and the P0 cli-node. Nonzero unless 100% agreement.
 diff: sdk-build

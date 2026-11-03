@@ -12,7 +12,9 @@
 //   * no unsigned verdicts, no soft-fail: anything it cannot decide is a signed refusal;
 //   * no request bodies or identifiers in logs; /v1/metrics is aggregate counts only.
 //
-//   node services/verify/server.mjs --directory D --roots R --key KEYFILE [--port 8787] [--freshness F2]
+//   node services/verify/server.mjs --directory D --roots R --key KEYFILE [--port 8787] [--freshness F2] [--min-epoch N]
+// --min-epoch: the lowest directory epoch to accept (PLAN-M50). A deployment that restarts this on a new directory
+// passes the highest epoch it has served, and the server refuses to start on an older one — a rollback.
 //                                   [--audience A] [--heads URL]
 // KEYFILE holds the verifier's Ed25519 secret key, base64url, 32 bytes (create one with `--new-key KEYFILE`).
 import http from "node:http";
@@ -22,7 +24,7 @@ import { createRequire } from "node:module";
 import { pathToFileURL } from "node:url";
 import { execFileSync } from "node:child_process";
 import {
-  Verifier, signDecision, decisionRequestDigest, jwkThumbprintEd25519, strictB64u,
+  Verifier, signDecision, decisionRequestDigest, jwkThumbprintEd25519, strictB64u, verifyDirectoryAtLeast,
 } from "../../packages/sdk-ts/dist/index.js";
 
 const sdkRequire = createRequire(new URL("../../packages/sdk-ts/package.json", import.meta.url));
@@ -47,6 +49,13 @@ if (!secret || secret.length !== 32) { console.error("the key file must hold a b
 const pub = ed25519.getPublicKey(secret);
 const freshness = opt("freshness", "F2");
 const audience = opt("audience", "");
+const minEpoch = Number(opt("min-epoch", "0"));
+if (!Number.isSafeInteger(minEpoch) || minEpoch < 0) { console.error("--min-epoch must be a non-negative integer"); process.exit(2); }
+const atLeast = verifyDirectoryAtLeast(directory, strictB64u(roots.root_ed25519) ?? new Uint8Array(), strictB64u(roots.root_slh) ?? new Uint8Array(), minEpoch);
+if (!atLeast.ok && atLeast.refusal === "rollback") {
+  console.error(`the directory's epoch ${atLeast.epoch} is older than --min-epoch ${atLeast.floor} — a rollback; refusing to start`);
+  process.exit(2);
+}
 const verifier = Verifier.fromDirectoryB64(directory, roots.root_ed25519, roots.root_slh, freshness, false, audience);
 if (!verifier) { console.error("the directory does not verify against the roots — refusing to start"); process.exit(2); }
 const sha = (s) => createHash("sha256").update(s).digest("base64url");
@@ -63,7 +72,7 @@ const about = {
 };
 
 function usage() {
-  console.error("usage: node services/verify/server.mjs --directory D --roots R --key KEYFILE [--port 8787] [--freshness F2] [--audience A] [--heads URL]");
+  console.error("usage: node services/verify/server.mjs --directory D --roots R --key KEYFILE [--port 8787] [--freshness F2] [--audience A] [--heads URL] [--min-epoch N]");
   process.exit(2);
 }
 

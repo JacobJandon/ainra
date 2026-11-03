@@ -179,7 +179,7 @@ requests, the same status and reason required from each (`make gate-parity`). It
 * Rust gates call `verify_gate`, which authenticates the status against the directory's status key before anything
   is decompressed, in the order `@ainra/sdk` applies; the trust object carries the status authorities and one
   without them is refused whole. One definition of the signed bytes now lives in the core.
-* **The pinning vectors are a new corpus family, [`vectors/v1-gate`](vectors/v1-gate)**: 27 gate vectors — a
+* **The pinning vectors are a new corpus family, [`vectors/v1-gate`](vectors/v1-gate)**: each vector is a
   dual-root-signed directory, a bundle as a presenter sends it, and the gate's own clock, audience and freshness
   class. Every edit a presenter can make to the status material is one of them, and so is the attack itself (`g03`).
   The Rust core, the TypeScript SDK, the Python package and the edge WebAssembly build must agree on all of them in
@@ -236,7 +236,7 @@ had just taught: who supplies the clock, the class and the status?
 **What changed.** The tool takes a signed directory and roots and decides as a gate does, with the caller's clock,
 class and audience, and returns a `decision`. Replaying a vector is a separate mode that must be asked for by name
 and decides nothing; the old calling convention is refused with an explanation rather than answered. **The pinning
-vectors are `vectors/v1-gate`** — the tool is held to all 27 gate vectors in `make mcp-test`.
+vectors are `vectors/v1-gate`** — the tool is held to every gate vector in `make mcp-test`.
 
 **The same class, once more (D-075).** The Python package's plain constructor, `ainra.Verifier(anchors)`, skipped
 status authentication whenever the anchors carried no status key — on PyPI through 0.4.x. It was documented as a

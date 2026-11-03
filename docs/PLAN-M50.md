@@ -26,7 +26,7 @@ in `make diff` across all implementations. WITNESS: drop the comparison in any o
 red; a middleware test that sees epoch 2 and then epoch 1 must refuse the second. The floor stays optional: making it
 mandatory would break the API.
 
-**2. A short status list is a corpus vector.** A status list that declares `bit_len` N and carries fewer bytes must be
+**2. A short status list is a corpus vector.** *Done 2026-11-03 (`g28`, `g29`).* A status list that declares `bit_len` N and carries fewer bytes must be
 refused. Today only one Python unit test pins it. A gate vector in `vectors/v1-gate`, held by every implementation.
 WITNESS: remove the length guard in any one implementation (the M30b shape) and the vector goes red.
 

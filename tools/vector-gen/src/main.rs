@@ -4022,6 +4022,45 @@ fn gate_vectors() -> Vec<Value> {
         want: "expired",
     });
 
+    // ── a list the registrar DID sign, whose bytes disagree with its declared length (PLAN-M50 step 2) ──────────
+    // The signature is good, so only the length guard stands between these and an accept: the passport's bit
+    // (index 0) is present and clear in both. A list that disagrees with its own header is no status, whoever
+    // signed it, and fails closed as status. Drop the guard in any one implementation and that one says valid.
+    let signed_list = |bits: usize, declared: u64| {
+        let mut p = good.clone();
+        p.status_list = b64::encode(
+            &status::StatusList::from_bits(vec![false; bits])
+                .encode()
+                .expect("encode status"),
+        );
+        p.status_len = declared;
+        gate_sign_status(&mut p, &uri, &status_key);
+        val(&p)
+    };
+    for (name, what, bits) in [
+        (
+            "g28-status-list-short-but-signed",
+            "a signed list that declares 16 entries and carries 8: the passport's bit is there and clear",
+            8,
+        ),
+        (
+            "g29-status-list-long-but-signed",
+            "a signed list that declares 16 entries and inflates to 1,024: past any bound the length allows",
+            1024,
+        ),
+    ] {
+        cases.push(Case {
+            name,
+            what,
+            directory: directory.clone(),
+            bundle: signed_list(bits, 16),
+            now,
+            audience: "",
+            freshness: "F2",
+            want: "stale_status",
+        });
+    }
+
     cases.sort_by(|a, b| a.name.cmp(b.name));
     let mut out = Vec::new();
     for c in cases {

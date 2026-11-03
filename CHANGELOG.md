@@ -18,6 +18,14 @@ We **publicly own fixed security bugs** — hiding them would be the opposite of
   `createAinraEdgeGate` and `createAinraLinkCheck`, `--min-epoch` on the hosted verifier. Optional: no existing call
   changes. `vectors/v1-directory-epoch` (9) holds every implementation to it.
 
+### Fixed — a signed status list that disagrees with its own length is a vector (PLAN-M50 step 2)
+
+- **`g28` and `g29` in `vectors/v1-gate`:** a list the registrar signed that declares 16 entries and carries 8, and one
+  that inflates to 1,024. Only the length guard stood between either and an accept, and only one Python unit test
+  pinned it. Every implementation refuses both; the Rust gate path (`@ainra/edge`, `ainra verify-request`) said
+  `schema_violation` where the SDKs said `stale_status`, and now says `stale_status` too: the passport is well
+  formed, its status cannot be read.
+
 ## [0.6.0] — 2026-11-02
 
 The release commit; its board is `docs/releases/v0.6.0-board.md`. Tagging and publishing to npm and PyPI are the

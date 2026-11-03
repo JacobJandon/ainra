@@ -516,7 +516,15 @@ fn authenticate_publication(
         signing.as_bytes(),
         &crypto::HybridSig { ed25519, mldsa65 },
     )
-    .map_err(|_| Reason::StaleStatus)
+    .map_err(|_| Reason::StaleStatus)?;
+    // A signed list whose bytes disagree with its own declared length is no status at all: the passport is fine,
+    // the status cannot be read, and that fails closed as status (PLAN-M50 step 2), as in every SDK.
+    let list = b64::decode(p.list).map_err(|_| Reason::StaleStatus)?;
+    usize::try_from(p.bit_len)
+        .ok()
+        .and_then(|n| status::StatusList::decode(&list, n).ok())
+        .map(|_| ())
+        .ok_or(Reason::StaleStatus)
 }
 
 /// Verify a presentation AS A GATE (D-072): everything a presenter could otherwise choose is the verifier's.

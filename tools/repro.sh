@@ -7,6 +7,10 @@
 # committed == clean-rebuild-1 == clean-rebuild-2, then writes MANIFEST.sha256 (the canonical content list).
 # Covers the path-independent spec artifacts (CC0 corpus + sample book); NOT the tsc dist — see ARTIFACTS.md § reproducibility.
 set -euo pipefail
+# The manifest is a byte-exact claim, so its ORDER must not depend on the machine. `sort` follows the locale: under
+# en_US.UTF-8 and under C the same paths sort differently, so a manifest written on a workstation failed `make release`
+# in CI's C-locale container for v0.6.0 (every hash identical, the lines in another order). Pin it.
+export LC_ALL=C
 cd "$(dirname "$0")/.."
 
 WORK="$(mktemp -d)"

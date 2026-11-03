@@ -5,6 +5,8 @@
 # (MANIFEST.sha256 unchanged after `make repro`, which preflight runs), builds the reference CLI, and writes a signable
 # SHA256SUMS manifest. A downloader can then confirm the bytes match the committed source (see RELEASING.md).
 set -euo pipefail
+# SHA256SUMS lists `dist/*`, and glob order follows the locale like `sort` does (see tools/repro.sh): pin it.
+export LC_ALL=C
 cd "$(dirname "$0")/.."
 VERSION="${VERSION:-${1:-}}"
 [ -n "$VERSION" ] || VERSION="$(git describe --tags --always 2>/dev/null || echo v0.0.0-dev)"

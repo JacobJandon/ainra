@@ -44,6 +44,11 @@ export default {
 
 A presenter can't loosen any of these (D-068, D-072).
 
+**`currency: true`** (D-021) goes further: every request must carry the registrar's fresh head, F1-fresh and bound
+to its status list, and the gate refuses a head older than one it has seen — so a genuine pre-revocation snapshot
+stops working the moment the gate sees the revocation. A bundle primed once carries the head it was primed with,
+so under currency it is usable only while that head is fresh (30 s). Held to `vectors/v1-currency`.
+
 ## Proof
 
 - **`make edge-test`:** the WASM build answers every request-signature vector as the core recorded it. Every

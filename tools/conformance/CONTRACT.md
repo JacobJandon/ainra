@@ -18,7 +18,7 @@ invokes it **once per corpus part**, passing the part's **kind** as the final co
 | profile | kinds | what passing it says |
 |---|---|---|
 | `core` | `passport`, `delta`, `directory` | the v1 contract: the nine-step verify, deltas, directories |
-| `full` (default) | `core` plus `presentation`, `gate`, `link`, `decision`, `directory-epoch` | also decides as a gate does: status only if the registrar signed it, a link, a decision log, no older directory |
+| `full` (default) | `core` plus `presentation`, `gate`, `link`, `decision`, `directory-epoch`, `currency` | also decides as a gate does: status only if the registrar signed it, a link, a decision log, no older directory |
 
 `core` is still a valid claim, and a v1 adapter still passes it unchanged (`--profile core`). It is not the claim a
 gate needs: the `core` kinds hand a verifier its status list as a trusted input, so a verifier that believes the
@@ -44,6 +44,7 @@ presenter's status passes every one of them. That is the hole of D-072, D-074 an
 | `link` | `vectors/v1-link` | `{"verdict":"valid","registrar","operator","passport","scope"}` | `{"verdict":"invalid","reason":"<reason>"}` or `{"verdict":"no_gate"}` |
 | `decision` | `vectors/v1-decision` | `{"ok":true,"count":<n>}` or `{"ok":true,"head":"…"}` | `{"ok":false,"index":<i>,"problem":"…"}` |
 | `directory-epoch` | `vectors/v1-directory-epoch` | an array, one `{"accept":true,"epoch","registrars"}` per directory offered | `{"accept":false,"refusal":"…"}` in that array |
+| `currency` | `vectors/v1-currency` | an array, one `{"verdict":"valid"}` per step of ONE currency gate | `{"verdict":"invalid","reason":"<reason>"}` in that array, or `{"verdict":"no_gate"}` |
 
 Each vector carries what it means in `description` and the exact answer in `expect`; the per-kind specifications are
 `docs/PRESENTATION.md`, `docs/DECISIONS.md` (D-073, D-078, D-079, D-081, D-083) and `docs/LINKS.md`.
@@ -71,7 +72,8 @@ for line in sys.stdin:
    pins the *exact* corpus set + contents in the report, so two parties can confirm they ran the identical corpus and a
    partial/empty corpus is visibly different.
 3. **Count guard (fail closed)** — every part must clear a minimum count (`passport ≥ 500`, `delta ≥ 15`,
-   `directory ≥ 9`, `presentation ≥ 40`, `gate ≥ 27`, `link ≥ 40`, `decision ≥ 30`, `directory-epoch ≥ 9`). An empty
+   `directory ≥ 9`, `presentation ≥ 40`, `gate ≥ 27`, `link ≥ 40`, `decision ≥ 30`, `directory-epoch ≥ 9`,
+   `currency ≥ 18`). An empty
    or partial corpus **FAILS** even with zero divergences on the vectors present — no vacuous pass (the M9
    verifier-collector lesson).
 4. Streams each part to the executable, compares each verdict to the vector's recorded `expect` (the ainra-core

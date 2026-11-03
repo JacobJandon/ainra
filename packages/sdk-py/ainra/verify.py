@@ -43,6 +43,9 @@ MAX_STATUS_BITS = 2**24
 TIERS = frozenset(("L0", "L1", "L2", "L3", "L4"))
 CLASSES = frozenset(("A1", "A2", "A3", "A4"))
 CHECKPOINT_SCOPE = "checkpoint-daily"
+# ADR-002: a delegate cert lives at most 92 days. Rust (`DelegateCert::verify`) and TypeScript (`verifyDelegateCert`)
+# always refused a longer one; this package did not, and no vector had one (found in PLAN-M51 step 1).
+DELEGATE_CERT_MAX_SECS = 92 * 24 * 60 * 60
 
 _FORBIDDEN_KEYS = frozenset(
     (
@@ -613,6 +616,8 @@ def _verify_delegate_checkpoint(cs, log_root_slh, cp_msg, now, presentation) -> 
     if not slh_dsa_sha2_128s_verify(log_root_slh, cert_slh, cert_msg):
         return False
     if CHECKPOINT_SCOPE not in scopes:
+        return False
+    if c_exp <= c_nbf or c_exp - c_nbf > DELEGATE_CERT_MAX_SECS:
         return False
     if now < c_nbf or now >= c_exp:
         return False

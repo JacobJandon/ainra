@@ -10,6 +10,18 @@ We **publicly own fixed security bugs** — hiding them would be the opposite of
 
 ## [Unreleased]
 
+### Fixed — currency mode in every gate (D-086, PLAN-M51 step 1)
+
+- **A revoked snapshot stops working once the revocation has been seen — in Rust, at the edge and in Python, not only
+  in TypeScript.** `verify_gate_currency` in the adapter, `currency: true` on `createAinraEdgeGate` (WASM
+  `gate_currency`, and on the send-once prime path), `Verifier(currency=True)` in Python, `ainra verify-request
+  --currency`. A fresh head under a delegate the directory revokes is refused everywhere now, and the head must name
+  the presented list's text, not a re-encoding of its bits.
+- **`vectors/v1-currency`** (18): one gate's life per vector, held in `make diff`, the edge tests, conformance `full`.
+- **The Python package now enforces ADR-002's 92-day delegate-cert ceiling** on checkpoints (and so on links and
+  decision-head receipts) and on fresh heads, as Rust and TypeScript always did. New gate vector `g30`.
+
+
 ### Fixed — a verifier never goes back to an older directory (D-083)
 
 - **Directory rollback is refused.** Both roots signed every old directory too, so a replayed one passed every check

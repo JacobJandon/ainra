@@ -808,7 +808,7 @@ REGISTRAR LIFECYCLE (operate on a local data dir)
   export <dir> [--now T]                      full export (records + live verdicts) for the explorer
 
 GATE (D-062 / D-068)
-  verify-request --bundle B --directory D --roots R --request Q --audience A [--now T] [--freshness F2]
+  verify-request --bundle B --directory D --roots R --request Q --audience A [--now T] [--freshness F2] [--currency]
         why did a gate refuse this request? The same check @ainra/edge makes: the directory must verify
         against both roots; the credential under the GATE's policy; then the RFC 9421 request signature.
         Q is {{method, authority, path, headers: [[name, value], …], body_b64u}}. Prints ALLOW or the reason.
@@ -1137,8 +1137,10 @@ fn cmd_verify_decisions(a: &[String]) -> i32 {
 /// Why did a gate refuse this request? Runs exactly what `@ainra/edge` runs — the directory against both roots,
 /// the credential under the gate's policy, then the request signature — and prints the decision with its reason.
 /// Single use cannot be judged from one request, so the nonce is printed for the operator to compare, not cached.
+/// `--currency` checks it as a currency gate would (D-021): the fresh head is required, verified and bound to the
+/// list. Seq replay cannot be judged from one request either — the gate's memory starts empty here.
 fn cmd_verify_request(a: &[String]) -> i32 {
-    let usage = "usage: ainra verify-request --bundle B --directory D --roots R --request Q --audience A [--now T] [--freshness F2]";
+    let usage = "usage: ainra verify-request --bundle B --directory D --roots R --request Q --audience A [--now T] [--freshness F2] [--currency]";
     let (Some(b), Some(d), Some(r), Some(q), Some(aud)) = (
         opt(a, "bundle"),
         opt(a, "directory"),
@@ -1192,10 +1194,12 @@ fn cmd_verify_request(a: &[String]) -> i32 {
         return 1;
     }
     let trust = acc["trust"].to_string();
-    let out: serde_json::Value = serde_json::from_str(&ainra_adapter::gate_json(
-        &bundle, &trust, &request, now, aud, freshness,
-    ))
-    .unwrap_or_default();
+    let decided = if a.iter().any(|x| x == "--currency") {
+        ainra_adapter::gate_json_currency(&bundle, &trust, &request, now, aud, freshness, "{}")
+    } else {
+        ainra_adapter::gate_json(&bundle, &trust, &request, now, aud, freshness)
+    };
+    let out: serde_json::Value = serde_json::from_str(&decided).unwrap_or_default();
     let name = out["event"]["name"].as_str().unwrap_or("?");
     if out["allow"] == serde_json::json!(true) {
         println!(

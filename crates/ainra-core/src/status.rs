@@ -145,13 +145,20 @@ impl StatusList {
     /// name the *same* head. Never mixes the raw packed bytes with the framing — always the canonical JSON.
     pub fn head_hash(&self, uri: &str) -> Result<[u8; 32]> {
         let compressed = self.encode()?;
-        let body = canon::canonicalize(&HeadIdentity {
-            bit_len: self.bits.len() as u64,
-            status_list: &b64::encode(&compressed),
-            uri,
-        })?;
-        Ok(Sha256::digest(body.as_bytes()).into())
+        head_hash_of(uri, self.bits.len() as u64, &b64::encode(&compressed))
     }
+}
+
+/// The head identity of a list exactly as PRESENTED — its declared length and its base64url text — which is what a
+/// verifier holds. [`StatusList::head_hash`] is this over the list's own encoding; a currency gate binds a fresh head
+/// to the text it was handed, never to a re-encoding of it (PLAN-M51: two encodings of the same bits are two lists).
+pub fn head_hash_of(uri: &str, bit_len: u64, status_list_b64: &str) -> Result<[u8; 32]> {
+    let body = canon::canonicalize(&HeadIdentity {
+        bit_len,
+        status_list: status_list_b64,
+        uri,
+    })?;
+    Ok(Sha256::digest(body.as_bytes()).into())
 }
 
 /// The bytes a registrar's status key signs for one publication (D-020): the canonical JSON of `{bit_len, issued_at,

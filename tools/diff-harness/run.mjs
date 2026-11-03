@@ -16,7 +16,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
 import { canonicalize } from "../../packages/sdk-ts/dist/index.js";
-import { runVector, expectedVerdict, runDeltaVector, runDirectoryVector, runPresentationVector, runGateVector, runLinkVector, runDecisionVector, runDirectoryEpochVector } from "../../packages/sdk-ts/dist/conformance.js";
+import { runVector, expectedVerdict, runDeltaVector, runDirectoryVector, runPresentationVector, runGateVector, runLinkVector, runDecisionVector, runDirectoryEpochVector, runCurrencyVector } from "../../packages/sdk-ts/dist/conformance.js";
 
 const ROOT = fileURLToPath(new URL("../../", import.meta.url));
 const VEC = path.join(ROOT, "vectors/v1");
@@ -27,6 +27,7 @@ const VEC_GATE = path.join(ROOT, "vectors/v1-gate");
 const VEC_LINK = path.join(ROOT, "vectors/v1-link");
 const VEC_DECISION = path.join(ROOT, "vectors/v1-decision");
 const VEC_EPOCH = path.join(ROOT, "vectors/v1-directory-epoch");
+const VEC_CURRENCY = path.join(ROOT, "vectors/v1-currency");
 const P0 = path.join(ROOT, "apps/cli-node/bin/ainra.js");
 let failures = 0;
 
@@ -308,6 +309,26 @@ if (fs.existsSync(VEC_EPOCH)) {
   }
   console.log(`(K) directory-epoch core↔sdk   : ${kpass}/${efiles.length} agree`);
   pyPhase("directory-epoch  ", "directory-epoch", VEC_EPOCH, (v) => v.expect);
+}
+
+// ── (L) Currency mode (D-021, PLAN-M51) — one gate's life, step by step ─────────────────────────────────────────────
+// A currency gate remembers the highest fresh-head seq per uri; each vector is a sequence through ONE gate. An
+// implementation that drops the seq comparison accepts the replay in c02, c05 and c06.
+if (fs.existsSync(VEC_CURRENCY)) {
+  const cfiles = fs.readdirSync(VEC_CURRENCY).filter((f) => f.endsWith(".json") && f !== "manifest.json");
+  let lpass = 0;
+  for (const f of cfiles) {
+    const v = JSON.parse(fs.readFileSync(path.join(VEC_CURRENCY, f), "utf8"));
+    const got = stable(runCurrencyVector(v));
+    const want = stable(v.expect);
+    if (got === want) lpass++;
+    else {
+      failures++;
+      console.error(`  CURRENCY MISMATCH ${v.name}: core=${want} sdk=${got}`);
+    }
+  }
+  console.log(`(L) currency core↔sdk          : ${lpass}/${cfiles.length} agree`);
+  pyPhase("currency         ", "currency", VEC_CURRENCY, (v) => v.expect);
 }
 
 if (failures) {

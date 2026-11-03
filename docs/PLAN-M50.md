@@ -65,6 +65,10 @@ pushing.
 `make preflight`, `make diff`, `make conformance` (full), `make live-drills` and `make genesis-status` green from a clean
 clone, and each step's negative control shown red once, before it is called done.
 
+*Met 2026-11-03:* `make preflight` 45/45 with no skips from a clean clone at `a7c799a` (it includes `diff` and
+`conformance`, full profile); `make genesis-status` 7/12 from a clean clone at `236e7f0`; `make live-drills` green in
+CI's `live` job; each step's negative control shown red once (in its commit message).
+
 ## Next, ranked (not in M50)
 
 1. Currency mode (D-021) in Python and the edge gate — it exists in TypeScript only.

@@ -23,6 +23,7 @@ import json
 from . import reasons as R
 from ._b64 import decode as b64d
 from ._b64 import decode_fixed as b64f
+from ._b64 import encode as b64e
 from ._canon import CanonError, canon_bytes
 from ._crypto import ed25519_verify, mldsa65_verify
 from .directory import verify_directory
@@ -47,6 +48,8 @@ def _authenticate_status(anchors: dict, pres: dict, mandatory: bool = True) -> s
         claims = json.loads(raw.decode("utf-8"))
     except Exception:
         return None
+    if not isinstance(claims, dict):
+        return None  # not an object: the main verify path's business (schema_violation), never an exception here
     reg = str(claims.get("iss", "")).split(":")[2] if str(claims.get("iss", "")).count(":") >= 2 else None
     info = anchors.get(reg) if reg else None
     if info is None:
@@ -81,6 +84,59 @@ def _authenticate_status(anchors: dict, pres: dict, mandatory: bool = True) -> s
     return None
 
 
+def _authenticate_currency(anchors: dict, pres: dict, now: int, seq_seen: dict, revoked: list) -> str | None:
+    """D-021 currency mode (PLAN-M51 step 1), as ``authenticateCurrency`` in the TS SDK. Returns a reason, or None.
+
+    The bundle must carry the registrar's delegate-signed fresh head and its cert; the head must verify to the
+    registrar's log root at F1, name this registrar's status URI, and hash the EXACT presented list (its text, not a
+    re-encoding); and its ``seq`` may not be lower than one this verifier has already seen for that URI. A head under a
+    delegate the directory revokes signs nothing, as for checkpoints. Every failure is ``stale_status``. Honest limit:
+    a verifier that never sees a newer head cannot know one exists; F1 (30 s) still bounds that window.
+    """
+    from .delta import verify_head
+    from .verify import sha256
+
+    # The passport and its registrar first, as in Rust and TypeScript: a malformed passport or an unknown registrar is
+    # the main path's business and its own reason, whatever the head looks like.
+    claims_raw = b64d(pres.get("claims")) if isinstance(pres.get("claims"), str) else None
+    try:
+        claims = json.loads(claims_raw.decode("utf-8")) if claims_raw is not None else {}
+        iss = str(claims.get("iss", "")) if isinstance(claims, dict) else ""
+    except Exception:
+        return None  # a malformed bundle is the main verify path's business, not ours
+    info = anchors.get(iss.split(":")[2]) if iss.count(":") >= 2 else None
+    if info is None:
+        return None  # unknown registrar: the main path's business (and its own reason)
+    fh, wc = pres.get("fresh_head"), pres.get("status_delegate_cert")
+    if not isinstance(fh, dict) or not isinstance(wc, dict):
+        return R.STALE_STATUS  # required in currency mode: an absent head cannot downgrade it
+    seq, ts = fh.get("seq"), fh.get("ts")
+    if type(seq) is not int or seq < 0 or type(ts) is not int or not isinstance(fh.get("uri"), str):
+        return R.STALE_STATUS
+    head = {"now": now, "root_pub_slh": info.get("log_root_key"), "cert": wc, "uri": fh["uri"], "seq": seq, "ts": ts,
+            "status_hash": fh.get("status_hash"), "sig_delegate": fh.get("sig_delegate"), "freshness": "F1"}
+    if not verify_head(head).get("accept"):  # the wrapper: any exception inside is stale_status, never a raise
+        return R.STALE_STATUS
+    try:
+        cert_msg = canon_bytes({"delegate": wc.get("delegate_ed25519"), "exp": wc.get("exp"), "nbf": wc.get("nbf"),
+                                "scopes": wc.get("scopes")})
+        bound = sha256(canon_bytes({"bit_len": pres.get("status_len"), "status_list": pres.get("status_list"),
+                                    "uri": fh["uri"]}))
+    except Exception:  # CanonError, and e.g. a lone surrogate that cannot be encoded as UTF-8
+        return R.STALE_STATUS
+    if b64e(sha256(cert_msg)) in (revoked or []):
+        return R.STALE_STATUS
+    if fh["uri"] != info.get("status_uri"):
+        return R.STALE_STATUS
+    if b64f(fh.get("status_hash"), 32) != bound:
+        return R.STALE_STATUS
+    seen = seq_seen.get(fh["uri"])
+    if seen is not None and seq < seen:
+        return R.STALE_STATUS  # a superseded head: this verifier has already seen a newer one
+    seq_seen[fh["uri"]] = seq if seen is None else max(seen, seq)
+    return None
+
+
 class Verifier:
     def __init__(
         self,
@@ -90,6 +146,7 @@ class Verifier:
         freshness: str = "F2",
         *,
         unauthenticated_status: bool = False,
+        currency: bool = False,
     ) -> None:
         self._anchors = dict(anchors or {})
         self._revoked = list(revoked_delegates or [])
@@ -113,6 +170,10 @@ class Verifier:
         #: `unauthenticated_status=True` is for conformance vectors and other fixtures, whose status is an input,
         #: and for nothing that decides access.
         self._status_mandatory = not unauthenticated_status
+        #: D-021 currency mode (opt-in, stateful): require a fresh head bound to the presented list, and refuse a
+        #: lower ``seq`` than this verifier has seen per status URI. Off by default, as in the TS SDK.
+        self._currency = bool(currency)
+        self._seq_seen: dict = {}
 
     @classmethod
     def from_directory(
@@ -122,6 +183,7 @@ class Verifier:
         root_slh: str,
         audience: str = "",
         freshness: str = "F2",
+        currency: bool = False,
     ) -> "Verifier | None":
         """Build a verifier from a directory, only if it is authentically signed.
 
@@ -153,7 +215,7 @@ class Verifier:
                 "status_mldsa65": e.get("status_mldsa65"),
                 "status_uri": e.get("status_uri"),
             }
-        v = cls(anchors, directory.get("revoked_delegates", []), audience, freshness)
+        v = cls(anchors, directory.get("revoked_delegates", []), audience, freshness, currency=currency)
         v._anchors_authenticated = True
         return v
 
@@ -194,6 +256,8 @@ class Verifier:
         # The frozen 9-step verify still receives status bits as a trusted input (exactly like `now`) — the
         # authentication belongs here in the GA layer, which is where TS puts it too.
         bad = _authenticate_status(self._anchors, pres, self._status_mandatory)
+        if bad is None and self._currency:
+            bad = _authenticate_currency(self._anchors, pres, now, self._seq_seen, self._revoked)
         if bad is not None:
             return invalid(bad)
         return _verify(self._anchors, pres, now)

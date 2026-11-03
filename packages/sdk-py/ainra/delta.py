@@ -33,7 +33,7 @@ from ._crypto import (
     mldsa65_verify,
     slh_dsa_sha2_128s_verify,
 )
-from .verify import FRESHNESS, MAX_STATUS_BITS
+from .verify import DELEGATE_CERT_MAX_SECS, FRESHNESS, MAX_STATUS_BITS
 
 DELTA_SCOPE = "delta-countersign"
 HEAD_SCOPE = "fresh-head"
@@ -68,6 +68,8 @@ def _cert_ok(cert, root_slh, now, required_scope) -> bool:
     except CanonError:
         return False
     if not slh_dsa_sha2_128s_verify(root_slh, slh, msg):
+        return False
+    if exp <= nbf or exp - nbf > DELEGATE_CERT_MAX_SECS:  # ADR-002, as in Rust and TypeScript (PLAN-M51)
         return False
     if required_scope not in scopes:
         return False

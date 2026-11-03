@@ -117,10 +117,15 @@ function accreditAtLeast(directoryJson, rootsJson, minEpoch) {
  * `now` (seconds), `store`, `nonces`, `primePath`, `maxPrimeBytes`, and `minEpoch` (PLAN-M50): the lowest directory
  * epoch this gate accepts — pass the highest epoch a previous gate accepted when you rebuild it on a directory refresh.
  * Rejects if the directory does not verify, or is older than `minEpoch` (a rollback).
+ *
+ * `currency: true` (D-021, PLAN-M51): every request must carry the registrar's fresh head, F1-fresh and bound to its
+ * status list, and a head older than one this gate has seen is refused — so a genuine pre-revocation snapshot stops
+ * working the moment the gate sees the revocation. The gate keeps that memory itself. A bundle primed once carries the
+ * head it was primed with, so under currency it is usable only while that head is F1-fresh (30 s).
  */
 export async function createAinraEdgeGate({ directory, roots, audience, freshness = "F2",
   now = () => Math.floor(Date.now() / 1000), store = createStore(), nonces = createNonceCache(),
-  primePath = PRIME_PATH, maxPrimeBytes = 256 * 1024, decisions = null, minEpoch = 0 } = {}) {
+  primePath = PRIME_PATH, maxPrimeBytes = 256 * 1024, decisions = null, minEpoch = 0, currency = false } = {}) {
   if (typeof audience !== "string" || !audience) throw new Error("createAinraEdgeGate: `audience` is required — the gate must know who it is (ADR-019)");
   if (!["F1", "F2", "F3"].includes(freshness)) throw new Error(`createAinraEdgeGate: freshness must be F1, F2 or F3, not ${freshness}`);
   if (!ready) throw new Error("@ainra/edge: call initAinra(wasm) before creating a gate");
@@ -131,6 +136,7 @@ export async function createAinraEdgeGate({ directory, roots, audience, freshnes
     ? `createAinraEdgeGate: directory epoch ${acc.epoch} is older than ${acc.floor} — a rollback; refusing to start`
     : "createAinraEdgeGate: the directory does not verify against the roots — refusing to start");
   const trust = JSON.stringify(acc.trust);
+  let seen = "{}"; // currency mode's memory: status uri → the highest fresh-head seq this gate has accepted
 
   // D-079: with `decisions` (a log from `createDecisionLog` in @ainra/sdk), every decision about a named passport is
   // recorded, signed and chained. Recording never changes the decision; a log that cannot be written is the
@@ -173,7 +179,16 @@ export async function createAinraEdgeGate({ directory, roots, audience, freshnes
       try { bundle = JSON.parse(text); } catch { return deny(403, "schema_violation", null); }
       if (!bundle || typeof bundle !== "object" || Array.isArray(bundle)) return deny(403, "schema_violation", null);
       const bundleJson = JSON.stringify(bundle);
-      const event = JSON.parse(core.credential(bundleJson, trust, t, audience, freshness));
+      // Under currency the prime is judged as the request will be — and the heads it carries reach the gate's memory,
+      // so a revocation seen at prime refuses an older snapshot on the very next request (PLAN-M51 review).
+      let event;
+      if (currency) {
+        const r = JSON.parse(core.credential_currency(bundleJson, trust, t, audience, freshness, seen));
+        if (r.seen && typeof r.seen === "object") seen = JSON.stringify(r.seen);
+        event = r.event;
+      } else {
+        event = JSON.parse(core.credential(bundleJson, trust, t, audience, freshness));
+      }
       if (event.status !== "valid") return deny(403, event.reason ?? "schema_violation", event);
       const ref = core.presentation_ref(bundleJson);
       if (!ref) return deny(403, "schema_violation", event);
@@ -204,7 +219,10 @@ export async function createAinraEdgeGate({ directory, roots, audience, freshnes
       if (bytes.length) body = bytesToB64u(bytes);
     }
     const req = { method: request.method, authority: url.host, path: url.pathname + url.search, headers: [...request.headers], body_b64u: body };
-    const r = JSON.parse(core.gate(JSON.stringify(bundle), trust, JSON.stringify(req), t, audience, freshness));
+    const r = currency
+      ? JSON.parse(core.gate_currency(JSON.stringify(bundle), trust, JSON.stringify(req), t, audience, freshness, seen))
+      : JSON.parse(core.gate(JSON.stringify(bundle), trust, JSON.stringify(req), t, audience, freshness));
+    if (currency && r.seen && typeof r.seen === "object") seen = JSON.stringify(r.seen);
     if (!r.allow) return record(request, url, bundle, deny(403, r.reason ?? "schema_violation", r.event), t);
     // Last, and only now that the signature holds: a nonce check before it would let anyone fill this cache.
     if (nonces.seen(r.nonce, t)) return record(request, url, bundle, deny(403, "presentation_replayed", r.event), t);
@@ -217,6 +235,12 @@ export function runPresentationVector(vector) {
   if (!ready) throw new Error("@ainra/edge: call initAinra(wasm) first");
   return JSON.parse(core.run_presentation_vector(JSON.stringify(vector)));
 }
+/** One `vectors/v1-currency` vector through the edge engine: one currency gate's life, step by step (PLAN-M51). */
+export function runCurrencyVector(vector) {
+  if (!ready) throw new Error("@ainra/edge: call initAinra(wasm) first");
+  return JSON.parse(core.run_currency_vector(JSON.stringify(vector)));
+}
+
 /** One `vectors/v1-gate` entry, answered by the core (D-073): the directory against its roots, then the bundle under
  *  the gate's policy. `{verdict:"no_gate"}` when the directory does not verify. */
 export function runGateVector(vector) {

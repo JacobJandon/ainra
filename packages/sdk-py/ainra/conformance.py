@@ -36,6 +36,19 @@ def run_gate_vector(v: dict) -> dict:
     return {"verdict": "valid"} if verdict.valid else {"verdict": "invalid", "reason": verdict.reason}
 
 
+def run_currency_vector(v: dict):
+    """A currency vector (D-021, PLAN-M51): ONE currency-mode Verifier decides every step, remembering each head."""
+    gate = Verifier.from_directory(v["directory"], v["roots"]["root_ed25519"], v["roots"]["root_slh"],
+                                   audience=v["audience"], freshness=v["freshness"], currency=True)
+    if gate is None:
+        return {"verdict": "no_gate"}
+    out = []
+    for step in v["steps"]:
+        verdict = gate.verify(step["bundle"], step["now"])
+        out.append({"verdict": "valid"} if verdict.valid else {"verdict": "invalid", "reason": verdict.reason})
+    return out
+
+
 def run_link_vector(v: dict) -> dict:
     """A link vector (D-078), decided as a gate decides it."""
     gate = Verifier.from_directory(v["directory"], v["roots"]["root_ed25519"], v["roots"]["root_slh"],
@@ -49,4 +62,4 @@ def run_link_vector(v: dict) -> dict:
 
 
 __all__ = ["run_vector", "run_delta_vector", "run_directory_vector", "run_directory_epoch_vector", "run_presentation_vector", "run_gate_vector",
-           "run_link_vector", "run_decision_vector"]
+           "run_link_vector", "run_decision_vector", "run_currency_vector"]

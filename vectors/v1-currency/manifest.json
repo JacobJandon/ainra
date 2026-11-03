@@ -1,0 +1,5 @@
+{
+  "count": 18,
+  "note": "CC0 currency-mode conformance vectors (D-021, PLAN-M51). Each vector is ONE currency gate's life: a dual-root-signed directory, the roots, the gate's freshness class and audience, and `steps` — bundles in order, each at its own `now`. The gate requires the registrar's delegate-signed fresh head, binds it to the presented list's text, refuses a head under a revoked or over-long delegate cert, and refuses a lower `seq` than one it has seen for that uri. `expect` is one verdict per step. Real signing; expect computed by ainra-adapter::currency_vector_result, each checked against the case it exists to test. Regenerate with `make vectors`.",
+  "version": "v1-currency"
+}

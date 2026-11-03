@@ -47,6 +47,7 @@ const PARTS = [
   { kind: "link", dir: "vectors/v1-link", min: 40, profile: "full" },
   { kind: "decision", dir: "vectors/v1-decision", min: 30, profile: "full" },
   { kind: "directory-epoch", dir: "vectors/v1-directory-epoch", min: 9, profile: "full" },
+  { kind: "currency", dir: "vectors/v1-currency", min: 18, profile: "full" },
 ];
 export const PROFILES = ["full", "core"];
 const partsOf = (profile) => PARTS.filter((p) => profile === "full" || p.profile === "core");

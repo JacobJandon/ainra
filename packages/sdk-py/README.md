@@ -120,6 +120,14 @@ v = holder.verifier(fetched_directory)   # a Verifier, or {"ok": False, "refusal
 save_floor(holder.floor)                 # persisting it across restarts is yours to do
 ```
 
+## Currency mode — a revoked snapshot stops working once you have seen the revocation
+
+A status list is a signed snapshot, so by default a genuine pre-revocation one keeps verifying until it is older than
+your freshness class. `Verifier.from_directory(..., currency=True)` requires the registrar's fresh head on every
+bundle, F1-fresh and bound to the exact list presented, and refuses a head older than one it has already seen — the
+same rule as `@ainra/sdk` and the edge gate, held to `vectors/v1-currency`. Keep one verifier per process: the memory
+is the point. A verifier that never sees a newer head cannot know one exists; F1 (30 s) still bounds that.
+
 ## Cryptography — shared primitives, independent logic (state precisely, D-041)
 
 The verification **logic** is independent; the cryptographic **primitives** are

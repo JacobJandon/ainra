@@ -578,6 +578,8 @@ fn wire_valid(name: &str, description: &str, built: &Built) -> Vector {
         status_uri: None,
         status_sig_ed25519: None,
         status_sig_mldsa65: None,
+        fresh_head: None,
+        status_delegate_cert: None,
     };
     Vector {
         name: name.to_string(),
@@ -2470,7 +2472,8 @@ fn emit_stdin(kind: &str) {
             }
             // Contract v2 (PLAN-M50 step 3): the corpora a gate, a link check and a decision log are held to. Each
             // is answered by the same function its `--check-*` uses.
-            kind @ ("presentation" | "gate" | "link" | "decision" | "directory-epoch") => {
+            kind @ ("presentation" | "gate" | "link" | "decision" | "directory-epoch"
+            | "currency") => {
                 let v: serde_json::Value = serde_json::from_str(&line).expect("parse vector");
                 let name = v["name"].as_str().expect("name").to_string();
                 let r = match kind {
@@ -2478,13 +2481,14 @@ fn emit_stdin(kind: &str) {
                     "gate" => ainra_adapter::gate_vector_result(&v),
                     "link" => ainra_adapter::link_vector_result(&v),
                     "decision" => ainra_adapter::decision_vector_result(&v),
+                    "currency" => ainra_adapter::currency_vector_result(&v),
                     _ => ainra_adapter::directory_epoch_vector_result(&v),
                 };
                 (name, r)
             }
             other => {
                 eprintln!(
-                    "unknown --emit kind: {other} (expected passport|delta|directory|presentation|gate|link|decision|directory-epoch)"
+                    "unknown --emit kind: {other} (expected passport|delta|directory|presentation|gate|link|decision|directory-epoch|currency)"
                 );
                 std::process::exit(2);
             }
@@ -4077,6 +4081,52 @@ fn gate_vectors() -> Vec<Value> {
         });
     }
 
+    // ── a checkpoint under a delegate cert longer than ADR-002 allows (PLAN-M51) ────────────────────────────────
+    // Signed by the registrar's real log root, so only the 92-day ceiling refuses it. Rust and TypeScript always did;
+    // the Python package did not, and no vector had such a cert until this one.
+    {
+        let log_root = {
+            let mut r = ChaCha20Rng::seed_from_u64(0x4149_4E52_4100_0000 ^ params.seed);
+            let _issuer = crypto::HybridKeypair::generate(&mut r);
+            crypto::TestRootSlh::generate(&mut r)
+        };
+        assert_eq!(log_root.public(), clear.root_pub, "log root re-derivation");
+        let mut r = ChaCha20Rng::seed_from_u64(0x4741_5445_0000_0030);
+        let del = crypto::TestDelegate::generate(&mut r);
+        let cert = cert_unchecked(
+            &log_root,
+            del.public(),
+            vec![checkpoint::SCOPE_CHECKPOINT.to_string()],
+            0,
+            checkpoint::DELEGATE_CERT_MAX_SECS + 86_400,
+        );
+        let mut p = good.clone();
+        p.checkpoint_sig = WireCheckpointSig {
+            mode: "delegate".into(),
+            slh: None,
+            cert: Some(WireDelegateCert {
+                delegate_ed25519: b64::encode(&cert.delegate_ed25519),
+                scopes: cert.scopes.clone(),
+                nbf: cert.nbf,
+                exp: cert.exp,
+                sig_slh: b64::encode(&cert.sig_slh),
+            }),
+            sig_ed25519: Some(b64::encode(
+                &clear.cp.sign_delegate(&del).expect("delegate sign"),
+            )),
+        };
+        cases.push(Case {
+            name: "g30-checkpoint-delegate-cert-too-long",
+            what: "the checkpoint is signed under a delegate cert the log root issued for 93 days: ADR-002 allows 92",
+            directory: directory.clone(),
+            bundle: val(&p),
+            now,
+            audience: "",
+            freshness: "F2",
+            want: "checkpoint_invalid",
+        });
+    }
+
     cases.sort_by(|a, b| a.name.cmp(b.name));
     let mut out = Vec::new();
     for c in cases {
@@ -4106,6 +4156,441 @@ fn gate_vectors() -> Vec<Value> {
         out.push(v);
     }
     out
+}
+
+// ── Currency vectors (D-021, PLAN-M51 step 1) ──────────────────────────────────────────────────────────────────
+//
+// A currency gate is stateful: it requires the registrar's delegate-signed fresh head, binds it to the presented list,
+// and refuses a lower `seq` than one it has seen. So a vector here is ONE gate's life — a sequence of bundles, each at
+// its own clock — and the answer is one verdict per step. The honest limit is pinned too: a gate that never saw a
+// newer head accepts the old one (c03).
+
+/// A delegate cert the log root signs over ANY window — including one ADR-002 forbids. `issue_test_root` refuses to
+/// build that, as an issuer must; a vector that tests the verifier's refusal needs one signed anyway, because a root
+/// that signs an over-long cert is exactly the case the ceiling exists for.
+fn cert_unchecked(
+    root: &crypto::TestRootSlh,
+    delegate_ed25519: [u8; 32],
+    scopes: Vec<String>,
+    nbf: u64,
+    exp: u64,
+) -> checkpoint::DelegateCert {
+    let mut c = checkpoint::DelegateCert {
+        delegate_ed25519,
+        scopes,
+        nbf,
+        exp,
+        sig_slh: Vec::new(),
+    };
+    c.sig_slh = root
+        .sign(&c.signing_bytes().expect("cert bytes"))
+        .expect("slh sign");
+    c
+}
+
+/// A second, valid zlib encoding of `data`: one stored (uncompressed) block. Every decoder reads the same bytes back;
+/// it is simply not the encoding the registrar published — which is the point of the cases that use it.
+fn zlib_stored(data: &[u8]) -> Vec<u8> {
+    let len = u16::try_from(data.len()).expect("small list");
+    let mut out = vec![0x78, 0x01, 0x01];
+    out.extend_from_slice(&len.to_le_bytes());
+    out.extend_from_slice(&(!len).to_le_bytes());
+    out.extend_from_slice(data);
+    let (mut a, mut b) = (1u32, 0u32);
+    for &x in data {
+        a = (a + u32::from(x)) % 65_521;
+        b = (b + a) % 65_521;
+    }
+    out.extend_from_slice(&((b << 16) | a).to_be_bytes());
+    out
+}
+
+type CurrencyStep = (Value, u64);
+/// (name, what, directory, the gate's freshness class, steps, the answer each step exists to test)
+type CurrencyCase<'a> = (
+    &'a str,
+    &'a str,
+    Value,
+    &'a str,
+    Vec<CurrencyStep>,
+    Vec<&'a str>,
+);
+
+fn raw(v: &Value) -> Box<serde_json::value::RawValue> {
+    serde_json::value::RawValue::from_string(v.to_string()).expect("raw json")
+}
+
+fn currency_vectors() -> Vec<Value> {
+    let mut rng = ChaCha20Rng::seed_from_u64(0x4355_5252_0000_0021); // "CURR" · D-021 — a public TEST seed
+    let root_ed = crypto::TestDelegate::generate(&mut rng);
+    let root_slh = crypto::TestRootSlh::generate(&mut rng);
+    let status_key = crypto::HybridKeypair::generate(&mut rng);
+    let head_key = crypto::TestDelegate::generate(&mut rng);
+    let roots = json!({ "root_ed25519": b64::encode(&root_ed.public()), "root_slh": b64::encode(&root_slh.public()) });
+
+    let mut params = valid_params(0);
+    params.delegate_checkpoint = true;
+    params.exp = params.nbf + 30 * 24 * 3600;
+    let clear = build(&params);
+    params.status_revoked = true;
+    let revoked = build(&params);
+    // The registrar's log root, re-derived exactly as `build` draws it: `Built` keeps only its public half.
+    let log_root = {
+        let mut r = ChaCha20Rng::seed_from_u64(0x4149_4E52_4100_0000 ^ params.seed);
+        let _issuer = crypto::HybridKeypair::generate(&mut r);
+        crypto::TestRootSlh::generate(&mut r)
+    };
+    assert_eq!(log_root.public(), clear.root_pub, "log root re-derivation");
+    let uri = format!("status://{}/1", clear.registrar);
+    let entry = || ainra_core::directory::DirectoryEntry {
+        registrar: clear.registrar.clone(),
+        issuer_ed25519: b64::encode(&clear.issuer_pub.ed25519),
+        issuer_mldsa65: b64::encode(&clear.issuer_pub.mldsa65),
+        log_root_slh: b64::encode(&clear.root_pub),
+        status_ed25519: b64::encode(&status_key.public().ed25519),
+        status_mldsa65: b64::encode(&status_key.public().mldsa65),
+        status_uri: uri.clone(),
+        distrust_from_leaf: None,
+    };
+    let directory = |revoked_delegates: Vec<String>| {
+        serde_json::to_value(dir_sign(
+            dir_base(vec![entry()], revoked_delegates),
+            &root_ed,
+            &root_slh,
+        ))
+        .expect("ser dir")
+    };
+
+    let base = |b: &Built| -> WirePresentation {
+        let mut p = wire_valid("-", "-", b).presentation;
+        gate_sign_status(&mut p, &uri, &status_key);
+        p
+    };
+    let now = base(&clear).now;
+    let cert_for = |scopes: Vec<String>, nbf: u64, exp: u64| {
+        checkpoint::DelegateCert::issue_test_root(&log_root, head_key.public(), scopes, nbf, exp)
+            .expect("head cert")
+    };
+    let cert = cert_for(
+        vec![checkpoint::SCOPE_FRESH_HEAD.into()],
+        now - 100,
+        now + 86_400,
+    );
+    // A fresh head over `hashed` (the text it names) for `head_uri`, signed by the head delegate under `cert`.
+    let headed = |mut p: WirePresentation,
+                  head_uri: &str,
+                  seq: u64,
+                  ts: u64,
+                  cert: &checkpoint::DelegateCert,
+                  hashed: (u64, &str)| {
+        let mut h = status::FreshHead {
+            uri: head_uri.into(),
+            seq,
+            ts,
+            status_hash: status::head_hash_of(head_uri, hashed.0, hashed.1).expect("head hash"),
+            sig_delegate: Vec::new(),
+        };
+        h.sig_delegate = head_key.sign(&h.signing_bytes().expect("head bytes"));
+        p.fresh_head = Some(raw(&json!({ "uri": h.uri, "seq": seq, "ts": ts,
+            "status_hash": b64::encode(&h.status_hash), "sig_delegate": b64::encode(&h.sig_delegate) })));
+        p.status_delegate_cert = Some(raw(
+            &serde_json::to_value(ainra_adapter::cert_wire(cert)).expect("ser cert")
+        ));
+        p
+    };
+    let val = |p: &WirePresentation| serde_json::to_value(p).expect("ser bundle");
+    let ts = now - 5;
+    let honest = |b: &Built, seq: u64| {
+        let p = base(b);
+        let (len, text) = (p.status_len, p.status_list.clone());
+        val(&headed(p, &uri, seq, ts, &cert, (len, &text)))
+    };
+    let good5 = honest(&clear, 5);
+    let bad6 = honest(&revoked, 6);
+
+    // The same bits as the clear list, in a stored block, re-signed by the registrar's status key.
+    let reencoded = {
+        let mut p = base(&clear);
+        let bits = clear.status_list.clone().into_bits();
+        let mut packed = vec![0u8; bits.len().div_ceil(8)];
+        for (i, &bit) in bits.iter().enumerate() {
+            if bit {
+                packed[i / 8] |= 1 << (i % 8);
+            }
+        }
+        p.status_list = b64::encode(&zlib_stored(&packed));
+        gate_sign_status(&mut p, &uri, &status_key);
+        p
+    };
+    let canonical_text = base(&clear).status_list;
+
+    let mut cases: Vec<CurrencyCase> = Vec::new();
+    let dir0 = directory(vec![]);
+    let mut add = |name, what, steps: Vec<CurrencyStep>, want: Vec<&'static str>| {
+        cases.push((name, what, dir0.clone(), "F1", steps, want));
+    };
+    add(
+        "c01-current-head",
+        "a bundle whose fresh head names its own list, ten seconds old",
+        vec![(good5.clone(), now)],
+        vec!["valid"],
+    );
+    add("c02-replay-after-the-revocation-was-seen",
+        "the clear snapshot (seq 5), then the revoked passport's bundle (seq 6), then the clear snapshot again",
+        vec![(good5.clone(), now), (bad6.clone(), now + 1), (good5.clone(), now + 2)],
+        vec!["valid", "revoked", "stale_status"]);
+    add("c03-the-honest-limit", "the clear snapshot to a gate that never saw a newer head: accepted while its head is F1-fresh",
+        vec![(good5.clone(), now + 15)], vec!["valid"]);
+    add(
+        "c04-the-same-head-twice",
+        "one head, twice: not a replay of anything newer",
+        vec![(good5.clone(), now), (good5.clone(), now + 1)],
+        vec!["valid", "valid"],
+    );
+    add(
+        "c05-newer-head-first",
+        "the revoked passport's bundle (seq 6) first, then the clear snapshot (seq 5)",
+        vec![(bad6.clone(), now), (good5.clone(), now + 1)],
+        vec!["revoked", "stale_status"],
+    );
+    add(
+        "c06-seq-only-rises",
+        "seq 5, 7, then 6: the gate keeps the highest it has seen",
+        vec![
+            (good5.clone(), now),
+            (honest(&clear, 7), now + 1),
+            (honest(&clear, 6), now + 2),
+        ],
+        vec!["valid", "valid", "stale_status"],
+    );
+    {
+        let mut p: WirePresentation = serde_json::from_value(good5.clone()).expect("de");
+        p.fresh_head = None;
+        add(
+            "c07-head-stripped",
+            "no fresh head: currency mode cannot be downgraded by leaving it out",
+            vec![(val(&p), now)],
+            vec!["stale_status"],
+        );
+        let mut p: WirePresentation = serde_json::from_value(good5.clone()).expect("de");
+        p.status_delegate_cert = None;
+        add(
+            "c08-cert-stripped",
+            "the head without the cert it was signed under",
+            vec![(val(&p), now)],
+            vec!["stale_status"],
+        );
+    }
+    {
+        let p = base(&clear);
+        let other = base(&revoked);
+        add(
+            "c09-head-for-another-list",
+            "a genuine head, but for the revoked list, stapled to the clear one",
+            vec![(
+                val(&headed(
+                    p,
+                    &uri,
+                    5,
+                    ts,
+                    &cert,
+                    (other.status_len, &other.status_list),
+                )),
+                now,
+            )],
+            vec!["stale_status"],
+        );
+    }
+    let c10 = {
+        let p = base(&clear);
+        let (len, text) = (p.status_len, p.status_list.clone());
+        val(&headed(p, &uri, 5, now - 31, &cert, (len, &text)))
+    };
+    {
+        let p = base(&clear);
+        let (len, text) = (p.status_len, p.status_list.clone());
+        let wrong = cert_for(
+            vec![checkpoint::SCOPE_DELTA.into()],
+            now - 100,
+            now + 86_400,
+        );
+        add(
+            "c11-cert-of-the-wrong-scope",
+            "the head's cert authorizes deltas, not fresh heads",
+            vec![(val(&headed(p, &uri, 5, ts, &wrong, (len, &text))), now)],
+            vec!["stale_status"],
+        );
+    }
+    {
+        let p = base(&clear);
+        let (len, text) = (p.status_len, p.status_list.clone());
+        let other_uri = format!("status://{}/2", clear.registrar);
+        add(
+            "c12-head-for-another-uri",
+            "a head for another of the registrar's lists, hashed under that uri",
+            vec![(val(&headed(p, &other_uri, 5, ts, &cert, (len, &text))), now)],
+            vec!["stale_status"],
+        );
+    }
+    {
+        let p = base(&clear);
+        let (len, text) = (p.status_len, p.status_list.clone());
+        let long = cert_unchecked(
+            &log_root,
+            head_key.public(),
+            vec![checkpoint::SCOPE_FRESH_HEAD.into()],
+            now - 100,
+            now - 100 + checkpoint::DELEGATE_CERT_MAX_SECS + 1,
+        );
+        add(
+            "c13-cert-longer-than-92-days",
+            "the head's cert outlives ADR-002's ceiling by one second",
+            vec![(val(&headed(p, &uri, 5, ts, &long, (len, &text))), now)],
+            vec!["stale_status"],
+        );
+    }
+    {
+        let p = reencoded.clone();
+        let len = p.status_len;
+        add("c14-head-names-another-encoding",
+            "the list's bits in another zlib encoding, signed by the registrar; the head names the published encoding",
+            vec![(val(&headed(p, &uri, 5, ts, &cert, (len, &canonical_text))), now)], vec!["stale_status"]);
+        let p = reencoded.clone();
+        let text = p.status_list.clone();
+        add(
+            "c15-head-names-this-encoding",
+            "the same re-encoded list, with a head that names exactly its text",
+            vec![(val(&headed(p, &uri, 5, ts, &cert, (len, &text))), now)],
+            vec!["valid"],
+        );
+    }
+    {
+        let mut p: WirePresentation = serde_json::from_value(good5.clone()).expect("de");
+        let mut h: Value =
+            serde_json::from_str(p.fresh_head.as_ref().expect("head").get()).expect("head json");
+        h["seq"] = json!("5");
+        p.fresh_head = Some(raw(&h));
+        add(
+            "c16-head-malformed",
+            "the head's seq is a string",
+            vec![(val(&p), now)],
+            vec!["stale_status"],
+        );
+        // A cert whose nbf is 2^53: no canonical encoding exists for it, so nothing can have signed it. Every
+        // implementation must refuse it as status, not as a malformed passport (the review of PLAN-M51 step 1).
+        let mut p: WirePresentation = serde_json::from_value(good5.clone()).expect("de");
+        let mut c: Value =
+            serde_json::from_str(p.status_delegate_cert.as_ref().expect("cert").get())
+                .expect("cert json");
+        c["nbf"] = json!(9_007_199_254_740_992u64);
+        p.status_delegate_cert = Some(raw(&c));
+        add(
+            "c18-cert-time-beyond-2-53",
+            "the head's cert claims nbf = 2^53, which nothing can sign",
+            vec![(val(&p), now)],
+            vec!["stale_status"],
+        );
+    }
+    let fp = b64::encode(&cert.fingerprint());
+    cases.push((
+        "c17-head-delegate-revoked",
+        "the directory revokes the delegate that signs fresh heads",
+        directory(vec![fp]),
+        "F1",
+        vec![(good5.clone(), now)],
+        vec!["stale_status"],
+    ));
+    // At an F2 gate on purpose: the head is held to F1 whatever the gate's own class, and only a looser gate shows it.
+    cases.push((
+        "c10-head-older-than-f1",
+        "a head 31 seconds old, at a gate whose class is F2: currency is F1 regardless",
+        dir0.clone(),
+        "F2",
+        vec![(c10, now)],
+        vec!["stale_status"],
+    ));
+
+    let mut out = Vec::new();
+    for (name, what, dir, freshness, steps, want) in cases {
+        let mut v = json!({
+            "name": name,
+            "description": what,
+            "directory": dir,
+            "roots": roots,
+            "audience": "",
+            "freshness": freshness,
+            "steps": steps.iter().map(|(b, n)| json!({ "bundle": b, "now": n })).collect::<Vec<_>>(),
+        });
+        let got = ainra_adapter::currency_vector_result(&v);
+        let ok = got.as_array().is_some_and(|a| {
+            a.len() == want.len()
+                && a.iter().zip(&want).all(|(g, w)| match *w {
+                    "valid" => g["verdict"] == json!("valid"),
+                    reason => g["reason"] == json!(reason),
+                })
+        });
+        if !ok {
+            eprintln!("CURRENCY VECTOR {name} exists to test {want:?} but the core says {got}");
+            std::process::exit(1);
+        }
+        v["expect"] = got;
+        out.push(v);
+    }
+    out
+}
+
+fn emit_currency(dir: &str) {
+    let vectors = currency_vectors();
+    std::fs::create_dir_all(dir).expect("create dir");
+    for v in &vectors {
+        std::fs::write(
+            Path::new(dir).join(format!("{}.json", v["name"].as_str().unwrap())),
+            serde_json::to_string_pretty(v).unwrap(),
+        )
+        .expect("write currency vector");
+    }
+    let manifest = json!({
+        "version": "v1-currency",
+        "count": vectors.len(),
+        "note": "CC0 currency-mode conformance vectors (D-021, PLAN-M51). Each vector is ONE currency gate's life: a dual-root-signed directory, the roots, the gate's freshness class and audience, and `steps` — bundles in order, each at its own `now`. The gate requires the registrar's delegate-signed fresh head, binds it to the presented list's text, refuses a head under a revoked or over-long delegate cert, and refuses a lower `seq` than one it has seen for that uri. `expect` is one verdict per step. Real signing; expect computed by ainra-adapter::currency_vector_result, each checked against the case it exists to test. Regenerate with `make vectors`.",
+    });
+    std::fs::write(
+        Path::new(dir).join("manifest.json"),
+        serde_json::to_string_pretty(&manifest).unwrap(),
+    )
+    .expect("write manifest");
+    println!("wrote {} currency vectors to {dir}", vectors.len());
+}
+
+fn check_currency(dir: &str) {
+    let mut entries: Vec<_> = std::fs::read_dir(dir)
+        .expect("read dir")
+        .filter_map(|e| e.ok())
+        .map(|e| e.path())
+        .filter(|p| {
+            p.extension().is_some_and(|x| x == "json")
+                && p.file_name().is_some_and(|f| f != "manifest.json")
+        })
+        .collect();
+    entries.sort();
+    let (mut total, mut fails) = (0, 0);
+    for path in entries {
+        let v: Value = serde_json::from_slice(&std::fs::read(&path).expect("read")).expect("parse");
+        let got = ainra_adapter::currency_vector_result(&v);
+        total += 1;
+        if got != v["expect"] {
+            eprintln!(
+                "CURRENCY CHECK MISMATCH {}: expected {} got {got}",
+                v["name"], v["expect"]
+            );
+            fails += 1;
+        }
+    }
+    if total == 0 || fails > 0 {
+        eprintln!("currency check: {fails} of {total} mismatched");
+        std::process::exit(1);
+    }
+    println!("checked {total} currency vectors: all reproduce their recorded expectation");
 }
 
 fn emit_gate(dir: &str) {
@@ -5673,6 +6158,8 @@ fn main() {
     let mut directory_epoch_out: Option<String> = None;
     let mut check_directory_epoch_dir: Option<String> = None;
     let mut check_decision_dir: Option<String> = None;
+    let mut currency_out: Option<String> = None;
+    let mut check_currency_dir: Option<String> = None;
     let mut canon_file: Option<String> = None;
     let mut emit_kind: Option<String> = None;
     let mut min: usize = 0;
@@ -5695,6 +6182,8 @@ fn main() {
             "--directory-epoch-out" => directory_epoch_out = it.next().cloned(),
             "--check-directory-epoch" => check_directory_epoch_dir = it.next().cloned(),
             "--check-decision" => check_decision_dir = it.next().cloned(),
+            "--currency-out" => currency_out = it.next().cloned(),
+            "--check-currency" => check_currency_dir = it.next().cloned(),
             "--canon" => canon_file = it.next().cloned(),
             "--emit" => emit_kind = it.next().cloned(),
             "--bench" => {} // handled after parsing
@@ -5756,6 +6245,14 @@ fn main() {
     }
     if let Some(dir) = check_link_dir {
         check_link(&dir);
+        return;
+    }
+    if let Some(dir) = currency_out {
+        emit_currency(&dir);
+        return;
+    }
+    if let Some(dir) = check_currency_dir {
+        check_currency(&dir);
         return;
     }
     if let Some(dir) = gate_out {

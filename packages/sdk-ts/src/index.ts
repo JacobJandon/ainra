@@ -595,9 +595,16 @@ const SCOPE_FRESH_HEAD = "fresh-head";
 
 /** Verify an ADR-002 delegate cert for a given scope. Fail closed → false. Mirrors DelegateCert::verify. */
 function verifyDelegateCert(cert: DelegateCert, rootKey: Uint8Array, now: number, scope: string): boolean {
-  const certMsg = new TextEncoder().encode(
-    canonicalize({ delegate: b64uEncode(cert.delegateEd25519), exp: cert.exp, nbf: cert.nbf, scopes: cert.scopes }),
-  );
+  // A cert with no canonical encoding (a time beyond 2^53) was signed by nobody: false, as Rust and Python answer —
+  // never a thrown CanonError, which the Verifier would report as schema_violation (PLAN-M51 review; vector c18).
+  let certMsg: Uint8Array;
+  try {
+    certMsg = new TextEncoder().encode(
+      canonicalize({ delegate: b64uEncode(cert.delegateEd25519), exp: cert.exp, nbf: cert.nbf, scopes: cert.scopes }),
+    );
+  } catch {
+    return false;
+  }
   if (!slhVerify(rootKey, certMsg, cert.sigSlh)) return false;
   if (cert.exp <= cert.nbf || cert.exp - cert.nbf > DELEGATE_CERT_MAX_SECS) return false;
   if (now < cert.nbf || now >= cert.exp) return false;
@@ -1129,6 +1136,7 @@ function authenticateCurrency(
   bundle: PresentedBundle,
   now: number,
   seqSeen: Map<string, number>,
+  revokedDelegates: Set<string>,
 ): void {
   const fh = bundle.fresh_head;
   const wc = bundle.status_delegate_cert;
@@ -1151,6 +1159,8 @@ function authenticateCurrency(
   const cert: DelegateCert = { delegateEd25519: dEd, scopes: wc.scopes, nbf: wc.nbf, exp: wc.exp, sigSlh: dSlh };
   // (1) fresh head verifies to the registrar's log root, F1-recent (cert scope fresh-head, delegate sig, ts window).
   if (verifyFreshHead(head, info.logRootKey, cert, now, "F1")) throw new Reject("stale_status");
+  // (1b) a delegate the directory revokes signs no head, as it signs no checkpoint (PLAN-M51; vector c17).
+  if (revokedDelegates.has(certFingerprintB64(cert))) throw new Reject("stale_status");
   // (2) the head names THIS registrar's status uri (already bound to info.statusUri via authenticateStatus).
   if (head.uri !== info.statusUri) throw new Reject("stale_status");
   // (3) head-hash binding: the fresh head must name the EXACT list being presented (bit_len + compressed bytes + uri).
@@ -1267,7 +1277,7 @@ export class Verifier {
       authenticateStatus(info, p.statusUri, bundle); // over compressed bytes — no decompression yet
       // Currency mode (D-021): additionally require+verify the fresh head, bind it to this list, enforce monotonic
       // seq — closing genuine-snapshot replay. Also cheap (no decompression). Fails closed to stale_status.
-      if (this.currency) authenticateCurrency(info, bundle, now, this.seqSeen);
+      if (this.currency) authenticateCurrency(info, bundle, now, this.seqSeen, this.revokedDelegates);
 
       // The status list is now proven to be exactly what the registrar signed; decompress it and run full verify.
       const pres = decodePresentation(bundle, this.revokedDelegates, now, this.audience);
@@ -2028,6 +2038,24 @@ export function runGateVector(v: {
   if (!gate) return { verdict: "no_gate" };
   const r = gate.verify(v.bundle, v.now);
   return r.verdict === "valid" ? { verdict: "valid" } : { verdict: "invalid", reason: r.reason };
+}
+
+/** Run one `vectors/v1-currency` vector (D-021, PLAN-M51): ONE currency-mode {@link Verifier} from the vector's
+ *  directory and roots decides every step's bundle at that step's clock, remembering each fresh head it accepted.
+ *  One `{verdict[, reason]}` per step; `no_gate` when the directory does not verify. */
+export function runCurrencyVector(v: {
+  directory: WireDirectory;
+  roots: { root_ed25519: string; root_slh: string };
+  audience: string;
+  freshness: FreshnessClass;
+  steps: Array<{ bundle: PresentationBundle; now: number }>;
+}): Array<{ verdict: "valid" } | { verdict: "invalid"; reason: string }> | { verdict: "no_gate" } {
+  const gate = Verifier.fromDirectoryB64(v.directory, v.roots.root_ed25519, v.roots.root_slh, v.freshness, true, v.audience);
+  if (!gate) return { verdict: "no_gate" };
+  return v.steps.map((s) => {
+    const r = gate.verify(s.bundle, s.now);
+    return r.verdict === "valid" ? { verdict: "valid" } : { verdict: "invalid", reason: r.reason };
+  });
 }
 
 /** Run one `vectors/v1-link` vector (D-078): the GA {@link Verifier} from the vector's directory and roots with the

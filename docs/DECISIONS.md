@@ -2153,3 +2153,51 @@ written. A party that wants `read:*` lists the capabilities it means.
 every other rule in the verify path met.
 
 *Status:* NEW (PLAN-M50 step 6). Nothing changes in code; `chain.rs` now points here.
+
+## D-086 — Currency mode in every gate, held to one corpus (M51)
+
+*Problem:* D-021's currency mode existed in `@ainra/sdk` only. The Rust gate path (`@ainra/edge`, `ainra
+verify-request`) and the Python package had no way to refuse a genuine pre-revocation snapshot before it aged out of
+the freshness class — even after they had verified the revocation itself. The Rust wire struct silently dropped the
+fresh head; no corpus held the rule, so nothing could see the three implementations disagree about it.
+
+*Decision:* a currency gate, in every implementation, requires the registrar's delegate-signed fresh head and its
+cert; verifies it to the registrar's log root at F1; refuses a head signed by a delegate the directory revokes (new
+everywhere — a revoked delegate already signed no checkpoint); requires the head to name the registrar's status URI
+and to hash the EXACT presented list — its declared length and its text, never a re-encoding of its bits
+(`status::head_hash_of`); and refuses a lower `seq` than one it has accepted for that URI. Every failure is
+`stale_status`. The memory belongs to the caller: `SeqSeen` in Rust, the `Verifier` instance in TypeScript and Python,
+the gate closure in `@ainra/edge` (`currency: true`, through the WASM `gate_currency` and, on the send-once prime
+path, `credential_currency`, so a prime is judged as the request will be and its head reaches the memory).
+`ainra verify-request --currency` checks one captured request the same way, with an empty memory. Outside currency
+mode a malformed head is ignored, as before, in all of them — the Rust wire struct keeps it as unparsed JSON for that.
+
+*Held to:* `vectors/v1-currency` (18 vectors), each ONE gate's life — a sequence of bundles at their own clocks, one
+verdict per step — in `make diff` (core, TypeScript, Python), the edge tests through the WASM build, conformance
+`full` and CI's regenerate-and-compare; the edge gate's own closure on both paths in `packages/edge/test`. The honest
+limit is a vector too (c03): a gate that never saw a newer head accepts the old one while its head is F1-fresh.
+
+*Honest limit, the other way:* the memory advances on any head that verifies, before the passport and the request
+signature are judged — it must, so that a revoked passport's own bundle teaches the gate the revocation (c02). So a
+fresh-head delegate key that is compromised but not yet revoked can sign a head with a very high `seq` (canonical JSON
+caps it at 2^53 − 1) and make the gate refuse every honest head for that list: a denial of service, not an
+acceptance. It lasts until the directory revokes that delegate and the gate is rebuilt from it — the memory belongs
+to one gate built from one directory, and a rebuilt gate starts empty.
+
+*Reviewed before it was committed:* an independent review (three lenses, each finding checked by a separate skeptic)
+confirmed eleven defects in the first draft, all fixed here: the edge prime path skipped currency; a malformed head
+could fail a non-currency Rust gate (now unparsed JSON); `verify-request` had no currency mode; the Python currency
+path could raise, and ordered its checks differently from Rust and TypeScript; TypeScript reported a cert time beyond
+2^53 as `schema_violation` (now `stale_status`, vector c18); the edge closure was untested; and two vectors did not
+test what their names said (c10 now runs at an F2 gate; c06 is renamed to what it pins).
+
+*Found on the way:* the Python package checked neither a fresh head's nor a checkpoint's delegate-cert lifetime
+against ADR-002's 92-day ceiling, which Rust and TypeScript always enforced; no vector had such a cert. Fixed in both
+Python paths (they also serve links and decision-head receipts), pinned by `c13` and the new gate vector `g30`.
+
+*Not changed:* the frozen verify path, the vector bytes of every other corpus, and every gate that does not ask for
+currency. A primed (send-once) bundle carries the head it was primed with, so under currency it works only while that
+head is F1-fresh; that is the mode's meaning, not a defect.
+
+*Status:* NEW (PLAN-M51 step 1).
+

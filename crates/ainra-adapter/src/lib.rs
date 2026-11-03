@@ -117,6 +117,16 @@ pub struct WirePresentation {
     pub status_sig_ed25519: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub status_sig_mldsa65: Option<String>,
+    /// D-021 currency mode (PLAN-M51): the registrar's delegate-signed fresh head and the delegate cert it signs
+    /// under, as `/present` serves them. Kept as UNPARSED JSON on purpose: only a currency gate
+    /// ([`verify_gate_currency`]) reads them, and a malformed head must not fail a gate that never asked for one —
+    /// `@ainra/sdk` ignores the field outside currency mode, and so does every path here. A `RawValue` is skipped as
+    /// leniently as an unknown field was before (a `Value` would reject, say, a lone surrogate escape inside it and
+    /// fail the whole bundle). Omitted on every vector that predates the currency corpus, so their bytes are unchanged.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fresh_head: Option<Box<serde_json::value::RawValue>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status_delegate_cert: Option<Box<serde_json::value::RawValue>>,
 }
 
 /// The instance credential + its proof-of-possession, as they travel.
@@ -559,6 +569,115 @@ pub fn verify_gate(
         Some(freshness),
         Some(&trust.revoked_delegates),
     )
+}
+
+/// What a currency gate remembers between requests (D-021, PLAN-M51): per status URI, the highest fresh-head `seq` it
+/// has accepted. Held by the caller — a gate is long-lived, this library is not.
+pub type SeqSeen = BTreeMap<String, u64>;
+
+/// [`verify_gate`] in currency mode (D-021): after the status publication is authenticated, the bundle must also carry
+/// the registrar's fresh head and its delegate cert; the head must verify to the registrar's log root at F1, be signed
+/// by a delegate the directory does not revoke, name the registrar's status URI, and hash the EXACT presented list;
+/// and its `seq` may not be lower than one `seen` already holds for that URI. Every failure is `stale_status`.
+///
+/// Honest limit, as in `@ainra/sdk`: a gate that never sees a newer head cannot know one exists; F1 (30 s) bounds it.
+pub fn verify_gate_currency(
+    p: &WirePresentation,
+    trust: &GateTrust,
+    now: u64,
+    audience: &str,
+    freshness: status::Freshness,
+    seen: &mut SeqSeen,
+) -> Verdict {
+    if let Err(reason) = authenticate_status(p, trust) {
+        return Verdict::invalid(reason);
+    }
+    if let Err(reason) = authenticate_currency(p, trust, now, seen) {
+        return Verdict::invalid(reason);
+    }
+    let mut q = p.clone();
+    q.mandate_revocations.clear();
+    verify_wire_policy(
+        &q,
+        &trust.anchors,
+        now,
+        audience,
+        Some(freshness),
+        Some(&trust.revoked_delegates),
+    )
+}
+
+fn authenticate_currency(
+    p: &WirePresentation,
+    trust: &GateTrust,
+    now: u64,
+    seen: &mut SeqSeen,
+) -> Result<(), Reason> {
+    const STALE: Reason = Reason::StaleStatus;
+    let (Some(fh), Some(wc)) = (p.fresh_head.as_ref(), p.status_delegate_cert.as_ref()) else {
+        return Err(STALE); // required: an absent head cannot downgrade currency mode
+    };
+    let parse =
+        |raw: &serde_json::value::RawValue| serde_json::from_str::<serde_json::Value>(raw.get());
+    let (Ok(fh), Ok(wc)) = (parse(fh), parse(wc)) else {
+        return Err(STALE);
+    };
+    let (fh, wc) = (&fh, &wc);
+    // `authenticate_status` has already parsed the claims and found the registrar; do it again, cheaply, here.
+    let claims = bad(b64::decode(&p.claims))?;
+    let passport = ainra_core::passport::Passport::parse_checked(&claims)?;
+    let (registrar, _, _) =
+        ainra_core::name::AinraName::parse_did(&passport.iss).map_err(|_| Reason::NameMalformed)?;
+    let anchor = trust.anchors.registrars.get(&registrar).ok_or(STALE)?;
+    let authority = trust.status.get(&registrar).ok_or(STALE)?;
+    let str_of =
+        |v: &serde_json::Value, k: &str| v.get(k).and_then(|x| x.as_str()).map(str::to_owned);
+    let u64_of = |v: &serde_json::Value, k: &str| v.get(k).and_then(|x| x.as_u64());
+    let head = (|| {
+        Some(status::FreshHead {
+            uri: str_of(fh, "uri")?,
+            seq: u64_of(fh, "seq")?,
+            ts: u64_of(fh, "ts")?,
+            status_hash: b64::decode_array::<32>(&str_of(fh, "status_hash")?).ok()?,
+            sig_delegate: b64::decode(&str_of(fh, "sig_delegate")?).ok()?,
+        })
+    })()
+    .ok_or(STALE)?;
+    let cert = (|| {
+        Some(checkpoint::DelegateCert {
+            delegate_ed25519: b64::decode_array::<32>(&str_of(wc, "delegate_ed25519")?).ok()?,
+            scopes: wc
+                .get("scopes")?
+                .as_array()?
+                .iter()
+                .map(|s| s.as_str().map(str::to_owned))
+                .collect::<Option<Vec<_>>>()?,
+            nbf: u64_of(wc, "nbf")?,
+            exp: u64_of(wc, "exp")?,
+            sig_slh: b64::decode(&str_of(wc, "sig_slh")?).ok()?,
+        })
+    })()
+    .ok_or(STALE)?;
+    head.verify(&anchor.log_root_key, &cert, now, status::Freshness::F1)
+        .map_err(|_| STALE)?;
+    if trust.revoked_delegates.contains(&cert.fingerprint()) {
+        return Err(STALE); // a revoked delegate signs no head, as it signs no checkpoint
+    }
+    if head.uri != authority.uri {
+        return Err(STALE);
+    }
+    let bound = status::head_hash_of(&head.uri, p.status_len, &p.status_list).map_err(|_| STALE)?;
+    if bound != head.status_hash {
+        return Err(STALE);
+    }
+    match seen.get(&head.uri) {
+        Some(&s) if head.seq < s => Err(STALE), // superseded: this gate has seen a newer head
+        _ => {
+            let top = seen.get(&head.uri).map_or(head.seq, |&s| s.max(head.seq));
+            seen.insert(head.uri, top);
+            Ok(())
+        }
+    }
 }
 
 /// Run one conformance vector. A vector pins its own `now` on purpose — determinism is the point of the corpus.
@@ -1187,6 +1306,33 @@ fn freshness_of(s: &str) -> Option<status::Freshness> {
 
 /// The credential alone, under the gate's policy — what a send-once endpoint checks before it stores anything.
 /// Returns the canonical verdict event.
+/// [`credential_json`] in currency mode (D-021, PLAN-M51) — what the edge gate's send-once prime path runs when the
+/// gate is built with `currency: true`, so a bundle is refused at prime exactly as it would be on use, and the heads it
+/// carries reach the gate's memory. `{"event": …, "seen": {uri: seq}}`.
+pub fn credential_json_currency(
+    bundle_json: &str,
+    trust_json: &str,
+    now_secs: u64,
+    audience: &str,
+    freshness: &str,
+    seen_json: &str,
+) -> String {
+    let mut seen: SeqSeen = serde_json::from_str(seen_json).unwrap_or_default();
+    let event = match (
+        serde_json::from_str::<WirePresentation>(bundle_json),
+        gate_trust(trust_json),
+        freshness_of(freshness),
+    ) {
+        (Ok(p), Some(trust), Some(f)) => {
+            let verdict = verify_gate_currency(&p, &trust, now_secs, audience, f, &mut seen);
+            verdict_event(&p, &verdict, now_secs)
+        }
+        _ => schema_violation_event(),
+    };
+    let event: serde_json::Value = serde_json::from_str(&event).unwrap_or(serde_json::Value::Null);
+    json!({ "event": event, "seen": seen }).to_string()
+}
+
 pub fn credential_json(
     bundle_json: &str,
     trust_json: &str,
@@ -1219,6 +1365,53 @@ pub fn gate_json(
     audience: &str,
     freshness: &str,
 ) -> String {
+    gate_json_with(
+        bundle_json,
+        trust_json,
+        request_json,
+        now_secs,
+        audience,
+        freshness,
+        None,
+    )
+}
+
+/// [`gate_json`] in currency mode (D-021, PLAN-M51): `seen_json` is the gate's memory — `{uri: highest seq}`, `{}` to
+/// start — and the answer carries it back as `seen`, updated, for the host to keep. A long-lived edge gate holds it in
+/// memory; it is not secret, and losing it only reopens the window F1 bounds.
+pub fn gate_json_currency(
+    bundle_json: &str,
+    trust_json: &str,
+    request_json: &str,
+    now_secs: u64,
+    audience: &str,
+    freshness: &str,
+    seen_json: &str,
+) -> String {
+    let mut seen: SeqSeen = serde_json::from_str(seen_json).unwrap_or_default();
+    let out = gate_json_with(
+        bundle_json,
+        trust_json,
+        request_json,
+        now_secs,
+        audience,
+        freshness,
+        Some(&mut seen),
+    );
+    let mut v: serde_json::Value = serde_json::from_str(&out).unwrap_or(serde_json::Value::Null);
+    v["seen"] = json!(seen);
+    v.to_string()
+}
+
+fn gate_json_with(
+    bundle_json: &str,
+    trust_json: &str,
+    request_json: &str,
+    now_secs: u64,
+    audience: &str,
+    freshness: &str,
+    seen: Option<&mut SeqSeen>,
+) -> String {
     use ainra_core::presentation::{verify_presentation, SignableRequest, MAX_AGE_SECS};
     let out =
         |allow: bool, reason: Option<&str>, event: serde_json::Value, nonce: Option<String>| {
@@ -1233,7 +1426,10 @@ pub fn gate_json(
     ) else {
         return out(false, Some("schema_violation"), schema(), None);
     };
-    let verdict = verify_gate(&p, &trust, now_secs, audience, f);
+    let verdict = match seen {
+        Some(s) => verify_gate_currency(&p, &trust, now_secs, audience, f, s),
+        None => verify_gate(&p, &trust, now_secs, audience, f),
+    };
     let event: serde_json::Value = serde_json::from_str(&verdict_event(&p, &verdict, now_secs))
         .unwrap_or(serde_json::Value::Null);
     if let Verdict::Invalid { reason } = &verdict {
@@ -1333,6 +1529,47 @@ pub fn gate_vector_result(v: &serde_json::Value) -> serde_json::Value {
         Verdict::Valid => json!({ "verdict": "valid" }),
         Verdict::Invalid { reason } => invalid(&reason_str(reason)),
     }
+}
+
+/// Run one `vectors/v1-currency` vector (PLAN-M51): ONE currency gate, built from the vector's directory and roots,
+/// decides each step's bundle at that step's clock, remembering every fresh head it accepted — the answers are a
+/// verifier's life, not independent verdicts. An array, one `{verdict[, reason]}` per step; `no_gate` if the
+/// directory does not verify.
+pub fn currency_vector_result(v: &serde_json::Value) -> serde_json::Value {
+    let invalid = |r: &str| json!({ "verdict": "invalid", "reason": r });
+    let acc: serde_json::Value = serde_json::from_str(&accredit_json(
+        &v["directory"].to_string(),
+        &v["roots"].to_string(),
+    ))
+    .unwrap_or(serde_json::Value::Null);
+    if acc["ok"] != json!(true) {
+        return json!({ "verdict": "no_gate" });
+    }
+    let (Some(trust), Some(f), Some(audience), Some(steps)) = (
+        gate_trust(&acc["trust"].to_string()),
+        v["freshness"].as_str().and_then(freshness_of),
+        v["audience"].as_str(),
+        v["steps"].as_array(),
+    ) else {
+        return invalid("schema_violation");
+    };
+    let mut seen = SeqSeen::new();
+    let out: Vec<serde_json::Value> = steps
+        .iter()
+        .map(|step| {
+            let (Some(now), Ok(p)) = (
+                step["now"].as_u64(),
+                serde_json::from_value::<WirePresentation>(step["bundle"].clone()),
+            ) else {
+                return invalid("schema_violation");
+            };
+            match verify_gate_currency(&p, &trust, now, audience, f, &mut seen) {
+                Verdict::Valid => json!({ "verdict": "valid" }),
+                Verdict::Invalid { reason } => invalid(&reason_str(reason)),
+            }
+        })
+        .collect();
+    json!(out)
 }
 
 // ── AINRA Link (D-078) ─────────────────────────────────────────────────────────────────────────────────────
@@ -1744,6 +1981,45 @@ mod audience_tests {
         assert!(
             defaulted.contains("instance_pop_invalid"),
             "the default accepted an instance credential: {defaulted}"
+        );
+    }
+}
+
+#[cfg(test)]
+mod currency_tests {
+    //! PLAN-M51 review: a fresh head that is not even valid JSON text must not fail a gate that never asked for
+    //! currency — it was an unknown, skipped field before D-086, and `@ainra/sdk` ignores it outside currency mode.
+    //!
+    //! WITNESS: declare `fresh_head` as `Option<serde_json::Value>` again and the first assertion fails (serde_json
+    //! rejects the lone surrogate escape inside it, and the whole bundle with it).
+    use super::*;
+
+    #[test]
+    fn a_malformed_head_does_not_fail_a_gate_that_never_asked_for_currency() {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../vectors/v1-gate/g01-valid.json");
+        let v: serde_json::Value =
+            serde_json::from_slice(&std::fs::read(path).expect("g01")).expect("json");
+        let bundle = v["bundle"]
+            .to_string()
+            .replacen('{', r#"{"fresh_head":{"x":"\ud800"},"#, 1);
+        let p = serde_json::from_str::<WirePresentation>(&bundle).expect("the bundle still parses");
+        let acc: serde_json::Value = serde_json::from_str(&accredit_json(
+            &v["directory"].to_string(),
+            &v["roots"].to_string(),
+        ))
+        .unwrap();
+        let trust = gate_trust(&acc["trust"].to_string()).expect("trust");
+        let now = v["now"].as_u64().unwrap();
+        assert_eq!(
+            verify_gate(&p, &trust, now, "", status::Freshness::F2),
+            Verdict::Valid
+        );
+        // Under currency the same head is refused as status, never as a malformed passport.
+        let mut seen = SeqSeen::new();
+        assert_eq!(
+            verify_gate_currency(&p, &trust, now, "", status::Freshness::F2, &mut seen),
+            Verdict::invalid(Reason::StaleStatus)
         );
     }
 }

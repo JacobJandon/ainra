@@ -25,6 +25,7 @@ const RUN = {
   link: C.runLinkVector,
   decision: C.runDecisionVector,
   "directory-epoch": C.runDirectoryEpochVector,
+  currency: C.runCurrencyVector,
 };
 
 function result(kind, v) {

@@ -115,6 +115,61 @@ pub fn gate(
     )
 }
 
+/// [`gate`] in currency mode (D-021, PLAN-M51): `seen_json` is the gate's memory (`{uri: highest seq}`); the answer
+/// carries it back, updated, as `seen`.
+#[cfg(feature = "edge")]
+#[wasm_bindgen]
+pub fn gate_currency(
+    bundle_json: &str,
+    trust_json: &str,
+    request_json: &str,
+    now_secs: f64,
+    audience: &str,
+    freshness: &str,
+    seen_json: &str,
+) -> String {
+    ainra_adapter::gate_json_currency(
+        bundle_json,
+        trust_json,
+        request_json,
+        clamp_secs(now_secs),
+        audience,
+        freshness,
+        seen_json,
+    )
+}
+
+/// The credential alone in currency mode — the edge gate's prime path when built with `currency: true`. The answer is
+/// `{"event", "seen"}`.
+#[cfg(feature = "edge")]
+#[wasm_bindgen]
+pub fn credential_currency(
+    bundle_json: &str,
+    trust_json: &str,
+    now_secs: f64,
+    audience: &str,
+    freshness: &str,
+    seen_json: &str,
+) -> String {
+    ainra_adapter::credential_json_currency(
+        bundle_json,
+        trust_json,
+        clamp_secs(now_secs),
+        audience,
+        freshness,
+        seen_json,
+    )
+}
+
+/// Run one `vectors/v1-currency` vector as the core does — one currency gate's life, step by step.
+#[cfg(feature = "edge")]
+#[wasm_bindgen]
+pub fn run_currency_vector(vector_json: &str) -> String {
+    serde_json::from_str::<serde_json::Value>(vector_json)
+        .map(|v| ainra_adapter::currency_vector_result(&v).to_string())
+        .unwrap_or_else(|_| r#"{"verdict":"no_gate"}"#.to_string())
+}
+
 /// The digest that names a bundle's stable part (D-065), or an empty string for anything unreadable.
 #[cfg(feature = "edge")]
 #[wasm_bindgen]

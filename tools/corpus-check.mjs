@@ -38,6 +38,7 @@ const real = {
   link: countJson("vectors/v1-link"),
   decision: countJson("vectors/v1-decision"),
   directoryEpoch: countJson("vectors/v1-directory-epoch"),
+  currency: countJson("vectors/v1-currency"),
 };
 real.total = real.passport + real.delta + real.directory;
 if (real.passport === 0) { console.error("corpus-check: vectors/v1 is empty or missing — refusing to check against nothing"); process.exit(2); }
@@ -72,6 +73,7 @@ const CLAIMS = [
   { re: /\b(\d{1,4})\s+link\s+vectors?\b/gi, want: () => real.link, what: "link vectors" },
   { re: /\b(\d{1,4})\s+decision(?:-log)?\s+vectors?\b/gi, want: () => real.decision, what: "decision vectors" },
   { re: /\b(\d{1,4})\s+directory-(?:epoch|rollback)\s+vectors?\b/gi, want: () => real.directoryEpoch, what: "directory-epoch vectors" },
+  { re: /\b(\d{1,4})\s+currency\s+vectors?\b/gi, want: () => real.currency, what: "currency vectors" },
 ];
 
 let bad = 0;
@@ -115,8 +117,8 @@ for (const f of LIVE) {
 
 if (bad) {
   console.error(`\nCORPUS-CHECK FAILED — a stated count disagrees with vectors/ on disk.`);
-  console.error(`Real: passport ${real.passport} · delta ${real.delta} · directory ${real.directory} · total ${real.total} · request-signature ${real.presentation} · gate ${real.gate} · link ${real.link} · decision ${real.decision} · directory-epoch ${real.directoryEpoch}`);
+  console.error(`Real: passport ${real.passport} · delta ${real.delta} · directory ${real.directory} · total ${real.total} · request-signature ${real.presentation} · gate ${real.gate} · link ${real.link} · decision ${real.decision} · directory-epoch ${real.directoryEpoch} · currency ${real.currency}`);
   console.error(`Fix the number, or better, state the claim without one ("the whole corpus") where it is not load-bearing.`);
   process.exit(1);
 }
-console.log(`CORPUS-CHECK OK: ${LIVE.length} live surface(s) agree with the corpus on disk — passport ${real.passport} · delta ${real.delta} · directory ${real.directory} · total ${real.total} · request-signature ${real.presentation} · gate ${real.gate} · link ${real.link} · decision ${real.decision} · directory-epoch ${real.directoryEpoch}.`);
+console.log(`CORPUS-CHECK OK: ${LIVE.length} live surface(s) agree with the corpus on disk — passport ${real.passport} · delta ${real.delta} · directory ${real.directory} · total ${real.total} · request-signature ${real.presentation} · gate ${real.gate} · link ${real.link} · decision ${real.decision} · directory-epoch ${real.directoryEpoch} · currency ${real.currency}.`);

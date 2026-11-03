@@ -26,6 +26,15 @@ We **publicly own fixed security bugs** — hiding them would be the opposite of
   `schema_violation` where the SDKs said `stale_status`, and now says `stale_status` too: the passport is well
   formed, its status cannot be read.
 
+### Changed — the conformance contract covers what a gate decides (D-084, PLAN-M50 step 3)
+
+- **Contract v2.** `tools/conformance/run.mjs` adds the `presentation`, `gate`, `link`, `decision` and
+  `directory-epoch` corpora as kinds, under `--profile full` (the default). `--profile core` is v1's three kinds and a
+  v1 adapter passes it unchanged. Reports are `report_version` "2" and name their profile; attestations carry it.
+- **Why `core` is not enough, kept as a test:** `adapters/broken_status.py`, the Python verifier with status
+  authentication switched off, passes `core` and fails `full`. `make conformance` fails if either ever changes.
+- `--adapter` in the docs page and the divergence issue template was never a runner flag; it is `--impl`.
+
 ## [0.6.0] — 2026-11-02
 
 The release commit; its board is `docs/releases/v0.6.0-board.md`. Tagging and publishing to npm and PyPI are the

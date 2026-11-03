@@ -2,11 +2,10 @@
 """Conformance adapter for the Python verifier (packages/sdk-py), fitting tools/conformance/CONTRACT.md.
 
 Reads the runner's JSON-Lines vectors on stdin, runs the REAL ``ainra`` verifier — the same
-``verify`` / ``verify_delta_vector`` / ``verify_directory`` functions the ``make diff`` fourth
-column (``ainra._vector_runner``) uses — and prints one ``<name>\\t<result-json>`` line per vector.
-No files, no network.
+``ainra.conformance`` functions the ``make diff`` fourth column (``ainra._vector_runner``) uses —
+and prints one ``<name>\\t<result-json>`` line per vector. No files, no network.
 
-    python3 tools/conformance/adapters/py.py <passport|delta|directory>   (vectors on stdin)
+    python3 tools/conformance/adapters/py.py <kind>   (vectors on stdin)
 """
 
 from __future__ import annotations
@@ -18,9 +17,7 @@ import sys
 # Self-configure the import path to packages/sdk-py so a stranger needs no PYTHONPATH.
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "packages", "sdk-py"))
 
-from ainra.delta import verify_delta_vector  # noqa: E402
-from ainra.directory import verify_directory  # noqa: E402
-from ainra.verify import verify as verify_passport  # noqa: E402
+from ainra._vector_runner import RUN  # noqa: E402
 
 
 def _stable(obj) -> str:
@@ -28,14 +25,9 @@ def _stable(obj) -> str:
 
 
 def result(kind: str, v: dict) -> dict:
-    if kind == "passport":
-        pres = v["presentation"]
-        return verify_passport(v["anchors"], pres, pres.get("now")).as_result()
-    if kind == "delta":
-        return verify_delta_vector(v)
-    if kind == "directory":
-        return verify_directory(v)
-    raise SystemExit(f"unknown kind: {kind}")
+    if kind not in RUN:
+        raise SystemExit(f"unknown kind: {kind}")
+    return RUN[kind](v)
 
 
 def main() -> int:

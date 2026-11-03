@@ -2,10 +2,10 @@
 // A DELIBERATELY BROKEN implementation (M24 Task 2b) — the proof the runner detects nonconformance. A conformance
 // tool that cannot fail is theatre: this adapter is a verifier with ONE realistic bug — it skips the credential
 // validity-window checks, so it wrongly ACCEPTS an expired or not-yet-valid credential as valid. Every other class
-// (and all delta/directory vectors) it gets right, so the runner's report names EXACTLY the vectors it breaks:
+// (and every other kind) it gets right, so the runner's report names EXACTLY the vectors it breaks:
 // `expected {"reason":"expired","verdict":"invalid"} got {"verdict":"valid"}`. Run the runner against this and it
 // MUST fail with those named divergences. Not shipped, not on any conformance path — it exists only to be caught.
-import { runVector, runDeltaVector, runDirectoryVector } from "../../../packages/sdk-ts/dist/index.js";
+import * as C from "../../../packages/sdk-ts/dist/conformance.js";
 
 const stable = (o) =>
   o === null || typeof o !== "object"
@@ -17,15 +17,24 @@ const stable = (o) =>
 // The bug: a verifier that never checks exp/nbf silently upgrades those rejections to "valid".
 const SKIPPED = new Set(["expired", "not_yet_valid"]);
 
+const RUN = {
+  delta: C.runDeltaVector,
+  directory: C.runDirectoryVector,
+  presentation: C.runPresentationVector,
+  gate: C.runGateVector,
+  link: C.runLinkVector,
+  decision: C.runDecisionVector,
+  "directory-epoch": C.runDirectoryEpochVector,
+};
+
 function result(kind, v) {
-  if (kind === "delta") return runDeltaVector(v);
-  if (kind === "directory") return runDirectoryVector(v);
   if (kind === "passport") {
-    const r = runVector(v);
+    const r = C.runVector(v);
     if (r.verdict === "invalid" && SKIPPED.has(r.reason)) return { verdict: "valid" }; // ← the sabotage
     return r;
   }
-  throw new Error(`unknown kind: ${kind}`);
+  if (!RUN[kind]) throw new Error(`unknown kind: ${kind}`);
+  return RUN[kind](v);
 }
 
 async function main() {

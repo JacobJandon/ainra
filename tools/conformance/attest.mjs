@@ -44,7 +44,9 @@ function generate(a) {
     process.exit(1);
   }
   const statement = {
-    statement_version: "1",
+    statement_version: "2",
+    // A v1 report predates profiles and covered the three v1 kinds: that is the `core` profile.
+    profile: report.profile || "core",
     implementation: report.implementation,
     corpus_hash: report.corpus.hash,
     report_hash: sha256File(a.report),
@@ -104,7 +106,8 @@ function verify(a) {
   // Step 3 — the CLAIM reproduces: re-run the runner against the named implementation and confirm the corpus hash
   // and result match what was signed. This is the substance — we trust the re-run, not the attester and not any root.
   const implArgv = a.impl.split(/\s+/).filter(Boolean);
-  const fresh = runConformance(implArgv, { name: statement.implementation.name, version: statement.implementation.version });
+  const profile = statement.profile || "core";
+  const fresh = runConformance(implArgv, { profile, name: statement.implementation.name, version: statement.implementation.version });
   const problems = [];
   if (fresh.corpus.hash !== statement.corpus_hash)
     problems.push(`corpus_hash: signed ${statement.corpus_hash}, re-run ${fresh.corpus.hash} (different corpus)`);
@@ -120,7 +123,7 @@ function verify(a) {
   }
   console.log(`  ✓ signature authentic (signer ${a.identity})`);
   console.log(`  ✓ re-run reproduces: corpus ${fresh.corpus.hash}  result ${fresh.result}  (${fresh.totals.passed}/${fresh.totals.checked})`);
-  console.log(`  ✓ ACCEPTED — ${statement.implementation.name}@${statement.implementation.version} is self-attested conformant, and it re-ran clean here.`);
+  console.log(`  ✓ ACCEPTED — ${statement.implementation.name}@${statement.implementation.version} is self-attested conformant (profile ${profile}), and it re-ran clean here.`);
 }
 
 function main() {

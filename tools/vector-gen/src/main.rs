@@ -2468,8 +2468,24 @@ fn emit_stdin(kind: &str) {
                 let name = v["name"].as_str().expect("name").to_string();
                 (name, directory_result(&v))
             }
+            // Contract v2 (PLAN-M50 step 3): the corpora a gate, a link check and a decision log are held to. Each
+            // is answered by the same function its `--check-*` uses.
+            kind @ ("presentation" | "gate" | "link" | "decision" | "directory-epoch") => {
+                let v: serde_json::Value = serde_json::from_str(&line).expect("parse vector");
+                let name = v["name"].as_str().expect("name").to_string();
+                let r = match kind {
+                    "presentation" => presentation_result(&v),
+                    "gate" => ainra_adapter::gate_vector_result(&v),
+                    "link" => ainra_adapter::link_vector_result(&v),
+                    "decision" => ainra_adapter::decision_vector_result(&v),
+                    _ => ainra_adapter::directory_epoch_vector_result(&v),
+                };
+                (name, r)
+            }
             other => {
-                eprintln!("unknown --emit kind: {other} (expected passport|delta|directory)");
+                eprintln!(
+                    "unknown --emit kind: {other} (expected passport|delta|directory|presentation|gate|link|decision|directory-epoch)"
+                );
                 std::process::exit(2);
             }
         };

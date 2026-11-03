@@ -30,7 +30,7 @@ mandatory would break the API.
 refused. Today only one Python unit test pins it. A gate vector in `vectors/v1-gate`, held by every implementation.
 WITNESS: remove the length guard in any one implementation (the M30b shape) and the vector goes red.
 
-**3. Conformance contract v2.** The third-party contract (`tools/conformance`, `CONTRACT.md`) covers passports, deltas
+**3. Conformance contract v2.** *Done 2026-11-03 (D-084).* The third-party contract (`tools/conformance`, `CONTRACT.md`) covers passports, deltas
 and directories only; the gate, presentation, link, decision and directory-epoch corpora are outside it, which is where
 D-072, D-074 and D-075 lived. Additive kinds, `report_version: "2"`, and a `profile` of `core` (the v1 kinds, still
 valid) or `full`. WITNESS: an adapter that skips status authentication — the D-072 shape — passes `core` and must fail

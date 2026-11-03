@@ -5,7 +5,7 @@
 
 AINRA is a neutral revocation + conformance layer. A neutral layer that also acted as the *authority* on who is
 conformant would not be neutral: it would gatekeep. So the root does the opposite of gatekeeping. It publishes two
-things — the **conformance corpus** (`vectors/v1` + `vectors/v1-delta` + `vectors/v1-directory`, CC0) and a
+things — the **conformance corpus** (`vectors/`, CC0) and a
 **language-agnostic runner** (`tools/conformance/`) — and certifies no one. Anyone points the runner at their own
 implementation and proves conformance *themselves*; anyone else re-runs it and checks. Trust the re-run, not a badge.
 
@@ -28,7 +28,7 @@ I signed the result with my key, and anyone can reproduce that in an afternoon.*
 ## The contract
 
 The full contract is `tools/conformance/CONTRACT.md`. In one paragraph: your implementation is an executable; the runner
-invokes it once per corpus part with the **kind** (`passport` | `delta` | `directory`) as the last argument, streams
+invokes it once per corpus part with the **kind** as the last argument, streams
 that part's vectors to **stdin** as JSON Lines (one published vector per line), and reads one `<name>\t<result-json>`
 line per vector from **stdout**:
 
@@ -37,6 +37,11 @@ line per vector from **stdout**:
 | `passport` | `{"verdict":"valid"}` or `{"verdict":"invalid","reason":"<reason>"}` |
 | `delta` | `{"accept":true}` or `{"accept":false,"reason":"<reason>"}` |
 | `directory` | `{"accept":true,"registrars":<n>}` or `{"accept":false}` |
+| `presentation`, `gate`, `link`, `decision`, `directory-epoch` | the shape that corpus records in `expect` ([CONTRACT.md](../../tools/conformance/CONTRACT.md)) |
+
+Those last five are profile **`full`** (the default): what a gate decides, including status only if the registrar
+signed it. Profile **`core`** (`--profile core`) is the first three, contract v1; it is still a valid claim, but a
+verifier that believes the presenter's status passes it (D-072, D-084), so it is not the claim a gate needs.
 
 No files, no network — everything is on stdin. This is the shape every AINRA surface already emits
 (`docs/PRESENTATION.md`), so an existing verifier needs only a thin wrapper (see `tools/conformance/adapters/`).
@@ -47,13 +52,13 @@ No files, no network — everything is on stdin. This is the shape every AINRA s
 node tools/conformance/run.mjs --impl "<your command>" --name <your-impl> --version <ver> --out report.json
 ```
 
-The runner drives the **full** corpus, records the **corpus hash** (a `sha256` pinning the exact vector set — a
+The runner drives the profile's corpora (`full` by default, `--profile core` for v1's three), records the **corpus hash** (a `sha256` pinning the exact vector set — a
 partial/empty corpus fails the count guard and can never pass vacuously), and writes a machine-readable JSON report:
 pass/fail per vector, `expected` vs `got` for every divergence, totals. Exit 0 iff the run is clean. The reference
 implementations show it green both ways:
 
 ```sh
-make conformance    # Rust core, TS SDK, Python all pass CLEAN; a broken impl FAILS with named divergences
+make conformance    # Rust core, TS SDK, Python all pass CLEAN; both broken impls FAIL with named divergences
 ```
 
 ## Attest your result

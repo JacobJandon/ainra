@@ -270,7 +270,7 @@ $ ainra verify ./reg ainra:registrar-07:acme:invoicing@1.0.0
     <h2 id="conformance">Prove your own implementation</h2>
     <p>AINRA certifies no one. The corpus and the runner are published; you point the runner at your implementation over a documented stdin/stdout contract, sign your own result, and anyone re-runs it to check. <b>We don't certify implementations — we make certification unnecessary.</b></p>
     <div class="codeblock"><span class="cap">terminal</span><pre>$ make conformance                    <span class="c"># the 3 in-repo impls, clean, same corpus hash</span>
-$ node tools/conformance/run.mjs --adapter ./my-verifier.sh
+$ node tools/conformance/run.mjs --impl ./my-verifier.sh
 $ node tools/conformance/attest.mjs   <span class="c"># sign your result with YOUR key</span></pre></div>
     <p>The doctrine and roles: <code>docs/conformance/PROGRAMME.md</code> · the wire contract: <code>tools/conformance/CONTRACT.md</code>. A deliberately broken implementation is caught with named divergences — a conformance tool that cannot fail is theatre.</p>
 

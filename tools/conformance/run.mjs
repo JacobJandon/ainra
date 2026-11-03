@@ -1,22 +1,24 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
-// The AINRA conformance runner (M24 Task 2a). Language-agnostic: point it at ANY executable that follows the
-// contract (tools/conformance/CONTRACT.md) and it drives the FULL public corpus (vectors/v1 + v1-delta +
-// v1-directory) against that executable, then writes a machine-readable JSON report — pass/fail per vector,
-// divergence detail per failure, the corpus hash, totals. The root publishes this and certifies no one; anyone
+// The AINRA conformance runner (M24 Task 2a; contract v2, PLAN-M50 step 3). Language-agnostic: point it at ANY
+// executable that follows the contract (tools/conformance/CONTRACT.md) and it drives the public corpus against that
+// executable, then writes a machine-readable JSON report — pass/fail per vector, divergence detail per failure, the
+// corpus hash, totals. Profile `full` (the default) is every corpus; `core` is the three v1 kinds alone. The root publishes this and certifies no one; anyone
 // runs it against their own implementation to prove conformance themselves.
 //
 // The contract, in one paragraph: the implementation under test is an executable. The runner invokes it once per
-// corpus part with the part's KIND as the final argument (`passport` | `delta` | `directory`), streams that part's
+// corpus part with the part's KIND as the final argument (`passport`, `delta`, `directory`, and in the full profile
+// `presentation`, `gate`, `link`, `decision`, `directory-epoch`), streams that part's
 // vectors to its stdin as JSON Lines (one published vector object per line, each carrying its `name`), and reads
 // one line `<name>\t<result-json>` per vector from its stdout. `<result-json>` is the implementation's verdict:
 //   passport   {"verdict":"valid"} | {"verdict":"invalid","reason":"<reason>"}
 //   delta      {"accept":true}     | {"accept":false,"reason":"<reason>"}
 //   directory  {"accept":true,"registrars":<n>} | {"accept":false}
+//   the full-profile kinds: the shape that corpus records in `expect` (CONTRACT.md has the table)
 // Key order and insignificant whitespace do not matter — the runner canonicalises both sides before comparing.
 // The implementation reads no files and opens no network connection; everything it needs is on stdin. Fail closed:
 // an empty/partial corpus, a missing verdict, or a below-minimum count all FAIL (no vacuous pass).
 //
-//   node tools/conformance/run.mjs --impl "<command...>" [--name NAME] [--version VER] [--out report.json]
+//   node tools/conformance/run.mjs --impl "<command...>" [--profile full|core] [--name NAME] [--version VER] [--out report.json]
 //
 // --impl is the executable command (may include its own arguments); the runner appends the kind. Exit 0 iff the
 // implementation matches the recorded core verdict on every vector AND the corpus clears the count guard.
@@ -27,19 +29,27 @@ import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
-export const RUNNER_VERSION = "1";
+export const RUNNER_VERSION = "2";
 const ROOT = fileURLToPath(new URL("../../", import.meta.url));
 // The corpus lives at vectors/{v1,v1-delta,v1-directory} under the repo root by default; a stranger verifying a
 // downloaded corpus tarball can point AINRA_CONFORMANCE_ROOT at the dir that contains that `vectors/` tree.
 const CORPUS_ROOT = process.env.AINRA_CONFORMANCE_ROOT || ROOT;
 
-// The three published corpus parts, each with its expect-extraction (the recorded ainra-core verdict is the
-// vector's `expect`, already in the exact result shape) and its fail-closed minimum count.
+// The published corpus parts. Each vector's `expect` is the recorded ainra-core answer, already in the exact result
+// shape; each part has a fail-closed minimum count. `core` is contract v1's three kinds, which a verifier that takes
+// status on the presenter's word still passes (D-072); `full` adds what a gate, a link check and a decision log decide.
 const PARTS = [
-  { kind: "passport", dir: "vectors/v1", min: 500 },
-  { kind: "delta", dir: "vectors/v1-delta", min: 15 },
-  { kind: "directory", dir: "vectors/v1-directory", min: 9 },
+  { kind: "passport", dir: "vectors/v1", min: 500, profile: "core" },
+  { kind: "delta", dir: "vectors/v1-delta", min: 15, profile: "core" },
+  { kind: "directory", dir: "vectors/v1-directory", min: 9, profile: "core" },
+  { kind: "presentation", dir: "vectors/v1-presentation", min: 40, profile: "full" },
+  { kind: "gate", dir: "vectors/v1-gate", min: 27, profile: "full" },
+  { kind: "link", dir: "vectors/v1-link", min: 40, profile: "full" },
+  { kind: "decision", dir: "vectors/v1-decision", min: 30, profile: "full" },
+  { kind: "directory-epoch", dir: "vectors/v1-directory-epoch", min: 9, profile: "full" },
 ];
+export const PROFILES = ["full", "core"];
+const partsOf = (profile) => PARTS.filter((p) => profile === "full" || p.profile === "core");
 
 // Canonical JSON: sorted keys, no insignificant whitespace. Both the implementation's line and the vector's
 // recorded expect pass through this before comparison, so an impl need not emit sorted keys.
@@ -143,7 +153,9 @@ function driveImpl(implArgv, kind, files) {
 
 // Run the full corpus against one implementation and build the report object. Pure: does not exit or print.
 export function runConformance(implArgv, info = {}) {
-  const loaded = PARTS.map((p) => ({ ...p, ...loadPart(p) }));
+  const profile = info.profile || "full";
+  if (!PROFILES.includes(profile)) throw new Error(`unknown profile: ${profile} (expected full|core)`);
+  const loaded = partsOf(profile).map((p) => ({ ...p, ...loadPart(p) }));
   const partsCount = {};
   const requiredMin = {};
   let total = 0;
@@ -191,9 +203,10 @@ export function runConformance(implArgv, info = {}) {
 
   const result = guardFailures.length === 0 && divergences.length === 0 ? "pass" : "fail";
   return {
-    report_version: "1",
+    report_version: "2",
     runner_version: RUNNER_VERSION,
     generated_at: new Date().toISOString(),
+    profile,
     implementation: { name: info.name || "unknown", version: info.version || "unknown" },
     corpus: {
       hash: corpusHash(loaded),
@@ -210,10 +223,11 @@ export function runConformance(implArgv, info = {}) {
 }
 
 function parseArgs(argv) {
-  const out = { impl: null, name: undefined, version: undefined, report: null };
+  const out = { impl: null, profile: "full", name: undefined, version: undefined, report: null };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--impl") out.impl = argv[++i];
+    else if (a === "--profile") out.profile = argv[++i];
     else if (a === "--name") out.name = argv[++i];
     else if (a === "--version") out.version = argv[++i];
     else if (a === "--out") out.report = argv[++i];
@@ -228,13 +242,13 @@ function parseArgs(argv) {
 function main() {
   const args = parseArgs(process.argv.slice(2));
   if (!args.impl) {
-    console.error('usage: node tools/conformance/run.mjs --impl "<command...>" [--name NAME] [--version VER] [--out report.json]');
+    console.error('usage: node tools/conformance/run.mjs --impl "<command...>" [--profile full|core] [--name NAME] [--version VER] [--out report.json]');
     process.exit(2);
   }
   const implArgv = args.impl.split(/\s+/).filter(Boolean);
   let report;
   try {
-    report = runConformance(implArgv, { name: args.name, version: args.version });
+    report = runConformance(implArgv, { profile: args.profile, name: args.name, version: args.version });
   } catch (e) {
     console.error(`CONFORMANCE ERROR: ${e.message}`);
     process.exit(1);
@@ -243,12 +257,12 @@ function main() {
   if (args.report) fs.writeFileSync(args.report, json);
 
   const c = report.corpus.parts;
-  const perPart = PARTS.map((p) => {
+  const perPart = partsOf(report.profile).map((p) => {
     const bad = report.divergences.filter((d) => d.part === p.kind).length;
     return `${p.kind} ${c[p.kind] - bad}/${c[p.kind]}`;
   }).join("  ");
   console.log(
-    `impl=${report.implementation.name}@${report.implementation.version}  corpus=${report.corpus.hash}\n` +
+    `impl=${report.implementation.name}@${report.implementation.version}  profile=${report.profile}  corpus=${report.corpus.hash}\n` +
       `  ${perPart}  divergences=${report.divergences.length}  → ${report.result.toUpperCase()}`
   );
   if (report.guard_failures.length) for (const g of report.guard_failures) console.error(`  GUARD FAIL: ${g}`);

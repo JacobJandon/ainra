@@ -53,7 +53,7 @@ body:
     id: repro
     attributes:
       label: How to reproduce
-      description: Ideally the conformance runner invocation that shows it — `node tools/conformance/run.mjs --adapter ./your-adapter.sh`
+      description: Ideally the conformance runner invocation that shows it — `node tools/conformance/run.mjs --impl ./your-adapter.sh`
       render: shell
   - type: checkboxes
     id: checks

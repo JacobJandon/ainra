@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: Apache-2.0 OR MIT
 # `make conformance` (M24 Task 2) — prove the conformance runner BOTH ways, offline:
-#   1. the three in-repo verdict implementations (Rust core, TS SDK, Python) each pass the FULL public corpus CLEAN,
-#      all reporting the SAME corpus hash;
+#   1. the three in-repo verdict implementations (Rust core, TS SDK, Python) each pass the FULL public corpus CLEAN
+#      (profile `full`: every kind of contract v2), all reporting the SAME corpus hash;
 #   2. a deliberately broken implementation FAILS with named divergences (a conformance tool that cannot fail is
-#      theatre); and
+#      theatre), and a verifier that skips status authentication — the D-072 shape — PASSES profile `core` and
+#      FAILS profile `full` (PLAN-M50 step 3: why the v1 kinds alone were never enough); and
 #   3. the self-attestation roundtrip works: an implementer signs their own report with their OWN ephemeral key and
 #      a re-checker accepts it only after the runner re-runs clean.
 # No network. See docs/conformance/PROGRAMME.md and tools/conformance/CONTRACT.md.
@@ -41,7 +42,7 @@ clean() { # clean <label> <manifest> <impl-command...>
     echo "FAILED (expected clean pass):"; sed 's/^/      /' "$TMP/$label.log"; FAIL=1
   fi
 }
-echo "clean adapters (must PASS, full corpus, 0 divergences):"
+echo "clean adapters (must PASS, profile full, 0 divergences):"
 clean "ainra-core"    Cargo.toml                        bash tools/conformance/adapters/core.sh
 clean "ainra-sdk-ts"  packages/sdk-ts/package.json      node tools/conformance/adapters/sdk.mjs
 clean "ainra-sdk-py"  packages/sdk-py/pyproject.toml    python3 tools/conformance/adapters/py.py
@@ -56,6 +57,29 @@ else
   ndiv="$(node -e 'console.log(JSON.parse(require("fs").readFileSync(process.argv[1])).divergences.length)' "$TMP/broken.json")"
   echo "    ✓ broken adapter correctly FAILED — $ndiv named divergence(s), e.g.:"
   grep -E 'DIVERGENCE' "$TMP/broken.log" | head -2 | sed 's/^/      /'
+fi
+echo ""
+
+# 2b. The D-072 shape: status taken on the presenter's word. Profile `core` cannot see it; profile `full` must.
+echo "status-believing adapter (must PASS core and FAIL full — the D-072 shape):"
+BS="python3 tools/conformance/adapters/broken_status.py"
+if $RUN --impl "$BS" --profile core --name broken-believes-status --version 0.0.0 \
+      --out "$TMP/bs-core.json" >"$TMP/bs-core.log" 2>&1; then
+  echo "    ✓ profile core PASSED it — the v1 kinds hand a verifier its status, so they cannot tell"
+else
+  echo "    ✗ ERROR — profile core failed it; the witness is not the D-072 shape:"; sed 's/^/      /' "$TMP/bs-core.log"; FAIL=1
+fi
+if $RUN --impl "$BS" --profile full --name broken-believes-status --version 0.0.0 \
+      --out "$TMP/bs-full.json" >"$TMP/bs-full.log" 2>&1; then
+  echo "    ✗ ERROR — profile full PASSED a verifier that believes the presenter's status."; FAIL=1
+else
+  nbs="$(node -e 'const r=JSON.parse(require("fs").readFileSync(process.argv[1]));console.log(r.divergences.filter(d=>d.part==="gate").length)' "$TMP/bs-full.json")"
+  if [ "${nbs:-0}" -gt 0 ]; then
+    echo "    ✓ profile full FAILED it — $nbs gate vector(s) named, e.g.:"
+    grep -E 'DIVERGENCE gate/' "$TMP/bs-full.log" | head -2 | sed 's/^/      /'
+  else
+    echo "    ✗ ERROR — profile full failed it, but not on a gate vector:"; sed 's/^/      /' "$TMP/bs-full.log"; FAIL=1
+  fi
 fi
 echo ""
 
@@ -78,7 +102,7 @@ fi
 
 echo "─────────────────────────────────────────────────────────────────────"
 if [ "$FAIL" = "0" ]; then
-  echo "  ✓ conformance OK — runner passes the 3 real impls clean, catches the broken one, attestation round-trips."
+  echo "  ✓ conformance OK — runner passes the 3 real impls clean, catches both broken ones, attestation round-trips."
   exit 0
 else
   echo "  ✗ conformance FAILED — see above."

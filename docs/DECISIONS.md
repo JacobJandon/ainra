@@ -974,6 +974,7 @@ a stranger's registrar can today fail this requirement without the probe noticin
 
 *Status:* NEW. Requirement stated and proven for the reference registrar; third-party probing is not built.
 
+
 ## D-056 — The amendment gate exists primarily against its own author
 
 *Problem:* the charter, the four rules and the constitutional prohibitions change because one person changes them,
@@ -1417,7 +1418,8 @@ decoder now round-trips like `strictB64u`. Negative controls: a lenient decoder 
 *Scope, said plainly:* the conformance programme's contract (`tools/conformance/CONTRACT.md`) is unchanged — outside
 implementers still attest over passport, delta and directory. Adding a family to what third parties sign against
 is a versioned contract change, not a quiet addition. `make diff` is where this family is enforced today. The
-store and send-once layer (D-065) is gate state, not verification, and has no vectors.
+store and send-once layer (D-065) is gate state, not verification, and has no vectors. *Amended 2026-11-03 (D-084):*
+that versioned change has been made; `presentation` is a kind of contract v2's `full` profile.
 
 *Status:* NEW. PLAN-M34 Tasks 3 and 4 done for core, TS and Python; the CLI and the edge gate (Task 5) remain.
 
@@ -1729,7 +1731,8 @@ that found D-072 needs a running network, so it ran only when someone had starte
 
 *Not changed, said plainly:* `vectors/v1-gate` is not yet part of the third-party conformance contract
 (`tools/conformance`), which covers the credential corpus; nor is `vectors/v1-presentation`. The live job has been
-run in its image locally and has not yet run on the hosted runner.
+run in its image locally and has not yet run on the hosted runner. *Amended 2026-11-03 (D-084):* both are kinds of
+contract v2's `full` profile now.
 
 *Status:* NEW. Ships in 0.5.0.
 
@@ -2101,3 +2104,25 @@ deployment's job, and distributing directories is still deployment work (STATUS,
 in `make diff` for the core, TypeScript and Python, in the edge tests through the WASM build, and in CI's
 regenerate-and-compare. Removing the comparison from any one implementation turns e03, e04, e08 and e09 red.
 
+## D-084 — The conformance contract covers what a gate decides: profiles `core` and `full` (M50)
+
+*Problem:* the third-party contract (`tools/conformance`) covered passports, deltas and directories. Those kinds hand a
+verifier its status list as a trusted input, so a verifier that believes the presenter's status passes every one of
+them. D-072, D-074 and D-075 were all that shape, and each lived where the contract did not reach: the gate,
+presentation, link, decision and directory-epoch corpora were held only by `make diff`, which runs our own
+implementations and nobody else's.
+
+*Decision:* contract v2 adds those five corpora as kinds, additively. A run declares a `profile`: `core` is v1's three
+kinds and is still a valid claim (a v1 adapter passes it unchanged); `full`, the default, is every kind. The report is
+`report_version` "2" and names its profile; its corpus hash covers that profile's corpora only, so a `core` result can
+never be presented as a `full` one. A v1 report or attestation has no profile and is read as `core`. Every in-repo
+adapter answers every kind through the same functions `make diff` uses.
+
+*Held to:* `make conformance` runs the core, TypeScript and Python adapters clean in `full`, and runs
+`adapters/broken_status.py` — the real Python verifier with status authentication switched off — which must pass
+`core` and fail `full` on named gate vectors. If `full` ever passes it, or `core` ever fails it, the target goes red.
+
+*Not changed:* the line format, the kinds and shapes of v1, the attestation mechanism, and the rule that the root
+certifies no one.
+
+*Status:* NEW (PLAN-M50 step 3).

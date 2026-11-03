@@ -36,6 +36,17 @@ else {
   else if (bM[1] !== dodM[1] || bM[2] !== dodM[2]) {
     fail(`DOD.md declares laptop=${dodM[1]} external=${dodM[2]} but the board has laptop=${bM[1]} external=${bM[2]} — update docs/DOD.md's DOD-BOARD marker (or the board rows) so they match`);
   } else pass(`DOD.md board counts match the genesis board (laptop=${bM[1]} external=${bM[2]})`);
+  // (2b) the Genesis Day runbook tells the operator what `make genesis-status` reads when the root is founded. It
+  //      said 11/11 for months after the board grew a twelfth row; the total is read from the board, never a literal.
+  const tM = boardOut.match(/total=(\d+)/);
+  const rb = readFileSync(ROOT + "docs/genesis-day/RUNBOOK.md", "utf8");
+  const said = [...rb.matchAll(/genesis-status`\s+reads\s+\**(\d+)\/(\d+)/g)];
+  if (!tM) fail("genesis board --counts printed no total");
+  else if (!said.length) fail("docs/genesis-day/RUNBOOK.md no longer says what `make genesis-status` reads when founded");
+  else for (const m of said) {
+    if (m[1] !== tM[1] || m[2] !== tM[1]) fail(`docs/genesis-day/RUNBOOK.md says genesis-status reads ${m[1]}/${m[2]} but the board has ${tM[1]} rows`);
+  }
+  if (tM && said.length && said.every((m) => m[1] === tM[1] && m[2] === tM[1])) pass(`RUNBOOK.md's founded count matches the board (${tM[1]}/${tM[1]})`);
 }
 
 // (3) Published counts == registry reality. Delegated to the campaign driver so there is ONE implementation of

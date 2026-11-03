@@ -12,7 +12,7 @@ need nobody outside the project and no undecided one-way door. The rest are list
 never matched CI's container (every hash identical, the lines in another order). `make release` refused in CI for
 v0.4.0 through v0.6.0, and those releases have no attached artifacts. `LC_ALL=C` in `tools/repro.sh` and
 `scripts/release.sh`, and the manifest re-sorted. Re-attaching signed artifacts to the existing pages stays with the
-maintainer, who holds the key.
+maintainer, who holds the key. *Done 2026-11-03 for v0.5.0 and v0.6.0 (verified as a downloader would).*
 
 ## The steps
 

@@ -36,8 +36,8 @@ commit each version's board was proven at:
 |---|---|---|---|
 | **v0.2.0** | **`5ae1b12`** | `docs/releases/v0.2.0-board.md` — full 17-row board ALL GREEN from a clean clone | **RELEASED** — signed tag verified (`git verify-tag v0.2.0`), artifacts on the releases page |
 | **v0.3.0** | **`af3c869`** | `docs/releases/v0.3.0-board.md` — full 18-row board (incl. `conformance`, 4-way differential) ALL GREEN from a clean clone | **RELEASED** — signed tag verified, signed artifacts + provenance + SBOM on the releases page |
-| **v0.5.0** | **`e6870bc`** | `docs/releases/v0.5.0-board.md` — full 44-row board ALL GREEN, no skips, from a fresh clone | **TAGGED + PUBLISHED** — signed tag verified (`git verify-tag v0.5.0`), 2026-10-31; `@ainra/sdk`, `@ainra/middleware` and PyPI `ainra` published from the tag with provenance; `@ainra/mcp` 0.5.0 published 2026-11-01 by trusted publishing (its first upload was refused); release page created by the maintainer; **no artifacts attached** — the release workflow first wanted the board inside the tagged tree, then refused on the manifest's locale order (both fixed; re-attaching is the maintainer's step) |
-| **v0.6.0** | **`ed4cfde`** | `docs/releases/v0.6.0-board.md` — full 44-row board ALL GREEN, no skips, from a fresh clone (a first run, stopped by a full disk, was redone) | **TAGGED + PUBLISHED** — signed tag verified (`git -c gpg.ssh.allowedSignersFile=release/tag_signers verify-tag v0.6.0`), 2026-11-03; all four packages published from the tag by trusted publishing; release page created by the maintainer, the repo's Latest; **no artifacts attached** — `make release` refused in CI on the manifest's locale order (fixed after the tag by `LC_ALL=C`; re-attaching is the maintainer's step) |
+| **v0.5.0** | **`e6870bc`** | `docs/releases/v0.5.0-board.md` — full 44-row board ALL GREEN, no skips, from a fresh clone | **TAGGED + PUBLISHED** — signed tag verified (`git verify-tag v0.5.0`), 2026-10-31; `@ainra/sdk`, `@ainra/middleware` and PyPI `ainra` published from the tag with provenance; `@ainra/mcp` 0.5.0 published 2026-11-01 by trusted publishing (its first upload was refused); release page created by the maintainer; signed artifacts (`make release` at the tag, `SHA256SUMS.sig`) attached 2026-11-03 — the release workflow had first wanted the board inside the tagged tree, then refused on the manifest's locale order (both fixed) |
+| **v0.6.0** | **`ed4cfde`** | `docs/releases/v0.6.0-board.md` — full 44-row board ALL GREEN, no skips, from a fresh clone (a first run, stopped by a full disk, was redone) | **TAGGED + PUBLISHED** — signed tag verified (`git -c gpg.ssh.allowedSignersFile=release/tag_signers verify-tag v0.6.0`), 2026-11-03; all four packages published from the tag by trusted publishing; release page created by the maintainer, the repo's Latest; signed artifacts attached 2026-11-03 by `make release` at the tag (CI's release workflow had refused on the manifest's locale order, fixed after the tag by `LC_ALL=C`) |
 
 Never rewrite tagged history: if something must change after a tag, neutralize at the tip (a new commit), never by
 moving or deleting a released tag.
@@ -184,5 +184,6 @@ produces — no trust in the maintainer required. (Signature verification, step 
 ## Status of signing
 Two SSH Ed25519 keys, both pinned in the repository: the release key signs `SHA256SUMS` (`release/allowed_signers`,
 `release/ainra-release.pub`) and the tag key signs tags (`release/tag_signers`); `RELEASE-VERIFY.md` checks both.
-v0.5.0 and v0.6.0 have signed tags but no attached artifacts yet (see the pins above), so for those a downloader has
-step 3 — rebuild from source — which needs no key at all.
+v0.5.0 and v0.6.0 carry `SHA256SUMS.sig` since 2026-11-03 (checked: a good signature from the pinned key, every
+artifact matching its hash). v0.4.0 and v0.4.1 have signed tags but no release page; for those a downloader has step 3
+— rebuild from source — which needs no key at all.

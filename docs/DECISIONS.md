@@ -2266,5 +2266,15 @@ the next epoch and its diff and holds no key; the custodians' threshold signatur
 that makes a draft the directory, and publication refuses anything older than what mirrors hold (D-083). No online root
 key, no root write API, no accounts. This clarifies D-034, it does not amend it: neither tool can do anything to anyone.
 
+*Revised the same day* after a study of how ICANN works (`docs/ICANN-STUDY.md`) and an adversarial review of the
+first design. What changed: a change that moves trust (new keys, a new endpoint) must be signed by an offline approver
+set the registrar declared earlier, so a stolen registrar host cannot roll its own directory keys; each custodian
+fetches and checks the proposal on their own media, never from the coordinator's; a refusal stops signing only when
+fewer than five custodians are willing; the release key is treated as root material, because a release that pins
+different roots is a root change; `ctl` alarms on two authentic directories at one epoch (D-083 accepts epoch ≥
+floor, so this is a new refusal) and on a directory older than the cadence (the freeze attack, which epochs without
+expiry leave open and which this plan names rather than hides); the compliance monitor sits outside the root (P3,
+P4); and one person holds every role until production, which the plan states.
+
 *Status:* PROPOSED — the owner rules. Hosting (PLAN-M52 step 4) is the owner's choice of provider and names.
 

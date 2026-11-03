@@ -12,7 +12,7 @@ the repo. Read it end-to-end once, then run it as a countdown.
 SLH-DSA, ADR-001), a signed production directory, delegate keys, a booted production deployment (separate keys /
 domains / volumes from staging — staging keeps running, TEST-labeled, untouched), the first registrar accreditations
 through the identical public door, witness cosigns on the first production checkpoints, and the start of the 14-day
-soak clock. When the soak completes and `make genesis-status` reads 11/11, the founding declaration publishes
+soak clock. When the soak completes and `make genesis-status` reads 12/12, the founding declaration publishes
 (docs/genesis-day/declaration/, Task 4). **Genesis does NOT require the external-verifier row** — attestations can
 accrue before or after; if fewer than 3 exist on the day, that row simply stays ⏳ and the declaration waits.
 
@@ -104,7 +104,7 @@ reason, reschedule.
 
 - [ ] **Daily** (each day): soak checkpoint review (`make soak-verify` per region), witness health, board watch
       (`make genesis-status`). Record any incident against docs/genesis-day/ABORTS.md (what aborts the clock vs not).
-- [ ] **T+14d:** the signed 14-day / 3-region soak report is complete → `make genesis-status` reads **11/11** →
+- [ ] **T+14d:** the signed 14-day / 3-region soak report is complete → `make genesis-status` reads **12/12** →
       run the declaration pipeline (`make declaration`). It renders + publishes **only** if every claim resolves to
       a real artifact (Task 4). If the external-verifier row is still ⏳, the declaration waits for it — genesis is
       real regardless; the declaration is the honest summary of what is proven.

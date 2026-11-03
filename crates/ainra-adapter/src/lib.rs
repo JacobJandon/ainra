@@ -1905,6 +1905,14 @@ fn head_of(
 }
 
 /// [`gate_vector_result`] from JSON text, for hosts that must never panic (the WASM boundary).
+/// [`currency_vector_result`] over JSON text — what the WASM build calls, so the parsing stays here (L5).
+pub fn run_currency_vector_json(vector_json: &str) -> String {
+    serde_json::from_str::<serde_json::Value>(vector_json)
+        .map(|v| currency_vector_result(&v))
+        .unwrap_or_else(|_| json!({ "verdict": "no_gate" }))
+        .to_string()
+}
+
 pub fn run_gate_vector_json(vector_json: &str) -> String {
     serde_json::from_str::<serde_json::Value>(vector_json)
         .map(|v| gate_vector_result(&v))

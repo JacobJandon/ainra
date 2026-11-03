@@ -165,9 +165,7 @@ pub fn credential_currency(
 #[cfg(feature = "edge")]
 #[wasm_bindgen]
 pub fn run_currency_vector(vector_json: &str) -> String {
-    serde_json::from_str::<serde_json::Value>(vector_json)
-        .map(|v| ainra_adapter::currency_vector_result(&v).to_string())
-        .unwrap_or_else(|_| r#"{"verdict":"no_gate"}"#.to_string())
+    ainra_adapter::run_currency_vector_json(vector_json)
 }
 
 /// The digest that names a bundle's stable part (D-065), or an empty string for anything unreadable.

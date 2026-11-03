@@ -55,7 +55,7 @@ unreleased anywhere, the drill count must agree everywhere, and a mirror must ke
 fixture with a tagged version still called unreleased, and one with `&lt;` in a heading, must each go red. The
 regenerated site mirror is committed; deploying it is the owner's step.
 
-**7. Deno and Bun run in CI, with no SKIP.** The edge gate is tested in Node and workerd; Deno and Bun are skipped and
+**7. Deno and Bun run in CI, with no SKIP.** *Done 2026-11-03.* The edge gate is tested in Node and workerd; Deno and Bun are skipped and
 the run stays green. Pinned runtimes and SHA-pinned setup actions; `REQUIRE_ALL_RUNTIMES=1` turns a missing runtime
 red. WITNESS: with Bun off the path and the flag set, the target fails. Run from a clean clone in the CI image before
 pushing.

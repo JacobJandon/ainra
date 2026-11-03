@@ -236,12 +236,9 @@ edge-test: sdk-build edge-build
 	cd packages/edge && node --test test/*.test.mjs
 # The claim "runs in Deno, Bun, Node and the workerd runtime" is these four passing — each runtime's own Request, WebAssembly
 # and atob, no shims. A runtime not installed here is reported SKIPPED, never counted as passing.
+# Node, Deno, Bun, then workerd. REQUIRE_ALL_RUNTIMES=1 (as CI runs it) turns a missing runtime red instead of SKIPPED.
 edge-runtimes: sdk-build edge-build
-	cd packages/edge && { [ -d node_modules ] || npm install --no-audit --no-fund --silent; } && \
-	  node runtimes/check.mjs && \
-	  { command -v deno >/dev/null && deno run --allow-read runtimes/check.mjs || echo "  SKIPPED deno (not installed)"; } && \
-	  { command -v bun >/dev/null && bun runtimes/check.mjs || echo "  SKIPPED bun (not installed)"; } && \
-	  node runtimes/workerd.mjs
+	@bash tools/edge-runtimes.sh
 edge-e2e: sdk-build edge-build
 	AINRA_REGISTRAR=http://127.0.0.1:4970 node tools/identity-e2e.mjs --edge
 

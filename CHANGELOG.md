@@ -80,6 +80,14 @@ We **publicly own fixed security bugs** — hiding them would be the opposite of
   `tools/live-drills.sh` runs; every site mirror keeps every heading. Its four negative controls run on every
   invocation; the `&lt;` one was shown to catch the old mirror code.
 
+### Changed — Deno and Bun run in CI, with no SKIP (PLAN-M50 step 7)
+
+- CI's edge job installs Deno 2.9.7 and Bun 1.3.2 (setup actions pinned by commit) and runs `make edge-runtimes` with
+  `REQUIRE_ALL_RUNTIMES=1`: the gate's checks in Node, Deno, Bun and workerd, and a missing runtime is red. Locally,
+  without the flag, an absent runtime is still reported SKIPPED.
+- `make edge-runtimes` printed "SKIPPED" for a runtime that was installed and **failed** (`a && b || echo SKIPPED`);
+  `tools/edge-runtimes.sh` runs an installed runtime as a check, and only an absent one can be skipped.
+
 ## [0.6.0] — 2026-11-02
 
 The release commit; its board is `docs/releases/v0.6.0-board.md`. Tagged (signed) at `ed4cfde` on 2026-11-03 and

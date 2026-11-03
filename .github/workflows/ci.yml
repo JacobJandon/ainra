@@ -248,9 +248,19 @@ jobs:
       - run: cd packages/sdk-ts && npm ci && npm run build
       - name: both page engines give one answer
         run: node tools/engine-parity.mjs
-      # PLAN-M34 Task 5 / D-068: the edge engine (ainra-wasm --features edge), its tests, and the gate run INSIDE
-      # the workerd runtime. Deno and Bun are not installed here; `make edge-runtimes` reports them SKIPPED.
-      - name: the edge gate — build, test, and run it inside workerd
+      # PLAN-M50 step 7: Deno and Bun are installed, pinned, so the gate's "runs in Deno and Bun" is checked on every
+      # push; REQUIRE_ALL_RUNTIMES=1 makes a missing runtime red rather than SKIPPED.
+      - uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2.0.5
+        with:
+          deno-version: "2.9.7"
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: "1.3.2"
+      # PLAN-M34 Task 5 / D-068: the edge engine (ainra-wasm --features edge), its tests, and the gate run in Node,
+      # Deno, Bun and INSIDE the workerd runtime.
+      - name: the edge gate — build, test, and run it in Node, Deno, Bun and workerd
+        env:
+          REQUIRE_ALL_RUNTIMES: "1"
         run: |
           (cd packages/middleware && npm install && npm run build)
           make edge-test

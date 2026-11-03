@@ -50,7 +50,8 @@ A presenter can't loosen any of these (D-068, D-072).
   credential verdict equals what the independently written `@ainra/sdk` gives on the same bundle and clock. An `F3`
   bundle checked an hour later is `stale_status` under the gate's `F2`. Only verified bundles are stored.
 - **`make edge-runtimes`:** the same checks under Deno, Bun, Node and inside the workerd runtime itself (the WASM
-  loaded as a compiled module, like a deployed worker). A runtime that isn't installed is reported SKIPPED.
+  loaded as a compiled module, like a deployed worker). A runtime that isn't installed is reported SKIPPED, except
+  with `REQUIRE_ALL_RUNTIMES=1` — how CI runs it, with Deno and Bun pinned — where a missing runtime is red.
 - **`make edge-e2e`:** the whole journey against the live registrar, served by this gate:
   - the agent's own key, a passport, an instance credential;
   - send-once 201;

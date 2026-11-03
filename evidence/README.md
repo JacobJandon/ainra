@@ -1,13 +1,15 @@
 <!-- SPDX-License-Identifier: Apache-2.0 OR MIT -->
 # Intake — how strangers hand us evidence
 
-Three Definition-of-Done rows in `docs/DOD.md` can only be moved by people who are not us. This directory is how
+Several Definition-of-Done rows in `docs/DOD.md` can only be moved by people who are not us. This directory is how
 their artifacts arrive: **as a pull request that verifies itself in CI.**
 
 | You want to | Submit | CI does | The row moves when |
 |---|---|---|---|
 | Prove you verified AINRA independently | `evidence/verifier/<your-id>.json` | public checks (signature, shape, corpus hashes, nonce) | **≥3 distinct valid attestations**, each confirmed against the maintainer's private answer key |
 | Run a witness | `evidence/witness/<candidate-id>.json` | shape check + a probe of your declared endpoint | never automatically — candidacies are candidacies |
+| Show what your witness signed | `evidence/cosignatures/<name>.json` | nothing; `make genesis-status` verifies it | **≥3 distinct outside keys** cosigning one checkpoint the log signed |
+| Rebuild a release yourself | `evidence/rebuild/<your-id>.json` | nothing; `make genesis-status` verifies it | one signed statement whose manifest digest matches the tag |
 | Hold a custodian share | (no file) — the ceremony packet | nothing; it is a conversation | at the recorded ceremony |
 
 **Nothing here flips a DoD row.** CI validates the *public* half of a submission. The decisive check — that you
@@ -64,6 +66,32 @@ present, and checks cosign capability against the staging network. The probe res
 
 Accepted candidacies land in `witnesses/candidates.json`, **clearly marked candidate-not-production**. A witness
 becomes production only through the ceremony/charter process — never by merging a file.
+
+### Cosignatures (`evidence/cosignatures/`)
+
+A candidacy is a witness offering to run. What moves the board's witness row is what a running witness **signed**:
+one file per cosignature, `{ "witness_key", "checkpoint": {origin, size, root}, "checkpoint_sig", "cosignature",
+"observed_at" }` — the checkpoint and its signature exactly as the registrar served them, your Ed25519 key
+(base64url), and your signature over the checkpoint's canonical bytes. `make genesis-status` counts **distinct keys
+over one checkpoint** that the registrar's log really signed (checked against the root-signed directory in
+`evidence/anchors/`), and never a key the project runs (`witnesses/project-keys.json`). Three cosignatures from one key
+are one witness. `evidence/anchors/` holds the published directory and the ceremony's root keys (`roots.json`); a
+change to it changes what every cosignature is checked against, so it is reviewed as a change to the roots, never
+merged as part of a submission.
+
+## 2b. An outside rebuild (`evidence/rebuild/`)
+
+Rebuild a tagged release on your own machine and sign what you got:
+
+```sh
+git checkout v0.6.0 && make repro
+node tools/genesis-board/rebuild-statement.mjs --tag v0.6.0 --key my-rebuild.pem --keygen --builder "<who you are>"
+```
+
+Submit `rebuild-statement.json` as `evidence/rebuild/<your-id>.json`. It counts when its signature verifies, your key
+is not one the project signs with, and its manifest digest equals the one computed from `MANIFEST.sha256` at that tag
+(lines sorted bytewise, so your locale cannot change it). It proves your rebuild reproduced the published artifacts
+byte for byte; it does not prove your toolchain is independent of ours.
 
 ## 3. Custodian interest
 

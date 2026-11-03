@@ -77,7 +77,7 @@ room** is built and smoke-proven, and the **genesis board** shows exactly how fa
 make genesis-status   # the honest §29 DoD board — a row is ✅ ONLY when a signature-checked artifact backs it
 ```
 
-Today that board reads **7/11** — the 7 laptop-provable rows are green; the 4 external rows are ⏳ pending real people
+Today that board reads **7/12** — the 7 laptop-provable rows are green; the 5 external rows are ⏳ pending real people
 running the events (see [outreach/](outreach/), [docs/DOD.md](docs/DOD.md), [GENESIS-CHECKLIST.md](GENESIS-CHECKLIST.md)).
 
 > Nothing here is asserted; if it says green, a `make` target proves it. Logs sealed by the real root: **0** — the

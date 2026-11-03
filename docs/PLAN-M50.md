@@ -40,7 +40,7 @@ valid) or `full`. WITNESS: an adapter that skips status authentication — the D
 mint an instance credential under an old generation, revoke the lineage: every generation and its instance credentials
 must read revoked. WITNESS: a dishonest registrar mode that flips only the newest generation's bit must be caught.
 
-**5. The genesis board counts witnesses and outside rebuilds from evidence.** The witness row is a literal ⏳ that
+**5. The genesis board counts witnesses and outside rebuilds from evidence.** *Done 2026-11-03.* The witness row is a literal ⏳ that
 nothing can turn, and the definition of done's "an outsider rebuilds the root from public artifacts" has no row at
 all. Evidence intakes: cosignatures from at least three distinct keys outside the project over a real checkpoint, and
 a signed rebuild statement whose manifest digest matches. WITNESS: three cosignatures from one key, or from a project

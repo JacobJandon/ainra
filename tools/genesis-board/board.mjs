@@ -7,20 +7,32 @@
 // backs it; otherwise it stays ⏳ with the honest current count. Nothing is asserted; every number is measured from an
 // artifact. Local, zero-telemetry, no network — same posture as the rest of the repo.
 //
-//   node tools/genesis-board/board.mjs [--evidence <dir>] [--html <out.html>]
+//   node tools/genesis-board/board.mjs [--evidence <dir>] [--html <out.html>] [--project-keys <file>]
 //
 // Evidence layout (all optional — absent means "⏳, 0 so far", which is the honest state today):
 //   <evidence>/verifiers/<name>/{attestation.json, secret.json}   ← one per external verifier
 //   <evidence>/ceremony/{transcript.json, transcript.sha256}
 //   <evidence>/soak/<region>/{soak-report.json, soak-log.jsonl}
+//   <evidence>/anchors/{directory.json, roots.json} + <evidence>/cosignatures/<name>.json   ← witness cosignatures
+//   <evidence>/rebuild/<name>.json                                                          ← an outsider's rebuild
 
 import { readFileSync, existsSync, readdirSync, writeFileSync } from "node:fs";
 import { createHash, createPublicKey, verify as edVerify } from "node:crypto";
+import { execFileSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 
 const A = (n, d) => { const i = process.argv.indexOf(`--${n}`); return i >= 0 && i + 1 < process.argv.length ? process.argv[i + 1] : d; };
 const EV = A("evidence", "genesis-evidence");
 const HTML = A("html", "genesis-board.html");
-const SOAK_SLO_SEC = 60, SOAK_DAYS = 14, SOAK_REGIONS = 3, VERIFIERS_REQUIRED = 3;
+const SOAK_SLO_SEC = 60, SOAK_DAYS = 14, SOAK_REGIONS = 3, VERIFIERS_REQUIRED = 3, WITNESSES_REQUIRED = 3;
+const ROOT = fileURLToPath(new URL("../../", import.meta.url));
+// Keys the project operates (witnesses/project-keys.json). Read from the repository, never from the evidence, so a
+// submission cannot take a project key off the list. Anything under one of these is the project vouching for itself.
+const PROJECT = (() => {
+  // --project-keys exists for the board's own demo (a list naming a key the demo holds); the default is the repo's.
+  // Unreadable ⇒ null ⇒ nothing in the witness or rebuild rows counts: an empty list would count our own keys.
+  try { return JSON.parse(readFileSync(A("project-keys", `${ROOT}witnesses/project-keys.json`), "utf8")); } catch { return null; }
+})();
 const sha = (b) => createHash("sha256").update(b).digest("hex");
 function canonicalJSON(v) {
   if (v === null || typeof v !== "object") return JSON.stringify(v);
@@ -102,6 +114,68 @@ function checkSoak(region) {
   } catch (e) { return { region, present: true, valid: false, error: e.message }; }
 }
 
+// ── witness cosignatures (PLAN-M50 step 5) ─────────────────────────────────────────────────────────────────────────
+// A cosignature counts only if (1) the checkpoint it covers verifies as signed by an accredited registrar's log
+// (@ainra/sdk verifyLogCheckpoint, against the anchors' root-signed directory, at the cosignature's observed_at),
+// (2) the Ed25519 cosignature verifies over that checkpoint's canonical bytes, and (3) the key is not one the project
+// runs. The row counts DISTINCT outside keys over ONE checkpoint: three cosignatures from one key are one witness.
+async function checkCosignatures() {
+  const names = files(`${EV}/cosignatures`, ".json");
+  if (!names.length) return { present: false, best: 0, project: 0, rejected: 0 };
+  let sdk = null;
+  try { sdk = await import(new URL("../../packages/sdk-ts/dist/index.js", import.meta.url)); } catch { /* reported below */ }
+  let d = null, r = null;
+  try { d = JSON.parse(readFileSync(`${EV}/anchors/directory.json`, "utf8")); r = JSON.parse(readFileSync(`${EV}/anchors/roots.json`, "utf8")); } catch { /* */ }
+  if (!PROJECT || !sdk?.verifyLogCheckpoint || !d || !r) {
+    return { present: true, best: 0, project: 0, rejected: names.length,
+      unverifiable: !PROJECT ? "the project key list is unreadable" : !sdk?.verifyLogCheckpoint ? "the SDK is not built (make sdk-build)" : "no anchors/directory.json + roots.json" };
+  }
+  const project = new Set(PROJECT.witness_ed25519 || []);
+  const byCheckpoint = new Map();
+  let projectKeys = 0, rejected = 0;
+  for (const n of names) {
+    try {
+      const c = JSON.parse(readFileSync(`${EV}/cosignatures/${n}`, "utf8"));
+      const cp = c.checkpoint || {};
+      const at = c.observed_at;
+      if (!Number.isSafeInteger(at) || at < 0 || at > Math.floor(Date.now() / 1000) + 300) throw new Error("observed_at");
+      const reg = sdk.verifyLogCheckpoint(d, Buffer.from(r.root_ed25519, "base64url"), Buffer.from(r.root_slh, "base64url"), cp, c.checkpoint_sig, at);
+      if (!reg) throw new Error("not a log-signed checkpoint");
+      const sig = Buffer.from(String(c.cosignature), "base64url");
+      const pub = createPublicKey({ key: { kty: "OKP", crv: "Ed25519", x: String(c.witness_key) }, format: "jwk" });
+      const msg = Buffer.from(canonicalJSON({ origin: cp.origin, root: cp.root, size: cp.size }));
+      if (sig.length !== 64 || !edVerify(null, msg, pub, sig)) throw new Error("cosignature");
+      if (project.has(c.witness_key)) { projectKeys++; continue; }
+      const k = `${cp.origin} ${cp.size} ${cp.root}`;
+      if (!byCheckpoint.has(k)) byCheckpoint.set(k, new Set());
+      byCheckpoint.get(k).add(c.witness_key);
+    } catch { rejected++; }
+  }
+  const best = Math.max(0, ...[...byCheckpoint.values()].map((s) => s.size));
+  return { present: true, best, project: projectKeys, rejected };
+}
+
+// ── an outsider's rebuild (PLAN-M50 step 5) ────────────────────────────────────────────────────────────────────────
+// A statement signed by the rebuilder's own Ed25519 key, naming a tag and the digest of the manifest their rebuild
+// wrote. The digest is over the manifest's lines sorted bytewise, so a rebuild's locale cannot change it (the v0.6.0
+// lesson). It counts if the signature verifies, the key is not one the project signs with, and the digest equals the
+// one this repository computes from MANIFEST.sha256 at that tag.
+const manifestDigest = (text) => sha(text.split("\n").filter(Boolean).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)).join("\n") + "\n");
+function checkRebuild(file) {
+  try {
+    const st = JSON.parse(readFileSync(`${EV}/rebuild/${file}`, "utf8"));
+    const body = st.body || {};
+    if (body.statement !== "ainra-rebuild-1" || !/^v\d+\.\d+\.\d+$/.test(String(body.tag))) throw new Error("shape");
+    const pub = createPublicKey({ key: Buffer.from(body.builder_pubkey_spki_b64 || "", "base64"), format: "der", type: "spki" });
+    const sigOk = edVerify(null, Buffer.from(canonicalJSON(body)), pub, Buffer.from(st.sig_ed25519_b64 || "", "base64"));
+    const tagged = execFileSync("git", ["-C", ROOT, "show", `${body.tag}:MANIFEST.sha256`], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
+    if (!PROJECT) throw new Error("the project key list is unreadable");
+    const project = (PROJECT.rebuild_spki || []).includes(body.builder_pubkey_spki_b64);
+    return { name: file, tag: body.tag, key: body.builder_pubkey_spki_b64, project,
+      valid: sigOk && !project && body.manifest_sha256 === manifestDigest(tagged) };
+  } catch (e) { return { name: file, valid: false, error: e.message }; }
+}
+
 // ── gather ──────────────────────────────────────────────────────────────────────────────────────────────────────
 // Durable per-party evidence (the operator flow, evidence/verifier/*.json) + the legacy demo layout.
 const verifiers = [...files(`${EV}/verifier`, ".json").map(checkVerifierEvidence), ...dir(`${EV}/verifiers`).map(checkVerifier)];
@@ -113,6 +187,10 @@ const validSoaks = soaks.filter((s) => s.valid);
 const soakRegions = new Set(validSoaks.map((s) => s.region)).size;
 const soakDays = validSoaks.length ? Math.max(...validSoaks.map((s) => s.days)) : 0;
 const soakAllPass = validSoaks.length >= SOAK_REGIONS && validSoaks.every((s) => s.pass);
+const cosigs = await checkCosignatures();
+const rebuilds = files(`${EV}/rebuild`, ".json").map(checkRebuild);
+const validRebuilds = rebuilds.filter((b) => b.valid);
+const rebuildKeys = new Set(validRebuilds.map((b) => b.key)).size;
 
 // ── DoD rows (§29). "laptop" rows are proven by the repo's own committed gates (make preflight is ALL GREEN); ────────
 // "external" rows are computed ONLY from verified artifacts above — no artifact ⇒ ⏳, never a fake ✅.
@@ -133,7 +211,19 @@ const rows = [
   ["external", `14-day / ${SOAK_REGIONS}-region soak (p95 < ${SOAK_SLO_SEC}s)`,
     soakAllPass && soakDays >= SOAK_DAYS ? "✅" : "⏳",
     validSoaks.length ? `${soakRegions}/${SOAK_REGIONS} regions · day ${soakDays.toFixed(1)} of ${SOAK_DAYS} · p95 ${validSoaks.map((s) => (Number.isFinite(s.p95) ? s.p95.toFixed(2) + "s" : "MISS")).join("/")}` : "no soak reports yet"],
-  ["external", "Independent witnesses on separate infra", "⏳", "machinery: kits/witness (make drill-networked proves the mechanism)"],
+  // "Independent cosignatures observed", never "quorum constituted": a quorum is constituted through the charter,
+  // and this row can only count what it can verify.
+  ["external", "Independent witnesses on separate infra",
+    cosigs.best >= WITNESSES_REQUIRED ? "✅" : "⏳",
+    cosigs.present
+      ? (cosigs.unverifiable ? `cosignatures present but unverifiable: ${cosigs.unverifiable}`
+        : `${cosigs.best}/${WITNESSES_REQUIRED} independent cosignatures observed over one log-signed checkpoint (${cosigs.project} under project keys not counted, ${cosigs.rejected} rejected)`)
+      : "no cosignatures yet · machinery: kits/witness (make drill-networked proves the mechanism)"],
+  ["external", "An outsider rebuilds a release from public artifacts",
+    rebuildKeys >= 1 ? "✅" : "⏳",
+    rebuilds.length
+      ? `${rebuildKeys} outside rebuilder(s) whose signed manifest digest matches the tag (${rebuilds.length - validRebuilds.length} rejected)`
+      : "no rebuild statement yet · tools/genesis-board/rebuild-statement.mjs after make repro at a tag"],
 ];
 
 // --counts: emit the STRUCTURAL row counts (independent of evidence) so the docs-vs-reality check can pin them to DOD.md.
@@ -152,7 +242,7 @@ console.log("─".repeat(78));
 for (const [type, crit, status, note] of rows) console.log(`  ${status}  ${crit.padEnd(42)} ${note}`);
 console.log("─".repeat(78));
 console.log(`  ${done}/${rows.length} criteria proven.  ${founded ? "ROOT FOUNDED — every row backed by a verified artifact." : "PENDING — external events still needed (see GENESIS-CHECKLIST.md)."}`);
-console.log(`  External evidence: ${distinctKeys} verifier(s), ceremony ${ceremony.present ? (ceremony.valid ? "verified" : "INVALID") : "none"}, soak ${validSoaks.length} region-run(s).\n`);
+console.log(`  External evidence: ${distinctKeys} verifier(s), ceremony ${ceremony.present ? (ceremony.valid ? "verified" : "INVALID") : "none"}, soak ${validSoaks.length} region-run(s), ${cosigs.best} independent witness key(s) on one checkpoint, ${rebuildKeys} outside rebuild(s).\n`);
 
 // ── HTML board (static, self-contained, no telemetry) ──────────────────────────────────────────────────────────
 const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));

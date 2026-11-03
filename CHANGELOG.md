@@ -45,6 +45,20 @@ We **publicly own fixed security bugs** — hiding them would be the opposite of
 - **`make probe-drill` catches a fifth dishonest registrar:** the real daemon built with the `drill-sabotage` feature
   (fault injection, in no published build), restarted on its own state. A proxy could not fake it: the list is signed.
 
+### Added — the genesis board counts witnesses and outside rebuilds from evidence (PLAN-M50 step 5)
+
+- **The witness row moves on evidence.** It was a literal ⏳ nothing could turn. It now counts distinct witness keys
+  cosigning one checkpoint the registrar's log signed (`evidence/cosignatures/`, checked against the root-signed
+  directory in `evidence/anchors/`), never a key in the new `witnesses/project-keys.json`. It says "independent
+  cosignatures observed", never "quorum constituted".
+- **A new row: an outsider rebuilds a release.** `tools/genesis-board/rebuild-statement.mjs` signs what a rebuild at
+  a tag produced; the board counts a statement whose manifest digest matches the tag's (lines sorted bytewise, so a
+  locale cannot change it). The board has 12 rows; `docs/DOD.md` says so.
+- **`verifyLogCheckpoint`** in `@ainra/sdk`: which accredited registrar's log signed a checkpoint, or `null`.
+- `make genesis-board-demo` proves both rows refuse: one key three times, a project key, a checkpoint the log never
+  signed, an unreadable key list, a rebuild under a project key, a rebuild that produced something else. The demo had
+  been red since M35 closed tokenless writes; it sets the loopback-drill flag now.
+
 ## [0.6.0] — 2026-11-02
 
 The release commit; its board is `docs/releases/v0.6.0-board.md`. Tagging and publishing to npm and PyPI are the

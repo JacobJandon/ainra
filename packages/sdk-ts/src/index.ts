@@ -1527,6 +1527,34 @@ export function verifyDirectoryAtLeast(d: WireDirectory, rootEd25519: Uint8Array
   return { ok: true, accredited: acc };
 }
 
+/** Which accredited registrar's log signed this checkpoint, or `null` (PLAN-M50 step 5). The directory is verified
+ *  against both roots; the checkpoint's origin must be `ainra-log/<registrar>`; its signature must verify under that
+ *  registrar's log root key at `now` (either ADR-002 mode); and a delegate the directory revokes signs nothing. What
+ *  the genesis board uses to count a witness cosignature only over a checkpoint the log really signed. */
+export function verifyLogCheckpoint(
+  d: WireDirectory,
+  rootEd25519: Uint8Array,
+  rootSlh: Uint8Array,
+  checkpoint: { origin: string; size: number; root: string },
+  checkpointSig: WireCheckpointSig,
+  now: number,
+): string | null {
+  const acc = verifyDirectory(d, rootEd25519, rootSlh);
+  if (acc === null || typeof checkpoint?.origin !== "string" || !checkpoint.origin.startsWith("ainra-log/")) return null;
+  const registrar = checkpoint.origin.slice("ainra-log/".length);
+  if (!Object.hasOwn(acc.anchors, registrar) || !isU64(checkpoint.size) || !isU64(now)) return null;
+  try {
+    if (dec(checkpoint.root).length !== 32) return null;
+    const sig = decodeCheckpointSig(checkpointSig);
+    if (!verifyCheckpointSig(acc.anchors[registrar].logRootKey, { origin: checkpoint.origin, rootB64: checkpoint.root, size: checkpoint.size }, sig, now))
+      return null;
+    if (sig.mode === "delegate" && acc.revokedDelegates.has(certFingerprintB64(sig.cert))) return null;
+  } catch {
+    return null;
+  }
+  return registrar;
+}
+
 /** What a long-lived verifier keeps between directory refreshes: the highest epoch it has accepted. Hand it each new
  *  directory; it refuses anything older than what it already accepted. A restart starts again from `minEpoch` —
  *  persisting the floor across restarts is the deployment's job. */

@@ -225,7 +225,7 @@ the cold-clone green/red board and `make audit` gates S7+license+gitleaks. (2) *
 (verifier `QUICKSTART`+`TROUBLESHOOTING`+`make verify-as-external`+`verifier-triple-drill`; ceremony role-split RUNBOOK
 + `ceremony-checklist.json` + `verify-transcript`; soak `DEPLOY` + `make soak-verify`). (3) **Genesis board**
 (`tools/genesis-board/`, `make genesis-status`): verifies collected attestations/transcript/soak-reports and renders
-the §29 table — ✅ only with a signature-checked artifact; today **7/11** (laptop rows green, external rows ⏳ pending
+the §29 table — ✅ only with a signature-checked artifact; today **7/12** (laptop rows green, external rows ⏳ pending
 real people). (4) **`outreach/`** — plain, no-hype, no-brand calls for verifiers, witnesses, custodians. Every M10
 acceptance green from a fresh clone; the front door (README) and this file are kept in sync by
 `tools/status-consistency.mjs`. See D-025 + `_archive/plans/PLAN-M10.md`.

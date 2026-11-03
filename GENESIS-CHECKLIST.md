@@ -56,7 +56,10 @@ Nothing here is faked. A step is ✅ only when its artifact exists and independe
 - [ ] ≥3 `witnessd` run by separate operators (TLS-fronted); a relying party assembles a quorum certificate over the
   network; an injected fork is refused by their quorum, not by us.
 - **Proof:** a signed quorum certificate for the honest head + a refused fork, verifiable against the published
-  witness roster (`kits/witness/`).
+  witness roster (`kits/witness/`). The board's row turns on `evidence/cosignatures/`: at least three distinct
+  witness keys, none in `witnesses/project-keys.json`, cosigning one checkpoint the registrar's log signed (verified
+  against the root-signed directory in `evidence/anchors/`). It reads "independent cosignatures observed" — a quorum
+  is constituted through the charter, not by a file.
 - **Also gates something later:** witness cosignatures are the only evidence available to us that a *new* root is
   being honoured — the charter forbids the telemetry that would tell us directly. So a root roll cannot be
   scheduled before this row is ✅ ([`docs/genesis-day/ROLLBACK.md`](docs/genesis-day/ROLLBACK.md)).
@@ -82,7 +85,7 @@ Nothing here is faked. A step is ✅ only when its artifact exists and independe
 | Offline / external verify (root dark) | ✅ | `make genesis-local` stage 3; `kits/verifier/` |
 | Revocation fails closed (< 60 s class) | ✅ (local) / ⏳ (p95×3-region×14d) | `make genesis-local` stage 4; step 5 `soak-report.json` |
 | Injected fork caught by witnesses, not us | ✅ (in-proc + networked) / ⏳ (independent operators) | `make drill` / `make drill-networked`; step 4 |
-| Outsider forks the root from public artifacts | ✅ (machinery) / ⏳ (3rd-party infra) | `make repro` / `make verify-mirror`; a 3rd-party rebuild |
+| Outsider forks the root from public artifacts | ✅ (machinery) / ⏳ (3rd-party infra) | `make repro` / `make verify-mirror`; a 3rd-party rebuild statement in `evidence/rebuild/` whose manifest digest matches the tag |
 | ≥3 external verifiers | ⏳ | step 3 — three passing `verifier-attestation.json`, distinct keys |
 | Recorded ceremony + 14-day soak | ⏳ | steps 2 + 5 — recording + transcript; regional soak-reports |
 | Registrar compliance measured from outside, not reported | ✅ (instrument) / ⏳ (a second registrar to point it at) | `make probe-drill` — honest registrar COMPLIANT, five dishonest ones caught ([D-046](docs/DECISIONS.md), [docs/PROBES.md](docs/PROBES.md)) |

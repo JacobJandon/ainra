@@ -67,6 +67,10 @@ saveFloor(holder.floor());                      // persisting it across restarts
 `verifyDirectoryAtLeast(directory, rootEd25519, rootSlh, minEpoch)` is the one-shot form. Held to
 `vectors/v1-directory-epoch` with the Rust core and the Python package.
 
+`verifyLogCheckpoint(directory, rootEd25519, rootSlh, checkpoint, checkpointSig, now)` answers which accredited
+registrar's log signed a checkpoint, or `null` — what a witness, or anyone counting witnesses, checks before a
+cosignature means anything.
+
 ## Replaying the test vectors is a different import
 
 ```ts

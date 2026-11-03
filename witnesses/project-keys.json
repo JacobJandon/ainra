@@ -1,0 +1,7 @@
+{
+  "_comment": "Keys this project operates, published so that the genesis board never counts them as independent (PLAN-M50 step 5). A cosignature or rebuild statement under any key here is the project vouching for itself. witness_ed25519: base64url raw Ed25519 public keys of witnesses we run (the staging witness, GET 127.0.0.1:4991/root). rebuild_spki: base64 SPKI DER Ed25519 keys we sign rebuild statements with (none). Adding a key we operate is mandatory; removing one requires a dated entry in docs/DECISIONS.md.",
+  "witness_ed25519": [
+    "bP50-yrkzS4TPDB5Flj-QB4y14OHXuXnx4NIpV0-Dus"
+  ],
+  "rebuild_spki": []
+}

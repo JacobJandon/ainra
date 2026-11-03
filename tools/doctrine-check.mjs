@@ -111,7 +111,7 @@ if (witnesses === 0) {
 } else ok(`honest zero         not applicable — witness operators is ${witnesses}, not zero`);
 
 // ── 5. DoD PROSE MATCHES THE DERIVED TRUTH ───────────────────────────────────────────────────────────────────
-// `genesis-status` derives 7/11 from evidence and is safe. docs/DOD.md is a hand-maintained TABLE, and
+// `genesis-status` derives its count from evidence and is safe. docs/DOD.md is a hand-maintained TABLE, and
 // hand-maintained is future-false: flipping "≥3 external verifiers" from pending to ✓ left the derived count
 // correct and the published table lying, with status-consistency reporting "in lockstep".
 {

@@ -20,6 +20,16 @@ pub struct Witness {
     /// The log's own SLH-DSA root public key, per origin — a witness cosigns only checkpoints the LOG itself
     /// signed (registered on first contact; a real witness gets this from the log's accreditation).
     log_keys: std::collections::BTreeMap<String, Vec<u8>>,
+    /// Fingerprints of delegate certs the root-signed directory revokes: a revoked delegate signs no checkpoint this
+    /// witness will cosign, exactly as no verifier accepts one (PLAN-M51 review).
+    revoked_delegates: BTreeSet<[u8; 32]>,
+}
+
+/// A witness's durable memory ([`Witness::state`]): plain data, so the daemon chooses how to store it.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct WitnessState {
+    pub seen: std::collections::BTreeMap<String, (u64, [u8; 32])>,
+    pub log_keys: std::collections::BTreeMap<String, Vec<u8>>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -42,6 +52,7 @@ impl Witness {
             key,
             seen: std::collections::BTreeMap::new(),
             log_keys: std::collections::BTreeMap::new(),
+            revoked_delegates: BTreeSet::new(),
         }
     }
 
@@ -49,10 +60,53 @@ impl Witness {
         self.key.public()
     }
 
-    /// Register the SLH-DSA root key a given log signs its checkpoints with. A real witness learns this from the
-    /// log's accreditation; here it is set explicitly so the witness can authenticate what it cosigns.
+    /// Register the SLH-DSA root key a given log signs its checkpoints with — ONCE. A real witness learns it from
+    /// the root-signed directory (`witnessd` with `directory` + `roots` configured); without one, the first key a
+    /// log presents is the one it is held to. A later, different key for the same origin is ignored: before PLAN-M51's
+    /// witness work this overwrote, so whoever called `/consider` next could swap the key a log was checked against.
     pub fn register_log(&mut self, origin: &str, log_root_key: Vec<u8>) {
-        self.log_keys.insert(origin.to_string(), log_root_key);
+        self.log_keys
+            .entry(origin.to_string())
+            .or_insert(log_root_key);
+    }
+
+    /// What this witness must remember across a restart: per origin, the last head it cosigned, and the log key it
+    /// holds that log to. A witness that forgets trusts the next checkpoint on first sight — a fork included.
+    pub fn state(&self) -> WitnessState {
+        WitnessState {
+            seen: self.seen.clone(),
+            log_keys: self.log_keys.clone(),
+        }
+    }
+
+    /// Restore [`Self::state`] saved by an earlier run (keys already registered stay as they are).
+    pub fn restore(&mut self, s: WitnessState) {
+        self.seen.extend(s.seen);
+        for (origin, key) in s.log_keys {
+            self.register_log(&origin, key);
+        }
+    }
+
+    /// Does this witness already hold a key for `origin`?
+    pub fn knows_log(&self, origin: &str) -> bool {
+        self.log_keys.contains_key(origin)
+    }
+
+    /// The directory's revoked delegates (fingerprints, as `DelegateCert::fingerprint`).
+    pub fn set_revoked_delegates(&mut self, revoked: BTreeSet<[u8; 32]>) {
+        self.revoked_delegates = revoked;
+    }
+
+    /// Put the memory back exactly as [`Self::state`] returned it — what the daemon does when it could not save a
+    /// cosignature's state, so that memory and disk never disagree about what was cosigned.
+    pub fn replace_state(&mut self, s: WitnessState) {
+        self.seen = s.seen;
+        self.log_keys = s.log_keys;
+    }
+
+    /// The last head cosigned per origin: `(tree_size, root)`. What a witness feed's `from` is read from.
+    pub fn last_cosigned(&self) -> &std::collections::BTreeMap<String, (u64, [u8; 32])> {
+        &self.seen
     }
 
     /// Consider a new checkpoint for cosigning. It is cosigned only if (0) it is validly signed by the LOG's own
@@ -70,6 +124,11 @@ impl Witness {
         match self.log_keys.get(&cp.origin) {
             Some(log_key) if cp.verify_sig_mode(log_key, sig, now).is_ok() => {}
             _ => return WitnessOutcome::RefusedUnsigned,
+        }
+        if let CheckpointSig::Delegate { cert, .. } = sig {
+            if self.revoked_delegates.contains(&cert.fingerprint()) {
+                return WitnessOutcome::RefusedUnsigned;
+            }
         }
         match self.seen.get(&cp.origin).copied() {
             None => {

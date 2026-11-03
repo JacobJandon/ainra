@@ -10,6 +10,20 @@ We **publicly own fixed security bugs** — hiding them would be the opposite of
 
 ## [Unreleased]
 
+### Fixed — a witness a stranger can actually run (D-087)
+
+- **`witnessd`** keeps its own random key (`key_file`, 0600; a read error never replaces it) and its memory across
+  restarts (`state_file`, fsynced before a cosignature is returned); takes log keys and revoked delegates from the
+  root-signed directory (`directory` + `roots`, published at ainra.org/net/); requires both off loopback, so a public
+  witness never runs on a computable key or a first-come log key; judges certs at its own clock; accepts the
+  registrars' delegate-mode signatures; and says where it left each log (`GET /seen`). The compose witnesses, which
+  all ran on one computable key, now get the same setup.
+- **`GET /witness-feed?from=N`** on the registrar: the signed checkpoint and the consistency proof from size N.
+- **`kits/witness/submit.mjs`** writes the cosignature file the genesis board counts; `be-a-witness.sh` sets the
+  witness up in `~/.ainra-witness`. `make witness-feed-drill` proves the path and the ways it must fail safe.
+- The site says "WITNESSES: 0 — SPLIT-VIEW GUARANTEE NOT IN FORCE · RECRUITING" everywhere; the landing had dropped
+  the zero, and `make doctrine` now requires it there.
+
 ### Fixed — currency mode in every gate (D-086, PLAN-M51 step 1)
 
 - **A revoked snapshot stops working once the revocation has been seen — in Rust, at the edge and in Python, not only

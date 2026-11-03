@@ -69,7 +69,8 @@ becomes production only through the ceremony/charter process — never by mergin
 
 ### Cosignatures (`evidence/cosignatures/`)
 
-A candidacy is a witness offering to run. What moves the board's witness row is what a running witness **signed**:
+A candidacy is a witness offering to run. What moves the board's witness row is what a running witness **signed** —
+`node kits/witness/submit.mjs --registrar <url> --witness <url> --out evidence/cosignatures/<you>.json` writes it:
 one file per cosignature, `{ "witness_key", "checkpoint": {origin, size, root}, "checkpoint_sig", "cosignature",
 "observed_at" }` — the checkpoint and its signature exactly as the registrar served them, your Ed25519 key
 (base64url), and your signature over the checkpoint's canonical bytes. `make genesis-status` counts **distinct keys

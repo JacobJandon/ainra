@@ -34,8 +34,9 @@ services:
   witness:                            # an independent witness; more join from other hosts (witness-quickstart.md)
     image: ainra/services:staging
     entrypoint: ["witnessd"]
-    command: ["0.0.0.0:4891", "/data"]
-    volumes: ["witness:/data"]
+    command: ["0.0.0.0:4891", "/etc/ainra/witness.json"]   # D-087: a random key in the volume, never the address
+    restart: unless-stopped                # it exits (and says why) until the publisher has put the directory in /public
+    volumes: ["witness:/data", "public:/public:ro", "./witness.compose.json:/etc/ainra/witness.json:ro"]
     ports: ["4891:4891"]
     read_only: true
     tmpfs: ["/tmp"]

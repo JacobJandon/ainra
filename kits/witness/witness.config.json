@@ -1,8 +1,11 @@
 {
-  "_comment": "One-file witnessd config. Every field is OPTIONAL and every field below `seed` is SELF-DECLARED — served at GET /meta with self_declared:true and verified by no one. Only the key is a cryptographic fact. Copy this, edit, then: witnessd 0.0.0.0:4991 witness.config.json",
-  "seed": "change-me-to-a-long-random-secret-or-remove-to-derive-from-address",
+  "_comment": "One-file witnessd config. key_file: your witness's identity — a random key made on first start (0600); keep it. state_file: the last head cosigned per log, so a restart still refuses a fork. directory + roots: the root-signed directory and the ceremony root keys — download both from https://ainra.org/net/ (directory.json, roots.json); every log's key and every revoked delegate comes from them, never from a request. On a public address the daemon refuses to start without key_file and the directory. Everything from `operator` down is SELF-DECLARED, served at GET /info with self_declared:true and verified by no one. Copy this, edit, then: witnessd 0.0.0.0:4991 witness.config.json",
+  "key_file": "witness.key",
+  "state_file": "witness.state",
+  "directory": "directory.json",
+  "roots": "roots.json",
   "operator": "Example Independent Operator",
   "region": "eu-west",
-  "contact": "witness@example.org",
-  "note": "Witnessing AINRA staging. Independent infra; not affiliated with the root operator."
+  "contact": "a public issue thread — no email needed",
+  "note": "Witnessing AINRA. Independent infra; not affiliated with the root operator."
 }

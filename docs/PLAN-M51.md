@@ -6,6 +6,11 @@ each still needs nobody outside the project and no undecided one-way door.
 
 ## The steps
 
+**Before step 2 — witnesses a stranger can run (D-087), done 2026-11-03.** Recruiting witnesses was blocked on our side:
+an address-derived key, no memory across restarts, a log key any request could replace, the caller's clock, no
+delegate-mode signatures, no consistency feed, no evidence tool. All fixed and held to `make witness-feed-drill`.
+Reaching an outside witness needs the network hosted (PLAN-M52 step 4).
+
 **1. Currency mode in every gate, held to one corpus.** *Done 2026-11-03 (D-086; 18 vectors; reviewed before commit, eleven findings fixed).* D-021's currency mode — the verifier requires a
 delegate-signed fresh head, binds it to the presented list, and refuses a lower `seq` than one it has seen — exists
 in `@ainra/sdk` only. A Rust gate (`@ainra/edge`, `ainra verify-request`) and the Python package accept a genuine

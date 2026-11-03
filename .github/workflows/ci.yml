@@ -302,6 +302,7 @@ jobs:
       # Preflight rows that were never in CI (2026-09-29 audit): the compliance probe, the soak instrument, the
       # verifier kit a stranger runs, the ceremony dry-run, and the networked witness-quorum drill.
       - run: bash tools/probe-drill.sh
+      - run: bash tools/witness-feed-drill.sh
       - run: bash tools/soak-smoke.sh 12
       - run: bash tools/verifier-kit-smoke.sh
       - run: bash tools/ceremony-dry-run.sh 5

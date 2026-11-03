@@ -101,6 +101,9 @@ if (witnesses === 0) {
   const REQUIRED_WHILE_ZERO = [
     { file: "site/foundation.html", must: "0 OPERATORS — GAP" },
     { file: "site/_includes/footer.html", must: "WITNESSES: 0" },
+    // The landing's own status bar is not the include: it read "WITNESSES: RECRUITING" — true, and silent about the
+    // zero — until 2026-11-03, because this list named the include and not the page most people read.
+    { file: "site/index.html", must: "WITNESSES: 0" },
   ];
   for (const r of REQUIRED_WHILE_ZERO) {
     const t = read(r.file);

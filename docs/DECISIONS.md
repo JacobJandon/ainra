@@ -2201,3 +2201,70 @@ head is F1-fresh; that is the mode's meaning, not a defect.
 
 *Status:* NEW (PLAN-M51 step 1).
 
+## D-087 — A witness a stranger can run: its own key, a memory, the directory's log keys, and a feed (M51)
+
+*Problem:* recruiting witnesses was blocked on our side, not theirs. Checked end to end, the witness a stranger would
+run could not do the job. With no seed its key was derived from the listen address, which anyone can compute (the
+quickstart said `witnessd 0.0.0.0:4991`, and both compose files ran exactly that, so every compose witness had the
+same computable key). It kept no state, so after a restart it cosigned the next checkpoint on first sight, a fork
+included. Every `/consider` request could replace the log key it checked against. It judged the delegate cert at the
+CALLER's clock. It accepted only root-mode checkpoint signatures, while registrars sign theirs in ADR-002 delegate mode.
+No registrar served the consistency proof a witness needs to cosign growth, and nothing turned a cosignature into the
+evidence the genesis board counts (PLAN-M50 step 5).
+
+*Decision:* `witnessd`:
+- `key_file`: a random key, made on first start (0600) and kept; only a MISSING file makes one, any other read error
+  stops the daemon rather than replace an identity. `key_file` and `seed` together are refused (two identities).
+- `state_file`: the last head per log and each log's key, saved and fsynced (file and directory) before a cosignature
+  is returned; if the save fails, the in-memory state is rolled back and no cosignature is given. A state file that
+  exists but cannot be read stops the daemon.
+- `directory` + `roots`: every log key, and the directory's revoked delegates, from the root-signed directory (a copy
+  is published at https://ainra.org/net/); nothing a caller sends changes them, and keys saved for a registrar the
+  directory no longer lists are dropped on restart.
+- Off loopback, `key_file` AND `directory` + `roots` are required: an address-derived or seed-phrase key is computable,
+  and without a directory a log's key would be whoever reached the witness first. Only a loopback drill runs without a
+  directory, and then a caller's key is kept only if it verifies the checkpoint it came with, and never replaced.
+- Its own wall clock (`AINRA_CLOCK=pinned` lets a hermetic drill supply `now`, as for every daemon here); the
+  registrar's own wire form of either signature mode; `GET /seen` (where it left each log).
+
+The registrar serves `GET /witness-feed?from=N`: its current signed checkpoint and the RFC 6962 consistency proof
+from size N. `kits/witness/submit.mjs` joins them and writes `evidence/cosignatures/<id>.json` only when the witness
+cosigned. `kits/witness/be-a-witness.sh` sets all of it up in `~/.ainra-witness`, fetching the published directory
+unless given one. The compose witnesses get a key file, state, and the directory from the read contract's volume.
+
+*Held to:* `make witness-feed-drill` (CI integration job, preflight): three witnesses configured as the kit says,
+counted 3/3 by the board; growth refused without a consistency proof and cosigned with the feed's; a restart that
+remembers and refuses a replayed older head; a public bind refused with no key file, with only a seed, and with no
+directory; a junk first key not locking a log; a forged cosignature not counted; and a wall-clock witness that cosigns
+a wall-clock registrar and ignores a caller's `now`. `fork_drill.rs` pins key-never-replaced, restore, and
+revoked-delegate refusal in the library. Restoring the old overwrite turns the drill red.
+
+*Reviewed before it was committed:* an independent review (three lenses, each finding checked by a skeptic) confirmed
+thirty findings in the first draft — the read-error and fsync holes above, the first-come key claim on public witnesses,
+the ignored revoked delegates, a public `seed`, and a set of overstated or wrong sentences in these docs — all fixed.
+
+*Honest limit:* the published directory is a dated copy of the STAGING network (TEST-ROOT), and its registrars run on
+a pinned clock and bind `127.0.0.1`: there is no public, wall-clock registrar feed for an outside witness to poll
+until the network is hosted (PLAN-M52 step 4). The staging witness's key is derived from the public `seed` in
+`deploy/staging-witness.config.json` on loopback; it is on `witnesses/project-keys.json` and never counted. Three
+keys run by one person still read as three: distinctness is a key fact, and who runs them is the charter's question.
+The site now says "WITNESSES: 0 — SPLIT-VIEW GUARANTEE NOT IN FORCE · RECRUITING" on every page, the landing
+included (it had dropped the zero), and `make doctrine` requires the zero there too.
+
+*Status:* NEW.
+
+## D-088 — The control room reads, the workbench proposes, the ceremony signs (PROPOSED, M52)
+
+*Problem:* the owner asked for "our own AINRA control field … like ICANN has". D-034 forbids the root a console or any
+self-serve surface, and for good reason: a panel that can change the directory is a single point of control, which is
+what the threshold root exists to prevent.
+
+*Proposal:* an ICANN-like control function in the shape the constitution allows (`docs/PLAN-M52.md`). A **control
+room** that only reads — `ainra ctl` in the terminal and a static page, verifying everything root-dark from public
+artifacts, so any stranger sees exactly what the operator sees. A **directory workbench** that only proposes — it drafts
+the next epoch and its diff and holds no key; the custodians' threshold signature in the ceremony kit is the only thing
+that makes a draft the directory, and publication refuses anything older than what mirrors hold (D-083). No online root
+key, no root write API, no accounts. This clarifies D-034, it does not amend it: neither tool can do anything to anyone.
+
+*Status:* PROPOSED — the owner rules. Hosting (PLAN-M52 step 4) is the owner's choice of provider and names.
+

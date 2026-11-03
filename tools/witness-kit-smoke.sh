@@ -18,11 +18,19 @@ cargo build --release -q -p ainra-services --bin witnessd
 t_build=$(( $(date +%s) - t0 ))
 
 json() { node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{process.stdout.write(String(JSON.parse(s)[process.argv[1]]))}catch{process.stdout.write("")}})' "$1"; }
-pids=(); cleanup(){ for p in "${pids[@]:-}"; do kill "$p" 2>/dev/null || true; done; }; trap cleanup EXIT
+pids=(); cleanup(){ for p in "${pids[@]:-}"; do kill "$p" 2>/dev/null || true; done; [ -n "${SCRATCH:-}" ] && rm -rf "$SCRATCH"; }; trap cleanup EXIT
 fail=0; ok(){ if eval "$2"; then echo "  ✓ $1"; else echo "  ✗ $1"; fail=1; fi; }
 
 echo "== boot witnessd from a ONE-FILE config =="
-"$BIN" "$ADDR" kits/witness/witness.config.json >/tmp/witness-v2.log 2>&1 & pids+=($!)
+# The template, as an operator copies it, with its files in a scratch folder (and no directory: this smoke has none).
+SCRATCH="$(mktemp -d)"
+node -e '
+const [tpl, dir] = process.argv.slice(1);
+const c = JSON.parse(require("fs").readFileSync(tpl, "utf8"));
+c.key_file = `${dir}/witness.key`; c.state_file = `${dir}/witness.state`; delete c.directory; delete c.roots;
+require("fs").writeFileSync(`${dir}/witness.json`, JSON.stringify(c));
+' kits/witness/witness.config.json "$SCRATCH"
+"$BIN" "$ADDR" "$SCRATCH/witness.json" >/tmp/witness-v2.log 2>&1 & pids+=($!)
 for _ in $(seq 1 50); do curl -sf "http://$ADDR/root" >/dev/null 2>&1 && break; sleep 0.1; done
 t_boot=$(( $(date +%s) - t0 ))
 
@@ -35,6 +43,7 @@ KROOT=$(curl -sS "http://$ADDR/root" | json ed25519)
 KKEY=$(curl -sS "http://$ADDR/key" | json ed25519)
 ok "/root aliases /key"               "[ \"$KROOT\" = \"$KKEY\" ] && [ -n \"$KROOT\" ]"
 ok "the /info key IS the witness key" "[ \"$KINFO\" = \"$KROOT\" ]"
+ok "the template's key file is made, owner-only" "[ \"$(stat -c %a "$SCRATCH/witness.key" 2>/dev/null)\" = 600 ]"
 
 echo "== back-compat: the bare-address form still runs (no config) =="
 "$BIN" "$ADDR2" >/tmp/witness-v2-nocfg.log 2>&1 & pids+=($!)

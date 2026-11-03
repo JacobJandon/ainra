@@ -2,31 +2,46 @@
 # Run an AINRA witness — <10 minutes, your own infra
 
 A witness independently cosigns the log's append-only growth and **refuses to cosign a fork**. The more independent
-operators witness, the harder equivocation becomes. Staging has **open seats** — witnessing staging now is how
-witness recruitment (a pending DoD row) begins for real.
+operators witness, the harder equivocation becomes. There are **zero** independent witnesses today and the seats are
+open — recruiting them is a pending Definition-of-Done row, and the genesis board counts them from evidence.
 
 ## Run it
 
 ```sh
-# from a clone (or the released image)
-cargo build --release -p ainra-services --bin witnessd
-cp kits/witness/witness.config.json witness.config.json   # edit operator/region/contact; set a long random `seed`
-./target/release/witnessd 0.0.0.0:4991 witness.config.json # the config is OPTIONAL: `witnessd 0.0.0.0:4991` also works
+# from a clone
+bash kits/witness/be-a-witness.sh --operator "Your Institution" --region EU
 ```
 
-Your witness's key comes from the `seed` in your one-file config (pin a long random secret so the key is stable across
-restarts) — or, with no config, it is derived from the address. Either way you are a *distinct* witness, not a copy of
-ours. Tell the network operator your `http://<your-host>:4991` and your public key (`GET /root`, alias `GET /key`);
-they add you to the witness set. `GET /info` serves your **self-declared** operator/region card (verified by no one —
-it just lets relying parties see witness diversity). A relying party sets its own quorum `k` (never a cert's) — see
-D-021 and the quorum-k worked examples in `kits/witness/README.md`.
+That builds `witnessd`, keeps your witness's identity in `~/.ainra-witness` (a random key made on first start, 0600,
+and the state that lets it refuse a fork after a restart — keep that folder), takes every log's key from the
+root-signed directory (the copy published at https://ainra.org/net/, or `--directory`/`--roots`; the daemon verifies it
+against the roots before it starts), starts it on `0.0.0.0:4991`, and runs the fork drill from the same binary. A
+public witness without a key file or a directory refuses to start. By hand: fetch `directory.json` and `roots.json`
+from https://ainra.org/net/, `cp kits/witness/witness.config.json witness.config.json`, edit it, then
+`witnessd 0.0.0.0:4991 witness.config.json`.
 
-## Prove it works (catch a fork)
+## Witness, and keep the evidence
 
 ```sh
-make drill-networked        # runs N independent witnessd processes; an injected fork is refused by the quorum
+node kits/witness/submit.mjs --registrar <registrar-url> --witness http://127.0.0.1:4991 \
+     --out evidence/cosignatures/<your-id>.json
 ```
 
-This is real: your witness will refuse to cosign a checkpoint that forks the log it already cosigned. That refusal,
-from an operator we do not control, on infra we do not control, is exactly the property the "≥3 independent
-witnesses on separate infra" DoD row needs. Machinery is ready; the humans are the remaining work.
+It asks your witness where it left the log, asks the registrar for its signed checkpoint and the consistency proof from
+there, and writes your cosignature only if your witness gave one. Run it on a schedule. Submit the file as
+`evidence/cosignatures/<your-id>.json`; `make genesis-status` counts distinct keys over one checkpoint the log really
+signed, and never a key the project runs (`witnesses/project-keys.json`). To be on the network's roster too, open a
+pull request adding the candidacy file `be-a-witness.sh` prints as `evidence/witness/<your-id>.json`; CI checks its
+shape and probes your endpoint (`evidence/README.md`).
+
+## Prove it works
+
+```sh
+make witness-feed-drill     # three witnesses against a real registrar; restart, replay, key swap and forgery all refused
+make drill-networked        # N independent witnessd processes; an injected fork is refused by the quorum
+```
+
+Honest state: the directory is published (a dated copy of the STAGING network, TEST-ROOT), but its registrars run on a
+pinned clock and bind `127.0.0.1`, so there is no public, wall-clock registrar feed for an outside witness to poll
+until the network is hosted (PLAN-M52). Everything above runs today; the public feed is the missing piece, and it is
+ours to provide.

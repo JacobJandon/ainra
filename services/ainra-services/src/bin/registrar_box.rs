@@ -850,6 +850,16 @@ fn main() {
             }
 
             // The whole link index (D-079: whole-list download, no lookup by key). Read-only, open, cacheable.
+            // PLAN-M51 witness work — what an independent witness polls: the current signed checkpoint and, given the
+            // size it last cosigned (`?from=N`), the consistency proof to here. Public read, like /present.
+            ("GET", "/witness-feed") => {
+                let from = qparam(&req.path, "from").and_then(|s| s.parse::<u64>().ok());
+                match st.rb.witness_feed(from) {
+                    Ok(feed) => (200, feed.to_string()),
+                    Err(e) => (400, json!({ "error": e }).to_string()),
+                }
+            }
+
             ("GET", "/links") => match st.rb.link_index(qnow(&req.path)) {
                 Some(idx) => (200, idx.to_string()),
                 None => (

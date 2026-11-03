@@ -11,10 +11,14 @@ party then trusts a head only if a **quorum (k-of-N)** of witnesses cosigned it.
 two different histories — an honest witness refuses to cosign the fork, and the quorum fails. The catch is made by
 *you*, not us.
 
-Where this stands today: the log runs on a staging network that binds `127.0.0.1` and is not reachable from the
-internet, and the public site carries a published *copy* of the record rather than a feed you can poll. Taking a seat
-means running your witness on your own infra and giving us its address and key so the network can reach it
-(`deploy/witness-quickstart.md`).
+Where this stands today: **zero independent witnesses**, and the seats are open. The witness you would run is
+ready for a stranger: one command (`kits/witness/be-a-witness.sh`) gives it a random key of its own, a memory that
+survives restarts, and every log key from the root-signed directory published at https://ainra.org/net/;
+`kits/witness/submit.mjs` feeds it the registrar's signed checkpoint with the consistency proof and keeps your
+cosignature as evidence the public genesis board counts — never under a key we run. `make witness-feed-drill` proves
+the path end to end. What is not ready is on our side: the published directory is the staging network's, whose
+registrars bind `127.0.0.1`, so until the network is hosted (PLAN-M52) there is no live feed for an outside witness to
+poll (`deploy/witness-quickstart.md`).
 
 ## Why it's deliberately cheap
 A witness is boring on purpose: it verifies append-only, then signs. No consensus, no gossip, no chain, no coin —
@@ -31,4 +35,6 @@ competitor keeps *everyone* honest, which is exactly the neutrality AINRA is bui
 ## Cost to you
 A small always-on process, one keypair, and a TLS-fronted endpoint. In return you hold a veto over silent
 history-rewrites. Three independent operators running witnesses on separate infra is a remaining DoD item
-(`GENESIS-CHECKLIST.md` §4). Reply and we'll get you a witness seat and the roster.
+(`GENESIS-CHECKLIST.md` §4), and the board moves only on what your witness signed (`evidence/README.md`). To take a
+seat on the roster, open a pull request adding the candidacy file `be-a-witness.sh` prints
+(`evidence/witness/<your-id>.json`); CI checks its shape and probes your endpoint.

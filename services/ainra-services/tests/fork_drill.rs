@@ -407,3 +407,103 @@ fn a_fetched_cert_cannot_self_certify_the_relying_party_owns_k() {
         "3 real cosigns at k = 3 certifies (sanity)"
     );
 }
+
+/// PLAN-M51 witness work. A witness holds each log to the FIRST key it met (or the directory's), and a witness
+/// restored from its saved state refuses what it refused before the restart.
+///
+/// WITNESS: make `register_log` overwrite again and the first assertion fails (the stranger's key replaces the log's,
+/// and the stranger-signed checkpoint is cosigned); drop `restore` and the restarted witness's state is no longer the
+/// saved one (and, holding no log key, it would refuse the old head as unsigned instead of as a regression).
+#[test]
+fn a_log_key_is_never_replaced_and_a_restored_witness_remembers() {
+    let mut rng = ChaCha20Rng::seed_from_u64(0x57A7_E000);
+    let root = crypto::TestRootSlh::generate(&mut rng);
+    let delegate = crypto::TestDelegate::generate(&mut rng);
+    let now = 1_775_865_600u64;
+    let dir = tmpdir("log-state");
+    let mut log = Logd::open(&dir, "ainra-log/registrar-07", &root, delegate, now, 86_400).unwrap();
+    for i in 0..4 {
+        log.append(format!("entry-{i}").as_bytes()).unwrap();
+    }
+    let small = log.signed_checkpoint();
+    let small_sig = log.sign_checkpoint(&small).sig;
+
+    let witness_key =
+        || crypto::TestDelegate::generate(&mut ChaCha20Rng::seed_from_u64(0x57A7_E001));
+    let mut witness = Witness::new(witness_key());
+    witness.register_log(&small.origin, log.root_public().to_vec());
+    let stranger = crypto::TestRootSlh::generate(&mut ChaCha20Rng::seed_from_u64(0xBAD_0001));
+    witness.register_log(&small.origin, stranger.public());
+    let stranger_sig = ainra_core::checkpoint::CheckpointSig::Root {
+        slh: small.sign_test_root(&stranger).unwrap(),
+    };
+    assert_eq!(
+        witness.consider(&small, &stranger_sig, now, &[]),
+        WitnessOutcome::RefusedUnsigned,
+        "a second key replaced the first"
+    );
+    assert_eq!(
+        witness.consider(&small, &small_sig, now, &[]),
+        WitnessOutcome::CosignedFirstSight
+    );
+    for i in 4..9 {
+        log.append(format!("entry-{i}").as_bytes()).unwrap();
+    }
+    let big = log.signed_checkpoint();
+    let big_sig = log.sign_checkpoint(&big).sig;
+    let proof = log.consistency_proof(small.tree_size).unwrap();
+    assert_eq!(
+        witness.consider(&big, &big_sig, now, &proof),
+        WitnessOutcome::Cosigned
+    );
+
+    // A restart: a new process, the same key, its saved state.
+    let saved = witness.state();
+    let mut restarted = Witness::new(witness_key());
+    restarted.restore(saved.clone());
+    assert_eq!(restarted.state(), saved);
+    assert_eq!(
+        restarted.consider(&small, &small_sig, now, &[]),
+        WitnessOutcome::RefusedRegression,
+        "the restarted witness forgot the head it cosigned"
+    );
+    // Without the state it would have cosigned the old head on first sight — which is the hole the state closes.
+    let mut forgetful = Witness::new(witness_key());
+    forgetful.register_log(&small.origin, log.root_public().to_vec());
+    assert_eq!(
+        forgetful.consider(&small, &small_sig, now, &[]),
+        WitnessOutcome::CosignedFirstSight
+    );
+}
+
+/// PLAN-M51 review: a delegate the root-signed directory revokes signs no checkpoint a witness will cosign, as no
+/// verifier accepts one. WITNESS: drop the revoked-delegate check in `Witness::consider` and the second assertion
+/// comes back `CosignedFirstSight`.
+#[test]
+fn a_revoked_delegate_signs_nothing_a_witness_cosigns() {
+    let mut rng = ChaCha20Rng::seed_from_u64(0x5EED_0DE1);
+    let root = crypto::TestRootSlh::generate(&mut rng);
+    let delegate = crypto::TestDelegate::generate(&mut rng);
+    let now = 1_775_865_600u64;
+    let dir = tmpdir("log-revoked");
+    let mut log = Logd::open(&dir, "ainra-log/registrar-07", &root, delegate, now, 86_400).unwrap();
+    log.append(b"entry").unwrap();
+    let cp = log.signed_checkpoint();
+    let sig = log.sign_checkpoint(&cp).sig;
+    let ainra_core::checkpoint::CheckpointSig::Delegate { cert, .. } = &sig else {
+        panic!("the log signs in delegate mode");
+    };
+    let mut fresh = Witness::new(crypto::TestDelegate::generate(&mut rng));
+    fresh.register_log(&cp.origin, log.root_public().to_vec());
+    let mut revoking = Witness::new(crypto::TestDelegate::generate(&mut rng));
+    revoking.register_log(&cp.origin, log.root_public().to_vec());
+    revoking.set_revoked_delegates([cert.fingerprint()].into_iter().collect());
+    assert_eq!(
+        fresh.consider(&cp, &sig, now, &[]),
+        WitnessOutcome::CosignedFirstSight
+    );
+    assert_eq!(
+        revoking.consider(&cp, &sig, now, &[]),
+        WitnessOutcome::RefusedUnsigned
+    );
+}

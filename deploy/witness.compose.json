@@ -1,0 +1,9 @@
+{
+  "_comment": "The containerized witness's config (deploy/compose.*.yml). key_file and state_file live in the witness's own volume, so the key is made once at random and survives restarts with its memory. directory + roots are read from the published read contract (the public volume, mounted read-only at /public): every log key and every revoked delegate comes from the root-signed directory, and the daemon refuses to start on a public address without it — until the publisher step has filled the volume, the container restarts and says why.",
+  "key_file": "/data/witness.key",
+  "state_file": "/data/witness.state",
+  "directory": "/public/directory.json",
+  "roots": "/public/roots.json",
+  "operator": "the operator of this deployment (self-declared)",
+  "note": "self-declared; verified by no one — the key is the only cryptographic fact"
+}

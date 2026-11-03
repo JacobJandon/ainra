@@ -67,7 +67,8 @@ run "ceremony dry-run"   "witness-reproducible"         bash tools/ceremony-dry-
 run "ceremony multi"     "FROST 5-of-9 across processes" bash tools/ceremony-rehearsal-multi.sh
 run "soak instrument"    "measured p95, signed report"  bash tools/soak-smoke.sh 12
 run "witness quorum"     "fork refused over HTTP"       bash tools/drill-networked.sh
-run "compliance probe"   "honest passes, 4 dishonest caught" bash tools/probe-drill.sh
+run "witness feed"       "a stranger's witness, counted" bash tools/witness-feed-drill.sh
+run "compliance probe"   "honest passes, 5 dishonest caught" bash tools/probe-drill.sh
 run "one decode path"    "no duplicate bytes→core parser" node tools/one-decode-path.mjs
 run "lockfile sync"      "lockfiles state their package version" node tools/lockfile-sync.mjs
 run "reason contract"    "docs name every reason impls return" node tools/reasons-check.mjs

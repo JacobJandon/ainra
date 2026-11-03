@@ -302,7 +302,7 @@ pub enum WireCheckpointSig {
     },
 }
 impl WireCheckpointSig {
-    fn from_core(sig: &CheckpointSig) -> Self {
+    pub fn from_core(sig: &CheckpointSig) -> Self {
         match sig {
             CheckpointSig::Root { slh } => WireCheckpointSig::Root {
                 slh: b64::encode(slh),
@@ -313,7 +313,7 @@ impl WireCheckpointSig {
             },
         }
     }
-    fn to_core(&self) -> Option<CheckpointSig> {
+    pub fn to_core(&self) -> Option<CheckpointSig> {
         Some(match self {
             WireCheckpointSig::Root { slh } => CheckpointSig::Root {
                 slh: b64::decode(slh).ok()?,
@@ -1278,6 +1278,35 @@ impl RegistrarBox {
                 serde_json::to_value(crate::status::WireDelegateCert::from_core(&cert)).unwrap();
         }
         Some(bundle)
+    }
+
+    /// The witness feed: the log's current checkpoint, signed by the current delegate exactly as `/present` proves
+    /// against it, and — for a witness that last cosigned at size `from` — the RFC 6962 consistency proof from there
+    /// to here. Without the proof a witness can cosign a log only on first sight; with it, every append. `from`
+    /// above the current size is a regression a witness must refuse, so it is refused here too.
+    pub fn witness_feed(&self, from: Option<u64>) -> Result<serde_json::Value, String> {
+        let cp = self.log.signed_checkpoint();
+        let signed = self.log.sign_checkpoint(&cp);
+        let proof = match from {
+            None => Vec::new(),
+            Some(f) if f > cp.tree_size => {
+                return Err(format!(
+                    "from {f} is beyond the log's size {} — nothing to prove",
+                    cp.tree_size
+                ))
+            }
+            Some(f) if f == 0 || f == cp.tree_size => Vec::new(),
+            Some(f) => self
+                .log
+                .consistency_proof(f)
+                .ok_or_else(|| format!("no consistency proof from {f}"))?,
+        };
+        Ok(json!({
+            "checkpoint": { "origin": cp.origin, "size": cp.tree_size, "root": b64::encode(&cp.root) },
+            "checkpoint_sig": WireCheckpointSig::from_core(&signed.sig),
+            "from": from,
+            "consistency_proof": proof.iter().map(|h| b64::encode(h)).collect::<Vec<_>>(),
+        }))
     }
 
     /// The current delegate-signed fresh head, stamped `now` (`None` should never happen — the delegate is always

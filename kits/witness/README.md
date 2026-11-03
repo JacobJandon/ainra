@@ -14,13 +14,32 @@ make drill-networked            # 5 witnessd processes on separate ports, k=3
 make drill-networked N=7 K=4    # any N >= 3, any 1 <= k <= N
 ```
 
-## Run your own witness (v2 — one binary, one file)
+## Run your own witness (v3 — one binary, one file, one folder)
 ```sh
+bash kits/witness/be-a-witness.sh --operator "Your Institution" --region EU
+                                                    # key + memory + the published directory in ~/.ainra-witness
+# or by hand:
 cargo build --release -p ainra-services --bin witnessd
-cp kits/witness/witness.config.json my-witness.json     # edit operator/region/contact/note; set/remove `seed`
-./target/release/witnessd 0.0.0.0:4991 my-witness.json   # config is OPTIONAL — `witnessd 0.0.0.0:4991` still works
-make witness-check                                        # v2 smoke + a TIMED <10-min onboarding rehearsal
+curl -O https://ainra.org/net/directory.json -O https://ainra.org/net/roots.json   # the root-signed directory
+cp kits/witness/witness.config.json my-witness.json     # edit operator/region/contact/note
+./target/release/witnessd 0.0.0.0:4991 my-witness.json   # makes witness.key (0600) on first start
+node kits/witness/submit.mjs --registrar <registrar-url> --witness http://127.0.0.1:4991 \
+     --out evidence/cosignatures/<you>.json             # your cosignature, as the genesis board counts it
+make witness-check                                        # smoke + a TIMED <10-min onboarding rehearsal
+make witness-feed-drill                                   # the whole path against a real registrar, and its failures
 ```
+What a witness a stranger runs needs, and what the daemon now does about each:
+- **A key nobody else can compute.** `key_file` is made at random on first start (0600) and kept; a file that exists
+  but cannot be read stops the daemon instead of being replaced. An address-derived or `seed`-phrase key is
+  computable, so off loopback the daemon refuses to start without `key_file`.
+- **A memory.** `state_file` keeps the last head cosigned per log and the key each log is held to, saved and fsynced
+  before a cosignature is returned. A witness that forgets trusts the next checkpoint on first sight, a fork included.
+- **Log keys from the directory.** `directory` + `roots` (published at https://ainra.org/net/) give every log's key
+  and the revoked delegates; nothing a caller sends changes them. Required off loopback; a loopback drill without
+  them keeps a caller's key only if it verified the checkpoint it came with.
+- **Its own clock.** A checkpoint's delegate cert is judged at the witness's time, never the caller's.
+- **A feed.** The registrar serves `GET /witness-feed?from=N`: its current signed checkpoint and the consistency proof
+  from where your witness left off, so your witness can cosign every append, not only first sight.
 - **`witnessd <addr> [config.json]`** — one witness daemon, one binary, no runtime deps.
   - `GET /key` (alias **`/root`**) → its Ed25519 public key.
   - `GET /info` → the operator's **self-declared** card `{ self_declared: true, ed25519, operator, region, contact, note }`.
@@ -28,8 +47,10 @@ make witness-check                                        # v2 smoke + a TIMED <
     unverified operator claim. Witnessing needs **no accreditation**.
   - `POST /consider` → it evaluates a submitted checkpoint (validly log-signed? append-only vs the head it last
     cosigned?) and returns its **outcome** and, when it accepts, a **cosignature**.
-  - Key: a config `seed` pins a persistent operator key; otherwise it is derived from the address so a quorum of
-    daemons have **distinct** keys — a real deployment gives each witness an operator-held key on separate infra.
+  - `GET /seen` → the last head it cosigned per log (what `submit.mjs` asks the feed to prove consistency from).
+    - Key: `key_file` (random, kept) — required off loopback, with `directory` + `roots`. On loopback a `seed` pins a
+    phrase-derived key, and with neither the key is derived from the address, so a local drill quorum has
+    **distinct** keys.
 - **`witness-quorum-drill <k> <addr>...`** — a **relying party**: it fetches each witness's key (its roster), submits
   the log's checkpoints, collects the cosignatures over the wire, assembles a `QuorumCertificate`, and checks
   `certified(checkpoint, roster, k)`.

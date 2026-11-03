@@ -5,7 +5,7 @@
 real verifier, the public record, and — only if you point it at a registrar you control — the ability to issue,
 renew, and revoke.
 
-> **Not published to a registry.** This package is run from the repository. See `packages/mcp/` in
+> **On npm as `@ainra/mcp`**, published from signed tags with provenance; the source is `packages/mcp/` in
 > [github.com/JacobJandon/ainra](https://github.com/JacobJandon/ainra).
 
 ## Configure

@@ -59,10 +59,32 @@ We **publicly own fixed security bugs** — hiding them would be the opposite of
   signed, an unreadable key list, a rebuild under a project key, a rebuild that produced something else. The demo had
   been red since M35 closed tokenless writes; it sets the loopback-drill flag now.
 
+### Fixed — the honesty sweep, and a gate so the drift cannot return (PLAN-M50 step 6)
+
+- **What was stale, corrected:** ROADMAP still called 0.5.0 unreleased and had no 0.6.0 row; RELEASING called v0.6.0
+  "READY" and described gpg signing (releases are SSH-signed: `release/allowed_signers`, `release/tag_signers`);
+  PUBLISHING and SECURITY gave 0.4/0.5-era status and advice; `SECURITY-ADVISORIES.md` had no entry for
+  RUSTSEC-2026-0385 (and now records RUSTSEC-2026-0387, which never reached a release); STATUS carried counts from
+  M9 and "five of seven" settlers arrows where SETTLERS shows six; LINKS said 36 link vectors; CI and SECURITY
+  disagreed on the live-drill count; the README and site docs described a Pages deploy that is not how ainra.org is
+  served; two READMEs called shipped code "not yet implemented"; `@ainra/mcp`'s README said "not published" (the npm
+  page shows that until the next `@ainra/mcp` release — the maintainer's step); v0.1.0 was "pending tag" and never
+  was tagged. Decisions D-007, D-065, D-072 and D-073 carry dated amendments rather than silent edits; D-085 records
+  that capabilities match as exact strings, by design, where `chain.rs` pointed at a deferral that never existed.
+- **The site mirror lost a heading:** `tools/site-mirrors.mjs` decoded `&lt;` inside a heading, and the page-wide tag
+  strip then deleted "<60s [MEASURED]" up to the next real tag. Entities are decoded once, at the end. The live site
+  carries the fix after the next export (the maintainer's step).
+- **`ainra_core::Error::NotImplemented` is gone:** nothing returned it since M3, and `ainra-core` is not published.
+- **`make release-state-check`** (CI's audit job, preflight, `make ci`): the newest tag is recorded in CHANGELOG,
+  ROADMAP and RELEASING; no tagged version is called unreleased; a stated drill count equals what
+  `tools/live-drills.sh` runs; every site mirror keeps every heading. Its four negative controls run on every
+  invocation; the `&lt;` one was shown to catch the old mirror code.
+
 ## [0.6.0] — 2026-11-02
 
-The release commit; its board is `docs/releases/v0.6.0-board.md`. Tagging and publishing to npm and PyPI are the
-maintainer's steps — until they happen, the registries serve 0.5.0. What it carries: Link for secp256k1 keys (ES256K),
+The release commit; its board is `docs/releases/v0.6.0-board.md`. Tagged (signed) at `ed4cfde` on 2026-11-03 and
+published from the tag the same day: `@ainra/sdk`, `@ainra/middleware`, `@ainra/mcp` and `ainra` (PyPI) are at 0.6.0,
+and `@ainra/mcp` depends on `@ainra/sdk` `^0.6.0`. What it carries: Link for secp256k1 keys (ES256K),
 a decision log whose cut tail is visible once its head is logged at a registrar, a public demo door for links,
 `@ainra/mcp` depending on the SDK it was released with, and test replay moved out of the paths that decide.
 
@@ -776,7 +798,7 @@ done. every signature above is real hybrid Ed25519 + ML-DSA-65; strip the ML-DSA
 
 `v0.1.0` is the first tag (the human cuts it as step 3 of the pre-push checklist in `docs/_archive/PUBLISH-AUDIT.md`).
 
-## [v0.1.0] — the first public release (pending tag)
+## [v0.1.0] — the first public release (never tagged; superseded by v0.2.0)
 
 The first tag of the reference implementation: the full MTS §27 engineering ladder (M1–M8) plus the public-readiness
 and stranger-runnable-DoD work (M9–M11). Everything below is provable from a clean clone with `make preflight`.
@@ -822,7 +844,14 @@ A recorded 5-of-9 ceremony · ≥3 independent external verifiers · a 14-day/3-
 witnesses on separate infra. The machinery for all four is built and smoke-proven; `make genesis-status` shows the
 honest count (**7/11** today). See `GENESIS-CHECKLIST.md` and `outreach/`.
 
-[Unreleased]: https://github.com/JacobJandon/ainra/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/JacobJandon/ainra/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/JacobJandon/ainra/compare/v0.5.0...v0.6.0
+[0.5.0]: https://github.com/JacobJandon/ainra/compare/v0.4.1...v0.5.0
+[0.4.1]: https://github.com/JacobJandon/ainra/compare/v0.4.0...v0.4.1
+[0.4.0]: https://github.com/JacobJandon/ainra/compare/v0.3.3...v0.4.0
+[0.3.3]: https://github.com/JacobJandon/ainra/compare/v0.3.2...v0.3.3
+[0.3.2]: https://github.com/JacobJandon/ainra/compare/v0.3.1...v0.3.2
+[0.3.1]: https://github.com/JacobJandon/ainra/compare/v0.3.0...v0.3.1
 [v0.3.0]: https://github.com/JacobJandon/ainra/compare/v0.2.0...v0.3.0
-[v0.2.0]: https://github.com/JacobJandon/ainra/compare/v0.1.0...v0.2.0
-[v0.1.0]: https://github.com/JacobJandon/ainra/releases/tag/v0.1.0
+[v0.2.0]: https://github.com/JacobJandon/ainra/releases/tag/v0.2.0
+[v0.1.0]: the first release was never tagged; v0.2.0 is the first tag.

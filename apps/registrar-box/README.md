@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: Apache-2.0 OR MIT -->
-# apps/registrar-box — M2 scaffold (not yet implemented)
+# apps/registrar-box — the operator console
 
-The org-tier "registrar in a box": an accreditation + issuance operator any registrar can self-host, built on
-`crates/ainra-core` for every consensus-critical check (schema, hybrid signing, chain/mandate evaluation, log
-inclusion). Empty by design — no fake issuance logic. See [../../docs/STATUS.md](../../docs/STATUS.md) and
-DECISIONS D-007 (MTS §27: registrar-in-a-box is M3).
+`console.html` is the open registrar console, compiled into the `registrar-box` daemon and served at `GET /console`.
+The daemon itself — the self-hostable registrar over `ainra-core` (issuance, renewal, revocation, links, the public
+demo door) — lives in [`services/ainra-services/src/bin/registrar_box.rs`](../../services/ainra-services/src/bin/registrar_box.rs);
+its HTTP surface is described by `tools/openapi.mjs`. See [../../docs/STATUS.md](../../docs/STATUS.md).

@@ -96,6 +96,34 @@ regenerate the corpus.
 
 ---
 
+## RUSTSEC-2026-0385 — non-constant-time masks in `ctutils`
+
+| | |
+|---|---|
+| **Advisory** | [RUSTSEC-2026-0385](https://rustsec.org/advisories/RUSTSEC-2026-0385) · upstream fix [RustCrypto/utils#1569](https://github.com/RustCrypto/utils/pull/1569) |
+| **Crate** | `ctutils`, reached from `ml-dsa` through `hybrid-array` |
+| **Affected** | `0.4.2` — locked by every tag from v0.3.3 to v0.4.1 |
+| **Fixed in** | `0.4.6` — on main 2026-10-28; first released in **v0.5.0** |
+| **Published** | 2026-10-23 · **found by us** on the first push after it (the `cargo-audit` job turned red) |
+
+Some masks and `u128` comparisons took operand-dependent time. As with RUSTSEC-2025-0144 above, the exposure is
+the **signing** side, where ML-DSA holds a secret key: `registrar-box` issuance, ceremony delegates and the CLI.
+Verification — the browser verifier, `@ainra/sdk`, `@ainra/middleware`, the Python package — consumes only public
+inputs, and the npm and PyPI packages do not contain the crate. No production key exists; the keys that signed with
+0.4.2 are TEST-ROOT staging keys. The fix is the version bump; the corpus did not change. Narrative and timeline:
+`SECURITY.md`.
+
+---
+
+## RUSTSEC-2026-0387 — `crypto-bigint` 0.5.5, through `k256` 0.13 (never in a release)
+
+`k256` came in for ES256K Link keys (D-082) at 0.13, which pulls `crypto-bigint` 0.5.5. The `cargo-audit` job went red
+on the push that added it; `k256` moved to 0.14 (on `crypto-bigint` 0.7) before v0.6.0 was cut, and no tag ever
+locked 0.13. Recorded because the gate caught it, which is the gate's job, and because the push that went red should
+not have been made: a dependency change is audited before it is pushed, not after.
+
+---
+
 ## RUSTSEC-2023-0089 — `atomic-polyfill` unmaintained
 
 Not a vulnerability: an unmaintained notice. Reached only as

@@ -75,7 +75,7 @@ The historical examples in "Our posture" above are exactly that record: each one
 decision in the log. That is the standard your report will be held to — and the reason a good report here is
 permanent, not just patched.
 
-## Advisory: RUSTSEC-2026-0385 — non-constant-time masks in `ctutils` (fixed on main, 28 October 2026)
+## Advisory: RUSTSEC-2026-0385 — non-constant-time masks in `ctutils` (fixed in v0.5.0)
 
 **What it was.** `ctutils` 0.4.2, a constant-time helper crate that `ml-dsa` reaches through `hybrid-array`,
 generated some masks and compared `u128` values in ways whose timing depends on the operands. Upstream fix:
@@ -90,8 +90,8 @@ not contain this crate.
 **How it was found.** The `cargo-audit` job turned red on the first push after the advisory was published. That is
 the gate working as the post-mortem below intended: it now stops on vulnerabilities, not on lesser notices.
 
-**What changed.** `ctutils` is at 0.4.6, the site's WebAssembly verifier is rebuilt, and the corpus is unchanged.
-The next release will carry it.
+**What changed.** `ctutils` is at 0.4.6 (on main 28 October 2026, released in v0.5.0), the site's WebAssembly
+verifier is rebuilt, and the corpus is unchanged. Scoping: `SECURITY-ADVISORIES.md`.
 
 ## Post-mortem: RUSTSEC-2025-0144 — timing side-channel in `ml-dsa` (fixed in v0.3.1)
 
@@ -186,7 +186,8 @@ requests, the same status and reason required from each (`make gate-parity`). It
   `make diff` and their own tests. With the fix removed, twelve read differently. On its first run this corpus found
   a further disagreement (a directory entry with no status key: Python rejected the whole directory).
 * `make policy-parity` has a column for the Rust gate path.
-* `make live-drills` brings up a network and runs the five live drills; CI runs it on every push.
+* `make live-drills` brings up a network and runs every live drill (`tools/live-drills.sh` is the list); CI runs it on
+  every push.
 * What authentication does not close is written into the corpus rather than left to be assumed: a genuine earlier
   publication of the same passport is accepted until it is older than the verifier's freshness class (`g18`, `g19`).
 
@@ -245,9 +246,9 @@ documented production path, was not affected. The plain constructor now fails cl
 be asked for by name. If you build a Python verifier from raw anchors, move to `from_directory` or add the status key
 to the anchors.
 
-**What you should do.** If you run `@ainra/mcp` 0.4.1 and rely on `ainra_verify` for a trust decision:
-upgrade to 0.5.0 (on npm since 2026-11-01), together with `@ainra/sdk` 0.5.0 — the 0.5.0 package accepts any SDK
-version, so an older one already in your project would stay.
+**What you should do.** If you run `@ainra/mcp` 0.4.1 and rely on `ainra_verify` for a trust decision: upgrade to
+0.6.0, which depends on `@ainra/sdk` `^0.6.0`. (0.5.0 also carries the fix, but accepts any SDK version, so an older
+SDK already in your project would stay.)
 
 ## Verifying what you run
 You do not have to trust us: the SDK is byte-differential-tested against the Rust core over the public CC0 vectors

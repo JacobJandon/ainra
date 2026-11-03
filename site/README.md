@@ -12,14 +12,15 @@ make site            # refresh the two derived downloads from canonical sources
 make site SERVE=1    # …and serve at http://127.0.0.1:8088  (PORT=… to change)
 ```
 
-The 7 pages (`index`, `standard`, `verify`, `foundations`, `status`, `demo`, `404`) are committed and self-contained.
+The pages (`site/*.html` — among them `index`, `standard`, `verify`, `status`, `demo`, `docs`, `404`) are committed and self-contained.
 `make site` only regenerates the two **download artifacts** so they can never go stale:
-- `ainra-cli-v0.3.0.zip` ← packaged from **`apps/cli-node/`** (the real reference CLI).
+- `ainra-cli-v<version>.zip` ← packaged from **`apps/cli-node/`** (the real reference CLI).
 - `AINRA_I_The_Standard.md` ← copied from **`docs/AINRA_I_The_Standard.md`** (the canonical Standard).
 
 Both are gitignored (derived, not committed) — one source of truth each, so the site's download is always the current,
-real thing. To deploy statically, run `make site` then publish the `site/` directory (the GitHub Pages workflow does
-exactly this: see `.github/workflows/pages.yml`).
+real thing. The live site deploys through `bash tools/export-site.sh`, which runs `make site` and pushes `site/` to
+a separate static-site repository that the host deploys; pushing this repository does not change the live site.
+(`.github/workflows/pages.yml` can publish `site/` to GitHub Pages instead; it is not how ainra.org is served.)
 
 ## Nothing phones home
 

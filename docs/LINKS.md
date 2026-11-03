@@ -112,7 +112,7 @@ same status, reason and operator from all three. CI runs it.
 
 ## Held to one corpus
 
-[`vectors/v1-link`](../vectors/v1-link) has 36 vectors in gate form: the directory and roots, the link as a gate
+[`vectors/v1-link`](../vectors/v1-link) holds every link vector in gate form: the directory and roots, the link as a gate
 receives it, the key the gate verified, and the gate's own clock, freshness class and capability. A valid answer names
 the registrar, operator, passport and scope, so accepting for the wrong operator counts as a disagreement. The Rust
 core, the TypeScript SDK and the Python package must agree on every one in `make diff`. Each check was removed once from

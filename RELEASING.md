@@ -30,14 +30,14 @@ Only once the board is green + committed do you proceed to package + sign + tag 
 ## Tag pins — the exact commit each release was cut at
 
 Tagging is the maintainer's button and is never done by the agent. The pins below are the permanent record of which
-commit each version's board was proven at; both tags are now **signed, pushed, and released**:
+commit each version's board was proven at:
 
 | Version | Tag target (exact commit) | Board evidence | State |
 |---|---|---|---|
 | **v0.2.0** | **`5ae1b12`** | `docs/releases/v0.2.0-board.md` — full 17-row board ALL GREEN from a clean clone | **RELEASED** — signed tag verified (`git verify-tag v0.2.0`), artifacts on the releases page |
-| **v0.3.0** | **`af3c869`** | `docs/releases/v0.3.0-board.md` — full 18-row board (incl. `conformance`, 4-way differential) ALL GREEN from a clean clone | **RELEASED** — signed tag verified, signed artifacts + provenance + SBOM on the releases page; the repo's Latest |
-| **v0.5.0** | **`e6870bc`** | `docs/releases/v0.5.0-board.md` — full 44-row board ALL GREEN, no skips, from a fresh clone | **TAGGED + PUBLISHED** — signed tag verified (`git verify-tag v0.5.0`), 2026-10-31; `@ainra/sdk`, `@ainra/middleware` and PyPI `ainra` published from the tag with provenance; `@ainra/mcp` 0.5.0 published 2026-11-01 by trusted publishing (its first upload was refused); no draft release page (the release workflow wanted the board inside the tagged tree — fixed for the next tag) |
-| **v0.6.0** | **`ed4cfde`** | `docs/releases/v0.6.0-board.md` — full 44-row board ALL GREEN, no skips, from a fresh clone (a first run, stopped by a full disk, was redone) | **READY** — the maintainer signs the tag at `ed4cfde`, then publishes from the tag; until then npm and PyPI serve 0.5.0 |
+| **v0.3.0** | **`af3c869`** | `docs/releases/v0.3.0-board.md` — full 18-row board (incl. `conformance`, 4-way differential) ALL GREEN from a clean clone | **RELEASED** — signed tag verified, signed artifacts + provenance + SBOM on the releases page |
+| **v0.5.0** | **`e6870bc`** | `docs/releases/v0.5.0-board.md` — full 44-row board ALL GREEN, no skips, from a fresh clone | **TAGGED + PUBLISHED** — signed tag verified (`git verify-tag v0.5.0`), 2026-10-31; `@ainra/sdk`, `@ainra/middleware` and PyPI `ainra` published from the tag with provenance; `@ainra/mcp` 0.5.0 published 2026-11-01 by trusted publishing (its first upload was refused); release page created by the maintainer; **no artifacts attached** — the release workflow first wanted the board inside the tagged tree, then refused on the manifest's locale order (both fixed; re-attaching is the maintainer's step) |
+| **v0.6.0** | **`ed4cfde`** | `docs/releases/v0.6.0-board.md` — full 44-row board ALL GREEN, no skips, from a fresh clone (a first run, stopped by a full disk, was redone) | **TAGGED + PUBLISHED** — signed tag verified (`git -c gpg.ssh.allowedSignersFile=release/tag_signers verify-tag v0.6.0`), 2026-11-03; all four packages published from the tag by trusted publishing; release page created by the maintainer, the repo's Latest; **no artifacts attached** — `make release` refused in CI on the manifest's locale order (fixed after the tag by `LC_ALL=C`; re-attaching is the maintainer's step) |
 
 Never rewrite tagged history: if something must change after a tag, neutralize at the tip (a new commit), never by
 moving or deleting a released tag.
@@ -63,10 +63,12 @@ It then builds the reference CLI, packages the conformance corpus, and writes `d
 | `SHA256SUMS` | SHA-256 of every file above — **the file you sign** |
 
 Then the maintainer:
-1. **Sign the manifest** — `gpg --armor --detach-sign dist/SHA256SUMS` (or `cosign sign-blob` / `minisign`). Signing
-   `SHA256SUMS` transitively signs every artifact.
-2. **Tag** — `git tag -s v0.2.0 -m "AINRA v0.2.0"` (annotated `-a` if not signing yet). See `CHANGELOG.md`.
-3. **Publish** `dist/*` + `dist/SHA256SUMS.asc` to the GitHub release for the tag.
+1. **Sign the manifest** — `ssh-keygen -Y sign -f <release-key> -n file dist/SHA256SUMS` (the release key is SSH
+   Ed25519, offline; `scripts/release.sh` does this itself when the key is present). Signing `SHA256SUMS`
+   transitively signs every artifact; anyone verifies with `release/allowed_signers` (`RELEASE-VERIFY.md`).
+2. **Tag** — `git tag -s vX.Y.Z -m "AINRA vX.Y.Z"`, SSH-signed with the tag key pinned in `release/tag_signers`.
+   See `CHANGELOG.md`.
+3. **Publish** `dist/*` + `dist/SHA256SUMS.sig` to the GitHub release for the tag.
 
 > Releases are cross-signed by reproducibility: anyone can re-run `make release` from the tagged commit and get the same
 > `MANIFEST.sha256` and vectors tarball. The per-platform CLI binary is not bit-reproducible across toolchains, but the
@@ -163,8 +165,8 @@ unregistered on PyPI 2026-07-30). Runtime dependency is exactly `cryptography>=4
 You do **not** need to trust the publisher. With only the release files + the public key:
 
 ```sh
-# 1. the manifest signature is authentic (the key is published out of band — repo, keyserver, or a pinned fingerprint)
-gpg --verify SHA256SUMS.asc SHA256SUMS
+# 1. the manifest signature is authentic (allowed_signers ships with the release and is pinned in release/)
+ssh-keygen -Y verify -f allowed_signers -I release@ainra.org -n file -s SHA256SUMS.sig < SHA256SUMS
 
 # 2. every artifact matches the signed manifest
 sha256sum --check SHA256SUMS
@@ -180,7 +182,7 @@ Step 3 is the one that matters: it proves the released conformance corpus is exa
 produces — no trust in the maintainer required. (Signature verification, step 1, only proves *who* published it.)
 
 ## Status of signing
-Reproducibility + `SHA256SUMS` are wired now. Key management (which key signs releases, where its fingerprint is
-pinned) is a maintainer/ceremony decision — until a signing key is published, releases ship `SHA256SUMS` unsigned and a
-downloader relies on step 3 (rebuild-from-source), which needs no key. This is stated honestly rather than shipping a
-fake trust anchor.
+Two SSH Ed25519 keys, both pinned in the repository: the release key signs `SHA256SUMS` (`release/allowed_signers`,
+`release/ainra-release.pub`) and the tag key signs tags (`release/tag_signers`); `RELEASE-VERIFY.md` checks both.
+v0.5.0 and v0.6.0 have signed tags but no attached artifacts yet (see the pins above), so for those a downloader has
+step 3 — rebuild from source — which needs no key at all.

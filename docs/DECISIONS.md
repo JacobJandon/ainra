@@ -26,6 +26,9 @@ Rule (brief §8): where two docs conflict, the **Master Technical Specification 
 
 ## D-007 — `did:web` mapping + FROST + Tessera + witnesses = M2+ (M1 does `did:ainra` parse only)
 - M1 implements `did:ainra` parse/format round-trip only. `did:web` mapping (MTS ADR-014), Tessera/logd, witnessd, statusd, registrar-box are M2/M3 scaffolds that **compile and return a typed `NotImplemented`** — listed in STATUS.md. Nothing fake is presented as real (brief §0).
+- *Amended 2026-11-03 (PLAN-M50 step 6):* logd, witnessd, statusd and registrar-box were built (M2/M3) and nothing
+  returned `NotImplemented` any more; the unused variant is removed from `ainra_core::Error` (`ainra-core` is not
+  published, so no caller outside this repository could match on it). Scope algebra was never in this entry: D-085.
 
 ## D-008 — Merkle = RFC 6962 exactly; in-crate test log is for fixtures only
 - SHA-256 with domain-separation prefixes `0x00` (leaf) / `0x01` (interior). M1 ships a **minimal in-crate test log writer** so vectors can carry real inclusion proofs to a real signed checkpoint (logged-before-valid holds even though the production log is M2 Tessera). The checkpoint is signed by the labeled `TEST-ROOT` / delegate stand-in.
@@ -1345,7 +1348,8 @@ to run F1 or currency mode, and the SDK has always said this (`Verifier` freshne
 
 *Status:* NEW. `@ainra/sdk` and `@ainra/middleware` (TypeScript), unreleased — the next publish carries it. The
 Python SDK and the Rust core do not verify request signatures yet (PLAN-M34 remaining work), so they have nothing
-to change here.
+to change here. *Amended 2026-11-03:* released in 0.5.0 (on npm 2026-10-31); the Rust core and the Python package
+verify request signatures too now (`vectors/v1-presentation`, held in `make diff`).
 
 ## D-066 — A human behind the agent: proof-of-personhood as a registrar-side principal proof
 
@@ -1686,9 +1690,11 @@ The first run found two differences. One was small. One was the most serious def
 *Not changed, said plainly:* authenticated status bounds revocation latency by the verifier's freshness class; it
 does not prove currency. Currency mode (D-021) exists in `@ainra/sdk` only. The site's "Try it" panel and
 `verify_bundle_json` keep fixture semantics on specimen records and are not gates. `make gate-parity` needs the live
-network, so it is not in CI; the offline tests above are.
+network, so it is not in CI; the offline tests above are. *Amended 2026-11-03:* it is, since D-073 — CI's `live` job
+brings a network up and runs it with the other live drills.
 
-*Status:* NEW. Ships in 0.5.0 — before `@ainra/edge` is published for the first time.
+*Status:* NEW. Ships in 0.5.0 — before `@ainra/edge` is published for the first time. *Amended 2026-11-03:* shipped
+in 0.5.0; `@ainra/edge` is still not on npm.
 
 ## D-073 — Closing D-072 to the standard SECURITY.md promises: a gate corpus, the post-mortem, and the live drills in CI (M43)
 
@@ -1736,7 +1742,8 @@ that found D-072 needs a running network, so it ran only when someone had starte
 *Not changed, said plainly:* `vectors/v1-gate` is not yet part of the third-party conformance contract
 (`tools/conformance`), which covers the credential corpus; nor is `vectors/v1-presentation`. The live job has been
 run in its image locally and has not yet run on the hosted runner. *Amended 2026-11-03 (D-084):* both are kinds of
-contract v2's `full` profile now.
+contract v2's `full` profile now. *Amended 2026-11-03:* the `live` job runs on the hosted runner on every push and is
+green (for example the run for `0755180`); the drill list has grown past five (`tools/live-drills.sh` is the list).
 
 *Status:* NEW. Ships in 0.5.0.
 
@@ -2130,3 +2137,19 @@ adapter answers every kind through the same functions `make diff` uses.
 certifies no one.
 
 *Status:* NEW (PLAN-M50 step 3).
+
+## D-085 — No scope algebra: capabilities match as exact strings (M50)
+
+*Problem:* `chain.rs` said hierarchical scopes (`read:*` ⊇ `read:invoices`) were "deferred to M2 (D-007)". D-007
+never mentioned them, and nothing in M2 built them. A pointer to a decision that does not exist is a claim nobody can
+check.
+
+*Decision:* capabilities, scope ceilings, link scopes and instance-credential capabilities match as **exact strings**,
+everywhere, and that is the design rather than a gap. A wildcard or a hierarchy is a widening rule; every widening
+rule is a place where two implementations can disagree about what was granted, and the corpus pins only what is
+written. A party that wants `read:*` lists the capabilities it means.
+
+*Revisit only with:* a written algebra, a corpus for it, and the same answer from every implementation — the bar
+every other rule in the verify path met.
+
+*Status:* NEW (PLAN-M50 step 6). Nothing changes in code; `chain.rs` now points here.

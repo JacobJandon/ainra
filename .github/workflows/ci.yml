@@ -148,6 +148,8 @@ jobs:
           curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${VER}/gitleaks_${VER}_linux_x64.tar.gz" | tar -xz gitleaks
           sudo mv gitleaks /usr/local/bin/gitleaks
       - run: make audit
+      # PLAN-M50 step 6: needs this job's full clone — the release tags are what it checks the docs against.
+      - run: node tools/release-state-check.mjs
 
   hygiene:
     name: freeze · no-network · npm-audit · status-consistency
@@ -293,13 +295,13 @@ jobs:
       - run: bash tools/ceremony-dry-run.sh 5
       - run: bash tools/drill-networked.sh
 
-  # D-073: the five drills that need a running network — on a network the job brings up. They prove the identity end
+  # D-073: the drills that need a running network (tools/live-drills.sh is the list) — on a network the job brings up. They prove the identity end
   # to end at the real clock, and one of them (gate-parity) is what found the Rust gate path believing any status it
   # was handed (D-072); until this job they ran only when someone had started two daemons by hand. The Python gate
   # and the Python agent verify SLH-DSA through the system libcrypto, so this runs in the same OpenSSL >= 3.5 image
   # as the differential job.
   live:
-    name: live drills (a network brought up in the job · six drills at the real clock)
+    name: live drills (a network brought up in the job · every live drill at the real clock)
     runs-on: ubuntu-latest
     container: rust:1.96
     timeout-minutes: 45
@@ -326,8 +328,8 @@ jobs:
       # this job's Python with ML-DSA, which is why it lives here).
       - run: cd packages/middleware && npm install && npm run build
       - run: make link-parity
-      # stage-up (the published directory) + live-up (the wall-clock registrar), then identity-e2e, edge-e2e,
-      # signature-agent-e2e, python-agent-e2e, wimse-e2e and gate-parity. One board; red if any drill is red.
+      # stage-up (the published directory) + live-up (the wall-clock registrar), then every drill tools/live-drills.sh
+      # lists. One board; red if any drill is red.
       - run: make live-drills
 
   reproducibility:

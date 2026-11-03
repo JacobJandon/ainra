@@ -1,16 +1,17 @@
 <!-- SPDX-License-Identifier: Apache-2.0 OR MIT -->
-# Publishing to npm and PyPI — everything that is done, and the two things that are not
+# Publishing to npm and PyPI
 
 **Status: PUBLISHED — npm and PyPI. v0.4.0 on 2026-09-15, v0.4.1 on 2026-09-19, v0.5.0 on 2026-10-31 (`@ainra/mcp` on
-2026-11-01, below).** All four artifacts are live on
+2026-11-01, below), v0.6.0 on 2026-11-03 — all four by trusted publishing.** All four artifacts are live on
 the public registries **with Sigstore provenance** — built on a GitHub-hosted runner via
 `.github/workflows/publish.yml`, which is the only publish path because provenance cannot be retrofitted onto a
 version that is already public. v0.4.1 added `@ainra/mcp`, published for the first time once it could be installed
 rather than cloned, and superseded a PyPI wheel that reported its own version wrongly.
 
 ```
-packages            0.4.1 · sdk + middleware + mcp LIVE on npm, attestations YES
+packages            0.6.0 · sdk + middleware + mcp LIVE on npm — trusted publishing, attestations YES
                            PyPI `ainra` LIVE — trusted publishing, PEP 740 attestations, no token
+not yet published   @ainra/edge (the maintainer's step: a first name and a first publish)
 publish-preflight   READY — tag matches the package tree byte for byte
 install smokes      npm 1153/1153 · py wheel 1153/1153
 ```
@@ -52,8 +53,8 @@ uploading `@ainra/mcp`, but the package also declared the SDK as a `*` peer, and
 in 0.4.1 and again in 0.5.0. `peerDependencies` is gone from `packages/mcp`, and `publish-preflight` blocks any
 package whose SDK peer would override the range.
 
-**Still to do on npm:** a Trusted Publisher on `@ainra/sdk` and `@ainra/middleware` too — with `NPM_TOKEN` deleted,
-their next publish authenticates only that way.
+**Trusted publishing on all three npm packages:** `NPM_TOKEN` is deleted, and 0.6.0 of `@ainra/sdk`,
+`@ainra/middleware` and `@ainra/mcp` published by OIDC alone.
 
 **PyPI went token-free from its very first version**, which is the difference worth remembering: its pending
 publisher (project `ainra` · `JacobJandon` · `ainra` · `publish.yml` · environment **`pypi`** — this job *does*
@@ -64,8 +65,8 @@ publisher was registered; npm took four.
 **The remaining sequence.** The first step is the maintainer's: `RELEASING.md` states that an agent never runs
 `git tag`, `npm publish` or `twine upload`.
 
-1. `git tag -s v0.4.0` — maintainer
-2. `make release VERSION=v0.4.0`
+1. `git tag -s vX.Y.Z` — maintainer
+2. `make release VERSION=vX.Y.Z`
 3. `make publish-preflight` — must print READY before any token is pasted
 4. the two web forms — maintainer, logged-in browser
 
@@ -126,15 +127,16 @@ a mismatch here as the usual cause of `invalid-pending-publisher`.
    `NPM_TOKEN`**. The workflow already prints which credential it used, and falls through to OIDC whenever the
    secret is absent, so removing it is the only step needed.
 
-## Resume — one paste, once those two are done
+## Publishing a tagged version — one paste
 
 ```sh
 cd ~/Desktop/Solvatron/ainra
 make publish-preflight                          # must print READY with "tag matches tree"
-gh workflow run publish.yml --ref v0.4.0 -f target=dry-run     # publishes nothing; proves the path
-gh workflow run publish.yml --ref v0.4.0 -f target=npm-sdk     # @ainra/sdk first — the others resolve it by name
-gh workflow run publish.yml --ref v0.4.0 -f target=npm-middleware
-gh workflow run publish.yml --ref v0.4.0 -f target=pypi
+gh workflow run publish.yml --ref vX.Y.Z -f target=dry-run     # publishes nothing; proves the path
+gh workflow run publish.yml --ref vX.Y.Z -f target=npm-sdk     # @ainra/sdk first — the others resolve it by name
+gh workflow run publish.yml --ref vX.Y.Z -f target=npm-middleware
+gh workflow run publish.yml --ref vX.Y.Z -f target=npm-mcp
+gh workflow run publish.yml --ref vX.Y.Z -f target=pypi
 
 # THEN verify from the PUBLIC registries in a clean environment — never from this checkout:
 npm view @ainra/sdk version
@@ -142,15 +144,15 @@ cd "$(mktemp -d)" && npm init -y >/dev/null && npm i @ainra/sdk && node -e 'cons
 python3 -m venv v && ./v/bin/pip install ainra && ./v/bin/python -c "import ainra; print(ainra.__version__)"
 ```
 
-`--ref v0.4.0` is load-bearing. The workflow file that runs is the one at the ref you dispatch, and the release
+`--ref vX.Y.Z` is load-bearing. The workflow file that runs is the one at the ref you dispatch, and the release
 gate compares the package tree against the tag — dispatching from `main` after `main` has moved on will block,
 correctly.
 
-## Only after the registries answer
+## Install commands follow the registries, never the other way round
 
-Registry install commands are **deliberately not** in the README, the site, or the verifier kit. Those surfaces
-currently carry the honest banner that the packages are not published, and the from-the-clone route beside it —
-which is proven to work: a fresh public clone to a passing `make verifier-kit-smoke` takes **32 seconds**.
+Until the first publish, registry install commands were **deliberately kept out** of the README, the site and the
+verifier kit, which carried the from-the-clone route instead (a fresh public clone to a passing
+`make verifier-kit-smoke` took **32 seconds**). They went in once the registries answered.
 
 Publishing an install command before the package exists is the exact defect the Stranger Walk found (finding 5),
 where the kit's troubleshooting page offered, as the remedy for a failure, the command that caused it. So the
@@ -161,5 +163,5 @@ make outreach-check          # packets: pins, counts, install commands
 make status-consistency      # every documented @ainra/sdk pin == the real package version
 ```
 
-Both currently pass **because** nothing claims an install. When the packages are live, update the kit banner and
-the site together, then re-run those two gates and `make stranger` against production.
+The same order holds for a new package (`@ainra/edge`): nothing names its install command until the registry
+serves it, and then the kit, the site and these two gates move together, with `make stranger` against production.

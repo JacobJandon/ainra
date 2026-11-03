@@ -8,9 +8,9 @@
 //!   * **both signatures** — each hop is signed by the delegator with the hybrid pair, verified over the hop's
 //!     canonical bytes (a missing/failing signature is [`Reason::AlgDowngrade`]/[`Reason::SigInvalid`]).
 //!
-//! Capability matching is **exact-string** in M1 (the stricter reading, brief §8): hierarchical scopes like
+//! Capability matching is **exact-string** (the stricter reading, brief §8): hierarchical scopes like
 //! `read:*` ⊇ `read:invoices` are NOT expanded here — a hop must name exactly what it inherited or a subset of it.
-//! Hierarchical scope algebra is deferred to M2 (DECISIONS D-007) so we never *widen* by accident.
+//! A scope algebra is not built, deliberately (DECISIONS D-085), so nothing can *widen* by accident.
 
 use alloc::string::String;
 use alloc::vec::Vec;

@@ -67,7 +67,7 @@ file.
 
 ## Honest status
 
-<!-- STATUS-LINE -->Engineering ladder M1–M27 and launch sessions L1–L5 complete; the repository is public with signed releases; the settlers pass closed five of seven arrows (graduated distrust D-044, forward-only log D-045, adversarial compliance probes D-046, a deadlined disclosure term, a rollback threshold); what remains is not code but three real-world events and the people to run them; logs sealed by the real root: 0.
+<!-- STATUS-LINE -->The engineering ladder is built and released as signed versions, and the repository is public; the settlers pass closed six of seven arrows (the instance credential ADR-019, graduated distrust D-044, forward-only log D-045, adversarial compliance probes D-046, a deadlined disclosure term, a rollback threshold); what remains is not code but real-world events and the people to run them; logs sealed by the real root: 0.
 
 What remains to *ship the prototype* is **not code** — it is three real-world events (a recorded ceremony, ≥3
 independent external verifiers, a 14-day/3-region revocation soak). The machinery to run those **without us in the
@@ -154,7 +154,8 @@ neutral root). Build + serve locally:
 make site SERVE=1     # refreshes the derived downloads from canonical sources, serves at http://127.0.0.1:8088
 ```
 
-Deploy is one GitHub Pages workflow the owner enables at publish time (see `site/README.md` + the pre-push checklist).
+Deploy: `bash tools/export-site.sh` (the owner's step) rebuilds `site/` and pushes it to a separate static-site
+repository, which the host deploys to https://ainra.org/. Pushing this repository does not change the live site.
 
 ## Architecture
 

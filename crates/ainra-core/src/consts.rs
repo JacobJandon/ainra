@@ -23,9 +23,9 @@ pub const RENEWAL_LEAD_SECS: u64 = 30 * 24 * 60 * 60;
 /// verify ([`crate::checkpoint`], which re-exports this constant).
 pub const DELEGATE_CERT_MAX_SECS: u64 = 92 * 24 * 60 * 60;
 
-/// Default instance-credential lifetime — **1 hour** (ADR-017: minutes–hours). RESERVED: the instance-credential
-/// layer (SPIFFE-style short-lived running-copy creds under the passport) is future work; the constant pins the
-/// ADR-017 ceiling here so the ladder has one home and later machinery cannot invent its own number.
+/// Instance-credential lifetime ceiling — **1 hour** (ADR-017: minutes–hours; ADR-019). Enforced fail-closed by
+/// [`crate::instance`]: a running copy's credential whose window is longer is `instance_expired`. Pinned here so the
+/// ladder has one home and no layer invents its own number.
 pub const INSTANCE_CRED_DEFAULT_SECS: u64 = 60 * 60;
 
 #[cfg(test)]

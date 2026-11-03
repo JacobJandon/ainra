@@ -10,12 +10,12 @@ static host in one step.
 
 | File(s) | Purpose |
 |---|---|
-| `index.html` … `status.html` | the five content pages |
+| `index.html`, `standard.html`, `verify.html`, `status.html`, … | the content pages |
 | `demo.html` | **the live demo** — verifies a real passport in the visitor's browser |
 | `404.html` | on-brand not-found page |
 | `vendor/ainra-sdk.js` | the real `@ainra/sdk` verifier, bundled for the browser (the demo's engine) |
 | `data/registry.json` | a real, core-verified seeded registry the demo reads |
-| `AINRA_I_The_Standard.md`, `ainra-cli-v0.3.0.zip` | downloadable assets |
+| `AINRA_I_The_Standard.md`, `ainra-cli-v<version>.zip` | downloadable assets (derived by `make site`) |
 | `robots.txt`, `sitemap.xml` | crawler policy + sitemap (both name `https://ainra.org` — find-replace to your domain) |
 | `site.webmanifest`, `icon-192.png`, `icon-512.png`, `apple-touch-icon.png` | installable/PWA metadata + home-screen icons |
 | `og-cover.png` | 1200×630 social-share image referenced by the Open Graph / Twitter tags |
@@ -30,6 +30,9 @@ cd site && python3 -m http.server 8080
 ```
 
 ## Publish (pick one — all zero-config for a static folder)
+
+ainra.org itself is published by `bash tools/export-site.sh`, which runs `make site` and pushes `site/` to a separate
+static-site repository the host deploys. For your own copy, any of these works:
 
 - **Any static host / object storage + CDN:** upload the `site/` folder; set `404.html` as the error document; done.
 - **Git-based static hosting:** point the provider at this repo, set the publish directory to `site/`, no build command.

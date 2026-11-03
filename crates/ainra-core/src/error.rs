@@ -33,11 +33,6 @@ pub enum Error {
     /// never silently accepted. Spec: brief §3 (size-conformance asserts).
     #[error("crypto size: expected {expected} bytes, got {got}")]
     CryptoSize { expected: usize, got: usize },
-
-    /// A path that is deliberately not implemented in this milestone. NEVER a mocked success (brief §0).
-    /// The `&'static str` names the spec section that owns the future implementation.
-    #[error("not implemented (M1): {0}")]
-    NotImplemented(&'static str),
 }
 
 impl Error {

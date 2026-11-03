@@ -47,7 +47,7 @@ a signed rebuild statement whose manifest digest matches. WITNESS: three cosigna
 key, must leave the row ⏳ ("never a fake ✅"). The wording stays "independent cosignatures observed", never "quorum
 constituted".
 
-**6. The honesty sweep, and a gate so the drift cannot return.** ROADMAP still says "Unreleased (0.5.0)"; STATUS,
+**6. The honesty sweep, and a gate so the drift cannot return.** *Done 2026-11-03 (`make release-state-check`). Left for the owner: the site export, and `index.html`'s "RECRUITING" against `docs.html`'s "0" witnesses (site copy).* ROADMAP still says "Unreleased (0.5.0)"; STATUS,
 CHANGELOG, RELEASING, PUBLISHING, SECURITY and two READMEs describe states that are over; drill counts disagree;
 `site/status.md` garbles a heading because `tools/site-mirrors.mjs` decodes `&lt;` before its last tag strip. Correct
 each, with dated amendments in DECISIONS rather than silent edits. Then a gate: a tagged version may not be called

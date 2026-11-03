@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: Apache-2.0 OR MIT -->
-# STATUS — AINRA reference implementation (M1–M9 ladder done · M10 public-ready · M11 public-operational)
+# STATUS — AINRA reference implementation
 
-<!-- STATUS-LINE -->Engineering ladder M1–M27 and launch sessions L1–L5 complete; the repository is public with signed releases; the settlers pass closed five of seven arrows (graduated distrust D-044, forward-only log D-045, adversarial compliance probes D-046, a deadlined disclosure term, a rollback threshold); what remains is not code but three real-world events and the people to run them; logs sealed by the real root: 0.
+<!-- STATUS-LINE -->The engineering ladder is built and released as signed versions, and the repository is public; the settlers pass closed six of seven arrows (the instance credential ADR-019, graduated distrust D-044, forward-only log D-045, adversarial compliance probes D-046, a deadlined disclosure term, a rollback threshold); what remains is not code but real-world events and the people to run them; logs sealed by the real root: 0.
 
 Honest state of the tree. If it says green, `make` proves it; if it says M6+, the code does not pretend otherwise.
 Prime directive: **nothing fake, ever** (brief §0). Toolchain: Rust 1.96, Node 26, `ml-dsa 0.0.4` / `slh-dsa 0.0.3`
@@ -13,9 +13,9 @@ A stranger clones, runs `make test && make vectors && make diff`, all green in <
 
 | Target | What it does | State |
 |---|---|---|
-| `make test` | `cargo test --release --workspace` — **118 tests** (core unit incl. directory + property + frost + ceremony + registrar + service + networked-quorum regression) | ✅ green |
-| `make vectors` | regenerate **721 passport (incl. 24 ADR-017 boundary + 29 renewal/REISSUE + 8 D-029 non-canonical-encoding) + 24 delegate-revocation + 17 delta + 9 directory** CC0 vectors + self-check | ✅ green |
-| `make vectors-check` | replay ALL three committed corpora back through ainra-core | ✅ green |
+| `make test` | `cargo test --release --workspace` — every test in the workspace (core unit incl. directory + property + frost + ceremony + registrar + service + networked-quorum regression) | ✅ green |
+| `make vectors` | regenerate every CC0 corpus — passport (incl. ADR-017 boundary, renewal/REISSUE, delegate-revocation and D-029 non-canonical-encoding cases), delta, directory, presentation, gate, link, decision and directory-epoch — + self-check | ✅ green |
+| `make vectors-check` | replay every committed corpus back through ainra-core | ✅ green |
 | `make diff` | differential (below) — verdicts **1153/1153**, canon 10/10 + 4/4, delta 17/17, **directory 9/9** | ✅ green |
 | `make ceremony` | **M4** genesis rehearsal: FROST 5-of-9 dual root → signed directory → mint/verify → revoke→`checkpoint_invalid` → rotate→VALID → transcript | ✅ green |
 | `make testbed` | **M5** the wedge: live registrar → `accredit` → 5-line `ainra-verify` → VALID; revoke → INVALID; **+ 4b: forged all-clear status (clear/strip/swap-uri) → INVALID**; verify-latency | ✅ green |
@@ -24,7 +24,7 @@ A stranger clones, runs `make test && make vectors && make diff`, all green in <
 | `make demo` | the M3 lifecycle end-to-end: issue → verify → log-verify → revoke (signed delta) → re-verify | ✅ green |
 | `make console` / `make explorer` | passport-book viewer + live verify; the registrar explorer over a signed export | ✅ green |
 | `make scale` | the billion-device proof: a REAL 1-billion-lineage status list + 16M-leaf trees + sharded issuance, measured → `docs/SCALE.md` | ✅ green |
-| `make repro` | **M7** reproducibility: rebuild the 790-file spec artifact set from source into a fresh temp tree ×2, assert **committed == clean-rebuild ×2** byte-identical → `MANIFEST.sha256` | ✅ green |
+| `make repro` | **M7** reproducibility: rebuild the full spec artifact set from source into a fresh temp tree ×2, assert **committed == clean-rebuild ×2** byte-identical → `MANIFEST.sha256` | ✅ green |
 | `make mirror` / `make verify-mirror` | **M7** byte-verify a mirror against the manifest (fail-closed on tamper/missing/extra/symlink/subdir-manifest); 2 mirrors proven | ✅ green |
 | `make check-freeze` | **M7** the normative docs (Standard · MTS · DESIGN) are frozen; drift fails | ✅ green |
 | `make genesis-local` | **M8** the whole stack on one laptop (§29/N9): dual root → 2 distinct registrar classes → issue+log → 5-line verify root-dark → revoke/forge fail closed → witness-quorum fork caught → transcript | ✅ green |
@@ -325,7 +325,7 @@ DECISIONS D-027/D-028, MTS ADR-017.
 ## Next
 
 The recorded public genesis ceremony (custodians being recruited), external verifiers running the kit against
-challenges minted on the wall-clock network (M35), and releasing the M36–M38 layers (send-once presentations, the
-request-signature corpus, `@ainra/edge`, reading beside a signature agent) to npm. Live proofs today: `make
-identity-e2e`, `make edge-e2e`, `make signature-agent-e2e`, `make python-agent-e2e`, `make wimse-e2e` (D-076) and
-`make gate-parity` — all six in one command, `make live-drills`, which CI runs (D-073).
+challenges minted on the wall-clock network (M35), independent witnesses and an outside rebuild (the genesis board
+counts both from evidence), and the rest of [PLAN-M50](PLAN-M50.md). `@ainra/edge` is built and tested but not yet
+on npm (the maintainer's step). Live proofs: every drill in `tools/live-drills.sh`, in one command, `make
+live-drills`, which CI runs (D-073).

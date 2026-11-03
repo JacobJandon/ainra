@@ -18,7 +18,7 @@ correct. If it disagreed, we would have found something. It agrees on
 ## Install
 
 ```
-pip install ainra                  # v0.4.0 from PyPI
+pip install ainra                  # from PyPI
 pip install -e packages/sdk-py     # or editable, from a checkout
 ```
 

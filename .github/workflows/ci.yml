@@ -358,7 +358,7 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: "22"
-      # Rebuild the 729-file spec artifact set from source into a fresh temp tree twice; assert committed == rebuild.
+      # Rebuild the spec artifact set (MANIFEST.sha256) from source into a fresh temp tree twice; assert committed == rebuild.
       - run: make repro
       # A mirror must byte-verify; a tampered mirror must FAIL closed (regression for the M7 review).
       - run: make mirror OUT=build/ci-mirror

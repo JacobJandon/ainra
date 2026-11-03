@@ -10,9 +10,9 @@ package itself must live on a package registry first. That was blocker one, and 
 
 ## Blocker 1 — CLEARED, 2026-09-19
 
-`@ainra/mcp@0.4.1` is live on npm with a Sigstore provenance statement. `npm install @ainra/mcp` in an empty
-directory, followed by speaking JSON-RPC to `node_modules/@ainra/mcp/src/server.mjs`, answers `tools/list` with all
-six tools — the package is installable, not merely publishable.
+`@ainra/mcp` is live on npm with a Sigstore provenance statement (first at 0.4.1; 0.6.0 now). `npm install
+@ainra/mcp` in an empty directory, followed by speaking JSON-RPC to `node_modules/@ainra/mcp/src/server.mjs`, answers
+`tools/list` with every tool it ships — the package is installable, not merely publishable.
 
 Its first publish also found the fifth npm failure mode: the run went **red** on `confirm the attestation is on
 the registry` while the package was live with provenance, because that step resolved the version through

@@ -1,4 +1,4 @@
-# ainra — reference implementation v0.3.0
+# ainra — reference implementation v0.3.3
 Agent passports: issue, verify, revoke, with a hash-chained, checkpoint-signed transparency log.
 **Hybrid Ed25519 + ML-DSA-65** throughout — both signatures mandatory, both-or-invalid — at parity with the Rust
 core and the browser SDK. The download is **one self-contained file**: the audited `@noble/post-quantum` ML-DSA is

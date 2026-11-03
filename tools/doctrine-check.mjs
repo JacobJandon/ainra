@@ -171,7 +171,7 @@ if (witnesses === 0) {
     if (!isGate) continue;
     if (!/WITNESS|negative control|NEGATIVE_CONTROL|could this (observe|see)/i.test(t)) missing.push(f);
   }
-  // A RATCHET, not a cliff. Seventeen gates predate this rule, and writing seventeen witness statements blind
+    // A RATCHET, not a cliff. Seventeen gates predated this rule (the baseline has shrunk since), and writing seventeen witness statements blind
   // would produce seventeen plausible sentences rather than seventeen true ones — which is worse than silence,
   // because a false witness reads as assurance. So the existing debt is frozen by name and may only SHRINK:
   //

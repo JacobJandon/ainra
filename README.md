@@ -55,7 +55,7 @@ This repository is the production-track reference implementation.
 | **[The Standard](docs/AINRA_I_The_Standard.md)** | what AINRA is, in public terms |
 | **[IDENTITY.md](docs/IDENTITY.md)** | what *identity* means here, in five parts — and where mesh workload identity ends and this begins |
 | **[Master Technical Specification](docs/AINRA_Master_Technical_Specification_v1.md)** | normative — **it wins conflicts** |
-| **[DECISIONS.md](docs/DECISIONS.md)** | every deliberate deviation, D-001…D-046, each with its reasoning |
+| **[DECISIONS.md](docs/DECISIONS.md)** | every deliberate deviation, from D-001 on, each with its reasoning |
 | **[STATUS.md](docs/STATUS.md)** | component-by-component state, honestly, including what is unbuilt |
 | **[ARTIFACTS.md](docs/ARTIFACTS.md)** | the public artifact contract · mirroring · reproducibility |
 | **[SETTLERS.md](docs/SETTLERS.md)** | the arrows other projects took, and which of them we walked into anyway |
@@ -182,9 +182,10 @@ repository, which the host deploys to https://ainra.org/. Pushing this repositor
   make genesis-local — the whole world on one laptop  ·  make repro / make verify-mirror — reproducible + mirrorable
 ```
 
-The verify path is **RFCs + FIPS + OSI-licensed deps only** — no vendor, no bespoke crypto. **Four independent
-implementations** — `ainra-core`, the TypeScript SDK, the Python SDK and the Node CLI (P0) — agree on every one of the
-**1153** vectors (`make diff`), and the same core compiled to WebAssembly agrees again in a browser.
+The verify path is **RFCs + FIPS + OSI-licensed deps only** — no vendor, no bespoke crypto. Four independent
+implementations exist: `ainra-core`, the TypeScript SDK and the Python SDK give the same verdict and the same named
+reason on every one of the **1153** passport vectors (`make diff`), the Node CLI (P0) matches their canonical encoding
+byte for byte, and the same core compiled to WebAssembly agrees again in a browser.
 
 **Validity (ADR-017):** the *identity* — the lineage and its AINRA Number — is permanent; the *credential* defaults
 to **366 days** and renews invisibly (ACME-style at T−30 d, overlap issuance, a logged REISSUE whose `prev_leaf`

@@ -1,0 +1,63 @@
+{
+  "verdict": "valid",
+  "rows": {
+    "verifier": {
+      "receives_bundle_fields": [
+        "chain_keys",
+        "checkpoint",
+        "checkpoint_sig",
+        "claims",
+        "fresh_head",
+        "freshness",
+        "hop_proofs",
+        "inclusion_proof",
+        "issuer_sig",
+        "leaf_index",
+        "mandate_revocations",
+        "now",
+        "status_delegate_cert",
+        "status_issued_at",
+        "status_len",
+        "status_list",
+        "status_sig_ed25519",
+        "status_sig_mldsa65",
+        "status_uri"
+      ],
+      "receives_claims": [
+        "authority",
+        "capabilities",
+        "cnf",
+        "exp",
+        "iss",
+        "keys",
+        "log",
+        "nbf",
+        "scope_ceiling",
+        "status",
+        "sub",
+        "tier",
+        "vct"
+      ],
+      "withheld_claim_verdict": "invalid:schema_violation"
+    },
+    "root": {
+      "requests_during_verification": 0
+    },
+    "registrar": {
+      "requests_during_verification": 0
+    },
+    "status_host": {
+      "requests_during_verification": 0
+    },
+    "network_observer": {
+      "requests_during_verification": 0
+    },
+    "self_fetch": {
+      "paths_name_the_registrar": true,
+      "example": [
+        "registrar-07/status-list.json",
+        "registrar-07/status-list.jwt"
+      ]
+    }
+  }
+}

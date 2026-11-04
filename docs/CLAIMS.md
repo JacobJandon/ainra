@@ -20,10 +20,10 @@ record rather than fix a claim.
 | id | claim | current value | source of truth | gate | asserted in |
 |---|---|---|---|---|---|
 | `vectors.passport` | size of the passport conformance corpus | **1153** | `vectors/v1/*.json (counted)` | `make corpus-check` | `README.md` · `ROADMAP.md` · `campaign/FREE-INFRASTRUCTURE.md` · `campaign/SPONSORS.md` · `campaign/TEMPLATES.md` · `docs/ARTIFACTS.md` · `docs/BEST-PRACTICES.md` · `docs/POLICY-PARITY.md` · `docs/SETTLERS.md` · `docs/STATUS.md` · `docs/WASM-DEMO.md` · `packages/edge/src/index.mjs` · `packages/middleware/README.md` · `packages/sdk-py/ainra/verify.py` · `packages/sdk-ts/README.md` · `site/docs.html` · `site/foundation.html` · `site/index.html` · `site/llms.txt` · `site/verify.html` |
-| `reasons.count` | number of frozen refusal reasons | **20** | `crates/ainra-core/src/verdict.rs → Reason::ALL length` | `make reasons-check` | `docs/PRESENTATION.md` · `docs/STATUS.md` · `docs/reasons.json` · `packages/mcp/src/reasons.json` · `packages/sdk-py/README.md` · `packages/sdk-py/ainra/__init__.py` · `packages/sdk-py/ainra/reasons.py` · `packages/sdk-ts/src/index.ts` · `tools/conformance/CONTRACT.md` · `tools/verify-60s.mjs` |
-| `witness.operators` | number of witness operators (0 ⇒ the split-view guarantee is NOT in force) | **0** | `witnesses/candidates.json → candidates[]` | `node tools/campaign.mjs check` | `site/_includes/footer.html` · `site/docs.html` · `site/foundation.html` · `site/get.html` · `site/index.html` · `site/landscape.html` · `site/verify.html` · `tools/campaign.mjs` · `tools/claims-live.mjs` · `tools/doctrine-check.mjs` · `tools/doctrine-negative.sh` |
-| `sdk.version` | the published @ainra/sdk version | **0.6.0** | `packages/sdk-ts/package.json → version` | `node tools/status-consistency.mjs` | — |
-| `implementations` | independent implementations that agree over the corpus | **4** | `ainra-core · @ainra/sdk · ainra (py) · apps/cli-node — counted by `make diff`` | `make diff` | `CONTRIBUTING.md` · `GOVERNANCE.md` · `README.md` · `ROADMAP.md` · `campaign/SPONSORS.md` · `campaign/TEMPLATES.md` · `packages/sdk-ts/README.md` · `site/docs.html` · `site/foundation.html` |
+| `reasons.count` | number of frozen refusal reasons | **20** | `crates/ainra-core/src/verdict.rs → Reason::ALL length` | `make reasons-check` | `docs/PRESENTATION.md` · `docs/STATUS.md` · `docs/ZK-STUDY.md` · `docs/reasons.json` · `packages/mcp/src/reasons.json` · `packages/sdk-py/README.md` · `packages/sdk-py/ainra/__init__.py` · `packages/sdk-py/ainra/reasons.py` · `packages/sdk-ts/src/engine.ts` · `tools/conformance/CONTRACT.md` · `tools/verify-60s.mjs` |
+| `witness.operators` | number of witness operators (0 ⇒ the split-view guarantee is NOT in force) | **0** | `witnesses/candidates.json → candidates[]` | `node tools/campaign.mjs check` | `site/_includes/footer.html` · `site/control.html` · `site/docs.html` · `site/foundation.html` · `site/get.html` · `site/index.html` · `site/landscape.html` · `site/verify.html` · `tools/campaign.mjs` · `tools/claims-live.mjs` · `tools/doctrine-check.mjs` · `tools/doctrine-negative.sh` |
+| `sdk.version` | the published @ainra/sdk version | **0.7.0** | `packages/sdk-ts/package.json → version` | `node tools/status-consistency.mjs` | — |
+| `implementations` | independent implementations that agree over the corpus | **4** | `ainra-core · @ainra/sdk · ainra (py) · apps/cli-node — counted by `make diff`` | `make diff` | `CONTRIBUTING.md` · `GOVERNANCE.md` · `README.md` · `ROADMAP.md` · `campaign/SPONSORS.md` · `campaign/TEMPLATES.md` · `docs/ZK-STUDY.md` · `packages/sdk-ts/README.md` · `site/docs.html` · `site/foundation.html` |
 
 ## Capability claims
 
@@ -38,6 +38,7 @@ capability cannot be claimed without one.
 | `cap.hybrid` | both signatures or invalid | `make cli-check` | downgrade vectors under two policies |
 | `cap.instance-bounded` | a running copy carries ≤1 h, narrowed, holder-bound credentials | `make instance-gate` | middleware accepts a copy, refuses four failure modes by name |
 | `cap.zero-telemetry` | shipped components make no network calls and report nothing | `node tools/link-check.mjs` | no external request on any page; ainra-core has no network dependency |
+| `cap.privacy-ledger` | what each party learns from a verification is measured, not asserted | `node tools/leak-ledger.mjs` | the real verifier, every network entry point recording: 0 requests, every claim shown, a self-fetch names the registrar; four planted leaks caught (D-090) |
 
 ## Adding a claim, or asserting an existing one somewhere new
 

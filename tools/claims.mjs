@@ -172,6 +172,7 @@ const CAPABILITIES = [
   { id: "cap.hybrid", what: "both signatures or invalid", gate: "make cli-check", proof: "downgrade vectors under two policies" },
   { id: "cap.instance-bounded", what: "a running copy carries ≤1 h, narrowed, holder-bound credentials", gate: "make instance-gate", proof: "middleware accepts a copy, refuses four failure modes by name" },
   { id: "cap.zero-telemetry", what: "shipped components make no network calls and report nothing", gate: "node tools/link-check.mjs", proof: "no external request on any page; ainra-core has no network dependency" },
+  { id: "cap.privacy-ledger", what: "what each party learns from a verification is measured, not asserted", gate: "node tools/leak-ledger.mjs", proof: "the real verifier, every network entry point recording: 0 requests, every claim shown, a self-fetch names the registrar; four planted leaks caught (D-090)" },
 ];
 
 // Files that record history rather than assert current fact.

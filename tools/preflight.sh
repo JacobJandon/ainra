@@ -115,6 +115,7 @@ run "replay imports"     "vectors replay via conformance" make -s replay-imports
 run "negative controls"  "14 gates shown able to fail"    make -s negative-controls
 run "control room"       "ainra ctl alarms on each lie"   make -s ctl-drill
 run "control page"       "the page shows each lie red"    make -s control-page-drill
+run "leak ledger"        "what each party learns, held"   make -s leak-ledger
 run "doc freeze"         "normative docs unchanged"     make check-freeze
 run "MCP fidelity"       "ainra_verify ≡ SDK on vectors" make mcp-test
 run "presentation shape" "CLI≡middleware≡MCP event"     make presentation-diff

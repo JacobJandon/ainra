@@ -10,6 +10,16 @@ We **publicly own fixed security bugs** — hiding them would be the opposite of
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [0.7.0] — 2026-11-04
+
+The release commit; its board is `docs/releases/v0.7.0-board.md`. Tagging and publishing to npm and PyPI are the
+maintainer's steps — until they happen, the registries serve 0.6.0. What it carries: the corpus runners out of the
+package roots (breaking, as 0.6.0 announced), currency mode in every gate, a witness a stranger can run, A1 only on a
+checked principal proof, a negative control for every gate, five new fuzz targets, the Genesis Day runbook's count
+corrected, and `@ainra/edge` ready for its first publish.
+
 ### Removed — the corpus runners leave the package roots, as 0.6.0 announced
 
 - **`@ainra/sdk`**: `runVector`, `expectedVerdict` and the other `run*Vector` functions are no longer exported from

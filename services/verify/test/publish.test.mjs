@@ -37,6 +37,12 @@ test("published files are what their digests say, and the status token verifies 
   }
   for (const d of readdirSync(join(out, "sha256")))
     assert.equal(createHash("sha256").update(readFileSync(join(out, "sha256", d))).digest("base64url"), d, `sha256/${d}`);
+  // D-091: one network-wide file holds every registrar's status list and fresh head, as the exact texts served.
+  const network = JSON.parse(readFileSync(join(out, "network-status.json"), "utf8"));
+  assert.equal(heads.network, createHash("sha256").update(readFileSync(join(out, "network-status.json"))).digest("base64url"), "heads.json names the network file by its digest");
+  assert.deepEqual(Object.keys(network.registrars), Object.keys(heads.registrars), "every registrar is in the network file");
+  assert.equal(network.registrars["registrar-07"]["status-list.json"], readFileSync(join(out, "registrar-07", "status-list.json"), "utf8"), "the embedded list is the served bytes");
+  assert.ok(JSON.parse(network.registrars["registrar-07"]["fresh-head.json"]).sig_delegate, "a signed fresh head is embedded");
   // The mirror's copy of the status token verifies under the registrar's status key — nothing depends on the host.
   const acc = await (await fetch(base + "/accreditation")).json();
   const jwt = readFileSync(join(out, "registrar-07", "status-list.jwt"), "utf8");

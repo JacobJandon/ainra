@@ -21,10 +21,12 @@ off on 6 August 2025. AINRA follows the designs that replaced it: download whole
 | `<registrar>/links.json` | the whole link index ([LINKS.md](LINKS.md)) |
 | `sha256/<digest>` | every file above, also under its own SHA-256, never deleted |
 | `heads.json` | what is current |
+| `network-status.json` | every registrar's signed status list and fresh head in one unsigned file (D-091) — each embedded text exactly as served, so each still verifies under its own key |
 
 Every file carries its own signature, so the registrar, a CDN and a volunteer mirror are interchangeable: a verifier
 trusts the signature, not the host. Lists are downloaded whole, so a fetch says nothing about which agent is being
-checked. Run the publisher on a timer inside the freshness class you serve (F1 30 s, F2 5 minutes).
+checked. A fetch of `<registrar>/status-list.json` does say whose agents: read `network-status.json` instead, and the
+host learns only that this address verifies AINRA passports (D-091; measured by `make leak-ledger`). Run the publisher on a timer inside the freshness class you serve (F1 30 s, F2 5 minutes).
 
 ```
 node tools/publish-static.mjs --out public --registrar https://registrar.example --directory D --roots R

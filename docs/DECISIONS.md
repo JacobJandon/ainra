@@ -2367,4 +2367,7 @@ it; the verifier checks each embedded signature as today; no new key (a signatur
 root or a new online signer). At F1 a self-fetching verifier takes signed deltas instead of the whole file. Measured
 by D-090's ledger: the per-registrar fetch row must change, or the change did not happen.
 
-*Status:* PROPOSED — the operator rules; it follows D-090.
+*Status:* ACCEPTED 2026-11-04 by the operator's instruction "do all your self automatically and fully continue to
+all". Built the same day: `tools/publish-static.mjs` writes `network-status.json` (named in `heads.json` by digest);
+`services/verify/test/publish.test.mjs` holds it to the served bytes; `make leak-ledger` records that a per-registrar
+fetch names the registrar and the network file names none, and its `--negative` undoes D-091 and is caught.

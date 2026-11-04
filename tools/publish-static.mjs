@@ -16,6 +16,11 @@
 //   <out>/<registrar>/links.json                 the whole link index, each entry registrar-signed
 //   <out>/sha256/<digest>                        every file above, also under its own SHA-256 (immutable)
 //   <out>/heads.json                             what is current: registrar → {file → digest, issued_at}
+//   <out>/network-status.json                    D-091: every registrar's signed status list and fresh head, in ONE
+//                                                unsigned file (each embedded text is exactly what that registrar
+//                                                served, so each still verifies under its own key). A verifier that
+//                                                fetches status itself reads this, and the host learns only that this
+//                                                address verifies AINRA passports — not whose agents it checks.
 // Run it on a timer inside the freshness class you serve (F1 30 s, F2 5 min). It never deletes a sha256/ file.
 import { createHash } from "node:crypto";
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
@@ -48,6 +53,7 @@ const put = (rel, bytes) => {
 };
 
 const heads = { generated_at: Math.floor(Date.now() / 1000), registrars: {} };
+const network = { v: 1, generated_at: heads.generated_at, registrars: {} };
 if (opt("directory") && opt("roots")) {
   heads.directory = put("directory.json", await get(opt("directory")));
   heads.roots = put("roots.json", await get(opt("roots")));
@@ -66,12 +72,18 @@ for (const base of registrars) {
       issued_at: JSON.parse(status.toString("utf8")).issued_at,
     };
     heads.registrars[id] = entry;
+    // The exact texts, not re-encodings: a fresh head binds the list's text (D-086), and every signature covers bytes.
+    network.registrars[id] = {
+      "status-list.json": status.toString("utf8"),
+      "fresh-head.json": (await get(`${base}/fresh-head`)).toString("utf8"),
+    };
     console.log(`  ${id}: status issued ${entry.issued_at} · ${Object.keys(entry).length - 1} files`);
   } catch (e) {
     failed++;
     console.error(`  ✗ ${base}: ${e.message}`);
   }
 }
+heads.network = put("network-status.json", Buffer.from(JSON.stringify(network)));
 put("heads.json", Buffer.from(JSON.stringify(heads, null, 2)));
 console.log(failed ? `published with ${failed} registrar(s) unreachable` : `published ${Object.keys(heads.registrars).length} registrar(s) to ${out}`);
 process.exit(failed ? 1 : 0);

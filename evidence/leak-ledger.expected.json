@@ -53,11 +53,15 @@
       "requests_during_verification": 0
     },
     "self_fetch": {
-      "paths_name_the_registrar": true,
+      "per_registrar_paths_name_the_registrar": true,
       "example": [
         "registrar-07/status-list.json",
         "registrar-07/status-list.jwt"
-      ]
+      ],
+      "network_file": [
+        "network-status.json"
+      ],
+      "network_file_names_a_registrar": false
     }
   }
 }

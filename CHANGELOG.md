@@ -10,6 +10,25 @@ We **publicly own fixed security bugs** — hiding them would be the opposite of
 
 ## [Unreleased]
 
+### Fixed — the published record told two stories, and the texts claimed privacy the code does not have
+
+- **The record on ainra.org disagreed with itself**: `registry.json` and registrar-07's own `status/current.json` marked
+  different passports revoked. `make site-net` now refreshes and checks every registrar's whole tree; `stage.sh
+  publish` fails closed instead of writing a down registrar's empty answers; the watchdog reads what the record says,
+  not only whether the server answers.
+- **The Standard, the MTS, the site and the landing page said the passport was an SD-JWT with selective disclosure,
+  that human backing was proven in zero-knowledge, and that delegation depth was capped.** None is true of any
+  implementation. Corrected everywhere (D-090; amendment recorded in `docs/AMENDMENTS.md`), and `make doctrine` now
+  fails if those claims come back. `docs/ZK-STUDY.md` is the study that found them.
+
+### Added — privacy, measured
+
+- **`make leak-ledger`** (D-090): what each party learns from one verification, measured with the real verifier and
+  every network entry point recording — 0 requests for a carried bundle, every claim shown, nothing withheld. Held to
+  `evidence/leak-ledger.expected.json`; `docs/LEAK-LEDGER.md` is generated.
+- **`network-status.json`** (D-091): every registrar's signed status list and fresh head in one file, so a verifier
+  that fetches status no longer tells the host whose agents it checks.
+
 ### Added — the control room that only reads (PLAN-M52 steps 1–3)
 
 - **`ainra ctl status | diff | watch`**: the directory against both roots (and against pinned ones, with

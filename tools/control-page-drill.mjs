@@ -72,7 +72,7 @@ function contract(dirs, { rootsOverride, mutate } = {}) {
   put("index.json", { network: "drill", root: "test-root" });
   put("epochs.json", { version: 1, epochs: dirs.map((d) => ({ epoch: d.epoch, digest: digest(d), issued_at: d.issued_at, path: `epochs/${d.epoch}.json` })) });
   for (const d of dirs) put(`epochs/${d.epoch}.json`, d);
-  for (const e of current.entries) put(`registrars/${e.registrar}/export.json`, { status_seq: 5, records: [{ checkpoint_size: 12, checkpoint_root: "rootB" }] });
+  for (const e of current.entries) put(`registrars/${e.registrar}/export.json`, { status_seq: 5, records: [{ record: { checkpoint_size: 12, checkpoint_root: "rootB" }, verdict: { verdict: "valid" } }] });
   mutate?.(files);
   return files;
 }
@@ -131,7 +131,7 @@ await expect("rollback to epoch 2, after epoch 3 was seen in this browser", prof
 await expect("WITNESS: the same old contract in a fresh browser passes", await browser.newContext(), contract([d1, d2]), "green");
 await expect("the honest contract again: still no alarm", profile, honest, "green");
 const reg = d3.entries[0].registrar;
-await expect("a registrar's log shrinks, after a larger one was seen", profile, contract([d1, d2, d3], { mutate: edit(`registrars/${reg}/export.json`, (v) => { v.records = [{ checkpoint_size: 9, checkpoint_root: "rootA" }]; }) }), "red", "shrank");
+await expect("a registrar's log shrinks, after a larger one was seen", profile, contract([d1, d2, d3], { mutate: edit(`registrars/${reg}/export.json`, (v) => { v.records = [{ record: { checkpoint_size: 9, checkpoint_root: "rootA" }, verdict: { verdict: "valid" } }]; }) }), "red", "shrank");
 
 await browser.close(); server.close();
 if (failed) { console.error(`CONTROL-PAGE-DRILL FAILED — ${failed} case(s)`); process.exit(1); }

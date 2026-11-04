@@ -38,5 +38,24 @@ if [ "$wcode" = "000" ]; then
   restarted=$((restarted+1))
 fi
 
+# Alive is not the same as right. From 2026-10-31 the artifact server answered 200 for every probe above while it
+# served registrar-07's whole tree as 0-byte files — a publish had run while that registrar was down. So also read
+# what the record SAYS: each registrar's published export must be a JSON object with records. If one is not, and
+# every registrar door answered above, republish (it reads the doors and swaps the files in whole, or changes nothing).
+broken=""
+for id in ${REG1_ID:-registrar-07} ${REG2_ID:-registrar-11}; do
+  curl -fsS -m 10 "http://127.0.0.1:${ART_PORT:-8091}/registrars/$id/export.json" 2>/dev/null \
+    | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const j=JSON.parse(s);process.exit(Array.isArray(j.records)?0:1)}catch{process.exit(1)}})' \
+    || broken="$broken $id"
+done
+if [ -n "$broken" ]; then
+  if [ "$restarted" -eq 0 ]; then
+    echo "watchdog: the published record is unreadable for$broken — republishing from the registrars"
+    bash tools/stage.sh publish || echo "watchdog: republish refused; the record is left as it was"
+  else
+    echo "watchdog: the published record is unreadable for$broken — not republishing while a unit was just restarted"
+  fi
+fi
+
 [ "$restarted" -gt 0 ] && echo "watchdog: restarted $restarted unit(s)"
 exit 0

@@ -443,7 +443,8 @@ async function check() {
     try {
       const x = await getJson(`registrars/${id}/export.json`);
       let size = 0, root = "";
-      for (const r of x.records || []) if ((r.checkpoint_size || 0) >= size) { size = r.checkpoint_size || 0; root = r.checkpoint_root || ""; }
+      // an export lists {record, verdict}; the checkpoint a record was logged under is in record
+      for (const e of x.records || []) { const r = e.record ?? e; if ((r.checkpoint_size || 0) >= size) { size = r.checkpoint_size || 0; root = r.checkpoint_root || ""; } }
       let fresh = "no fresh head published";
       try { const h = await getJson(`registrars/${id}/fresh-head.json`); fresh = `fresh head ${Math.floor((Date.now() / 1000 - h.ts) / 86400)} day(s) old`; } catch { /* optional */ }
       heads[id] = { log_size: size, log_root: root, status_seq: x.status_seq || 0 };

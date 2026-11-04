@@ -1,0 +1,14 @@
+{
+  "epochs": [
+    {
+      "ceremony": null,
+      "digest": "549a8f6ccb1c72ce64a1b46213159be5e16ba9b7868db4fb36fd465e0519ff7d",
+      "epoch": 1,
+      "issued_at": 1775862000,
+      "path": "epochs/1.json",
+      "proposal": null,
+      "sha256": "35cb574ecc447315a753e888b4222d513366458f6fcde7494a1892cd167cab64"
+    }
+  ],
+  "version": 1
+}

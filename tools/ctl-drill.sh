@@ -44,7 +44,8 @@ contract() {
     for (const e of d.entries) {
       fs.mkdirSync(`${c}/registrars/${e.registrar}`, { recursive: true });
       fs.writeFileSync(`${c}/registrars/${e.registrar}/export.json`, JSON.stringify({ status_seq: 5,
-        records: [{ checkpoint_size: 10, checkpoint_root: "rootA" }, { checkpoint_size: 12, checkpoint_root: "rootB" }] }));
+        records: [{ record: { checkpoint_size: 10, checkpoint_root: "rootA" }, verdict: { verdict: "valid" } },
+                 { record: { checkpoint_size: 12, checkpoint_root: "rootB" }, verdict: { verdict: "valid" } }] }));   // the real export shape
     }' "$c"
 }
 edit() { node -e "const fs=require('fs'),p=process.argv[1];const v=JSON.parse(fs.readFileSync(p,'utf8'));($2)(v);fs.writeFileSync(p,JSON.stringify(v))" "$1"; }
@@ -91,9 +92,9 @@ for case in shrink fork seq; do
   cp -r "$W/honest" "$W/$case"
   sed "s#\"$W/honest\##\"$W/$case\##g" "$S" > "$W/seen-$case.json"     # the same memory, for the copy's name
 done
-edit "$W/shrink/registrars/$REG/export.json" 'v=>{v.records=[{checkpoint_size:9,checkpoint_root:"rootA"}]}'
+edit "$W/shrink/registrars/$REG/export.json" 'v=>{v.records=[{record:{checkpoint_size:9,checkpoint_root:"rootA"},verdict:{verdict:"valid"}}]}'
 expect "a registrar's log shrinks"                                        1 "shrank"    --net "$W/shrink" --roots "$W/roots.json" --state "$W/seen-shrink.json"
-edit "$W/fork/registrars/$REG/export.json" 'v=>{v.records[1].checkpoint_root="rootX"}'
+edit "$W/fork/registrars/$REG/export.json" 'v=>{v.records[1].record.checkpoint_root="rootX"}'
 expect "a registrar's log forks (same size, another root)"                1 "forked"    --net "$W/fork" --roots "$W/roots.json" --state "$W/seen-fork.json"
 edit "$W/seq/registrars/$REG/export.json" 'v=>{v.status_seq=4}'
 expect "a registrar's status sequence goes back"                          1 "status sequence" --net "$W/seq" --roots "$W/roots.json" --state "$W/seen-seq.json"
@@ -102,6 +103,8 @@ expect "a registrar's status sequence goes back"                          1 "sta
 cp -r "$W/honest" "$W/mirror"; echo '{"registrars":[1]}' > "$W/mirror/registry.json"
 expect "a mirror that serves other bytes"                                 1 "mirror"    --net "$W/honest" --mirror "$W/mirror" --roots "$W/roots.json" --state "$W/s4.json"
 expect "a mirror that serves the same bytes"                              0 -           --net "$W/honest" --mirror "$W/honest" --roots "$W/roots.json" --state "$W/s5.json"
+cp -r "$W/honest" "$W/nohist"; rm "$W/nohist/epochs.json"
+expect "a mirror that does not publish the epoch history yet (a warning)" 0 -           --net "$W/honest" --mirror "$W/nohist" --roots "$W/roots.json" --state "$W/s9.json"
 node -e 'const fs=require("fs");const r=JSON.parse(fs.readFileSync(process.argv[1]));r.root_slh=r.root_slh.slice(0,-4)+"AAAA";fs.writeFileSync(process.argv[2],JSON.stringify(r))' "$W/roots.json" "$W/other-roots.json"
 expect "a contract whose roots are not the pinned ones"                   1 "roots"     --net "$W/honest" --roots "$W/other-roots.json" --state "$W/s6.json"
 out=$("$A" ctl status --net "$W/honest" --roots "$W/roots.json" --state "$W/s7.json" --max-age 60 2>&1); rc=$?

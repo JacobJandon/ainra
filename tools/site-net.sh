@@ -37,10 +37,33 @@ for f in $FILES; do
   fetch_to "$f" "$TMP/$f" || { echo "site-net: contract answered but did not serve $f — aborting"; exit 2; }
 done
 
+# Each registrar's own tree travels with the record, and every file in it must be a JSON document the network
+# actually served. Until 2026-11-04 only accreditation.json was refreshed here, so the published
+# registrars/registrar-07/status/current.json stayed the 3 August list — revoking another passport than the
+# 17 August registry.json beside it did — and ainra.org served the two together for months.
+REG_FILES="accreditation.json export.json fresh-head.json status/current.json status/deltas.json"
+json_ok() { [ -s "$1" ] && node -e 'JSON.parse(require("fs").readFileSync(process.argv[1],"utf8"))' "$1" 2>/dev/null; }
+for reg in $(node -e 'for (const r of JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")).registrars||[]) console.log(r)' "$TMP/index.json"); do
+  mkdir -p "$TMP/registrars/$reg/status" "$TMP/registrars/$reg/checkpoints"
+  for f in $REG_FILES; do
+    { fetch_to "registrars/$reg/$f" "$TMP/registrars/$reg/$f" && json_ok "$TMP/registrars/$reg/$f"; } \
+      || { echo "site-net: $reg's $f is missing, empty or not JSON on the network — refusing to $MODE over it"; exit 2; }
+  done
+  cp_name=$(node -e 'const r=(JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")).records||[])[0]?.record;if(r)console.log(r.checkpoint_size)' "$TMP/registrars/$reg/export.json")
+  if [ -n "$cp_name" ]; then
+    { fetch_to "registrars/$reg/checkpoints/$cp_name.json" "$TMP/registrars/$reg/checkpoints/$cp_name.json" && json_ok "$TMP/registrars/$reg/checkpoints/$cp_name.json"; } \
+      || { echo "site-net: $reg's checkpoints/$cp_name.json is not served — refusing to $MODE over it"; exit 2; }
+  fi
+done
+TREE=$(cd "$TMP" && find registrars -type f | sort)
+
 if [ "$MODE" = "check" ]; then
   drift=0
-  for f in $FILES; do
+  for f in $FILES $TREE; do
     if ! cmp -s "$TMP/$f" "$DEST/$f"; then echo "site-net: DRIFT — site/net/$f differs from what $SRC serves now"; drift=1; fi
+  done
+  for f in $(cd "$DEST" && find registrars -type f 2>/dev/null | sort); do
+    [ -f "$TMP/$f" ] || { echo "site-net: DRIFT — site/net/$f is published but the network no longer serves it"; drift=1; }
   done
   # The byte-comparison above proves the published copy matches what the ARTIFACT SERVER serves. It does NOT prove
   # the REGISTRAR can still present the passports that record describes — and those are different machines with
@@ -64,7 +87,7 @@ if [ "$MODE" = "check" ]; then
   fi
   if [ "$drift" -eq 0 ] && [ "$reg_drift" -ne 0 ]; then exit 1; fi
   if [ "$drift" -eq 0 ]; then
-    echo "site-net OK: the published record is byte-identical to the running network ($(echo $FILES | wc -w) files)"
+    echo "site-net OK: the published record is byte-identical to the running network ($(echo $FILES $TREE | wc -w) files)"
   else
     echo "site-net: the published record no longer matches the network — run 'make site-net' to republish"
     exit 1
@@ -79,13 +102,8 @@ fi
 ./target/release/ainra directory archive "$TMP/directory.json" --roots "$TMP/roots.json" --into "$DEST" \
   || { echo "site-net: the directory the network serves cannot join the epoch history — refusing to publish it"; exit 1; }
 for f in $FILES; do cp "$TMP/$f" "$DEST/$f"; done
-# The per-registrar trees the record links to travel with it; a stamped index over stale leaves would be worse
-# than no stamp at all.
-for d in "$DEST"/registrars/*/; do
-  [ -d "$d" ] || continue
-  reg=$(basename "$d")
-  curl -fsS -m 10 "$SRC/registrars/$reg/accreditation.json" -o "$d/accreditation.json" 2>/dev/null || true
-done
+# The per-registrar trees, whole: a stamped index over stale leaves would be worse than no stamp at all.
+rm -rf "$DEST/registrars"; cp -r "$TMP/registrars" "$DEST/registrars"
 
 NOW=$(date -u +%s)
 ROOT=$(curl -s -m 10 -D- -o /dev/null "$SRC/registry.json" 2>/dev/null | grep -i '^x-ainra-root:' | tr -d '\r' | awk '{print $2}')

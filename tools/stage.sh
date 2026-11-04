@@ -35,6 +35,11 @@ export AINRA_STAGE=1
 TOKEN_FILE="$STAGE/.issue-token"
 post(){ curl -s -m 10 -H "Content-Type: application/json" -H "Authorization: Bearer $(cat "$TOKEN_FILE" 2>/dev/null)" -d "$2" "http://$1"; }
 get(){ curl -s -m 10 "http://$1"; }
+# fetch <addr/path> <file> — the registrar answered 200 with a JSON body, or this fails and writes nothing that sticks.
+# On 2026-10-31 a publish ran while registrar-07 was not answering; plain `get` wrote six 0-byte files, the artifact
+# server served them as the public record for days, and nothing complained.
+fetch(){ curl -fsS -m 10 "http://$1" -o "$2" 2>/dev/null && [ -s "$2" ] \
+  && node -e 'JSON.parse(require("fs").readFileSync(process.argv[1],"utf8"))' "$2" 2>/dev/null; }
 
 issue(){ # addr operator lineage version tier auth 'cap,cap' 'ceil,ceil' [audit] [hops-json]
   local caps ceil audit hops
@@ -49,17 +54,20 @@ publish(){ # fetch each daemon's public artifacts → static files with the cont
   # D-035: republish is idempotent — drop stale per-registrar artifacts first, so the published contract reflects
   # ONLY the currently-live registrars. A leftover dir from a prior onboarding (registrar-22) once inflated
   # registry.json (3 registrars / 9 issued) past the live board (2 / 8): the contract advertised a dead registrar.
-  rm -rf "$PUB/registrars"
+  # Built aside and swapped in whole: a registrar that does not answer leaves the published record as it was.
+  local NEW="$PUB/registrars.new"; rm -rf "$NEW"
   for pair in "$REG1_ADDR:$REG1_ID" "$REG2_ADDR:$REG2_ID"; do
-    local addr="${pair%:*}" d="$PUB/registrars/${pair##*:}"
+    local addr="${pair%:*}" d="$NEW/${pair##*:}"
     mkdir -p "$d/status" "$d/checkpoints"
-    get "$addr/accreditation"        > "$d/accreditation.json"
-    get "$addr/export?now=$NOW"      > "$d/export.json"
-    get "$addr/status-list?now=$NOW" > "$d/status/current.json"
-    get "$addr/fresh-head?now=$NOW"  > "$d/fresh-head.json"
-    get "$addr/deltas?since=0"       > "$d/status/deltas.json"
+    fetch "$addr/accreditation"        "$d/accreditation.json" \
+      && fetch "$addr/export?now=$NOW"      "$d/export.json" \
+      && fetch "$addr/status-list?now=$NOW" "$d/status/current.json" \
+      && fetch "$addr/fresh-head?now=$NOW"  "$d/fresh-head.json" \
+      && fetch "$addr/deltas?since=0"       "$d/status/deltas.json" \
+      || { echo "publish: ${pair##*:} at $addr did not answer every artifact — the published record is left as it was"; rm -rf "$NEW"; return 1; }
     node -e 'const fs=require("fs");const e=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));const r=(e.records||[])[0]?.record;if(r){fs.writeFileSync(process.argv[2]+"/checkpoints/"+r.checkpoint_size+".json",JSON.stringify({origin:r.log_origin,size:r.checkpoint_size,root:r.checkpoint_root}))}' "$d/export.json" "$d"
   done
+  rm -rf "$PUB/registrars"; mv "$NEW" "$PUB/registrars"
   # build the combined artifacts from the per-registrar exports (one pass, robust)
   NBF="$NBF" WEXP="$((NBF+366*24*3600))" NOW="$NOW" node -e '
     const fs=require("fs"); const pub=process.argv[1];
@@ -129,7 +137,7 @@ up)
   ROOT_FP="$(node -e 'process.stdout.write(require("./"+process.argv[1]+"/genesis/roots.json").root_ed25519.slice(0,16))' "$STAGE")"
   export AINRA_ROOT="genesis:$ROOT_FP"
   echo "== publish the public artifacts (the contract read surface) =="
-  publish
+  publish || { echo "stage: the network came up but could not publish its record — not starting the artifact server over it"; exit 1; }
   AINRA_STAGE=1 node tools/artifact-server.mjs "$PUB" "$ART_PORT" >"$STAGE/artifact.log" 2>&1 & echo $! >> "$STAGE/pids"
   sleep 0.6
   echo
@@ -146,7 +154,7 @@ down)
   pkill -f "artifact-server.mjs $PUB" 2>/dev/null || true
   echo "staging network stopped."
   ;;
-publish) publish; echo "republished."; ;;
+publish) publish || exit 1; echo "republished."; ;;
 status)
   echo "AINRA STAGING BOARD · TEST-ROOT  ($(date -u +%H:%M:%SZ))"
   echo "────────────────────────────────────────────────────────────"

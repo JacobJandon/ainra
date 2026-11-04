@@ -418,7 +418,13 @@ fn status(args: &[String]) -> i32 {
             continue;
         };
         let (mut size, mut root) = (0u64, String::new());
-        for rec in export["records"].as_array().into_iter().flatten() {
+        // An export lists `{record, verdict}`; the checkpoint a record was logged under is in `record`.
+        for entry in export["records"].as_array().into_iter().flatten() {
+            let rec = if entry["record"].is_object() {
+                &entry["record"]
+            } else {
+                entry
+            };
             let s = rec["checkpoint_size"].as_u64().unwrap_or(0);
             if s >= size {
                 size = s;
@@ -457,6 +463,13 @@ fn status(args: &[String]) -> i32 {
             match (fetch(net, f), fetch(&m, f)) {
                 (Ok(a), Ok(b)) if a == b => {}
                 (Err(_), Err(_)) => {}
+                // The epoch history is newer than the read contract: one side may not publish it yet. That is a gap
+                // to close, not two parties disagreeing about what is true.
+                (Ok(_), Err(_)) | (Err(_), Ok(_)) if f == "epochs.json" => {
+                    r.warn(&format!(
+                        "only one of {net} and mirror {m} publishes epochs.json"
+                    ));
+                }
                 _ => {
                     r.alarm(format!("mirror {m} disagrees with {net} on {f}"));
                     same = false;

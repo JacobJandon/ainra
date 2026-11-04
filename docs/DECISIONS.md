@@ -2309,3 +2309,59 @@ accepted request carries the checker's digest); `make personhood-test` holds `ch
 principal-proven"); it now follows the Standard.
 
 *Status:* NEW (PLAN-M51 step 3). Registrar policy only; no wire or core change.
+
+## D-090 — The texts say what the code does: privacy and delegation; and a leak ledger (PROPOSED)
+
+*Problem:* `docs/ZK-STUDY.md` §3.2 found four things the repository says that the code does not do. (1) The passport is
+called "an SD-JWT verifiable credential; selective disclosure by field": it is canonical JSON hybrid-signed whole, not
+a JWT, with no disclosures and no KB-JWT, and every claim is shown. (2) Human backing is "proven in zero-knowledge":
+AINRA checks no ZK proof anywhere; since D-089 the registrar checks the evidence and the passport carries a digest.
+(3) Trust-ledger row 9 describes a Groth16 demo plugin that does not exist, with BBS (not post-quantum) on its removal
+path. (4) The Standard caps delegation depth at 3 by default; no implementation enforces a hop limit. Nothing measures
+what a verification reveals, so a privacy claim can drift from the code with every gate green.
+
+*Done the same day, as ordinary changes:* the operational texts — `docs/IDENTITY.md` §1–§2, the A1 and L3
+explanations in `site/foundation.html`, `site/verify.html` and `apps/landing/index.html`, and the landing page's
+standards strip and its two cells on the file format and on human backing.
+
+*Proposed, by the normative path (ADR + this record + a dated `docs/AMENDMENTS.md` entry before the change, `make
+freeze` in the same commit, `make amendment-check` passing), the operator to approve:*
+
+| Where | Says today | Would say |
+|---|---|---|
+| Standard §5 | "An SD-JWT verifiable credential; selective disclosure by field." | "Canonical JSON, signed whole by the registrar with Ed25519 and ML-DSA-65; it reuses some SD-JWT VC claim names but is not a JWT. Every claim is shown; there is no field-level disclosure today." |
+| Standard §1 P4 gloss, §6 A1, §10, closing line | human backing "proven in zero-knowledge"; "zk principals"; "selective-disclosure credentials" | "Human backing is checked by the registrar (D-089); the root and every verifier receive only a digest." The closing line names hybrid-signed credentials instead. |
+| Standard §6 A3, §10 | "depth capped (default 3)"; "depth caps" | "Delegation depth is not capped today." — until a separate record decides to enforce a cap, with vectors in all four implementations and a named refusal. |
+| Standard §7 L3 | "+ zero-knowledge principal" | "+ a checked principal proof" |
+| MTS opening summary, §11, §15 | "SD-JWT VC passports … with selective disclosure"; "Selective disclosure (SD-JWT) lets an agent prove tier+capability…"; "Passport (SD-JWT VC)" and its SD-able list | the same correction as Standard §5; the SD-able list is removed |
+| MTS ADR-004 | "SD-JWT VC … + KB-JWT holder binding + X.509 bridge profile — HELD" | holder binding is the RFC 9421 presentation signature (D-062); KB-JWT and the X.509 bridge marked not built |
+| MTS ADR-011, §12 row 9, §31 | a structured `principal_proof {type, attestor, ref, proof?}` and a Groth16 demo plugin; "BBS / PQ-anon-creds" as the removal path | `principal_proof` is an opaque digest string today (a structured form is a wire change); row 9 becomes the upstream personhood registry's own proof system (trusted setup, not post-quantum, evidence held at the registrar); BBS leaves the removal path |
+| Site copies of the Standard | — | follow in the same commit (`site/docs.html` § The Standard, `site/standard.md`, `site/AINRA_I_The_Standard.md`) |
+
+*Also proposed:* a `make doctrine` rule, with its negative control, that fails on "zero-knowledge", "zk principal",
+"selective disclosure", "SD-JWT verifiable credential" and "KB-JWT" in tracked docs, site and apps except on lines that
+say these are not done or are future work (added once the normative texts are corrected, or it would fail on them).
+And the **leak ledger** of `docs/ZK-STUDY.md` §4.4: `make leak-ledger` records what each party receives across
+issue → prime → present → verify → currency → revoke, against a committed expected file, with three pinned facts (the
+verifier makes no network request for a carried bundle; no field-level disclosure exists; a per-registrar status fetch
+is visible) and a negative control for each.
+
+*Not changed:* the wire format, the frozen reasons, every corpus, P1–P6. P4 holds; only the sentence describing its
+mechanism is wrong.
+
+*Status:* PROPOSED — the operator approves or rejects the amendment; the operational corrections are already made.
+
+## D-091 — One network-wide status file for verifiers that fetch (PROPOSED)
+
+*Problem:* by default the agent carries its registrar-signed status list, so the registrar learns only that its agent
+refreshed. A verifier that fetches for itself (a gate wanting a newer head, a mirror consumer, the MCP tool) reads a
+per-registrar file, so whoever hosts it learns which registrar's agents that verifier checks (`docs/ZK-STUDY.md` §3.2
+item 6). No SDK fetches status today.
+
+*Proposed:* `tools/publish-static.mjs`, which already gathers every registrar's list in one run, also writes one
+unsigned, content-addressed file holding every registrar's signed list and current fresh head. Any mirror can assemble
+it; the verifier checks each embedded signature as today; no new key (a signature over the whole would need an online
+root or a new online signer). At F1 a self-fetching verifier takes signed deltas instead of the whole file. Measured
+by D-090's ledger: the per-registrar fetch row must change, or the change did not happen.
+
+*Status:* PROPOSED — the operator rules; it follows D-090.

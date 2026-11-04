@@ -452,7 +452,7 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
   <div class="wrap">
     <div class="row"><span class="lead">Assembled from proven open standards — each explained below</span></div>
     <div class="row">
-      <span>HTTP MESSAGE SIGNATURES</span><span>SD-JWT VC</span><span>DID</span><span>MTLS</span><span>ZK PROOFS</span><span>MERKLE LOGS</span><span>THRESHOLD KEYS</span><span>CONSENT MANDATES</span>
+      <span>HTTP MESSAGE SIGNATURES</span><span>HYBRID ML-DSA SIGNATURES</span><span>DID</span><span>MTLS</span><span>STATUS LISTS</span><span>MERKLE LOGS</span><span>THRESHOLD KEYS</span><span>CONSENT MANDATES</span>
     </div>
   </div>
 </div>
@@ -587,7 +587,7 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
       <div class="def"><span class="mark">2</span><div class="body"><b>VERSION</b><p>Re-certified on every material change — model, permissions, operator — so trust always describes what's running today. <em>What exactly is running right now?</em></p></div></div>
       <div class="def"><span class="mark">3</span><div class="body"><b>OPERATOR</b><p>The verified legal entity responsible for the agent — where accountability lives if something goes wrong. <em>Who do I hold responsible?</em></p></div></div>
       <div class="def"><span class="mark">4</span><div class="body"><b>REGISTRAR</b><p>The independent, accredited issuer that did the verification and signed the passport. Its certificate chains to the root. <em>Who vouched, under what rules?</em></p></div></div>
-      <div class="def"><span class="mark">5</span><div class="body"><b>AUTHORITY CLASS</b><p>Who stands behind it: a human (proven in zero-knowledge), an organization, another agent along a provable chain — or, declared honestly, fully autonomous. <em>On whose behalf is this acting?</em></p></div></div>
+      <div class="def"><span class="mark">5</span><div class="body"><b>AUTHORITY CLASS</b><p>Who stands behind it: a human (a principal proof its registrar checked), an organization, another agent along a provable chain — or, declared honestly, fully autonomous. <em>On whose behalf is this acting?</em></p></div></div>
       <div class="def"><span class="mark">6</span><div class="body"><b>ASSURANCE TIER</b><p>How much verification stands behind the passport, L0 to L4. The root labels; every verifier chooses its own floor. <em>How much can this credential carry?</em></p></div></div>
       <div class="def"><span class="mark">7</span><div class="body"><b>ISSUING AUTHORITY + MRZ</b><p>The machine-readable zone any system can parse in one pass — with the canonical name, validity dates, and key fingerprint printed above it. Mandates and running fleets live outside the document, at the edge, where they belong. <em>Can my software read this without custom integration?</em></p></div></div>
       <div class="def"><span class="mark">8</span><div class="body"><b>ROOT ATTESTATION</b><p>The live status: chain valid, witnesses agree, entry sealed in the public log, in good standing — re-checked at every verification. <em>Is this still good, right now?</em></p></div></div>
@@ -611,7 +611,7 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
       </div>
       <div class="rail-info">
         <b id="authTier">A1 · HUMAN-DELEGATED</b>
-        <p id="authText">A verified person stands behind the agent — proven in zero-knowledge, so accountability exists while privacy stays intact. A signed consent mandate sets scopes, time limits, and spend ceilings; the person can revoke it at any moment, everywhere at once.</p>
+        <p id="authText">A verified person stands behind the agent — checked by the registrar, which keeps the evidence; the root and every verifier see only a digest, so accountability exists while the person stays private. A signed consent mandate sets scopes, time limits, and spend ceilings; the person can revoke it at any moment, everywhere at once.</p>
       </div>
       <div class="mini-code">act_chain: [<span class="g">principal</span> → <span class="g">agent:orchestrator@3</span> → <span class="g">agent:invoicing@4.2.1</span>]   <span class="m">// scopes may only narrow — provable to the anchor at any depth</span></div>
     </div>
@@ -733,10 +733,10 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
     </div>
     <div class="gloss">
       <div class="g-cell rv"><b>HTTP MESSAGE SIGNATURES</b><p>Every request an agent sends is cryptographically signed, and the signature names the key in its passport. The passport rides inside ordinary web traffic.</p><div class="role">ROLE · HOW THE PASSPORT TRAVELS</div></div>
-      <div class="g-cell rv"><b>SD-JWT VERIFIABLE CREDENTIALS</b><p>The passport's file format. Selective disclosure means the agent proves exactly the fields a counterparty needs — and keeps the rest private.</p><div class="role">ROLE · THE DOCUMENT ITSELF</div></div>
+      <div class="g-cell rv"><b>HYBRID-SIGNED CREDENTIALS</b><p>The passport's file format: canonical JSON signed with both Ed25519 and ML-DSA-65, so it stays valid if either scheme falls. Every field is shown, and none of them is personal data.</p><div class="role">ROLE · THE DOCUMENT ITSELF</div></div>
       <div class="g-cell rv"><b>DECENTRALIZED IDENTIFIERS (DID)</b><p>A standard name format any system can resolve. Every <span style="font-family:var(--mono);font-size:11px">ainra:</span> name is a DID underneath, so existing tooling understands it out of the box.</p><div class="role">ROLE · UNIVERSAL ADDRESSING</div></div>
       <div class="g-cell rv"><b>MTLS + SHORT-LIVED CREDENTIALS</b><p>Running copies carry minutes-long credentials minted locally under the passport, bound to the connection. A stolen token expires before it matters.</p><div class="role">ROLE · THEFT CONTAINMENT AT SCALE</div></div>
-      <div class="g-cell rv"><b>ZERO-KNOWLEDGE PROOFS</b><p>Prove "a verified human authorized this agent" while keeping the person private. Accountability and privacy, together.</p><div class="role">ROLE · HUMAN BACKING WITH PRIVACY INTACT</div></div>
+      <div class="g-cell rv"><b>CHECKED PRINCIPAL PROOFS</b><p>The registrar checks that a verified human authorized this agent and keeps the evidence; the root and every verifier see only a digest. Accountability, with the person kept private.</p><div class="role">ROLE · HUMAN BACKING WITH PRIVACY INTACT</div></div>
       <div class="g-cell rv"><b>CONSENT MANDATES</b><p>A signed permission slip from the principal — scopes, time limits, spend ceilings, a revocation address — that every downstream delegation can only narrow.</p><div class="role">ROLE · AUTHORITY YOU CAN AUDIT AND RECALL</div></div>
       <div class="g-cell rv"><b>MERKLE TRANSPARENCY LOGS</b><p>Append-only records where altering history breaks the math, and independent witnesses cosign every checkpoint. Honesty is checkable, always.</p><div class="role">ROLE · A RECORD THAT KEEPS ITSELF HONEST</div></div>
       <div class="g-cell rv"><b>THRESHOLD KEY CEREMONIES</b><p>The root key is split so signing takes a quorum of custodians across jurisdictions; used only in public, recorded ceremonies, with a standby in escrow.</p><div class="role">ROLE · POWER SHARED BY CONSTRUCTION</div></div>
@@ -815,7 +815,7 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
       </div>
       <div class="rail-info">
         <b id="railTier">L3 · BACKED</b>
-        <p id="railText">KYB-verified operator + zero-knowledge principal + liability insurance attestation. The floor for consumer-scale payments and contract execution.</p>
+        <p id="railText">KYB-verified operator + a checked principal proof + liability insurance attestation. The floor for consumer-scale payments and contract execution.</p>
       </div>
     </div>
   </div>
@@ -1142,7 +1142,7 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
 
   /* authority rail */
   const authData=[
-    ['A1 · HUMAN-DELEGATED','A verified person stands behind the agent — proven in zero-knowledge, so accountability exists while privacy stays intact. A signed consent mandate sets scopes, time limits, and spend ceilings; the person can revoke it at any moment, everywhere at once.'],
+    ['A1 · HUMAN-DELEGATED','A verified person stands behind the agent — checked by the registrar, which keeps the evidence; the root and every verifier see only a digest, so accountability exists while the person stays private. A signed consent mandate sets scopes, time limits, and spend ceilings; the person can revoke it at any moment, everywhere at once.'],
     ['A2 · ORGANIZATION-DELEGATED','A verified legal entity is the principal. The mandate is an organizational authorization whose accountability resolves to responsible officers through the registrar of record.'],
     ['A3 · AGENT-DELEGATED','Another passported agent is the principal. Every hop is dual-signed, scopes can only narrow, depth is capped — and the whole chain stays provable back to its ultimate anchor from the credential alone.'],
     ['A4 · AUTONOMOUS','Fully self-directed — and declared truthfully as such. Requirements: a reachable governance endpoint, a dead-man renewal timer, and a bond, insurance, or steward of record to climb the tiers. Verifiers choose how much A4 to accept; honest existence is always guaranteed.']
@@ -1161,7 +1161,7 @@ footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
     ['L0 · DECLARED','Valid keypair + logged registration + revocation endpoint. Permissionless by charter — anyone, including fully on-chain agents. Sandbox and attributed-crawl access.'],
     ['L1 · ANCHORED','L0 plus verified control of a domain or established wallet history. Rate-limited APIs and low-value machine micropayments.'],
     ['L2 · OPERATED','L1 plus a KYB-verified legal operator, declared model lineage, and a soulbound lineage. Standard commerce and B2B data exchange.'],
-    ['L3 · BACKED','KYB-verified operator + zero-knowledge principal + liability insurance attestation. The floor for consumer-scale payments and contract execution.'],
+    ['L3 · BACKED','KYB-verified operator + a checked principal proof + liability insurance attestation. The floor for consumer-scale payments and contract execution.'],
     ['L4 · REGULATED','L3 plus sector license, independent audit, and third-party work validation. High-value autonomous transactions and critical infrastructure.']
   ];
   const railBtns=[...document.querySelectorAll('[data-t]')];

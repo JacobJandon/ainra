@@ -621,7 +621,7 @@ nav .nav-links a[aria-current="page"],nav .ndocs[aria-current="page"]{text-decor
       </div>
       <div class="rail-info">
         <b id="authTier">A1 · HUMAN-DELEGATED</b>
-        <p id="authText">A verified person stands behind the agent — proven in zero-knowledge, so accountability exists while privacy stays intact. A signed consent mandate sets scopes, time limits, and spend ceilings; the person can revoke it at any moment, everywhere at once.</p>
+        <p id="authText">A verified person stands behind the agent — checked by the registrar, which keeps the evidence; the root and every verifier see only a digest, so accountability exists while the person stays private. A signed consent mandate sets scopes, time limits, and spend ceilings; the person can revoke it at any moment, everywhere at once.</p>
       </div>
       <div class="mini-code">act_chain: [<span class="g">principal</span> → <span class="g">agent:orchestrator@3</span> → <span class="g">agent:invoicing@4.2.1</span>]   <span class="m">// scopes may only narrow — provable to the anchor at any depth</span></div>
     </div>
@@ -675,7 +675,7 @@ nav .nav-links a[aria-current="page"],nav .ndocs[aria-current="page"]{text-decor
       </div>
       <div class="rail-info">
         <b id="railTier">L3 · BACKED</b>
-        <p id="railText">KYB-verified operator + zero-knowledge principal + liability insurance attestation. The floor for consumer-scale payments and contract execution.</p>
+        <p id="railText">KYB-verified operator + a checked principal proof + liability insurance attestation. The floor for consumer-scale payments and contract execution.</p>
       </div>
     </div>
   </div>
@@ -821,7 +821,7 @@ nav .nav-links a[aria-current="page"],nav .ndocs[aria-current="page"]{text-decor
 
   /* authority rail */
   const authData=[
-    ['A1 · HUMAN-DELEGATED','A verified person stands behind the agent — proven in zero-knowledge, so accountability exists while privacy stays intact. A signed consent mandate sets scopes, time limits, and spend ceilings; the person can revoke it at any moment, everywhere at once.'],
+    ['A1 · HUMAN-DELEGATED','A verified person stands behind the agent — checked by the registrar, which keeps the evidence; the root and every verifier see only a digest, so accountability exists while the person stays private. A signed consent mandate sets scopes, time limits, and spend ceilings; the person can revoke it at any moment, everywhere at once.'],
     ['A2 · ORGANIZATION-DELEGATED','A verified legal entity is the principal. The mandate is an organizational authorization whose accountability resolves to responsible officers through the registrar of record.'],
     ['A3 · AGENT-DELEGATED','Another passported agent is the principal. Every hop is dual-signed, scopes can only narrow, depth is capped — and the whole chain stays provable back to its ultimate anchor from the credential alone.'],
     ['A4 · AUTONOMOUS','Fully self-directed — and declared truthfully as such. Requirements: a reachable governance endpoint, a dead-man renewal timer, and a bond, insurance, or steward of record to climb the tiers. Verifiers choose how much A4 to accept; honest existence is always guaranteed.']
@@ -839,7 +839,7 @@ nav .nav-links a[aria-current="page"],nav .ndocs[aria-current="page"]{text-decor
     ['L0 · DECLARED','Valid keypair + logged registration + revocation endpoint. Permissionless by charter — anyone, including fully on-chain agents. Sandbox and attributed-crawl access.'],
     ['L1 · ANCHORED','L0 plus verified control of a domain or established wallet history. Rate-limited APIs and low-value machine micropayments.'],
     ['L2 · OPERATED','L1 plus a KYB-verified legal operator, declared model lineage, and a soulbound lineage. Standard commerce and B2B data exchange.'],
-    ['L3 · BACKED','KYB-verified operator + zero-knowledge principal + liability insurance attestation. The floor for consumer-scale payments and contract execution.'],
+    ['L3 · BACKED','KYB-verified operator + a checked principal proof + liability insurance attestation. The floor for consumer-scale payments and contract execution.'],
     ['L4 · REGULATED','L3 plus sector license, independent audit, and third-party work validation. High-value autonomous transactions and critical infrastructure.']
   ];
   // SCOPED to this rail on purpose: `[data-t]` alone also matches the demo's forge buttons further up the page,

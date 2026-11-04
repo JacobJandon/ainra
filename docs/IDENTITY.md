@@ -11,8 +11,9 @@ taken on faith; every claim below is something you can run.
 ## 1 · A passport the agent carries
 
 The agent presents **one signed document**, and the document is self-contained: name, lineage, version, operator,
-tier, key, and the log position proving it was recorded before it was valid. It is an SD-JWT verifiable credential,
-so a holder may disclose one field without revealing the rest.
+tier, key, and the log position proving it was recorded before it was valid. It is canonical JSON signed by its
+registrar with both Ed25519 and ML-DSA-65; it reuses some SD-JWT VC claim names but is not a JWT, and every claim in it
+is shown — there is no field-level disclosure today (docs/ZK-STUDY.md §3.2).
 
 The name is the address of the identity:
 
@@ -44,8 +45,9 @@ An AINRA passport belongs to the agent:
 - the **lineage** is the agent's own and cannot be sold or transferred;
 - the **operator** is a *field on* the passport, not the identity itself — the company answers for the agent
   without being the agent;
-- the **human** behind it is proven in **zero-knowledge** (authority class A1, backed by a signed consent
-  mandate), so accountability exists while the person's data never transits or rests at the root.
+- the **human** behind it is checked by its **registrar** (authority class A1: issued only on evidence the registrar's
+  principal checker accepts, D-089), and the passport carries only a digest of that evidence — so accountability
+  exists while the person's data never transits or rests at the root.
 
 That last point is not a configuration choice. *Holds no personal data* is one of the six constitutional
 prohibitions in [GOVERNANCE-AMENDMENT.md](../GOVERNANCE-AMENDMENT.md): what is never collected cannot be leaked,

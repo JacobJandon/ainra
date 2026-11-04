@@ -18,6 +18,9 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::collections::BTreeMap;
 
+/// PLAN-M52 steps 5–8: change requests, proposals, assembly and publication of a directory epoch.
+pub mod workbench;
+
 // ── the wire shapes a conformance vector actually carries ──────────────────────────────────────────────────
 
 #[derive(Serialize, Deserialize, Clone)]

@@ -13,7 +13,8 @@
 // WITNESS: `--negative` builds a throwaway Rust tree under the OS temp directory and runs the same walk and the
 // same per-file scan over it. It plants one file per moved signature and one per decoder shape (a WireRegistrar
 // struct in the CLI, an `anchors_from_export` helper, a `fn …(&serde_json::Value) -> TrustAnchors`, a Presentation
-// filled straight from `serde_json::from_str`, …), each outside the adapter, and every one must be reported. It
+// filled straight from `serde_json::from_str`, a directory or proposal decoded in the CLI, …), each outside the
+// adapter, and every one must be reported. It
 // also plants what must stay quiet: the same signatures inside crates/ainra-adapter, TrustAnchors assembled from
 // in-process keys, and a duplicate decoder under target/ (build output, not source). A scan that stopped matching,
 // stopped walking, or stopped exempting the adapter would show up as a MISSED or FLAGGED line and exit 1.
@@ -50,6 +51,11 @@ const SHAPES = [
     what: "TrustAnchors decoded from JSON outside the adapter" },
   { re: /Presentation\s*\{[\s\S]{0,400}?serde_json::from_str/, 
     what: "a Presentation built directly from parsed JSON outside the adapter" },
+  // PLAN-M52: a directory, an entry, a change request or a proposal decoded outside the adapter. The workbench decides
+  // what those bytes mean in exactly one place (ainra-adapter's `workbench` and `directory_identity_json`); a CLI that
+  // parsed a directory for itself could accept an epoch the adapter refuses.
+  { re: /from_(?:str|slice|value|reader)\s*::\s*<\s*[\w:]*(?:Directory|DirectoryEntry|ChangeRequest|Proposal)\s*>/,
+    what: "a directory, entry, change request or proposal decoded outside the adapter" },
 ];
 
 function rustFiles(root) {
@@ -95,9 +101,14 @@ if (process.argv.includes("--negative")) {
       "fn local_anchors(v: &serde_json::Value) -> Result<TrustAnchors, String> {\n    todo!()\n}\n", true],
     ["crates/ainra-cli-rs/src/p_pres_json.rs",
       "let p = Presentation {\n    claims: serde_json::from_str(&raw)?,\n    ..Default::default()\n};\n", true],
+    ["crates/ainra-cli-rs/src/p_directory.rs",
+      "let d = serde_json::from_str::<ainra_core::directory::Directory>(&raw)?;\n", true],
+    ["crates/ainra-cli-rs/src/p_proposal.rs",
+      "let p = serde_json::from_slice::<Proposal>(&bytes).ok();\n", true],
     // What must stay quiet.
     [`${ADAPTER}/src/lib.rs`,
-      "pub struct WirePresentation {}\nstruct WireRegistrar {}\nfn anchors_from_export(v: &serde_json::Value) -> TrustAnchors { todo!() }\n", false],
+      "pub struct WirePresentation {}\nstruct WireRegistrar {}\nfn anchors_from_export(v: &serde_json::Value) -> TrustAnchors { todo!() }\n" +
+      "let d = serde_json::from_str::<ainra_core::directory::Directory>(j);\n", false],
     ["crates/ainra-registrar/src/p_own_keys.rs",  "let anchors = TrustAnchors { keys: own_keys.clone() };\n", false],
     ["target/debug/build/p_generated.rs",         "struct WireRegistrar {}\n", false],
   ];

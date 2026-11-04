@@ -56,5 +56,7 @@ Each playbook: **trigger → immediate action → what gets published → how to
 
 ---
 
+Epoch ceremonies after genesis (PLAN-M52 steps 7–8) have their own playbooks: [`EPOCH-ABORTS.md`](EPOCH-ABORTS.md).
+
 **Define now, not during.** These are the only sanctioned responses. If a situation isn't covered here, the default
 is **ABORT + publish + reschedule** — never improvise a genesis.

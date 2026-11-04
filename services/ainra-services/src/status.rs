@@ -110,6 +110,16 @@ impl Statusd {
         self.signer.public()
     }
 
+    /// The status key's proof of possession over a directory change request (PLAN-M52 step 5). Only
+    /// [`crate::registrar::RegistrarBox::sign_change_request`] calls this, and it refuses any message that is not a
+    /// change request, so the status key never signs anything a status list could be mistaken for.
+    pub(crate) fn sign_change_request(
+        &self,
+        message: &[u8],
+    ) -> Result<crypto::HybridSig, ainra_core::Error> {
+        self.signer.sign(message)
+    }
+
     /// The SLH-DSA root public key the delta/fresh-head delegate cert chains to (if configured). A verifier needs
     /// this to authenticate deltas and fresh heads.
     pub fn root_public(&self) -> Option<&[u8]> {

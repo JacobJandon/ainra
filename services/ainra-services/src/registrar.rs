@@ -346,6 +346,17 @@ pub struct Accreditation {
     pub status_uri: String,
 }
 
+/// Every directory change-request message starts with this (PLAN-M52 step 5); the adapter's
+/// `workbench::REQUEST_MESSAGE_PREFIX` is the same string, which the CLI's tests hold.
+pub const CHANGE_REQUEST_PREFIX: &str = "ainra/directory-change-request/v1 ";
+
+/// A registrar's signatures over one change-request message, one per key its directory entry lists.
+pub struct ChangeRequestProofs {
+    pub issuer: crypto::HybridSig,
+    pub status: crypto::HybridSig,
+    pub log_root_slh: Vec<u8>,
+}
+
 /// A running registrar-in-a-box.
 pub struct RegistrarBox {
     id: String,
@@ -700,6 +711,32 @@ impl RegistrarBox {
             log_origin: self.log_origin(),
             status_uri: self.status_uri(),
         }
+    }
+
+    /// A registrar files a directory change request about its own entry (PLAN-M52 step 5) by signing the request's
+    /// message with the keys its entry lists: the issuer key (a self-request's authorization, and an ACCREDIT's
+    /// proof of possession), the status key and the log root (an ACCREDIT's proofs of possession). The message must
+    /// be [`CHANGE_REQUEST_PREFIX`] followed by a 64-character hex digest and nothing else: it is not JSON, so none
+    /// of these signatures can stand in for one over a passport, a status list or a delegate certificate. The root
+    /// holds no key here; this is the registrar's own act, offline, with its own keys.
+    pub fn sign_change_request(&self, message: &str) -> Result<ChangeRequestProofs, IssueError> {
+        let digest = message.strip_prefix(CHANGE_REQUEST_PREFIX).unwrap_or("");
+        if digest.len() != 64
+            || !digest
+                .bytes()
+                .all(|c| c.is_ascii_digit() || (b'a'..=b'f').contains(&c))
+        {
+            return Err(IssueError::Malformed(format!(
+                "not a change-request message: it must be {CHANGE_REQUEST_PREFIX:?} followed by a hex SHA-256"
+            )));
+        }
+        let m = message.as_bytes();
+        let err = |e: ainra_core::Error| IssueError::Malformed(e.to_string());
+        Ok(ChangeRequestProofs {
+            issuer: self.issuer.sign(m).map_err(err)?,
+            status: self.status.sign_change_request(m).map_err(err)?,
+            log_root_slh: self.root.sign(m).map_err(err)?,
+        })
     }
 
     /// Trust anchors covering just this registrar (what a verifier needs to check its credentials).

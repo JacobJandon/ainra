@@ -8,6 +8,7 @@
 
 mod ctl;
 mod seed;
+mod workbench;
 
 use std::path::Path;
 use std::process::exit;
@@ -840,6 +841,21 @@ GATE (D-062 / D-068)
   directory archive <directory.json> --roots R --into DIR
         keep a verified directory as DIR/epochs/<N>.json and in DIR/epochs.json; refuses an unsigned one, an epoch
         not newer than the last, and a second, different directory at an archived epoch.
+  directory request TYPE --filed-at T --out F (--registrar DIR | --subject ID --filer NAME) [--leaf N] [--cert C]
+                    [--evidence E] [--test-root]
+        file a directory change request (PLAN-M52 R0): ACCREDIT, WITHDRAW, DISTRUST_FROM_LEAF, REVOKE_DELEGATE,
+        REGISTRAR_KEY_ROLL or ROOT_KEY_ROLL. With --registrar it is signed with that registrar's own keys.
+  directory check-request R [--directory D --roots RT] [--accreditation A] | --list-checks
+        refuse a request with a named reason (docs/ACCREDITATION-CHECKS.md is the --list-checks output).
+  directory propose [--base D --roots RT] --request R… --issued-at T --out P
+        draft an UNSIGNED epoch N+1 with its diff, the digest of every request and the SHA-256 of the signing bytes.
+  directory check-proposal P [--base D --roots RT]   re-derive it from epoch N and the requests alone
+  directory sign-request P                     the exact bytes the custodians sign (hex) and their SHA-256
+  directory assemble P --sig-ed25519 B --sig-slh B --roots RT --out D
+        put both root signatures on a proposal; refused unless each verifies over its signing bytes.
+  directory publish D --roots RT --proposal P --transcript T [--transcript-sha256 F] --into DIR
+        archive the next epoch and write DIR/directory.json, refused unless both roots signed it, it is the archive's
+        last epoch + 1, it is the approved proposal and the transcript names it. No network.
   verify-decisions <log.jsonl> --gate-key K [--after SEQ:AT:DIGEST] [--head DIGEST]
                    [--receipt R --directory D --roots RT [--now SECS]]
         does a gate's decision log hold? (D-079) Checks every record's signature under the gate's Ed25519 key K

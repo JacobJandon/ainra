@@ -14,3 +14,8 @@ ainra-core = { path = "../ainra-core" }
 serde = { workspace = true, features = ["std"] }
 serde_json = { workspace = true, features = ["std", "raw_value"] }
 sha2 = { workspace = true }
+
+[dev-dependencies]
+# Test keys only (PLAN-M52 workbench tests), from a fixed seed.
+rand_chacha = { version = "0.3", default-features = false }
+rand_core = { workspace = true }

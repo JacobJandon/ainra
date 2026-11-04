@@ -2253,7 +2253,7 @@ included (it had dropped the zero), and `make doctrine` requires the zero there 
 
 *Status:* NEW.
 
-## D-088 — The control room reads, the workbench proposes, the ceremony signs (PROPOSED, M52)
+## D-088 — The control room reads, the workbench proposes, the ceremony signs (M52)
 
 *Problem:* the owner asked for "our own AINRA control field … like ICANN has". D-034 forbids the root a console or any
 self-serve surface, and for good reason: a panel that can change the directory is a single point of control, which is
@@ -2276,7 +2276,12 @@ floor, so this is a new refusal) and on a directory older than the cadence (the 
 expiry leave open and which this plan names rather than hides); the compliance monitor sits outside the root (P3,
 P4); and one person holds every role until production, which the plan states.
 
-*Status:* PROPOSED — the owner rules. Hosting (PLAN-M52 step 4) is the owner's choice of provider and names.
+*Status:* ACCEPTED 2026-11-04 by the operator's instruction "do all your self automatically and fully continue to all".
+Built the same day: steps 1–3 (`ainra ctl`, the epoch archive, `site/control.html`) and 5–8 (change requests with
+`docs/ACCREDITATION-CHECKS.md`, the workbench, `sign-epoch` in rehearsal, publish) — `make ctl-drill`, `make
+control-page-drill`, `make sign-epoch-rehearsal`. Still the owner's: hosting (step 4) — provider and names; the
+declared offline approver set (an ADR and a schema change) before any change that moves trust can be accepted; and the
+remaining decisions listed at the end of PLAN-M52.
 
 ## D-089 — A1 means a checked principal proof (M51)
 
@@ -2310,7 +2315,7 @@ principal-proven"); it now follows the Standard.
 
 *Status:* NEW (PLAN-M51 step 3). Registrar policy only; no wire or core change.
 
-## D-090 — The texts say what the code does: privacy and delegation; and a leak ledger (PROPOSED)
+## D-090 — The texts say what the code does: privacy and delegation; and a leak ledger (M52)
 
 *Problem:* `docs/ZK-STUDY.md` §3.2 found four things the repository says that the code does not do. (1) The passport is
 called "an SD-JWT verifiable credential; selective disclosure by field": it is canonical JSON hybrid-signed whole, not
@@ -2354,7 +2359,7 @@ mechanism is wrong.
 site, by the normative path; `make doctrine` rule 9 with two probes in `make doctrine-negative`. The leak ledger is
 next and lands under this record.
 
-## D-091 — One network-wide status file for verifiers that fetch (PROPOSED)
+## D-091 — One network-wide status file for verifiers that fetch (M52)
 
 *Problem:* by default the agent carries its registrar-signed status list, so the registrar learns only that its agent
 refreshed. A verifier that fetches for itself (a gate wanting a newer head, a mirror consumer, the MCP tool) reads a

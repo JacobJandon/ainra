@@ -33,3 +33,8 @@ path = "src/bin/accredit.rs"
 [[bin]]
 name = "dkg-participant"
 path = "src/bin/dkg_participant.rs"
+
+# PLAN-M52 step 7 — the offline SLH-DSA root signer for epoch-ceremony rehearsals (TEST-ROOT only).
+[[bin]]
+name = "slh-root"
+path = "src/bin/slh_root.rs"

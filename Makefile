@@ -2,7 +2,7 @@
 # and everything is green in under 10 minutes on a laptop.
 
 .PHONY: link-parity link-e2e tsl-check online-verifier-check pilot-e2e
-.PHONY: leak-ledger control-page-drill ctl-drill negative-controls replay-imports witness-feed-drill release-state-check wimse-check wimse-e2e live-drills gate-parity py-test sign-diff python-agent-e2e signature-agent-check signature-agent-e2e edge-build edge-test edge-e2e edge-runtimes personhood-test personhood-live live-up live-down live-status identity-e2e root-dark-drill mirror-sufficiency legibility-drill cli-deps succession-drill staleness-drill amendment-check amendment-check-negative doctrine doctrine-negative number-syntax engine-parity one-decode-path bench-gate all test vectors vectors-check diff cli-check suite-migration-drill ceremony-rehearsal-multi witness-check push-advisory-check changelog-board-check fmt clippy fuzz-smoke bench sdk-build sdk-test ci clean status console samples drill explorer demo scale ceremony testbed wedge-build wedge-test repro mirror verify-mirror check-freeze freeze genesis-local verifier-kit-smoke ceremony-dry-run soak-smoke drill-networked preflight s7 license gitleaks audit verify-as-external verifier-triple-drill soak-verify genesis-status verify-transcript genesis-board-demo release doctor verifier-operator-drill site site-up site-down site-check stage-all stage-all-down explorer-up explorer-down ainrascan stage-up stage-down stage-status stage-smoke demo-walkthrough three-clients genesis-verify config-diff declaration genesis-rehearsal site-demo verify issue-first registrar-console mcp-test skills-replay presentation-diff conformance campaign-status campaign-init campaign-gates campaign-check publish-preflight stage-install stage-uninstall stage-health stranger probe-drill miri reasons-check corpus-check instance-gate claims-check claims claims-live policy-parity deploy-current site-net site-net-check lockfile-sync soak-ingest outreach-check names-check interop interop-negative
+.PHONY: sign-epoch-rehearsal accreditation-checks leak-ledger control-page-drill ctl-drill negative-controls replay-imports witness-feed-drill release-state-check wimse-check wimse-e2e live-drills gate-parity py-test sign-diff python-agent-e2e signature-agent-check signature-agent-e2e edge-build edge-test edge-e2e edge-runtimes personhood-test personhood-live live-up live-down live-status identity-e2e root-dark-drill mirror-sufficiency legibility-drill cli-deps succession-drill staleness-drill amendment-check amendment-check-negative doctrine doctrine-negative number-syntax engine-parity one-decode-path bench-gate all test vectors vectors-check diff cli-check suite-migration-drill ceremony-rehearsal-multi witness-check push-advisory-check changelog-board-check fmt clippy fuzz-smoke bench sdk-build sdk-test ci clean status console samples drill explorer demo scale ceremony testbed wedge-build wedge-test repro mirror verify-mirror check-freeze freeze genesis-local verifier-kit-smoke ceremony-dry-run soak-smoke drill-networked preflight s7 license gitleaks audit verify-as-external verifier-triple-drill soak-verify genesis-status verify-transcript genesis-board-demo release doctor verifier-operator-drill site site-up site-down site-check stage-all stage-all-down explorer-up explorer-down ainrascan stage-up stage-down stage-status stage-smoke demo-walkthrough three-clients genesis-verify config-diff declaration genesis-rehearsal site-demo verify issue-first registrar-console mcp-test skills-replay presentation-diff conformance campaign-status campaign-init campaign-gates campaign-check publish-preflight stage-install stage-uninstall stage-health stranger probe-drill miri reasons-check corpus-check instance-gate claims-check claims claims-live policy-parity deploy-current site-net site-net-check lockfile-sync soak-ingest outreach-check names-check interop interop-negative
 
 all: fmt clippy test vectors diff
 
@@ -134,7 +134,7 @@ sdk-test: sdk-build
 	cd packages/sdk-ts && npm test
 
 # The full local gate mirror of .github/workflows/ci.yml.
-ci: fmt clippy lockfile-sync soak-ingest reasons-check corpus-check instance-gate claims-check release-state-check replay-imports negative-controls leak-ledger policy-parity test vectors diff conformance cli-check suite-migration-drill ceremony-rehearsal-multi witness-check push-advisory-check changelog-board-check sdk-test site site-check
+ci: fmt clippy lockfile-sync soak-ingest reasons-check corpus-check instance-gate claims-check release-state-check replay-imports negative-controls leak-ledger policy-parity test vectors diff conformance cli-check suite-migration-drill ceremony-rehearsal-multi sign-epoch-rehearsal accreditation-checks witness-check push-advisory-check changelog-board-check sdk-test site site-check
 	node tools/s7-lint.mjs
 	node tools/license-check.mjs
 	./tools/fuzz-smoke.sh
@@ -646,6 +646,11 @@ control-page-drill: sdk-build ## PLAN-M52 step 3: site/control.html shows red fo
 	@node tools/control-page-drill.mjs
 ctl-drill: ## PLAN-M52: the read-only control room alarms, by name, on every way a contract can lie
 	@bash tools/ctl-drill.sh
+sign-epoch-rehearsal: ## PLAN-M52 steps 5–8: one change, request → proposal → 5-of-9 + SLH → publish, each refusal by name (TEST-ROOT)
+	@bash tools/sign-epoch-rehearsal.sh
+accreditation-checks: ## PLAN-M52 step 5: docs/ACCREDITATION-CHECKS.md is the code's own list; --negative proves the gate can fail
+	@cargo build --release -q -p ainra-cli-rs --bin ainra
+	@node tools/accreditation-checks.mjs && node tools/accreditation-checks.mjs --negative
 negative-controls: sdk-build ## PLAN-M51 step 4: every gate that was in the baseline proves, offline, that it can fail
 	@node tools/s7-lint.mjs --negative
 	@node tools/license-check.mjs --negative

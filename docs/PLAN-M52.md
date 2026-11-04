@@ -3,7 +3,7 @@
 
 First written on 3 November 2026 at the owner's request: "our own AINRA control field in the terminal or a control
 panel, like ICANN has, and host AINRA somewhere". Revised the same day after a full study of how ICANN works
-(`docs/ICANN-STUDY.md`) and an adversarial review of the first design. Nothing here is built yet. D-088 is PROPOSED;
+(`docs/ICANN-STUDY.md`) and an adversarial review of the first design. Steps 1–3 and 5–8 are built (2026-11-04); D-088 is ACCEPTED;
 the owner rules.
 
 ## What ICANN's "control" is, and what ours must be
@@ -178,14 +178,14 @@ account by us. WITNESS: `make claims-live` turns red on each planted divergence 
 board while a project key is not. Distinctness is checked as different keys and different networks; whether two keys
 belong to one person cannot be checked, and the board says so.
 
-**5. Change requests and published accreditation checks.** The request schema and authorisation rules of R0, the
+**5. Change requests and published accreditation checks.** *Built 2026-11-04 (D-088 accepted the same day): the v1 request format and `ainra directory request | check-request` in the adapter's one decode path (`crates/ainra-adapter/src/workbench.rs`); a registrar signs its own requests with its own keys; every refusal names its check, and `docs/ACCREDITATION-CHECKS.md` is `check-request --list-checks`, held to the code by `make accreditation-checks`. A change that moves trust is refused outright, because the declared offline approver set (ADR + D-0xx) is not built; so is REGISTRAR-KEY-ROLL and ROOT-KEY-ROLL. Keys are compared with a copy of `/accreditation` the caller supplies (`--accreditation`); the live R2 checks are listed as not built. An adverse filer is not authenticated (item 14).* The request schema and authorisation rules of R0, the
 declared offline approver set (ADR + D-0xx), `ainra directory check-request`, and `docs/ACCREDITATION-CHECKS.md`
 generated from it. WITNESS: each is refused with a named reason — a new key without proof of possession; keys that
 differ from the live `/accreditation`; a key change signed only by online keys; an adverse request with no
 compliance record or from one vantage point; an ACCREDIT without the §3 prerequisites; REGISTRAR-KEY-ROLL while its
 model is undecided.
 
-**6. The workbench.** `propose` batches requests into an unsigned epoch N+1 with a diff and citations;
+**6. The workbench.** *Built 2026-11-04: `ainra directory propose | check-proposal | sign-request`, each refusal by name in the adapter tests and on a draft epoch in `make sign-epoch-rehearsal`. A cutoff lifted or moved later is refused until the owner rules (item 12). Not built: appending outcomes to `/net/proposals/` (publish keeps each epoch's proposal beside it), and the drill with a fake approver set, which waits for the approver set itself.* `propose` batches requests into an unsigned epoch N+1 with a diff and citations;
 `check-proposal` re-derives the diff and digest from the proposal and epoch N alone; `sign-request` emits the signing
 bytes and their SHA-256; outcomes are appended to `/net/proposals/`. WITNESS: refused — a skipped epoch, an entry
 dropped without a WITHDRAW, a field outside the frozen schema, a cutoff lifted or moved later (pending the owner's
@@ -193,7 +193,7 @@ ruling), a diff that does not match. A separate drill plants a **self-consistent
 ACCREDIT with valid proof of possession, a key change from a fake approver set); `check-proposal` alone passes it, so
 it must be caught by approver authentication against epoch N and the missing contest-window acknowledgement.
 
-**7. `sign-epoch`: sign an existing proposal.** FROST commit, sign and aggregate over the sign-request digest, plus an
+**7. `sign-epoch`: sign an existing proposal.** *Built 2026-11-04 as a rehearsal: `slh-root` (TEST-ROOT SLH-DSA signer, 0600 key file), `ainra directory assemble`, and `make sign-epoch-rehearsal`, in which each signing custodian fetches the proposal from two mirrors, re-derives it and signs only its own digest; a transcript and its SHA-256; `docs/genesis-day/EPOCH-ABORTS.md`. Not built: the ceremony packet template, the annotated script and exception formats, and the air-gapped remote protocol.* FROST commit, sign and aggregate over the sign-request digest, plus an
 offline SLH signer; the ceremony packet template (script 14 days ahead, OS image hash, quorum, seats); annotated
 script and exception formats; a transcript per epoch; the air-gapped remote protocol; `docs/genesis-day/ABORTS.md`
 extended to epoch ceremonies. `accredit.rs`'s fresh DKG on every run is limited to TEST-ROOT. Recordings stay with
@@ -202,7 +202,7 @@ not names (P4). WITNESS: the coordinator supplies a different, internally consis
 fetched digest does not match, so the custodian refuses; four shares are refused; a directory with one root's
 signature is refused at publish; one changed byte fails `verify-transcript.mjs`.
 
-**8. Publish and mirrors.** `ainra directory publish` as in R7, publishing from the transcript bundle open to anyone.
+**8. Publish and mirrors.** *Built 2026-11-04: `ainra directory publish` (no network) archives the epoch with its proposal and transcript and writes `directory.json`; each refusal below is shown in `make sign-epoch-rehearsal`, then `ainra ctl status` reads the two-epoch history with no alarm and `ainra ctl diff 1 2` shows the change. Not built: pushing to hosts and mirrors, and the `ctl` alarm on an epoch that reached mirrors without going through publish.* `ainra directory publish` as in R7, publishing from the transcript bundle open to anyone.
 WITNESS: refused — one root's signature, an older epoch, an authentic N+1 that is not the approved digest, an
 authentic N+1 that no transcript names — and `ctl` alarms on the same epoch reaching mirrors without going through
 publish.

@@ -10,6 +10,10 @@
 //!   ainra ctl diff <N> <M> --net <url|dir>                         what changed between two epochs
 //!   ainra ctl watch --net <url|dir> [--interval <s>] …             status, again and again
 //!
+//! The workbench commands that follow an epoch's life before it is archived — `request`, `check-request`, `propose`,
+//! `check-proposal`, `sign-request`, `assemble` and `publish` (PLAN-M52 steps 5–8) — are in `workbench.rs`; `publish`
+//! archives through the same `archive_into` as `archive`.
+//!
 //! `ctl` signs nothing, writes to no registrar, sends nothing anywhere, and exits 1 on any alarm (so it can be a cron
 //! job or a CI step). It remembers what it last saw (`~/.ainra-ctl/seen.json`, or `--state`) and only moves that memory
 //! forward on a run with no alarm, so a rollback is never learned as the new normal. Fetching uses `curl` for http(s)
@@ -60,7 +64,7 @@ fn fetch_json(base: &str, path: &str) -> Result<Value, String> {
     serde_json::from_slice(&b).map_err(|e| format!("{path}: not JSON ({e})"))
 }
 
-fn sha256_hex(b: &[u8]) -> String {
+pub(crate) fn sha256_hex(b: &[u8]) -> String {
     use sha2::{Digest, Sha256};
     Sha256::digest(b)
         .iter()
@@ -113,14 +117,18 @@ pub fn cmd_directory(args: &[String]) -> i32 {
             }
         }
         Some("archive") => archive(&args[1..]),
+        Some(
+            cmd @ ("check-request" | "request" | "propose" | "check-proposal" | "sign-request"
+            | "assemble" | "publish"),
+        ) => crate::workbench::run(cmd, &args[1..]),
         _ => {
-            eprintln!("usage: ainra directory digest <directory.json>\n       ainra directory archive <directory.json> --roots <roots.json> --into <dir>");
+            eprintln!("{}", crate::workbench::USAGE);
             2
         }
     }
 }
 
-fn opt<'a>(args: &'a [String], key: &str) -> Option<&'a str> {
+pub(crate) fn opt<'a>(args: &'a [String], key: &str) -> Option<&'a str> {
     let flag = format!("--{key}");
     args.iter()
         .position(|a| a == &flag)
@@ -128,7 +136,7 @@ fn opt<'a>(args: &'a [String], key: &str) -> Option<&'a str> {
         .map(String::as_str)
 }
 
-fn opt_all(args: &[String], key: &str) -> Vec<String> {
+pub(crate) fn opt_all(args: &[String], key: &str) -> Vec<String> {
     let flag = format!("--{key}");
     args.windows(2)
         .filter(|w| w[0] == flag)
@@ -151,14 +159,45 @@ fn archive(args: &[String]) -> i32 {
         eprintln!("cannot read {file} or the roots");
         return 2;
     };
-    if !authentic(&dir, &roots) {
-        eprintln!("REFUSED: {file} does not verify under both roots — only a signed directory is archived");
-        return 1;
+    match archive_into(&dir, &roots, Path::new(into), Value::Null, Value::Null) {
+        Ok(msg) => {
+            println!("{msg}");
+            0
+        }
+        Err((code, msg)) => {
+            eprintln!("{msg}");
+            code
+        }
     }
-    let id = identity(&dir).expect("an authentic directory has an identity");
+}
+
+/// The archive's last epoch and its digest, if it has one (what `ainra directory publish` extends).
+pub(crate) fn archive_last(into: &Path) -> Option<(u64, String)> {
+    let index: Value =
+        serde_json::from_slice(&std::fs::read(into.join("epochs.json")).ok()?).ok()?;
+    index["epochs"]
+        .as_array()?
+        .iter()
+        .filter_map(|e| Some((e["epoch"].as_u64()?, e["digest"].as_str()?.to_string())))
+        .max_by_key(|(n, _)| *n)
+}
+
+/// Append a verified directory to `<into>/epochs/<N>.json` and the index, recording the proposal and ceremony it came
+/// from (`null` when it did not come through `publish`). `Ok` carries the line to print; `Err` the exit code and why.
+pub(crate) fn archive_into(
+    dir: &[u8],
+    roots: &[u8],
+    into: &Path,
+    proposal: Value,
+    ceremony: Value,
+) -> Result<String, (i32, String)> {
+    let file = "the directory";
+    if !authentic(dir, roots) {
+        return Err((1, format!("REFUSED: {file} does not verify under both roots — only a signed directory is archived")));
+    }
+    let id = identity(dir).expect("an authentic directory has an identity");
     let epoch = id["epoch"].as_u64().unwrap_or(0);
     let digest = id["digest"].as_str().unwrap_or("").to_string();
-    let into = Path::new(into);
     let index_path = into.join("epochs.json");
     let mut index: Value = std::fs::read(&index_path)
         .ok()
@@ -167,44 +206,35 @@ fn archive(args: &[String]) -> i32 {
     let list = index["epochs"].as_array().cloned().unwrap_or_default();
     if let Some(same) = list.iter().find(|e| e["epoch"].as_u64() == Some(epoch)) {
         if same["digest"].as_str() == Some(&digest) {
-            println!("epoch {epoch} is already archived with this digest — nothing to do");
-            return 0;
+            return Ok(format!(
+                "epoch {epoch} is already archived with this digest — nothing to do"
+            ));
         }
-        eprintln!("REFUSED: equivocation — epoch {epoch} is archived with digest {} and this directory's is {digest}", same["digest"].as_str().unwrap_or("?"));
-        return 1;
+        return Err((1, format!("REFUSED: equivocation — epoch {epoch} is archived with digest {} and this directory's is {digest}", same["digest"].as_str().unwrap_or("?"))));
     }
     if let Some(last) = list.iter().filter_map(|e| e["epoch"].as_u64()).max() {
         if epoch <= last {
-            eprintln!("REFUSED: epoch {epoch} is not newer than the last archived epoch {last} (the archive only grows)");
-            return 1;
+            return Err((1, format!("REFUSED: epoch {epoch} is not newer than the last archived epoch {last} (the archive only grows)")));
         }
     }
     let epochs_dir = into.join("epochs");
-    if let Err(e) = std::fs::create_dir_all(&epochs_dir) {
-        eprintln!("{}: {e}", epochs_dir.display());
-        return 2;
-    }
+    std::fs::create_dir_all(&epochs_dir)
+        .map_err(|e| (2, format!("{}: {e}", epochs_dir.display())))?;
     let path = epochs_dir.join(format!("{epoch}.json"));
-    if std::fs::write(&path, &dir).is_err() {
-        eprintln!("cannot write {}", path.display());
-        return 2;
-    }
+    std::fs::write(&path, dir).map_err(|_| (2, format!("cannot write {}", path.display())))?;
     let mut list = list;
     list.push(json!({
-        "epoch": epoch, "digest": digest, "issued_at": id["issued_at"], "sha256": sha256_hex(&dir),
-        "path": format!("epochs/{epoch}.json"), "proposal": Value::Null, "ceremony": Value::Null,
+        "epoch": epoch, "digest": digest, "issued_at": id["issued_at"], "sha256": sha256_hex(dir),
+        "path": format!("epochs/{epoch}.json"), "proposal": proposal, "ceremony": ceremony,
     }));
     index["epochs"] = Value::Array(list);
     let text = serde_json::to_string_pretty(&index).unwrap() + "\n";
-    if std::fs::write(&index_path, text).is_err() {
-        eprintln!("cannot write {}", index_path.display());
-        return 2;
-    }
-    println!(
+    std::fs::write(&index_path, text)
+        .map_err(|_| (2, format!("cannot write {}", index_path.display())))?;
+    Ok(format!(
         "archived epoch {epoch} → {} (digest {digest})",
         path.display()
-    );
-    0
+    ))
 }
 
 // ── ainra ctl ───────────────────────────────────────────────────────────────────────────────────────────────────

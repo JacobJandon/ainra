@@ -13,3 +13,4 @@ repository.workspace = true
 ainra-core = { path = "../ainra-core" }
 serde = { workspace = true, features = ["std"] }
 serde_json = { workspace = true, features = ["std", "raw_value"] }
+sha2 = { workspace = true }

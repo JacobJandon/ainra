@@ -148,12 +148,12 @@ Until production, one person holds every role, and this table says so. No person
 
 Each step names a WITNESS: a check that must turn red on the defect it was written for.
 
-**1. Keep every epoch.** Publish `/net/epochs/<N>.json` for every epoch and an `epochs.json` index (N, the digest of
+**1. Keep every epoch.** *Built 2026-11-04: `ainra directory digest` and `ainra directory archive` (refuses an unsigned directory, an epoch not newer than the last, and a second directory at an archived epoch); `make site-net` archives each published directory into `site/net/epochs/`, and the staging epoch is backfilled.* Publish `/net/epochs/<N>.json` for every epoch and an `epochs.json` index (N, the digest of
 the signing bytes, proposal id, ceremony id). Add `ainra directory diff <N> <M>`. Backfill the staging epochs, labelled
 TEST-ROOT. WITNESS: an index that skips an epoch, lists a digest that does not match the bytes, or is out of order
 makes `ctl` exit non-zero; removing the digest comparison turns the drill red.
 
-**2. `ainra ctl status | diff | watch`, with memory.** The directory against the pinned roots, the epoch chain, each
+**2. `ainra ctl status | diff | watch`, with memory.** *Built 2026-11-04 in the signed release's CLI; `make ctl-drill` raises each alarm below by name from contracts built out of the signed epoch vectors, and shows that deleting the memory makes the rollback alarm disappear. Witness cosignatures and fresh-head signatures are not yet checked here (the published copy carries neither in checkable form); the rest is.* The directory against the pinned roots, the epoch chain, each
 registrar's log head, status sequence, fresh-head age and `/witness-feed`; cosignatures from distinct witness keys per
 checkpoint; byte agreement across mirrors; the genesis board; soak p95. It keeps `~/.ainra-ctl/seen.json`, prints the
 root fingerprints it pins, and alarms on: a shorter log, a lower status sequence, an older directory, **two
@@ -164,7 +164,7 @@ witness cosigning two roots at one size, mirrors disagreeing, and a fresh head o
 `make ctl-drill` raises each alarm; deleting the memory file makes the log-shrink alarm disappear, proving the memory
 is load-bearing.
 
-**3. The control-room page.** `/control.html` reads the public contract in the visitor's browser with the WASM
+**3. The control-room page.** *Built 2026-11-04 (`site/control.html`, not yet linked from the menu or exported); `make control-page-drill` loads it in a real browser against planted copies of the record.* `/control.html` reads the public contract in the visitor's browser with the WASM
 verifier, shows the pinned fingerprints, keeps only a last-seen memory, and shows a TEST-ROOT banner while it reads
 staging. WITNESS (headless): a flipped directory byte, a swapped roots file, an older epoch and a shrunken log each
 render red. The claim is limited to swapped data under an honest page.

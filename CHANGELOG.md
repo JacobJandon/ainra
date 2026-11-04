@@ -10,7 +10,18 @@ We **publicly own fixed security bugs** — hiding them would be the opposite of
 
 ## [Unreleased]
 
-Nothing yet.
+### Added — the control room that only reads (PLAN-M52 steps 1–3)
+
+- **`ainra ctl status | diff | watch`**: the directory against both roots (and against pinned ones, with
+  `--roots`), the whole epoch history, each registrar's log head and status sequence, mirrors byte for byte, and a
+  memory of what was seen, which only moves forward on a run with no alarm. Exit 1 on a rollback, an equivocating
+  epoch, an index that skips or lies, a shrinking or forked log, a rewound status sequence, a disagreeing mirror, or a
+  directory older than the cadence. It signs nothing and sends nothing. `make ctl-drill`.
+- **`ainra directory digest` and `ainra directory archive`**: every published directory is kept as
+  `epochs/<N>.json` with an `epochs.json` index; the archive refuses an unsigned directory, an older epoch and a second
+  directory at an archived epoch.
+- **`site/control.html`**: the same checks in a browser, from the published record, with the bundled SDK; it remembers
+  only in that browser. `make control-page-drill` holds it to planted lies in a real browser.
 
 ## [0.7.0] — 2026-11-04
 

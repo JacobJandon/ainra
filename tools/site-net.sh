@@ -72,6 +72,12 @@ if [ "$MODE" = "check" ]; then
   exit 0
 fi
 
+# PLAN-M52 step 1: keep every epoch — before anything is copied, so a refusal leaves the published copy as it was.
+# The archive refuses anything unsigned, an older epoch, and a second directory at an archived epoch, so a republish
+# can only add to the history, never rewrite it.
+[ -x target/release/ainra ] || cargo build --release -q -p ainra-cli-rs
+./target/release/ainra directory archive "$TMP/directory.json" --roots "$TMP/roots.json" --into "$DEST" \
+  || { echo "site-net: the directory the network serves cannot join the epoch history — refusing to publish it"; exit 1; }
 for f in $FILES; do cp "$TMP/$f" "$DEST/$f"; done
 # The per-registrar trees the record links to travel with it; a stamped index over stale leaves would be worse
 # than no stamp at all.

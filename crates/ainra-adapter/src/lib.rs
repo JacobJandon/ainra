@@ -1196,6 +1196,26 @@ fn trust_json(
     json!({ "ok": true, "trust": { "anchors": anchors, "revoked_delegates": revoked, "status": status }, "epoch": acc.epoch })
 }
 
+/// PLAN-M52 step 1 — a directory's identity in the epoch index: its epoch, its issue time, and the SHA-256 (hex) of
+/// the exact bytes the two roots sign. `{"ok":false}` if it is not a directory. This says WHICH directory it is, never
+/// whether to trust it: that is [`accredit_json`]'s job, and the epoch index records only directories that passed it.
+pub fn directory_identity_json(directory_json: &str) -> String {
+    use sha2::{Digest, Sha256};
+    let Ok(d) = serde_json::from_str::<ainra_core::directory::Directory>(directory_json) else {
+        return json!({ "ok": false }).to_string();
+    };
+    let Ok(bytes) = d.signing_bytes() else {
+        return json!({ "ok": false }).to_string();
+    };
+    let digest: String = Sha256::digest(&bytes)
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect();
+    json!({ "ok": true, "epoch": d.epoch, "issued_at": d.issued_at, "digest": digest,
+            "registrars": d.entries.iter().map(|e| e.registrar.clone()).collect::<Vec<_>>() })
+    .to_string()
+}
+
 pub fn accredit_json(directory_json: &str, roots_json: &str) -> String {
     let fail = || json!({ "ok": false }).to_string();
     let (Ok(d), Ok(roots)) = (

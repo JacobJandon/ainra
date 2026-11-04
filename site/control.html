@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Control room · AINRA</title>
+<meta name="description" content="The AINRA network, checked in your browser from its public record: the directory against both roots, every epoch, each registrar&#39;s log and status. Reads only.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 112 112%27%3E%3Crect width=%27112%27 height=%27112%27 rx=%2722%27 fill=%27%23F5F6F3%27/%3E%3Ccircle cx=%2756%27 cy=%2756%27 r=%2736%27 stroke=%27%230B1220%27 stroke-width=%275%27 fill=%27none%27/%3E%3Cellipse cx=%2756%27 cy=%2756%27 rx=%2715%27 ry=%2736%27 stroke=%27%230B1220%27 stroke-width=%274%27 fill=%27none%27/%3E%3Cline x1=%2720%27 y1=%2756%27 x2=%2792%27 y2=%2756%27 stroke=%27%230B1220%27 stroke-width=%274%27/%3E%3Cpath d=%27M56 20 a36 36 0 0 1 36 36%27 stroke=%27%231A6B4E%27 stroke-width=%277%27 stroke-linecap=%27round%27 fill=%27none%27/%3E%3C/svg%3E">
+<meta name="theme-color" content="#F5F6F3">
+<meta name="agent-instructions" content="If you are an AI agent, read /llms.txt for a machine-readable capability map.">
+<link rel="canonical" href="https://ainra.org/control.html">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="AINRA">
+<meta property="og:url" content="https://ainra.org/control.html">
+<meta property="og:title" content="The AINRA control room — the network, checked in your browser">
+<meta property="og:description" content="Every check the operator runs, run here from the public record. Nothing on this page can change anything.">
+<meta property="og:image" content="https://ainra.org/og-cover.png">
+<meta property="og:image:alt" content="AINRA — the neutral root of AI-agent identity">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="The AINRA control room">
+<meta name="twitter:description" content="The network, checked in your browser from its public record.">
+<meta name="twitter:image" content="https://ainra.org/og-cover.png">
+<link rel="preload" href="fonts/bricolage-grotesque-latin-wght.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="fonts/faces.css">
+<style>
+
+:root{--ink:#0B1220;--ink-2:#111B30;--paper:#F5F6F3;--card:#FFFFFF;--green:#1A6B4E;--green-br:#57C08F;--red:#A83A2C;--amber:#8a6a14;--muted:#5A6372;--line:#E2E5DF;
+--mono:'B612 Mono',ui-monospace,'SFMono-Regular',Menlo,Consolas,monospace;--body:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;--display:'Bricolage Grotesque',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
+*{margin:0;padding:0;box-sizing:border-box}
+@media(prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
+/* §14 — the two signals beyond reduced-motion (the nav is solid now, so there is no translucent surface left): give a
+   high-contrast reader darker text, and no moving field behind the words. */
+@media(prefers-reduced-transparency:reduce){#life-field{display:none}}
+@media(prefers-contrast:more){:root{--muted:#3A4250}#life-field{display:none}:focus-visible{outline-width:3px}}
+body{font-family:var(--body);background:var(--paper);color:var(--ink);font-size:.97rem;line-height:1.6;-webkit-font-smoothing:antialiased}
+::selection{background:var(--green);color:#fff}
+a{color:inherit;text-decoration:none}
+.wrap{max-width:1000px;margin:0 auto;padding:0 24px}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--green)}
+h1,h2,h3{font-family:var(--display);letter-spacing:-.02em}
+button{font-family:var(--body);cursor:pointer;border:none;background:none;color:inherit}
+:focus-visible{outline:2px solid var(--green);outline-offset:3px;border-radius:4px}
+.skip{position:absolute;left:-9999px;top:0;z-index:200;background:var(--ink);color:#fff;padding:10px 16px;border-radius:0 0 8px 0;font-weight:600}
+.skip:focus{left:0}
+.announce{background:var(--ink);color:#E2E8F0;font-size:12.5px;text-align:center;padding:9px 16px}
+.announce a{color:var(--green-br);font-weight:600}
+nav{position:sticky;top:0;z-index:60;background:var(--paper);border-bottom:1px solid var(--line)}
+.nav-in{display:flex;align-items:center;gap:14px;height:68px}
+.brand{display:flex;align-items:center;gap:11px}
+.brand .sigil{width:40px;height:40px;flex:none}
+.brand .wm{font-family:var(--display);font-weight:800;font-size:20px;letter-spacing:.02em}
+.brand .mean{border-left:1px solid var(--line);padding-left:11px;font-family:var(--mono);font-size:8.5px;line-height:1.5;letter-spacing:.15em;color:var(--muted);text-transform:uppercase;white-space:nowrap}
+@media(max-width:1080px){.brand .mean{display:none}}
+.nav-r{margin-left:auto;display:flex;gap:10px;align-items:center}
+/* shared chrome: dropdown menus + mobile burger (same as the peer content pages) */
+.mi{position:relative}
+.mi>button{display:inline-flex;align-items:center;gap:5px;font-size:14px;font-weight:500;color:var(--muted);padding:9px 12px;border-radius:10px}
+.mi>button:hover{color:var(--ink);background:rgba(11,18,32,.045)}
+.car{font-size:9px;opacity:.6}
+.dd{position:absolute;top:calc(100% + 6px);left:0;min-width:238px;background:var(--card);border:1px solid rgba(11,18,32,.14);border-radius:14px;padding:7px;display:none;box-shadow:0 24px 60px rgba(11,18,32,.12);z-index:70}
+.mi.open .dd{display:block}
+.dd a{display:block;font-size:13.5px;font-weight:500;color:var(--muted);padding:9px 11px;border-radius:9px}
+.dd a span{display:block;font-size:11.5px;font-weight:400;color:var(--muted);opacity:.85;margin-top:1px}
+.dd a:hover{background:rgba(26,107,78,.06);color:var(--ink)}
+.burger{display:none;width:40px;height:40px;border:1px solid var(--line);border-radius:10px;background:var(--card);place-items:center;font-family:var(--mono);font-size:15px}
+.burger{transition:background .15s,color .15s,transform .1s ease-out}
+.burger:active{transform:scale(.96)}
+.burger[aria-expanded="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
+.nav-links{display:flex;gap:24px;font-size:14px;font-weight:500;color:var(--muted)}
+.nav-links a:hover{color:var(--ink)}
+@media(min-width:901px){.nav-links{display:none!important}}
+@media(max-width:900px){
+  .nav-in .mi,.nav-in .nav-hide{display:none}
+  .nav-links{display:none;position:absolute;top:68px;left:0;right:0;background:var(--paper);border-bottom:1px solid var(--line);flex-direction:column;gap:0;padding:8px 24px}
+  .nav-links a{padding:12px 0;border-top:1px solid var(--line)}
+  .nav-links.open{display:flex}
+  .burger{display:grid}
+}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:99px;font-weight:600;font-size:14px;padding:10px 18px;border:1px solid transparent;transition:transform .15s,background .15s,border-color .15s,filter .15s}
+.btn:active{transform:scale(.98)}.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-ink{background:var(--ink);color:#fff}.btn-ink:hover{background:#1d2a44}
+.btn-ghost{border-color:var(--line);background:var(--card);color:var(--ink)}.btn-ghost:hover{border-color:var(--ink)}
+.btn-green{background:var(--green);color:#fff}.btn-green:hover{filter:brightness(1.1)}
+.hero{padding:52px 0 8px;text-align:center;background:radial-gradient(720px 300px at 50% -60px,rgba(26,107,78,.12),transparent 70%)}
+.hero h1{font-size:clamp(2rem,5vw,3.1rem);font-weight:780;line-height:1.04;letter-spacing:-.03em;max-width:720px;margin:12px auto 0}
+.hero .sub{margin:14px auto 0;max-width:600px;font-size:16px;color:var(--muted)}
+.hero .jump{display:flex;gap:8px;justify-content:center;margin:18px auto 0;flex-wrap:wrap}
+/* section divider */
+.sec-head{max-width:820px;margin:52px auto 0;text-align:center}
+.sec-head h2{font-size:clamp(1.5rem,3.4vw,2rem);font-weight:760;letter-spacing:-.02em}
+.sec-head p{margin:8px auto 0;max-width:560px;font-size:15px;color:var(--muted)}
+.stepper{display:flex;gap:8px;justify-content:center;margin:20px auto 0;font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;flex-wrap:wrap}
+.stepper .g-dot{display:inline-flex;align-items:center;gap:6px}
+.stepper .g-dot:before{content:"";width:8px;height:8px;border-radius:50%;background:var(--line)}
+.stepper .g-dot[data-on="1"]{color:var(--green)}.stepper .g-dot[data-on="1"]:before{background:var(--green)}
+.flow{max-width:720px;margin:26px auto 0}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:26px;box-shadow:0 24px 56px -34px rgba(11,18,32,.24)}
+.panel .tag{float:right;font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:var(--muted);border:1px solid var(--line);border-radius:5px;padding:3px 8px}
+.panel h2{font-size:20px;margin-bottom:4px}.panel .lede{color:var(--muted);font-size:14px;margin-bottom:18px}
+label.fld{display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;margin:14px 0 5px}
+input.txt{width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:9px;background:var(--paper);color:var(--ink);font:14px var(--mono)}
+.previewrow{margin-top:16px;font-family:var(--mono);font-size:11px;color:var(--muted);background:var(--paper);border:1px dashed var(--line);border-radius:9px;padding:12px 14px;word-break:break-all}
+.previewrow b{color:var(--green)}
+.grow{display:flex;gap:10px;margin-top:20px;flex-wrap:wrap}
+/* passport card */
+.pass{background:linear-gradient(160deg,#fff, #FAFBF9);border:1px solid var(--line2, rgba(11,18,32,.14));border-radius:14px;overflow:hidden;position:relative;box-shadow:0 30px 60px -40px rgba(11,18,32,.4)}
+.pass-head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:var(--ink);color:#fff}
+.pass-head b{font-family:var(--display);font-size:13px;letter-spacing:.03em;display:flex;align-items:center;gap:8px}
+.pass-head .sigil{width:22px;height:22px}
+.pass-head span{font-family:var(--mono);font-size:8.5px;letter-spacing:.1em;color:rgba(255,255,255,.55)}
+.pass-body{padding:18px 20px;display:grid;grid-template-columns:1fr 1fr;gap:12px 22px}
+@media(max-width:560px){.pass-body{grid-template-columns:1fr}}
+.pf label{display:block;font-family:var(--mono);font-size:8.5px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase}
+.pf div{font-family:var(--mono);font-size:12px;color:var(--ink);font-weight:600;word-break:break-all;margin-top:2px}
+.pf.wide{grid-column:1/-1}
+.pass-foot{border-top:1px dashed var(--line);margin:0 20px;padding:12px 0;display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:10px;letter-spacing:.06em;color:var(--green)}
+.pass-foot i{width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block}
+.g-verdict{font-family:var(--display);font-weight:800;font-size:26px}
+.g-verdict.ok{color:var(--green)}.g-verdict.no{color:var(--red)}.g-verdict.pend{color:var(--muted)}
+.event{font-family:var(--mono);font-size:11px;color:#c9d2e0;background:var(--ink);border-radius:10px;padding:12px 14px;margin-top:12px;white-space:pre-wrap;word-break:break-word;line-height:1.6}
+.onboard{background:var(--ink);border-radius:12px;overflow:hidden;margin-top:16px}
+.onboard-bar{display:flex;align-items:center;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.08);font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.45)}
+.onboard-bar .copy{margin-left:auto;font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.55);border:1px solid rgba(255,255,255,.18);border-radius:6px;padding:3px 8px;cursor:pointer}
+.onboard-bar .copy:hover{color:#fff}
+.onboard pre{padding:14px;font-family:var(--mono);font-size:11.5px;line-height:1.7;color:#D7DCE5;white-space:pre-wrap;margin:0}
+/* browse (AINRAscan) */
+.s-stats{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:14px;overflow:hidden;margin:22px auto 0;max-width:820px}
+@media(max-width:640px){.s-stats{grid-template-columns:repeat(2,1fr)}}
+.s-stat{background:var(--card);padding:16px 14px;text-align:center}
+.s-stat b{font-family:var(--display);font-size:22px;font-weight:750;display:block;letter-spacing:-.02em;word-break:break-all}
+.s-stat span{font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;margin-top:4px;display:block}
+.s-when{max-width:820px;margin:22px auto 0;font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:center}
+.s-when b{color:var(--ink);font-weight:600}
+.s-rootdark{max-width:820px;margin:12px auto 0;font-family:var(--mono);font-size:11px;letter-spacing:.03em;color:var(--muted);text-align:center;background:rgba(26,107,78,.06);border:1px solid var(--line);border-radius:10px;padding:9px 12px}
+.s-rootdark.ok{color:var(--green)}.s-rootdark.ok b{color:var(--green)}.s-rootdark.no{color:var(--red)}
+.s-search{max-width:820px;margin:20px auto 0;position:relative}
+.s-search input{width:100%;padding:12px 14px 12px 40px;border:1px solid var(--line);border-radius:11px;background:var(--card);color:var(--ink);font:14px var(--mono)}
+.s-search svg{position:absolute;left:14px;top:13px;width:16px;height:16px;color:var(--muted)}
+.s-rows{max-width:820px;margin:14px auto 0;display:flex;flex-direction:column;gap:8px}
+.s-item{border:1px solid var(--line);border-radius:12px;background:var(--card);overflow:hidden}
+.s-row{display:flex;align-items:center;gap:12px;padding:13px 16px}
+.s-main{flex:1;min-width:0}
+.s-name{font-family:var(--mono);font-size:12.5px;color:var(--ink);word-break:break-all}
+.s-meta{font-family:var(--mono);font-size:10px;letter-spacing:.05em;color:var(--muted);text-transform:uppercase;margin-top:3px}
+.s-chip{flex:none;font-family:var(--body);font-size:10px;font-weight:700;border-radius:99px;padding:3px 10px;display:inline-flex;align-items:center;gap:5px}
+.s-chip:before{content:"";width:5px;height:5px;border-radius:50%;background:currentColor}
+.s-chip.ok{background:rgba(26,107,78,.1);color:var(--green)}.s-chip.no{background:rgba(168,58,44,.1);color:var(--red)}
+.s-verify{flex:none;font-family:var(--body);font-weight:600;font-size:12.5px;color:var(--ink);border:1px solid var(--line);background:var(--paper);border-radius:9px;padding:7px 12px}
+.s-verify:hover{border-color:var(--green);color:var(--green)}
+.s-detail{border-top:1px solid var(--line);padding:16px;background:var(--paper)}
+.s-verd{font-family:var(--display);font-weight:800;font-size:19px}
+.s-verd.ok{color:var(--green)}.s-verd.no{color:var(--red)}.s-verd.pend{color:var(--muted)}
+.s-fields{display:grid;grid-template-columns:1fr 1fr;gap:6px 18px;margin-top:12px}
+@media(max-width:560px){.s-fields{grid-template-columns:1fr}}
+.s-fields div{font-family:var(--mono);font-size:11.5px;color:var(--ink);word-break:break-all}
+.s-fields span{display:block;font-size:8.5px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;margin-bottom:2px}
+.s-event{font-family:var(--mono);font-size:11px;color:#c9d2e0;background:var(--ink);border-radius:9px;padding:11px 13px;margin-top:12px;white-space:pre-wrap;word-break:break-word;line-height:1.6}
+.s-note{font-size:11.5px;color:var(--muted);margin-top:10px}
+.s-empty{text-align:center;color:var(--muted);padding:26px;font-size:14px}
+.err{background:rgba(168,58,44,.08);border:1px solid rgba(168,58,44,.3);border-radius:10px;padding:16px;font-size:14px;color:var(--red);max-width:820px;margin:22px auto 0}
+.err code{font-family:var(--mono);background:rgba(168,58,44,.12);padding:1px 5px;border-radius:4px}
+footer a{color:var(--green)}
+/* pixel display type (site-wide rollout, looks only) */
+h1,.sec-head h2,.hero-h{font-family:var(--display);font-weight:700;letter-spacing:-.025em;line-height:1.05}
+nav .btn{white-space:nowrap;flex:none}
+nav .wrap{max-width:1200px}
+@media(max-width:1360px){.brand .mean{display:none}}
+nav .ndocs{font-size:14px;font-weight:500;color:var(--muted);padding:9px 12px;border-radius:10px}
+nav .ndocs:hover{color:var(--ink);background:rgba(11,18,32,.045)}
+nav .ndocs[aria-current="page"],.nav-links a[aria-current="page"]{color:var(--green);font-weight:700}
+@media(max-width:1150px){.nav-hide-mid{display:none}}
+@media(max-width:900px){nav .ndocs{display:none}}
+[id]{scroll-margin-top:92px}
+footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
+.foot{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:32px}
+.foot h4{font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:var(--muted);text-transform:uppercase;margin-bottom:14px}
+.foot ul{list-style:none;display:grid;gap:9px;font-size:13.5px;color:var(--muted)}
+.foot ul a:hover{color:var(--ink)}
+.status{margin-top:52px;padding-top:20px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--muted)}
+.status .live{display:inline-flex;align-items:center;gap:7px}
+.status .live i{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2.4s infinite}
+@media(max-width:760px){.foot{grid-template-columns:1fr 1fr}}
+
+/* ── polish pass: press feedback, wayfinding, cross-page transitions, announce on small screens ─────────── */
+@media(prefers-reduced-motion:no-preference){
+  .btn{transition:transform .16s,box-shadow .16s,background .16s,border-color .16s}
+  .btn:hover{transform:translateY(-1px);box-shadow:0 6px 18px -8px rgba(11,18,32,.4)}
+  .btn:active{transform:translateY(0);box-shadow:none}
+}
+nav .nav-links a[aria-current="page"],nav .ndocs[aria-current="page"]{text-decoration:underline;text-underline-offset:6px;text-decoration-thickness:2px}
+@media(max-width:480px){.announce{font-size:11px;padding:8px 12px}}
+@media(max-width:1023px){nav .mean{display:none}}
+
+/* landscape page */
+.lmain{padding:64px 0 72px}
+.lhead{text-align:center;max-width:820px;margin:0 auto}
+.lhead h1{font-family:var(--display);font-size:clamp(2rem,4.4vw,3rem);font-weight:730;line-height:1.08;letter-spacing:-.03em;margin-top:12px}
+.lhead .lede{margin-top:16px;color:var(--muted);font-size:17px}
+.t-arrow{display:flex;align-items:center;justify-content:center}
+.gaps{max-width:980px;margin:34px auto 0;display:flex;flex-direction:column;gap:10px}
+.gap{display:grid;grid-template-columns:1.1fr 1.3fr 26px 1.4fr;gap:16px;align-items:center;border:1px solid var(--line);border-radius:10px;background:var(--card);padding:16px 18px;text-align:left}
+.gap .who{font-family:var(--display);font-weight:700;font-size:15.5px;letter-spacing:-.01em}
+.gap .who small{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;font-weight:500;margin-top:4px}
+.gap .builds,.gap .open{font-size:14px;color:var(--muted);line-height:1.5}
+.gap .open b{color:#8a3b12;font-weight:650}
+.gap .t-arrow{height:auto}
+.gap.ours{border:2px solid var(--green)}
+.gap.ours .open b{color:var(--green)}
+.proof{max-width:780px;margin:22px auto 0;text-align:center;color:var(--muted);font-size:14.5px}
+.proof code{font-family:var(--mono);font-size:12.5px;background:var(--card);border:1px solid var(--line);border-radius:4px;padding:1px 6px;color:var(--ink)}
+@media(max-width:900px){.gap{grid-template-columns:1fr;gap:6px}.gap .t-arrow{display:none}}
+.cmain{padding:56px 0 72px}
+.chead{max-width:820px}
+.chead h1{font-family:var(--display);font-size:clamp(2rem,4.4vw,3rem);font-weight:730;line-height:1.08;letter-spacing:-.03em;margin-top:12px}
+.chead .lede{margin-top:14px;color:var(--muted);font-size:17px;max-width:68ch}
+.banner{margin-top:22px;border:1px solid var(--line);background:var(--card);padding:12px 16px;font-family:var(--mono);font-size:12px;letter-spacing:.04em;display:flex;flex-wrap:wrap;gap:6px 18px}
+.banner b{color:var(--amber)}
+.verdict{margin-top:22px;border:1px solid var(--ink);background:var(--card);padding:16px 18px;font-family:var(--mono);font-size:14px;display:flex;align-items:center;gap:12px}
+.verdict.good{border-color:var(--green)} .verdict.bad{border-color:var(--red)}
+.verdict .v{font-weight:700} .verdict.good .v{color:var(--green)} .verdict.bad .v{color:var(--red)}
+.cgrid{display:grid;grid-template-columns:1fr;gap:18px;margin-top:22px}
+@media(min-width:960px){.cgrid{grid-template-columns:1fr 1fr}}
+.panel{border:1px solid var(--line);background:var(--card);padding:16px 18px;min-width:0}
+.panel h2{font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:10px}
+.rows{list-style:none;font-size:14px}
+.rows li{display:flex;gap:10px;padding:7px 0;border-top:1px dashed var(--line);align-items:baseline}
+.rows li:first-child{border-top:0}
+.tag{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.06em;min-width:52px}
+.tag.ok{color:var(--green)} .tag.alarm{color:var(--red)} .tag.warn{color:var(--amber)} .tag.info{color:var(--muted)}
+.rows code,.mono{font-family:var(--mono);font-size:12.5px;word-break:break-all}
+table.ep{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12.5px}
+table.ep th,table.ep td{text-align:left;padding:6px 8px;border-top:1px solid var(--line)}
+table.ep th{color:var(--muted);font-weight:700;font-size:11px;letter-spacing:.06em;text-transform:uppercase;border-top:0}
+.limits{margin-top:26px;color:var(--muted);font-size:14px;max-width:78ch}
+.limits li{margin:6px 0 0 18px}
+.actions{margin-top:16px;display:flex;gap:10px;flex-wrap:wrap}
+.actions button{font-family:var(--mono);font-size:12px;border:1px solid var(--ink);background:var(--card);color:var(--ink);padding:8px 12px;cursor:pointer}
+.actions button:hover{background:var(--paper)}
+
+</style>
+</head>
+<body id="top">
+<a href="#main" class="skip">Skip to content</a>
+
+<div class="announce">Real issuance + the real record on a <b>TEST-ROOT</b> — every passport here is a labelled specimen with real cryptography, verified on your machine. <a href="foundation.html">Honest status →</a></div>
+
+<nav><div class="wrap nav-in">
+  <a class="brand" href="index.html" aria-label="AINRA — Agent Identity and Naming Registry Authority">
+    <span class="sigil" aria-hidden="true"><svg viewBox="0 0 112 112"><use href="#ainra-sigil"/></svg></span>
+    <span class="wm">AINRA</span><span class="mean">Agent Identity &amp; Naming<br>Registry Authority</span></a>
+  <a href="verify.html" class="ndocs">Verify</a>
+  <a href="get.html" class="ndocs">Network</a>
+  <a href="landscape.html" class="ndocs">Landscape</a>
+  <a href="foundation.html" class="ndocs">Foundation</a>
+  <a href="docs.html" class="ndocs">Docs</a>
+  <div class="nav-r">
+    <a class="btn btn-ghost nav-hide" href="https://github.com/JacobJandon/ainra" rel="noopener" aria-label="Source repository on GitHub"><svg class="gh" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" style="display:inline-block;vertical-align:-3px;margin-right:8px;flex:none" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>GitHub</a>
+    <a class="btn btn-ink nav-hide" href="foundation.html#access">Join the founding table</a>
+    <button class="burger" id="burger" aria-label="Menu" aria-expanded="false">≡</button>
+  </div>
+  <div class="nav-links" id="navLinks"><a href="index.html">The root</a><a href="verify.html">Verify</a><a href="get.html">Network</a><a href="landscape.html">Landscape</a><a href="foundation.html">Foundation</a><a href="docs.html">Docs</a><a href="foundation.html#access">Join the founding table</a><a href="https://github.com/JacobJandon/ainra" rel="noopener"><svg class="gh" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" style="display:inline-block;vertical-align:-3px;margin-right:8px;flex:none" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>GitHub</a></div>
+</div></nav>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><g id="ainra-sigil">
+  <path d="M 98.4 33.5 A 48 48 0 1 0 78.5 13.6" fill="none" stroke="#0B1220" stroke-width="3" stroke-linecap="round"/>
+  <path d="M 80.6 11.5 L 83.4 18.5 L 76.4 15.7 Z" fill="#0B1220"/>
+  <circle cx="56" cy="56" r="36" stroke="#0B1220" stroke-width="1.2" fill="none"/>
+  <circle cx="56" cy="56" r="26" stroke="#0B1220" stroke-width="1.6" fill="none"/>
+  <ellipse cx="56" cy="56" rx="11" ry="26" stroke="#0B1220" stroke-width="1" fill="none"/>
+  <line x1="30" y1="56" x2="82" y2="56" stroke="#0B1220" stroke-width="1.1"/>
+  <path d="M56 30 a26 26 0 0 1 26 26" stroke="#1A6B4E" stroke-width="3" stroke-linecap="round" fill="none"/>
+  <circle cx="56" cy="56" r="2.4" fill="#0B1220"/>
+</g>
+<g id="ainra-crest"><circle cx="80" cy="80" r="76" fill="none" stroke="currentColor" stroke-width="2.6"/><circle cx="80" cy="80" r="58" fill="none" stroke="currentColor" stroke-width="1.1"/><g transform="translate(27.7,27.7) scale(0.935)"><use href="#ainra-sigil"/></g></g>
+</defs></svg>
+
+
+<main id="main" class="cmain">
+  <div class="wrap">
+    <div class="chead">
+      <span class="eyebrow">Control room · reads only</span>
+      <h1>The network, checked in your browser.</h1>
+      <p class="lede">Everything the operator checks, checked here from the public record: the directory against both roots, every epoch it has had, and each registrar's log and status. Nothing on this page can sign, publish or change anything.</p>
+    </div>
+    <div class="banner" id="banner" aria-live="polite"><span>LOADING THE PUBLIC RECORD…</span></div>
+    <div class="verdict" id="verdict" role="status" aria-live="polite"><span class="v">CHECKING</span><span id="vtext">nothing has been checked yet</span></div>
+    <div class="cgrid">
+      <section class="panel" aria-labelledby="h-root"><h2 id="h-root">Root and directory</h2><ul class="rows" id="rows-root"></ul></section>
+      <section class="panel" aria-labelledby="h-alarms"><h2 id="h-alarms">Alarms</h2><ul class="rows" id="rows-alarms"><li><span class="tag info">·</span><span>none yet</span></li></ul></section>
+      <section class="panel" aria-labelledby="h-epochs" style="grid-column:1/-1"><h2 id="h-epochs">Epoch history</h2><div id="epochs" style="overflow-x:auto"></div></section>
+      <section class="panel" aria-labelledby="h-reg" style="grid-column:1/-1"><h2 id="h-reg">Registrars</h2><ul class="rows" id="rows-reg"></ul></section>
+    </div>
+    <div class="actions"><button type="button" id="recheck">Check again</button><button type="button" id="forget">Forget what this browser has seen</button></div>
+    <div class="limits">
+      <p><b>What this page cannot do.</b></p>
+      <ul>
+        <li>A page served by a host that has been replaced can show anything, including green. The fingerprint above is for comparing out of band, and <code>ainra ctl status</code> from the signed release is the authority; this page is a convenience.</li>
+        <li>Directories do not expire. A host that keeps serving an old epoch cannot be told from there being no newer one until a ceremony cadence is published; this page says so rather than guess.</li>
+        <li>WITNESSES: 0 — SPLIT-VIEW GUARANTEE NOT IN FORCE · RECRUITING. With no independent witness, a log could show different histories to different readers, and nothing here would see it.</li>
+        <li>What it remembers (the newest epoch and each log's size) stays in this browser, and nothing is sent anywhere.</li>
+      </ul>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="foot">
+      <div>
+        <a class="brand" href="index.html" aria-label="AINRA — Agent Identity and Naming Registry Authority">
+          <span class="sigil" style="width:38px;height:38px" aria-hidden="true"><svg viewBox="0 0 112 112"><use href="#ainra-sigil"/></svg></span>
+          <span class="wm" style="font-size:17px">AINRA</span>
+          <span class="mean">Agent Identity &amp; Naming<br>Registry Authority</span>
+        </a>
+        <p style="margin-top:16px;font-size:13px;color:var(--muted);max-width:26ch">The neutral root of AI agent identity. Est. 2026.</p>
+      </div>
+      <div>
+        <h4>Protocol</h4>
+        <ul>
+          <li><a href="docs.html#standard">The standard</a></li>
+          <li><a href="ainra-cli-v0.3.3.zip">Reference CLI v0.3.3</a></li>
+          <li><a href="https://github.com/JacobJandon/ainra" rel="noopener">Source — the full reference impl</a></li>
+          <li><a href="index.html#top">The passport</a></li>
+          <li><a href="verify.html#authority">Authority model</a></li>
+          <li><a href="docs.html">Docs</a></li>
+          </ul>
+      </div>
+      <div>
+        <h4>Ecosystem</h4>
+        <ul>
+          <li><a href="verify.html#align">Where you plug in</a></li>
+          <li><a href="verify.html#tiers">Assurance tiers</a></li>
+          <li><a href="index.html#integrate">Onboard an agent</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Root</h4>
+        <ul>
+          <li><a href="docs.html#one-root">What the root does</a></li>
+          <li><a href="docs.html#charter">Charter</a></li>
+          <li><a href="foundation.html#plan">The plan</a></li>
+          <li><a href="docs.html#faq">FAQ</a></li>
+          <li><a href="foundation.html#access">Get involved</a></li>
+          <li><a href="mailto:info@ainra.org">info@ainra.org</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="status">
+      <span class="live"><i aria-hidden="true"></i> ROOT STATUS: PRE-CEREMONY</span>
+      <span>LOGS SEALED: 0 · WITNESSES: 0 — SPLIT-VIEW GUARANTEE NOT IN FORCE · <a href="https://github.com/JacobJandon/ainra/blob/main/outreach/WITNESS-CALL.md">RECRUITING</a> · SPEC PUBLIC · CLI v0.3.3</span>
+      <span>ISSUES NOTHING · SCORES NOTHING · SEES NO PII · FAVORS NO ONE</span>
+    
+      <span class="openbadge"><svg style="width:26px;height:26px;color:#8A93A0" viewBox="0 0 160 160" aria-hidden="true"><use href="#ainra-crest"/></svg>An open standard · held by no one</span></div>
+  </div>
+</footer>
+
+<script>
+/* shared chrome: dropdown menus + mobile burger (same behavior as the peer content pages) */
+(function(){
+  var closeDD=function(){document.querySelectorAll('.mi.open').forEach(function(m){m.classList.remove('open');var bb=m.querySelector('[data-dd]');if(bb)bb.setAttribute('aria-expanded','false');});};
+  document.querySelectorAll('[data-dd]').forEach(function(b){b.addEventListener('click',function(e){e.stopPropagation();
+    var mi=b.parentElement,was=mi.classList.contains('open');
+    closeDD();
+    if(!was){mi.classList.add('open');b.setAttribute('aria-expanded','true');}});});
+  document.addEventListener('click',closeDD);
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')closeDD();});
+  var burger=document.getElementById('burger'),links=document.getElementById('navLinks');
+  if(burger&&links){
+    burger.addEventListener('click',function(){var open=links.classList.toggle('open');burger.setAttribute('aria-expanded',open?'true':'false');});
+    links.querySelectorAll('a').forEach(function(a){a.addEventListener('click',function(){links.classList.remove('open');burger.setAttribute('aria-expanded','false');});});
+  }
+})();
+</script>
+<script>/* aria-current-marker: answer "where am I?" in the nav (§16 wayfinding) */
+(function(){var p=location.pathname.split("/").pop()||"index.html";
+document.querySelectorAll('nav a[href]').forEach(function(a){var h=a.getAttribute("href");
+if(h&&h.split("#")[0]===p)a.setAttribute("aria-current","page");});})();</script>
+<script type="module">
+/* PLAN-M52 step 3 — the control room in the browser. The same checks as `ainra ctl status`, against ?net= (default
+   net/, the published copy of the read contract), with the bundled SDK. It reads only, and remembers only in this
+   browser (localStorage), moving that memory forward only on a run with no alarm. */
+import { verifyDirectory, canonicalize, strictB64u } from "./vendor/ainra-sdk.js";
+const NET = (new URLSearchParams(location.search).get("net") || "net/").replace(/\/?$/, "/");
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const hex = (buf) => [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
+const sha = async (s) => hex(await crypto.subtle.digest("SHA-256", typeof s === "string" ? new TextEncoder().encode(s) : s));
+const get = async (p) => { const r = await fetch(NET + p, { cache: "no-store" }); if (!r.ok) throw new Error(p + ": HTTP " + r.status); return r; };
+const getJson = async (p) => (await get(p)).json();
+const row = (el, tag, text) => { el.insertAdjacentHTML("beforeend", `<li><span class="tag ${tag}">${tag === "alarm" ? "ALARM" : tag === "ok" ? "OK" : tag === "warn" ? "NOTE" : "·"}</span><span>${text}</span></li>`); };
+const digestOf = (d) => sha(canonicalize({ entries: d.entries, epoch: d.epoch, issued_at: d.issued_at, revoked_delegates: d.revoked_delegates ?? [] }));
+const authentic = (d, roots) => { try { const ed = strictB64u(roots.root_ed25519), slh = strictB64u(roots.root_slh); return !!(ed && slh && verifyDirectory(d, ed, slh)); } catch { return false; } };
+
+async function check() {
+  const alarms = [], A = (m) => { alarms.push(m); };
+  for (const id of ["rows-root", "rows-reg", "rows-alarms"]) $(id).innerHTML = "";
+  $("epochs").innerHTML = "";
+  let index = {}, roots, dir;
+  try { index = await getJson("index.json"); } catch { /* optional */ }
+  const net = String(index.network || "unknown").toUpperCase();
+  $("banner").innerHTML = `<span>NETWORK <b>${esc(net)}</b></span><span>ROOT <b>${esc(index.root || "?")}</b></span><span>${net === "PRODUCTION" ? "" : "<b>TEST-ROOT</b> · no trust carries over to a production root"}</span><span>SOURCE <b>${esc(NET)}</b></span>`;
+  try { roots = await getJson("roots.json"); dir = await getJson("directory.json"); }
+  catch (e) { $("verdict").className = "verdict bad"; $("verdict").innerHTML = `<span class="v">CANNOT CHECK</span><span>${esc(e.message)}</span>`; return; }
+  const fp = (await sha(`${roots.root_ed25519}.${roots.root_slh}`)).slice(0, 16);
+  const R = $("rows-root");
+  row(R, "info", `Root fingerprint <code>${fp}</code> — compare it with the one in the release notes and on another channel; <code>ainra ctl status</code> prints the same number.`);
+  if (authentic(dir, roots)) row(R, "ok", "The directory verifies under both roots (FROST Ed25519 and SLH-DSA)."); else { A("directory.json does not verify under both roots"); row(R, "alarm", "The directory does NOT verify under both roots."); }
+  const digest = await digestOf(dir);
+  const age = Math.max(0, Math.floor(Date.now() / 1000) - (dir.issued_at || 0));
+  row(R, "info", `Epoch <b>${esc(dir.epoch)}</b> · ${dir.entries?.length ?? 0} registrar(s) · ${(dir.revoked_delegates || []).length} revoked delegate(s) · digest <code>${digest.slice(0, 16)}</code>`);
+  row(R, "warn", `Issued ${Math.floor(age / 86400)} day(s) ago. No ceremony cadence is published yet, so a host withholding a newer epoch cannot be told apart from there being none.`);
+
+  // the epoch history
+  const history = [];
+  try {
+    const ix = await getJson("epochs.json"), list = ix.epochs || [];
+    let prev = null, html = `<table class="ep"><thead><tr><th>Epoch</th><th>Issued</th><th>Digest</th><th>Signed</th><th>As listed</th></tr></thead><tbody>`;
+    for (const e of list) {
+      if (prev !== null && e.epoch <= prev) A(`epochs.json lists epoch ${e.epoch} after ${prev}`);
+      else if (prev !== null && e.epoch !== prev + 1) A(`epochs.json skips from epoch ${prev} to ${e.epoch}`);
+      prev = e.epoch;
+      let signed = false, listed = false, got = "";
+      try { const d = await getJson(e.path || `epochs/${e.epoch}.json`); signed = authentic(d, roots); got = await digestOf(d); listed = d.epoch === e.epoch && got === e.digest; }
+      catch { A(`epochs.json lists epoch ${e.epoch}, but its file is not served`); }
+      if (!signed) A(`epoch ${e.epoch} does not verify under both roots`);
+      if (signed && !listed) A(`epochs.json says epoch ${e.epoch} has digest ${String(e.digest).slice(0, 16)}, its file says ${got.slice(0, 16)}`);
+      history.push([e.epoch, got]);
+      html += `<tr><td>${esc(e.epoch)}</td><td>${e.issued_at ? new Date(e.issued_at * 1000).toISOString().slice(0, 10) : "?"}</td><td>${esc(got.slice(0, 16))}</td><td class="tag ${signed ? "ok" : "alarm"}">${signed ? "YES" : "NO"}</td><td class="tag ${listed ? "ok" : "alarm"}">${listed ? "YES" : "NO"}</td></tr>`;
+    }
+    const last = list[list.length - 1];
+    if (last && (last.epoch !== dir.epoch || last.digest !== digest)) A(`the current directory (epoch ${dir.epoch}) is not the newest epoch the history lists`);
+    $("epochs").innerHTML = html + "</tbody></table>";
+  } catch { $("epochs").innerHTML = `<p class="mono">This copy of the record publishes no epoch history (epochs.json), so earlier epochs cannot be checked or compared.</p>`; }
+
+  // registrars
+  const heads = {}, RG = $("rows-reg");
+  for (const e of dir.entries || []) {
+    const id = e.registrar;
+    try {
+      const x = await getJson(`registrars/${id}/export.json`);
+      let size = 0, root = "";
+      for (const r of x.records || []) if ((r.checkpoint_size || 0) >= size) { size = r.checkpoint_size || 0; root = r.checkpoint_root || ""; }
+      let fresh = "no fresh head published";
+      try { const h = await getJson(`registrars/${id}/fresh-head.json`); fresh = `fresh head ${Math.floor((Date.now() / 1000 - h.ts) / 86400)} day(s) old`; } catch { /* optional */ }
+      heads[id] = { log_size: size, log_root: root, status_seq: x.status_seq || 0 };
+      row(RG, "info", `<b>${esc(id)}</b> · log size ${size} · status sequence ${esc(x.status_seq ?? 0)} · ${fresh}`);
+    } catch { row(RG, "warn", `<b>${esc(id)}</b> · no export in this copy of the record`); }
+  }
+
+  // memory: nothing goes backwards, and one epoch has one directory
+  const key = `ainra-ctl:${NET}#${fp}`;
+  let seen = null; try { seen = JSON.parse(localStorage.getItem(key) || "null"); } catch { seen = null; }
+  if (seen) {
+    if (dir.epoch < seen.epoch) A(`rollback: epoch ${dir.epoch} is served, but this browser saw epoch ${seen.epoch}`);
+    else if (dir.epoch === seen.epoch && digest !== seen.digest) A(`equivocation: a second, different directory at epoch ${dir.epoch}`);
+    for (const [n, d] of history) if (seen.epochs?.[n] && seen.epochs[n] !== d) A(`equivocation: epoch ${n} changed since this browser saw it`);
+    for (const [id, h] of Object.entries(heads)) {
+      const o = seen.registrars?.[id]; if (!o) continue;
+      if (h.log_size < o.log_size) A(`${id}: log shrank from ${o.log_size} to ${h.log_size}`);
+      else if (h.log_size === o.log_size && h.log_root !== o.log_root) A(`${id}: a different log root at size ${h.log_size} — a forked log`);
+      if (h.status_seq < o.status_seq) A(`${id}: status sequence went back from ${o.status_seq} to ${h.status_seq}`);
+    }
+  }
+  const AL = $("rows-alarms");
+  if (!alarms.length) {
+    row(AL, "ok", seen ? "Nothing went backwards since this browser last looked." : "First look from this browser; what it saw is now remembered here.");
+    const epochs = { ...(seen?.epochs || {}) }; for (const [n, d] of history) epochs[n] = d;
+    try { localStorage.setItem(key, JSON.stringify({ epoch: dir.epoch, digest, epochs, registrars: heads })); } catch { /* a private window */ }
+    $("verdict").className = "verdict good"; $("verdict").innerHTML = `<span class="v">NO ALARM</span><span>every check above passed</span>`;
+  } else {
+    for (const a of alarms) row(AL, "alarm", esc(a));
+    $("verdict").className = "verdict bad"; $("verdict").innerHTML = `<span class="v">${alarms.length} ALARM${alarms.length > 1 ? "S" : ""}</span><span>see the list; what this browser remembers was not moved forward</span>`;
+  }
+}
+$("recheck").addEventListener("click", check);
+$("forget").addEventListener("click", () => { try { for (const k of Object.keys(localStorage)) if (k.startsWith("ainra-ctl:")) localStorage.removeItem(k); } catch { /* nothing stored */ } check(); });
+check();
+</script>
+</body>
+</html>

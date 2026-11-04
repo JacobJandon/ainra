@@ -6,6 +6,7 @@
 //!
 //! Run `ainra help` for the command list.
 
+mod ctl;
 mod seed;
 
 use std::path::Path;
@@ -46,6 +47,8 @@ fn main() {
         "links" => cmd_links(rest),
         "verify-link" => cmd_verify_link(rest),
         "demo" => cmd_demo(),
+        "ctl" => ctl::cmd_ctl(rest),
+        "directory" => ctl::cmd_directory(rest),
         "help" | "-h" | "--help" => {
             print_help();
             0
@@ -827,6 +830,16 @@ GATE (D-062 / D-068)
   verify-link --link L --directory D --roots R --key K [--now T] [--freshness F2] [--capability C]
         who stands behind key K, as a gate decides it: the directory against both roots, the status authenticated,
         then the link. L is the link as a gate receives it (an index entry + checkpoint + signed status list).
+  ctl status --net URL|DIR [--roots PINNED] [--mirror URL|DIR]... [--state F] [--max-age S] [--fresh-max S]
+        the control room, read-only (PLAN-M52): the directory against both roots, the epoch history, each registrar's
+        log head and status sequence, mirrors byte for byte, and a memory of what was seen; exit 1 on any alarm
+        (rollback, equivocation, a shrinking or forked log, a rewound status, a stale directory, a disagreeing mirror).
+  ctl diff N M --net URL|DIR                   what changed in the directory between two published epochs
+  ctl watch --net URL|DIR [--interval S]       status, every S seconds
+  directory digest <directory.json>            which directory this is: epoch, issue time, signed-bytes SHA-256
+  directory archive <directory.json> --roots R --into DIR
+        keep a verified directory as DIR/epochs/<N>.json and in DIR/epochs.json; refuses an unsigned one, an epoch
+        not newer than the last, and a second, different directory at an archived epoch.
   verify-decisions <log.jsonl> --gate-key K [--after SEQ:AT:DIGEST] [--head DIGEST]
                    [--receipt R --directory D --roots RT [--now SECS]]
         does a gate's decision log hold? (D-079) Checks every record's signature under the gate's Ed25519 key K

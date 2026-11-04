@@ -10,7 +10,7 @@ import { dirname, join } from "node:path";
 
 const SITE = join(dirname(fileURLToPath(import.meta.url)), "..", "site");
 const INC = join(SITE, "_includes");
-const PAGES = ["verify", "docs", "get", "foundation", "landscape"];
+const PAGES = ["verify", "docs", "get", "foundation", "landscape", "control"];
 // nav-only peers: pages that must carry the identical menu but keep their own compact footer (app pages)
 const NAV_ONLY = [];
 const headerN = readFileSync(join(INC, "header.html"), "utf8").trimEnd(); // page-neutral (no active state)
@@ -57,7 +57,7 @@ for (const p of NAV_ONLY) {
 }
 
 if (check) {
-  console.log(drift ? `\n${drift} drift(s) — run \`make site\` to resync from _includes/` : "✓ shared header/footer in sync across the 5 content pages");
+  console.log(drift ? `\n${drift} drift(s) — run \`make site\` to resync from _includes/` : `✓ shared header/footer in sync across the ${PAGES.length} content pages`);
   process.exit(drift ? 1 : 0);
 }
 console.log(synced ? `synced ${synced} page(s) from _includes/header.html + footer.html` : "✓ header/footer already in sync with _includes/");

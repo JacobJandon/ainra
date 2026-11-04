@@ -261,6 +261,10 @@ jobs:
       - run: cd packages/sdk-ts && npm ci && npm run build
       - name: both page engines give one answer
         run: node tools/engine-parity.mjs
+      - name: the control-room page shows each planted lie red, and an honest record green (PLAN-M52 step 3)
+        env:
+          PLAYWRIGHT_DRIVER_PATH: ${{ github.workspace }}/node_modules
+        run: node tools/control-page-drill.mjs
       # PLAN-M50 step 7: Deno and Bun are installed, pinned, so the gate's "runs in Deno and Bun" is checked on every
       # push; REQUIRE_ALL_RUNTIMES=1 makes a missing runtime red rather than SKIPPED.
       - uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2.0.5
@@ -303,6 +307,8 @@ jobs:
       # M6 witness quorum catches an injected fork; M5 wedge accepts VALID + rejects revoked/forged; M8 whole stack
       # (dual root → 2 distinct registrar classes → verify root-dark → revoke/forge fail closed → fork caught).
       - run: make drill
+      # PLAN-M52: the read-only control room must alarm on every way a contract can lie, and on none for an honest one.
+      - run: make ctl-drill
       - run: make testbed
       - run: make genesis-local
       # M23 Task 3: the genesis ceremony runs across NINE isolated processes (file-based FROST 5-of-9) — one group

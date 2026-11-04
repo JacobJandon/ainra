@@ -3,7 +3,7 @@
 
 **Question.** If nobody maintains this project, does the published record say so by itself?
 
-**Method.** Take the real stamp from `site/net/published.json` (`2026-11-04T17:38:06Z`) and advance a synthetic clock across
+**Method.** Take the real stamp from `site/net/published.json` (`2026-11-04T18:19:51Z`) and advance a synthetic clock across
 the documented horizon. No copy is edited at any point; the sentence is a pure function of the record's age.
 
 **Horizon.** current → aging → **stale at 45 days** → **unmaintained at 180 days**

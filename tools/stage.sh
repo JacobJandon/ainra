@@ -86,6 +86,11 @@ publish(){ # fetch each daemon's public artifacts → static files with the cont
   if [ -f "$STAGE/genesis/directory.json" ]; then
     cp "$STAGE/genesis/directory.json" "$PUB/directory.json"
     cp "$STAGE/genesis/roots.json" "$PUB/roots.json"
+    # PLAN-M52 step 1: the network serves its own epoch history (epochs/<N>.json + epochs.json), so `ainra ctl` and a
+    # mirror read the same history from the source as from the published copy. Idempotent; refuses rewriting history.
+    [ -x target/release/ainra ] || cargo build --release -q -p ainra-cli-rs
+    ./target/release/ainra directory archive "$PUB/directory.json" --roots "$PUB/roots.json" --into "$PUB" >/dev/null \
+      || { echo "publish: the directory cannot join the epoch history — refusing to publish it"; return 1; }
     FP="$(node -e 'process.stdout.write(require("./"+process.argv[1]+"/genesis/roots.json").root_ed25519.slice(0,16))' "$STAGE")"
     node -e 'const fs=require("fs"),d=process.argv[1],fp=process.argv[2];const j=JSON.parse(fs.readFileSync(d+"/index.json"));j.root="genesis:"+fp;j.label="AINRA NETWORK · GENESIS ROOT "+fp+" (operator-run ceremony)";j.roots="/roots.json";j.ceremony="operator-run; public multi-custodian ceremony + external verifiers + 14d soak are the remaining real-world milestones";fs.writeFileSync(d+"/index.json",JSON.stringify(j))' "$PUB" "$FP"
   fi

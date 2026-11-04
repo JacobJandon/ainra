@@ -357,7 +357,7 @@ $ make repro                          <span class="c"># byte-exact rebuild — t
 <p>1. <b>Issues no passports.</b> Accreditation only; never retail.</p>
 <p>2. <b>Computes no scores.</b> Facts and proofs; judgment belongs to verifiers. Others may build scoring atop the public record — the root never does.</p>
 <p>3. <b>Processes no payments.</b> Fees are invoiced flat charges, never per-transaction, never in-band.</p>
-<p>4. <b>Holds no personal data.</b> Human backing is proven in zero-knowledge; PII never transits or rests at the root.</p>
+<p>4. <b>Holds no personal data.</b> Human backing is checked by the registrar, which keeps the evidence; the root and every verifier see only a digest, so PII never transits or rests at the root.</p>
 <p>5. <b>Never gates L0 existence.</b> Permissionless registration is a guaranteed right; consequence is earned tier by tier.</p>
 <p>6. <b>Features no registrar, ever.</b> No policy, interface, default, ranking, or published example names, promotes, pre-selects, or visually features any registrar — including any affiliated one.</p>
 
@@ -373,7 +373,7 @@ $ make repro                          <span class="c"># byte-exact rebuild — t
 <p>Root keys are <b>threshold keys (5-of-9)</b> held by custodians spanning ≥5 jurisdictions and ≥3 institution types (civil-society, academic, industry, public-interest technical, archival), used only in public, recorded <b>key ceremonies</b>, with a quorum-activated standby in escrow. The classical root is a <b>FROST threshold Ed25519 key (RFC 9591)</b> — it emits standard signatures, so any stock verifier validates the root without special code. Its post-quantum counterpart is deliberately <b>hash-based (SLH-DSA-SHA2-128s, FIPS 205)</b> rather than lattice-based: agent and registrar keys are lattice-signed (<b>hybrid Ed25519 + ML-DSA-65</b>, both signatures mandatory), and the anchor that must survive to re-certify successor algorithms must not share the assumption it would be recovering from. Sub-minute freshness signals are signed by <b>delegated online keys</b> — quarterly-certified by the root, scope-limited to freshness duties only, so the true root stays offline and any compromise is bounded to one quarter. Published rotation and algorithm-migration procedures govern all of it. Verifiers cache the root set and registrar certificates; every verification is local and offline-capable in milliseconds.</p>
 
 <h3>5. The passport</h3>
-<p>An SD-JWT verifiable credential; selective disclosure by field. Canonical schema (illustrative values; placeholder registrar by S7):</p>
+<p>Canonical JSON, signed whole by the registrar with Ed25519 and ML-DSA-65. It reuses some SD-JWT VC claim names but is not a JWT; every claim is shown, and there is no field-level disclosure today. Canonical schema (illustrative values; placeholder registrar by S7):</p>
 <div class="tbl">{
   &quot;type&quot;: &quot;agent-passport&quot;, &quot;v&quot;: 1, &quot;serial&quot;: &quot;AP-8F2E-C41&quot;,
   &quot;ainra_name&quot;: &quot;ainra:registrar-07:acme:invoicing@4.2.1&quot;,
@@ -393,9 +393,9 @@ $ make repro                          <span class="c"># byte-exact rebuild — t
 <h3>6. Authority classes</h3>
 <p>Every passport declares who stands behind it; delegation may only narrow; chains stay provable to their anchor at any depth from the credential alone.</p>
 <ul>
-<li><b>A1 — Human-delegated.</b> A verified person, proven via zero-knowledge commitment: accountability exists while privacy stays intact. Backed by a signed <b>consent mandate</b>.</li>
+<li><b>A1 — Human-delegated.</b> A verified person, checked by the registrar, which keeps the evidence; the passport carries only its digest. Accountability exists while privacy stays intact. Backed by a signed <b>consent mandate</b>.</li>
 <li><b>A2 — Organization-delegated.</b> A verified legal entity; the mandate is an organizational authorization resolving to responsible officers via the registrar of record.</li>
-<li><b>A3 — Agent-delegated.</b> Another passported agent is principal. Every hop dual-signed (delegator + delegatee), scopes strictly narrowing, depth capped (default 3), the full chain verifiable to its ultimate A1/A2 anchor — closing the field&#x27;s known multi-hop gap.</li>
+<li><b>A3 — Agent-delegated.</b> Another passported agent is principal. Every hop dual-signed (delegator + delegatee), scopes strictly narrowing (delegation depth is not capped today), the full chain verifiable to its ultimate A1/A2 anchor — closing the field&#x27;s known multi-hop gap.</li>
 <li><b>A4 — Autonomous.</b> Self-directed, declared truthfully. Requirements: reachable governance endpoint; dead-man renewal timer; and, to rise above the lowest tiers, an accountability substitute — bond, insurance, or steward of record. Verifiers choose how much A4 to accept; honest existence is always guaranteed.</li>
 </ul>
 
@@ -408,7 +408,7 @@ $ make repro                          <span class="c"># byte-exact rebuild — t
 <tr><td><b>L0 Declared</b></td><td>Valid keypair + logged registration + revocation endpoint. Permissionless by charter.</td><td>Sandbox, attributed crawl</td></tr>
 <tr><td><b>L1 Anchored</b></td><td>+ verified domain control or established wallet history</td><td>Rate-limited APIs, low-value micropayments</td></tr>
 <tr><td><b>L2 Operated</b></td><td>+ KYB-verified operator, declared model lineage, soulbound lineage</td><td>Standard commerce, B2B data exchange</td></tr>
-<tr><td><b>L3 Backed</b></td><td>+ zero-knowledge principal + liability-insurance attestation</td><td>Consumer-scale payments, contract execution</td></tr>
+<tr><td><b>L3 Backed</b></td><td>+ a checked principal proof + liability-insurance attestation</td><td>Consumer-scale payments, contract execution</td></tr>
 <tr><td><b>L4 Regulated</b></td><td>+ sector license, independent audit, third-party work validation</td><td>High-value autonomy, critical infrastructure</td></tr>
 </tbody>
 </table>
@@ -425,7 +425,7 @@ $ make repro                          <span class="c"># byte-exact rebuild — t
 <div class="note"><b>Where that is design and not yet fact:</b> the paragraph above describes the standard. Checkpoint cosigning by independent witnesses is <b>built and drilled but unstaffed — there are zero witness operators today</b>, so the part that would stop the root showing different histories to different parties is not in force. Everything else there is running: logged-before-valid is enforced in every implementation, the logs are mirrorable, and the system is forkable from public artifacts. Running a witness is one command (<code>bash kits/witness/be-a-witness.sh</code>) and needs no accreditation.</div>
 
 <h3>10. Threat model (condensed register)</h3>
-<p>Root-key compromise → threshold + standby + ceremony-only use. Registrar fraud → audits, monitors, wholesale de-accreditation with customer grace. Impersonation → key-in-signature binding + mTLS instance creds. Replay/theft → minutes-TTL local credentials. Delegation laundering → dual-signed narrowing chains, depth caps. Sybil floods → L0 grants existence, not consequence. Revocation suppression → freshness classes fail closed. Log fork/rewrite → witness cosigning, open monitors. Jurisdictional coercion → custodian spread; namespace censorship is structurally impossible below quorum. Privacy attack → no PII at root; zk principals; selective disclosure; graph shows structure, never behavior. Capture of governance → constituency supermajorities, 12-month comment, public everything. Price abuse → charter fee caps that only fall. Explorer manipulation → independence + client-side verification. Metaphor-imported failure modes (registrar race-to-bottom, registry price creep, public-record privacy conflict) → uniform tier standards + falling caps + zero-PII design, respectively. Successor standard emerges → managed-migration clause (Part V.4). Root institutional failure → fork-readiness drills; the standard outlives the institution.</p>
+<p>Root-key compromise → threshold + standby + ceremony-only use. Registrar fraud → audits, monitors, wholesale de-accreditation with customer grace. Impersonation → key-in-signature binding + mTLS instance creds. Replay/theft → minutes-TTL local credentials. Delegation laundering → dual-signed narrowing chains (depth is not capped today). Sybil floods → L0 grants existence, not consequence. Revocation suppression → freshness classes fail closed. Log fork/rewrite → witness cosigning, open monitors. Jurisdictional coercion → custodian spread; namespace censorship is structurally impossible below quorum. Privacy attack → no PII at root; principals checked at the registrar and seen only as a digest; graph shows structure, never behavior. Capture of governance → constituency supermajorities, 12-month comment, public everything. Price abuse → charter fee caps that only fall. Explorer manipulation → independence + client-side verification. Metaphor-imported failure modes (registrar race-to-bottom, registry price creep, public-record privacy conflict) → uniform tier standards + falling caps + zero-PII design, respectively. Successor standard emerges → managed-migration clause (Part V.4). Root institutional failure → fork-readiness drills; the standard outlives the institution.</p>
 
 <hr>
 
@@ -461,7 +461,7 @@ $ make repro                          <span class="c"># byte-exact rebuild — t
 
 <hr>
 
-<p><i>Everything above composes from open standards proven at internet scale — signed messages, selective-disclosure credentials, resolvable identifiers, witnessed append-only logs, threshold ceremonies, compressed status proofs. Proven parts; new assembly; and a charter that keeps the center small forever.</i></p></div>
+<p><i>Everything above composes from open standards proven at internet scale — signed messages, hybrid-signed credentials, resolvable identifiers, witnessed append-only logs, threshold ceremonies, compressed status proofs. Proven parts; new assembly; and a charter that keeps the center small forever.</i></p></div>
 
     <div class="pn">
       <a href="verify.html"><span class="lab">Related</span><div class="t">← How verification works</div></a>

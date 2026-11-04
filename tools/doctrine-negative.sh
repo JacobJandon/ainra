@@ -42,6 +42,8 @@ probe "honest zero reworded away"    site/foundation.html   's/0 OPERATORS — G
 probe "footer zero reworded away"    site/_includes/footer.html 's/WITNESSES: 0/WITNESSES: ACTIVE/'
 probe "DoD row hand-flipped"         docs/DOD.md            's/\| ⏳ external \(machinery ready\) \|/| ✓ |/'
 probe "model promoted to measured"   docs/SCALE.md          's/honestly \[extrapolated\]/measured/'
+probe "zero-knowledge claim returns"   docs/IDENTITY.md      's/is checked by its \*\*registrar\*\*/is proven in zero-knowledge/'
+probe "SD-JWT claim returns"           docs/AINRA_I_The_Standard.md 's/Canonical JSON, signed whole by the registrar/An SD-JWT verifiable credential, signed whole by the registrar/'
 
 echo
 if [ "$fails" -gt 0 ]; then

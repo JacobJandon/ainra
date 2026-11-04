@@ -225,6 +225,43 @@ if (witnesses === 0) {
   ok(`claim provenance    ${TRUST_SURFACES.length} trust-deciding surface(s) · every measured claim names its source`);
 }
 
+// ── 9. NO PRIVACY MECHANISM THE CODE DOES NOT HAVE (D-090) ──────────────────────────────────────────────────
+// For months the Standard, the site and the landing page said the passport was "an SD-JWT verifiable credential;
+// selective disclosure by field" and that human backing was "proven in zero-knowledge". The passport is canonical JSON
+// signed whole, every claim shown; AINRA checks no ZK proof (the registrar checks the evidence, D-089); and no
+// implementation caps delegation depth. Every gate was green, because no gate read those sentences. This one does, on
+// every public surface: the phrasings that state those mechanisms as fact may not come back. A sentence that says one
+// of them is NOT done (or names D-090) is fine — the rule bans the claim, not the subject.
+{
+  const SURFACES = tracked().filter((f) =>
+    /^site\/[^/]+\.(html|md|txt)$/.test(f) || /^site\/_includes\//.test(f) || f === "apps/landing/index.html" ||
+    ["README.md", "docs/IDENTITY.md", "docs/AINRA_I_The_Standard.md", "SECURITY.md"].includes(f));
+  const CLAIMS = [
+    [/proven (in|via) zero-knowledge/i, "human backing proven in zero-knowledge"],
+    [/zero-knowledge (principal|commitment)/i, "a zero-knowledge principal"],
+    [/\bzk principals?\b/i, "zk principals"],
+    [/selective disclosure by field|selective-disclosure credentials/i, "selective disclosure"],
+    [/\ban SD-JWT verifiable credential\b/i, "the passport as an SD-JWT"],
+    [/KB-JWT holder binding/i, "KB-JWT holder binding"],
+    [/depth capped \(default/i, "a delegation depth cap"],
+  ];
+  const DENIES = /\bnot (a JWT|built|done|capped|today)\b|\bno (field-level|selective|zk|ZK)\b|D-090|future work/i;
+  let n = 0;
+  for (const f of SURFACES) {
+    const t = read(f);
+    if (t === null) continue;
+    // Judged sentence by sentence: a denial elsewhere on the line must not excuse a claim stated beside it.
+    t.split("\n").forEach((line, i) => {
+      for (const sentence of line.split(/(?<=[.;:!?])\s+/)) {
+        for (const [re, what] of CLAIMS) {
+          if (re.test(sentence) && !DENIES.test(sentence)) { fail(`privacy claims: ${f}:${i + 1} states ${what}, which no implementation does (D-090) — say what the code does, or delete it`); n++; }
+        }
+      }
+    });
+  }
+  if (!n) ok(`privacy claims      ${SURFACES.length} public surface(s) · no mechanism the code does not have`);
+}
+
 if (bad) {
   console.error(`\nDOCTRINE-CHECK FAILED — ${bad} rule(s) that were previously held only by memory.`);
   console.error(`Each of these passed the entire board when violated, before this gate existed. See docs/PLAN-M32.md.`);

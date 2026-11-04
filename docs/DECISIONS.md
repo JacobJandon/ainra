@@ -2349,7 +2349,10 @@ is visible) and a negative control for each.
 *Not changed:* the wire format, the frozen reasons, every corpus, P1–P6. P4 holds; only the sentence describing its
 mechanism is wrong.
 
-*Status:* PROPOSED — the operator approves or rejects the amendment; the operational corrections are already made.
+*Status:* ACCEPTED 2026-11-04 by the operator's instruction "do all your self automatically and fully continue to all"
+(recorded in `docs/AMENDMENTS.md`). Applied the same day: the Standard, the MTS and the Standard's renderings on the
+site, by the normative path; `make doctrine` rule 9 with two probes in `make doctrine-negative`. The leak ledger is
+next and lands under this record.
 
 ## D-091 — One network-wide status file for verifiers that fetch (PROPOSED)
 

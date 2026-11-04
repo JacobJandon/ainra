@@ -46,3 +46,23 @@ touched. The public diff is the commit itself; the entry names it once it exists
   shipped in ADR-019 is audience binding plus proof-of-possession, and the text now says so.
 
   This is a correction of drift between two normative texts, not a new power. Nothing here touches P1–P6.
+
+## 2026-11-04 — The Standard and the MTS say what the code does: privacy, human backing, delegation depth (D-090)
+
+- **Era:** operator-run
+- **Approved by:** the operator, with this public record. The operator's instruction, given after D-090 was proposed
+  with its full table of changes: "do all your self automatically and fully continue to all".
+- **Files touched:** `docs/AINRA_I_The_Standard.md` §1 (P4 gloss), §5 (one sentence), §6 (A1, A3), §7 (L3 row), §10
+  (two clauses), closing line; `docs/AINRA_Master_Technical_Specification_v1.md` — a dated amendment note under
+  Provenance, the one-paragraph architecture, ADR-004, ADR-011, §11 (data minimisation), §12 ledger row 9, §15
+  (passport), §31; the Standard's renderings in `site/docs.html`; `docs/FREEZE.sha256`. Decision record: `D-090` in
+  `docs/DECISIONS.md`. Study: `docs/ZK-STUDY.md` §3.2.
+- **Rationale:** four statements in the normative texts were not true of any implementation. The passport is canonical
+  JSON signed whole with Ed25519 and ML-DSA-65 — not an SD-JWT, with no KB-JWT, no X.509 bridge and no field-level
+  disclosure; every claim is shown. Human backing is not proven in zero-knowledge by AINRA: since D-089 the registrar
+  issues A1 only on evidence its principal checker accepts, and the passport carries a digest. The trust ledger's
+  Groth16 demo plugin does not exist, and BBS, named on its removal path, is not post-quantum. No implementation caps
+  delegation depth. A Standard that describes what was not built is a claim without a gate (`docs/CLAIMS.md`), so the
+  texts are brought to the code, not the other way round. Enforcing a depth cap, or adding real selective disclosure,
+  would each be their own decision with a corpus. P1–P6 are untouched: P4 holds, and only the sentence describing its
+  mechanism was wrong.

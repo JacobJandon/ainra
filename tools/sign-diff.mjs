@@ -18,7 +18,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { randomBytes } from "node:crypto";
-import { signPresentation, runPresentationVector } from "../packages/sdk-ts/dist/index.js";
+import { signPresentation } from "../packages/sdk-ts/dist/index.js";
+import { runPresentationVector } from "../packages/sdk-ts/dist/conformance.js";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 const NEGATIVE = process.argv.includes("--negative");

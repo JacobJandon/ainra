@@ -250,8 +250,19 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     const r = await provePersonhood({ message, signature: arg("signature"), registrar: arg("registrar"), holder: arg("holder"), now: nowSecs });
     console.log(JSON.stringify(r, null, 2));
     process.exit(r.ok ? 0 : 1);
+  } else if (cmd === "check-stdin") {
+    // The registrar's principal checker (PLAN-M51 step 3): {registrar, holder, evidence:{message, signature}} on
+    // stdin, one JSON answer on stdout. Anything unreadable is binding_malformed — never an acceptance.
+    let input;
+    try { input = JSON.parse(readFileSync(0, "utf8")); } catch { input = null; }
+    const ev = input?.evidence;
+    const r = typeof ev?.message !== "string" || typeof ev?.signature !== "string"
+      ? { ok: false, reason: "binding_malformed" }
+      : await provePersonhood({ message: ev.message, signature: ev.signature, registrar: String(input.registrar ?? ""), holder: String(input.holder ?? ""), now: nowSecs });
+    console.log(JSON.stringify(r.ok ? { ok: true, principal_proof: r.principal_proof } : { ok: false, reason: r.reason }));
+    process.exit(0);
   } else {
-    console.error("usage: personhood.mjs check <address>\n       personhood.mjs prove --message-file <f> --signature <0x…> --registrar <id> --holder <thumbprint>");
+    console.error("usage: personhood.mjs check <address>\n       personhood.mjs prove --message-file <f> --signature <0x…> --registrar <id> --holder <thumbprint>\n       personhood.mjs check-stdin   (the registrar's principal checker: JSON in, JSON out)");
     process.exit(2);
   }
 }

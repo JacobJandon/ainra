@@ -19,7 +19,7 @@ APP=ainrascan
 # 1. bundle the real SDK for the browser (build-time deps only; the OUTPUT is self-contained).
 [ -x "$SDK/node_modules/.bin/esbuild" ] || { echo "→ installing build-time bundler (esbuild, fflate)…"; ( cd "$SDK" && npm install --prefer-offline --no-audit --no-fund --silent >/dev/null 2>&1 ); }
 mkdir -p "$APP/vendor" "$APP/data"
-( cd "$SDK" && node_modules/.bin/esbuild src/index.ts --bundle --format=esm --platform=browser \
+( cd "$SDK" && node_modules/.bin/esbuild browser/entry.ts --bundle --format=esm --platform=browser \
     --alias:node:zlib=./browser/zlib-shim.js \
     --banner:js="$(cat browser/buffer-banner.js)" \
     --outfile=../../"$APP"/vendor/ainra-sdk.js >/dev/null )
@@ -31,7 +31,7 @@ cargo build --release -q -p ainra-cli-rs
 
 # 3. proof the browser bundle reproduces the CLI verdicts over the seeded data (no dummy verdicts trusted).
 node --input-type=module -e '
-import { runVector } from "./'"$APP"'/vendor/ainra-sdk.js";
+import { conformance } from "./'"$APP"'/vendor/ainra-sdk.js"; const { runVector } = conformance;
 import fs from "node:fs";
 const enc=(u)=>Buffer.from(u).toString("base64").replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
 const norm=(v)=>JSON.stringify({verdict:v.verdict,reason:v.reason??null});

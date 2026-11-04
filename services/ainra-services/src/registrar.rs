@@ -34,6 +34,8 @@ pub mod heads;
 /// registrar's log, status segment and issuer key rather than growing a second copy of any of them.
 #[path = "registrar_link.rs"]
 pub mod link;
+#[path = "registrar_principal.rs"]
+pub mod principal;
 pub use link::{LinkRecord, LinkRevocation, LinkSpec, RevocationKind};
 
 /// Operational delegate-cert lifetime: 90 days, inside the ADR-002 ≤ 92-day cap. The cap itself lives in
@@ -94,6 +96,10 @@ pub struct IssueSpec {
     /// `holder_key` is present — a public key without a proof is a claim about somebody else's key.
     #[serde(default)]
     pub holder_pop: Option<HybridB64>,
+    /// PLAN-M51 step 3 — for an A1 (human-delegated) request, the evidence this registrar's principal checker reads.
+    /// Never written into the passport: the passport carries only the proof the checker derives from it.
+    #[serde(default)]
+    pub principal_evidence: Option<serde_json::Value>,
 }
 
 /// A hybrid key or signature as it travels on the wire: both halves, base64url.
@@ -210,7 +216,7 @@ fn check_audit_cap(tier: &str, exp: u64, audit: Option<&AuditEvidence>) -> Resul
 
 /// Read one field out of a stored record's signed claim JSON (e.g. `/authority/principal_proof`). `None` if the
 /// claims fail to parse or the pointer is absent — callers treat that as "unknown", never as a default identity.
-fn passport_field(rec: &IssuedRecord, pointer: &str) -> Option<String> {
+pub(crate) fn passport_field(rec: &IssuedRecord, pointer: &str) -> Option<String> {
     let v: serde_json::Value = serde_json::from_str(&rec.claims).ok()?;
     v.pointer(pointer)?.as_str().map(|s| s.to_string())
 }
@@ -370,6 +376,9 @@ pub struct RegistrarBox {
     seed: u64,
     /// The unix time the certs were issued at — persisted for deterministic reload.
     create_now: u64,
+    /// What an A1 request needs here (PLAN-M51 step 3). Not persisted: whoever opens the registrar installs it, and
+    /// until they do every A1 request is refused.
+    principal_policy: principal::PrincipalPolicy,
 }
 
 /// An issuance error the engine surfaces honestly (never a faked success).
@@ -401,6 +410,9 @@ pub enum IssueError {
     /// ADR-017: the requested passport `exp` exceeds the tier audit's own expiry — "audited" must mean audited
     /// recently, so the credential may never outlive the evidence behind its tier.
     AuditStale(String),
+    /// PLAN-M51 step 3: an A1 request without a principal proof this registrar's checker accepted. Refused, never
+    /// downgraded to another class.
+    PrincipalRefused(String),
 }
 
 impl core::fmt::Display for IssueError {
@@ -416,6 +428,7 @@ impl core::fmt::Display for IssueError {
             IssueError::DelegateWindow(s) => write!(f, "outside the delegate window: {s}"),
             IssueError::AuditRequired(s) => write!(f, "audit required: {s}"),
             IssueError::AuditStale(s) => write!(f, "audit stale: {s}"),
+            IssueError::PrincipalRefused(s) => write!(f, "principal proof refused: {s}"),
         }
     }
 }
@@ -467,6 +480,7 @@ impl RegistrarBox {
             exp,
             seed: 0,
             create_now: now,
+            principal_policy: principal::PrincipalPolicy::default(),
         })
     }
 
@@ -734,8 +748,25 @@ impl RegistrarBox {
             return Err(IssueError::Duplicate(sub));
         }
         check_audit_cap(&spec.tier, self.exp, spec.audit.as_ref())?;
+        let proof = principal::principal_for(&self.principal_policy, &self.id, spec)?;
+        let checked;
+        let spec = if proof == spec.principal_proof {
+            spec
+        } else {
+            checked = IssueSpec {
+                principal_proof: proof,
+                ..spec.clone()
+            };
+            &checked
+        };
         let (nbf, exp) = (self.nbf, self.exp);
         self.issue_with(spec, sub, (nbf, exp), None, chain_party_keys, rng)
+    }
+
+    /// How this registrar treats A1 requests from now on (PLAN-M51 step 3). The daemon and the CLI install
+    /// [`principal::PrincipalPolicy::from_env`]; only the offline specimen seed installs `Specimen`.
+    pub fn set_principal_policy(&mut self, policy: principal::PrincipalPolicy) {
+        self.principal_policy = policy;
     }
 
     /// The shared issuance engine behind [`Self::issue`] and [`Self::reissue`]: `window` is this credential's own
@@ -1101,6 +1132,7 @@ impl RegistrarBox {
             audit: audit.cloned(),
             holder_key: None,
             holder_pop: None,
+            principal_evidence: None,
         };
         let new_rec =
             self.issue_with(&spec, new_sub.clone(), window, Some(&head_leaf), &[], rng)?;
@@ -1665,6 +1697,7 @@ mod tests {
             audit: None,
             holder_key: None,
             holder_pop: None,
+            principal_evidence: None,
         }
     }
 
@@ -1680,7 +1713,7 @@ mod tests {
     // could ever prove possession of it. These tests assert the new path certifies the CALLER's key, and that each
     // way of claiming a key you do not hold is refused before anything is signed or logged.
 
-    fn holder_csr(
+    pub(super) fn holder_csr(
         registrar: &str,
         rng: &mut ChaCha20Rng,
     ) -> (crypto::HybridKeypair, HybridB64, HybridB64) {

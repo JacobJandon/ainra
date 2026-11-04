@@ -79,8 +79,9 @@ import { runVector } from "@ainra/sdk/conformance";    // replays a test vector;
 ```
 
 `runVector` believes a vector's own clock, freshness class and status list: that is what lets the corpus pin every
-reason, and it is why it must never be used to decide trust (D-074). Since 0.6.0 the corpus runners live in
-`@ainra/sdk/conformance`. The old root exports still work and are marked deprecated; they go in 0.7.0.
+reason, and it is why it must never be used to decide trust (D-074). The corpus runners live in
+`@ainra/sdk/conformance` only: since 0.7.0 the package root no longer exports them (0.6.0 kept them there,
+deprecated).
 `Verifier.verify` takes a `PresentedBundle`: the fields a vector uses to pin policy are typed as ignored.
 
 ## Don't take our word for it

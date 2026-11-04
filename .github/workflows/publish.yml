@@ -32,7 +32,7 @@ on:
         description: which registry to publish to
         required: true
         type: choice
-        options: [npm-sdk, npm-middleware, npm-mcp, pypi, dry-run]
+        options: [npm-sdk, npm-middleware, npm-mcp, npm-edge, pypi, dry-run]
 permissions: {}          # least privilege: every job re-declares only what it needs
 
 jobs:
@@ -109,6 +109,26 @@ jobs:
           cd "$PKG" && npm install --no-audit --no-fund
           # mcp ships src/*.mjs and has no build step; middleware ships dist/.
           [ "${{ inputs.target }}" = "npm-mcp" ] || npm run build
+      # @ainra/edge ships the core compiled to WebAssembly, which is not committed (packages/edge/.gitignore): it is
+      # built HERE, from the tagged source, with the same pinned toolchain and wasm-bindgen as CI, and the package's
+      # own tests run against that exact build before it is published. A tarball without the engine cannot be
+      # published: the pack check below refuses it.
+      - uses: dtolnay/rust-toolchain@1.96.1
+        if: inputs.target == 'npm-edge'
+        with:
+          targets: wasm32-unknown-unknown
+      - name: build the edge engine and test the package against it
+        if: inputs.target == 'npm-edge'
+        run: |
+          VER=$(grep -oP '=\K[0-9.]+' crates/ainra-wasm/Cargo.toml | head -1)
+          cargo install wasm-bindgen-cli --version "$VER" --locked
+          bash tools/build-wasm-edge.sh
+          (cd packages/middleware && npm ci --no-audit --no-fund && npm run build)
+          (cd packages/edge && npm ci --no-audit --no-fund && node --test test/*.test.mjs)
+          (cd packages/edge && npm pack --dry-run --json) > /tmp/edge-pack.json
+          for f in wasm/ainra_wasm_bg.wasm wasm/ainra_wasm.js src/index.mjs src/_engine.mjs src/conformance.mjs; do
+            grep -q "\"path\": \"$f\"" /tmp/edge-pack.json || { echo "::error::@ainra/edge tarball is missing $f"; exit 1; }
+          done
       # NODE_AUTH_TOKEN is the FIRST-publish path only, and it is empty whenever the secret is unset — in which
       # case npm falls through to OIDC, which is what we want for every release after the package exists. It does
       # not weaken provenance: `--provenance` attests to this workflow run either way, because the runner has an
@@ -122,6 +142,7 @@ jobs:
             npm-sdk)        cd packages/sdk-ts ;;
             npm-middleware) cd packages/middleware ;;
             npm-mcp)        cd packages/mcp ;;
+            npm-edge)       cd packages/edge ;;
           esac
           if [ -n "$NODE_AUTH_TOKEN" ]; then echo "authenticating with NPM_TOKEN (first publish — the package does not exist yet, so OIDC is not available)";
           else echo "no NPM_TOKEN set — authenticating by OIDC trusted publishing"; fi
@@ -137,6 +158,7 @@ jobs:
             npm-sdk)        DIR=packages/sdk-ts ;;
             npm-middleware) DIR=packages/middleware ;;
             npm-mcp)        DIR=packages/mcp ;;
+            npm-edge)       DIR=packages/edge ;;
           esac
           P=$(node -p "require('./$DIR/package.json').name")
           V=$(node -p "require('./$DIR/package.json').version")

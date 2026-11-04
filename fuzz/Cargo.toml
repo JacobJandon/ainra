@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0 OR MIT
 # Standalone cargo-fuzz crate (its own workspace; not built by the main workspace). MTS §28 targets: the SD-JWT
-# parser, the TSL codec, and the canonical encoder. Run with: cargo +nightly fuzz run <target>
+# parser, the TSL codec, and the canonical encoder; PLAN-M51 step 5 added link, decision, presentation, directory
+# and delta, which enter through the adapter (the one decode path, L5). Run with: cargo +nightly fuzz run <target>
 [package]
 name = "ainra-fuzz"
 version = "0.0.0"
@@ -13,6 +14,7 @@ cargo-fuzz = true
 [dependencies]
 libfuzzer-sys = "0.4"
 ainra-core = { path = "../crates/ainra-core" }
+ainra-adapter = { path = "../crates/ainra-adapter" }
 serde_json = "1"
 
 [[bin]]
@@ -30,6 +32,36 @@ doc = false
 [[bin]]
 name = "canon"
 path = "fuzz_targets/canon.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "link"
+path = "fuzz_targets/link.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "decision"
+path = "fuzz_targets/decision.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "presentation"
+path = "fuzz_targets/presentation.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "directory"
+path = "fuzz_targets/directory.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "delta"
+path = "fuzz_targets/delta.rs"
 test = false
 doc = false
 

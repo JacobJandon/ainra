@@ -3,8 +3,9 @@
 // TEST-ROOT: NAME your agent → GET the passport (minted + logged, with real crypto) → USE it (verify locally, carry
 // it, or revoke it). If no registrar is reachable (a public static deploy), the flow degrades to an honest note.
 import {
-  runVector, verdictEvent, serializeVerdictEvent, Verifier, linkFromIndex, jwkThumbprintEd25519, linkPopSigningBytes,
+  conformance, verdictEvent, serializeVerdictEvent, Verifier, linkFromIndex, jwkThumbprintEd25519, linkPopSigningBytes,
 } from "../vendor/ainra-sdk.js";
+const { runVector } = conformance;
 import { fetchT, why } from "./net.mjs";
 
 const qs = new URLSearchParams(location.search);
@@ -117,7 +118,7 @@ async function download() {
 async function _download() {
   try {
     const pres = await (await fetchT(`${REG}/present?sub=${encodeURIComponent(rec.sub)}&now=${NOW}`)).json();
-    const bundle = { name: rec.sub, anchors, presentation: pres, note: "AINRA passport bundle (STAGING · TEST-ROOT specimen). Verify with @ainra/sdk runVector(this)." };
+    const bundle = { name: rec.sub, anchors, presentation: pres, note: "AINRA passport bundle (STAGING · TEST-ROOT specimen). Replay it with runVector from @ainra/sdk/conformance." };
     const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: "application/json" });
     const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = rec.sub.replace(/[:@]/g, "_") + ".passport.json"; a.click();
   } catch (e) { fail("Download failed: " + e.message); }

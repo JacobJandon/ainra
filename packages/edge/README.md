@@ -49,6 +49,19 @@ to its status list, and the gate refuses a head older than one it has seen — s
 stops working the moment the gate sees the revocation. A bundle primed once carries the head it was primed with,
 so under currency it is usable only while that head is fresh (30 s). Held to `vectors/v1-currency`.
 
+## Replaying the test vectors is a different import
+
+`@ainra/edge/conformance` holds the corpus runners (`runPresentationVector`, `runGateVector`, `runCurrencyVector`,
+`runLinkVector`, `runDecisionVector`), so a deployment can show which engine answers the published corpus. Each one
+believes the vector's own clock, directory and lists, which is why none of them may decide whether to trust a
+request: that is the gate's job, with your directory and your clock. The same split as `@ainra/sdk/conformance`
+and `ainra.conformance` (D-074, D-075).
+
+```js
+import { initAinra } from "@ainra/edge";
+import { runGateVector } from "@ainra/edge/conformance";
+```
+
 ## Proof
 
 - **`make edge-test`:** the WASM build answers every request-signature vector as the core recorded it. Every

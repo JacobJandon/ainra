@@ -2,7 +2,7 @@
 # and everything is green in under 10 minutes on a laptop.
 
 .PHONY: link-parity link-e2e tsl-check online-verifier-check pilot-e2e
-.PHONY: witness-feed-drill release-state-check wimse-check wimse-e2e live-drills gate-parity py-test sign-diff python-agent-e2e signature-agent-check signature-agent-e2e edge-build edge-test edge-e2e edge-runtimes personhood-test personhood-live live-up live-down live-status identity-e2e root-dark-drill mirror-sufficiency legibility-drill cli-deps succession-drill staleness-drill amendment-check amendment-check-negative doctrine doctrine-negative number-syntax engine-parity one-decode-path bench-gate all test vectors vectors-check diff cli-check suite-migration-drill ceremony-rehearsal-multi witness-check push-advisory-check changelog-board-check fmt clippy fuzz-smoke bench sdk-build sdk-test ci clean status console samples drill explorer demo scale ceremony testbed wedge-build wedge-test repro mirror verify-mirror check-freeze freeze genesis-local verifier-kit-smoke ceremony-dry-run soak-smoke drill-networked preflight s7 license gitleaks audit verify-as-external verifier-triple-drill soak-verify genesis-status verify-transcript genesis-board-demo release doctor verifier-operator-drill site site-up site-down site-check stage-all stage-all-down explorer-up explorer-down ainrascan stage-up stage-down stage-status stage-smoke demo-walkthrough three-clients genesis-verify config-diff declaration genesis-rehearsal site-demo verify issue-first registrar-console mcp-test skills-replay presentation-diff conformance campaign-status campaign-init campaign-gates campaign-check publish-preflight stage-install stage-uninstall stage-health stranger probe-drill miri reasons-check corpus-check instance-gate claims-check claims claims-live policy-parity deploy-current site-net site-net-check lockfile-sync soak-ingest outreach-check names-check interop interop-negative
+.PHONY: negative-controls replay-imports witness-feed-drill release-state-check wimse-check wimse-e2e live-drills gate-parity py-test sign-diff python-agent-e2e signature-agent-check signature-agent-e2e edge-build edge-test edge-e2e edge-runtimes personhood-test personhood-live live-up live-down live-status identity-e2e root-dark-drill mirror-sufficiency legibility-drill cli-deps succession-drill staleness-drill amendment-check amendment-check-negative doctrine doctrine-negative number-syntax engine-parity one-decode-path bench-gate all test vectors vectors-check diff cli-check suite-migration-drill ceremony-rehearsal-multi witness-check push-advisory-check changelog-board-check fmt clippy fuzz-smoke bench sdk-build sdk-test ci clean status console samples drill explorer demo scale ceremony testbed wedge-build wedge-test repro mirror verify-mirror check-freeze freeze genesis-local verifier-kit-smoke ceremony-dry-run soak-smoke drill-networked preflight s7 license gitleaks audit verify-as-external verifier-triple-drill soak-verify genesis-status verify-transcript genesis-board-demo release doctor verifier-operator-drill site site-up site-down site-check stage-all stage-all-down explorer-up explorer-down ainrascan stage-up stage-down stage-status stage-smoke demo-walkthrough three-clients genesis-verify config-diff declaration genesis-rehearsal site-demo verify issue-first registrar-console mcp-test skills-replay presentation-diff conformance campaign-status campaign-init campaign-gates campaign-check publish-preflight stage-install stage-uninstall stage-health stranger probe-drill miri reasons-check corpus-check instance-gate claims-check claims claims-live policy-parity deploy-current site-net site-net-check lockfile-sync soak-ingest outreach-check names-check interop interop-negative
 
 all: fmt clippy test vectors diff
 
@@ -134,7 +134,7 @@ sdk-test: sdk-build
 	cd packages/sdk-ts && npm test
 
 # The full local gate mirror of .github/workflows/ci.yml.
-ci: fmt clippy lockfile-sync soak-ingest reasons-check corpus-check instance-gate claims-check release-state-check policy-parity test vectors diff conformance cli-check suite-migration-drill ceremony-rehearsal-multi witness-check push-advisory-check changelog-board-check sdk-test site site-check
+ci: fmt clippy lockfile-sync soak-ingest reasons-check corpus-check instance-gate claims-check release-state-check replay-imports negative-controls policy-parity test vectors diff conformance cli-check suite-migration-drill ceremony-rehearsal-multi witness-check push-advisory-check changelog-board-check sdk-test site site-check
 	node tools/s7-lint.mjs
 	node tools/license-check.mjs
 	./tools/fuzz-smoke.sh
@@ -175,6 +175,7 @@ mcp-test: sdk-build
 presentation-diff: sdk-build wedge-build
 	cargo build --release -q -p ainra-cli-rs
 	node tools/presentation-diff.mjs
+	node tools/presentation-diff.mjs --negative
 
 # M16 — replay skills.md end to end: prove the agent-onboarding file is executable exactly as written (CI gate).
 skills-replay: sdk-build cli-deps
@@ -477,7 +478,7 @@ stage-down:
 	bash tools/stage.sh down
 stage-status:
 	bash tools/stage.sh status
-stage-smoke:
+stage-smoke: sdk-build
 	bash tools/stage-smoke.sh
 
 # M17 Task 2 — headless full-lifecycle walkthrough against the live public demo door (needs `make stage-up`).
@@ -498,7 +499,7 @@ config-diff:
 	node tools/config-diff.mjs
 declaration:
 	node tools/declaration.mjs $(if $(EVIDENCE),--evidence "$(EVIDENCE)",)
-genesis-rehearsal:
+genesis-rehearsal: sdk-build
 	bash tools/genesis-rehearsal.sh
 
 # M10 — the "clone it and it works" promise: run every gate a stranger runs, print a green/red board (QUICK=1 skips repro).
@@ -639,6 +640,24 @@ instance-gate: wedge-build  ## the middleware accepts a running copy and refuses
 # every site mirror keeps its headings. Needs the release tags in the clone.
 release-state-check: ## release state, drill counts and site mirrors cannot drift from the truth
 	@node tools/release-state-check.mjs
+negative-controls: sdk-build ## PLAN-M51 step 4: every gate that was in the baseline proves, offline, that it can fail
+	@node tools/s7-lint.mjs --negative
+	@node tools/license-check.mjs --negative
+	@node tools/reasons-check.mjs --negative
+	@node tools/names-check.mjs --negative
+	@node tools/lockfile-sync.mjs --negative
+	@node tools/soak-ingest-check.mjs --negative
+	@node tools/one-decode-path.mjs --negative
+	@node tools/outreach-check.mjs --negative
+	@node tools/deploy-current.mjs --negative
+	@node tools/bench-gate.mjs --negative
+	@node tools/ainra-verify.mjs --negative
+	@node tools/verify-60s.mjs --negative
+	@node tools/demo-walkthrough.mjs --negative
+	@node tools/render-samples.mjs --negative
+	@echo "NEGATIVE CONTROLS OK — 14 gates each caught every defect planted for them (presentation-diff runs its own in make presentation-diff)"
+replay-imports: ## nothing replays a vector through a package root (PLAN-M51 step 2); --negative proves it can fail
+	@node tools/replay-import-check.mjs && node tools/replay-import-check.mjs --negative
 
 claims-check:    ## every public claim agrees with its source of truth, everywhere it is asserted
 	@node tools/claims.mjs

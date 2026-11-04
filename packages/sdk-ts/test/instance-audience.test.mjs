@@ -16,7 +16,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
-import { runVector, Verifier } from "../dist/index.js";
+import { Verifier } from "../dist/index.js";
+import { runVector } from "../dist/conformance.js";
 
 const V1 = new URL("../../../vectors/v1/", import.meta.url).pathname;
 const names = readdirSync(V1).filter((f) => f.startsWith("instance-valid-")).sort();

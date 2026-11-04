@@ -133,7 +133,8 @@ const SAMPLE = join(ROOT, "kits/verifier/sample-artifacts");
 const sample = (f) => JSON.parse(readFileSync(join(SAMPLE, f), "utf8"));
 
 async function runTs(sc) {
-  const { Verifier, runVector, proveInstancePossession, decodeInstance } = await import(join(ROOT, "packages/sdk-ts/dist/index.js"));
+  const { Verifier, proveInstancePossession, decodeInstance } = await import(join(ROOT, "packages/sdk-ts/dist/index.js"));
+  const { runVector } = await import(join(ROOT, "packages/sdk-ts/dist/conformance.js"));
   if (sc.mint) {
     // A signer that records nothing and returns a fixed-shape signature: this row is about whether the API
     // AGREES TO SIGN, not about the cryptography, so the signer must never be the reason it fails.

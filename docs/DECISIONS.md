@@ -1391,7 +1391,7 @@ unreachable RPC is `lookup_failed`.
 no one here has one. It is proven offline only.
 
 *Status:* NEW. Kit + tests + live drill. The registrar still accepts any principal proof string; making A1 issuance
-REQUIRE a checked one is a registrar policy step for later, not a change to the core.
+REQUIRE a checked one is a registrar policy step for later, not a change to the core. *(Done since: D-089.)*
 
 ## D-067 — The request-signature layer gets a corpus, and three implementations agree on it (M37)
 
@@ -2278,3 +2278,34 @@ P4); and one person holds every role until production, which the plan states.
 
 *Status:* PROPOSED — the owner rules. Hosting (PLAN-M52 step 4) is the owner's choice of provider and names.
 
+## D-089 — A1 means a checked principal proof (M51)
+
+*Problem:* an A1 passport says a verified human stands behind the agent (Standard §6). The reference registrar wrote
+whatever `principal_proof` string a request carried, so "A1" meant only that someone had typed A1, and the
+`deadbeef…` placeholder the console sends was indistinguishable from a real proof. D-066 built a checker and left
+requiring it for later.
+
+*Decision:* a new A1 issuance has three outcomes, all at the registrar, none in the core or the root:
+- **no principal checker configured** — refused by name. Never downgraded: a caller who asked for A1 and silently got
+  A2 would publish a passport that says less than they think, and never know.
+- **the checker refuses the evidence** — refused with the checker's reason.
+- **the checker accepts it** — the passport carries the proof the checker derived, never one the request supplied;
+  a request that names a different proof is refused.
+
+The request carries `principal_evidence` (new optional field; never written into the passport) and the agent's own
+key with its proof of possession, because the evidence binds that key; the key is checked before the checker is
+asked. The checker is pluggable — `AINRA_PRINCIPAL_CHECKER` names a command that reads `{registrar, holder,
+evidence}` and answers `{ok, principal_proof}` or `{ok:false, reason}`; a crash, a timeout or any other output is a
+refusal. `kits/personhood check-stdin` is the first. The daemon and the CLI install the policy from the environment;
+the offline specimen seed alone installs `Specimen`, because its labelled TEST-ROOT A1 lineages carry deterministic
+references no checker produced, and it says so. Renewals keep the class and proof of the generation they renew.
+
+*Evidence:* seven unit tests in `registrar_principal.rs`; `tests/a1_principal_door.rs` against the real binary (junk
+evidence refused with the checker's reason; a self-named proof refused; no checker ⇒ refused, nothing issued; an
+accepted request carries the checker's digest); `make personhood-test` holds `check-stdin` to the contract (junk in,
+`binding_malformed` out). Negative control: with the A1 branch disabled, both binary tests fail.
+
+*Also found:* the doc comment on `AuthClass` in ainra-core read the scale backwards ("A1 self-asserted … A4
+principal-proven"); it now follows the Standard.
+
+*Status:* NEW (PLAN-M51 step 3). Registrar policy only; no wire or core change.

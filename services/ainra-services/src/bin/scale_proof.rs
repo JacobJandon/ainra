@@ -456,6 +456,7 @@ fn issuance_and_sharding() {
                 audit: None,
                 holder_key: None,
                 holder_pop: None,
+                principal_evidence: None,
             };
             rb.issue(&spec, &[], rng).expect("issue");
         }
@@ -530,6 +531,7 @@ fn issuance_and_sharding() {
                         audit: None,
                         holder_key: None,
                         holder_pop: None,
+                        principal_evidence: None,
                     };
                     rb.issue(&spec, &[], &mut rng).expect("issue");
                 }

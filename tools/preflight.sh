@@ -111,6 +111,8 @@ run "S7 neutrality"      "no brands / no impersonation" node tools/s7-lint.mjs
 run "license headers"    "SPDX on every source file"    node tools/license-check.mjs
 run "status honesty"     "README == STATUS claim"       node tools/status-consistency.mjs
 run "release state"      "tags · drills · mirrors agree" node tools/release-state-check.mjs
+run "replay imports"     "vectors replay via conformance" make -s replay-imports
+run "negative controls"  "14 gates shown able to fail"    make -s negative-controls
 run "doc freeze"         "normative docs unchanged"     make check-freeze
 run "MCP fidelity"       "ainra_verify ≡ SDK on vectors" make mcp-test
 run "presentation shape" "CLI≡middleware≡MCP event"     make presentation-diff

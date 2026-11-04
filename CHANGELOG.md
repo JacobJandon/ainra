@@ -10,6 +10,60 @@ We **publicly own fixed security bugs** — hiding them would be the opposite of
 
 ## [Unreleased]
 
+### Removed — the corpus runners leave the package roots, as 0.6.0 announced
+
+- **`@ainra/sdk`**: `runVector`, `expectedVerdict` and the other `run*Vector` functions are no longer exported from
+  the package root. Import them from `@ainra/sdk/conformance`. **Breaking** for anyone still on the deprecated path.
+  The root's exports are listed by hand in `src/index.ts` (the implementation moved to `src/engine.ts`), and
+  `test/root-exports.test.mjs` fails if the list drifts from the engine.
+- **`ainra` (PyPI)**: the root no longer exports the fixture-semantics `verify`; use `ainra.conformance.run_vector`.
+  **Breaking** for anyone still on it.
+
+### Changed — replaying a vector goes through a conformance import everywhere (PLAN-M51 step 2)
+
+- **Every caller in the repository now replays vectors through `@ainra/sdk/conformance`, `ainra.conformance` or
+  `@ainra/edge/conformance`**, and the browser bundle the site and the explorer load carries the runners as one
+  `conformance` namespace. `make replay-imports` refuses any caller that reaches a runner through a package root, and
+  its `--negative` mode proves it catches each form (named, namespace, dynamic, a loader function, Python).
+- **`@ainra/edge`** (not yet published) moves its corpus runners to `@ainra/edge/conformance` before its first
+  publish, so it never ships them from its root.
+- **`make stage-smoke` and `make genesis-rehearsal` verified with a hand-built browser bundle from July** that no
+  target rebuilt and a clean clone does not have; they now use the SDK the checkout builds.
+
+### Fixed — A1 means a checked principal proof (D-089, PLAN-M51 step 3)
+
+- **The reference registrar issues `auth_class: A1` only on evidence a principal checker accepts**, and writes the
+  checker's proof into the passport, never the request's. With no checker configured (`AINRA_PRINCIPAL_CHECKER`), A1 is
+  refused by name rather than issued under another class. `kits/personhood` gains `check-stdin`, the first checker.
+- The doc comment on `AuthClass` read the scale backwards; it now follows the Standard (A1 human-delegated … A4
+  autonomous).
+
+### Added — every gate shows it can fail (PLAN-M51 step 4)
+
+- **Fifteen gates that could exit 1 but never showed they would** each have a `--negative` mode that plants the defect
+  the gate exists for and requires the gate's own code path to catch it; `tools/negative-control-baseline.json` is
+  empty, and `make negative-controls` runs them in `make ci`, `make preflight` and CI. Two rounds of adversarial review
+  hardened them; what a third round still gets past is recorded in `docs/drills/NEGATIVE-CONTROLS.md`.
+- **The S7 scan covers everything a registry ships**: `packages/middleware/src`, `packages/mcp/src`,
+  `packages/edge/src` and its WASM glue, every package manifest and every shipped README.
+
+### Added — `@ainra/edge` is ready for its first publish
+
+- `private` is gone, the tarball is exactly `src/`, the two WASM files and the README (a pack check refuses one
+  without the engine), and `publish.yml` has an `npm-edge` target that builds the engine from the tagged source with
+  the pinned toolchain and runs the package's tests against it before publishing. `make publish-preflight` holds its
+  version and hygiene to the other packages'.
+
+### Added — fuzzing the newer parsers (PLAN-M51 step 5)
+
+- **Five coverage-guided targets** — link (incl. ES256K keys), decision records and logged heads, RFC 9421
+  presentations, directories and gates, status deltas — enter through the adapter, the one decode path, and are seeded
+  from the published corpus. `make fuzz-smoke` runs all eight. A recorded 600-second run of each is in
+  `docs/drills/FUZZ.md`.
+- **Fixed, found by those targets:** two vector runners in the adapter (`directory_result`, `delta_verify`) panicked on
+  a malformed vector instead of refusing it. Only the vector generator reaches them, so no untrusted input could; both
+  now refuse, and the crash inputs are regression tests.
+
 ### Fixed — a witness a stranger can actually run (D-087)
 
 - **`witnessd`** keeps its own random key (`key_file`, 0600; a read error never replaces it) and its memory across

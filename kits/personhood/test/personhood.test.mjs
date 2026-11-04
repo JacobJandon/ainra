@@ -143,3 +143,20 @@ test("the holder thumbprint takes only a real hybrid public key", () => {
   assert.match(HOLDER, /^[0-9a-f]{64}$/);
   assert.throws(() => holderThumbprint({ ed25519: "AAAA", mldsa65: "AAAA" }));
 });
+
+// ── the registrar's principal checker (PLAN-M51 step 3) ───────────────────────────────────────────────────────────
+// The reference registrar runs `personhood.mjs check-stdin` per A1 request. Junk in must be a named refusal out — the
+// registrar issues A1 only on `ok: true`, so a checker that answered anything else for junk would mint "A1" on nothing.
+
+import { execFileSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
+const KIT = fileURLToPath(new URL("../personhood.mjs", import.meta.url));
+const checkStdin = (input) => JSON.parse(execFileSync(process.execPath, [KIT, "check-stdin"], { input, encoding: "utf8" }));
+
+test("check-stdin: junk evidence is refused by name, never accepted", () => {
+  assert.deepEqual(checkStdin(JSON.stringify({ registrar: "registrar-07", holder: "00", evidence: { message: "junk", signature: "0x00" } })),
+    { ok: false, reason: "binding_malformed" });
+  assert.deepEqual(checkStdin(JSON.stringify({ registrar: "registrar-07", holder: "00", evidence: "deadbeef" })),
+    { ok: false, reason: "binding_malformed" });
+  assert.deepEqual(checkStdin("not json at all"), { ok: false, reason: "binding_malformed" });
+});

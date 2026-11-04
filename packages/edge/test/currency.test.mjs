@@ -5,7 +5,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
-import { initAinra, runCurrencyVector, createAinraEdgeGate, PRESENTATION_HEADER, PRIME_PATH } from "../src/index.mjs";
+import { initAinra, createAinraEdgeGate, PRESENTATION_HEADER, PRIME_PATH } from "../src/index.mjs";
+import { runCurrencyVector } from "../src/conformance.mjs";
 
 const DIR = new URL("../../../vectors/v1-currency/", import.meta.url);
 await initAinra(readFileSync(new URL("../wasm/ainra_wasm_bg.wasm", import.meta.url)));

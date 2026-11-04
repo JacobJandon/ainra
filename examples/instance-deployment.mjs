@@ -25,8 +25,9 @@ import {
   INSTANCE_CRED_DEFAULT_SECS,
   instanceSigningBytes,
   popSigningBytes,
-  runVector,
 } from "../packages/sdk-ts/dist/index.js"; // published: import { … } from "@ainra/sdk";
+// Replaying a corpus vector is a different import from deciding trust (D-074).
+import { runVector } from "../packages/sdk-ts/dist/conformance.js"; // published: "@ainra/sdk/conformance"
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 const V1 = ROOT + "vectors/v1/";

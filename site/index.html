@@ -1005,7 +1005,7 @@ const MAP = { llms: "/llms.txt", skills: "/skills.md", skills_index: "/.well-kno
 let SDK = null;
 const sdk = async () => (SDK ||= await import("./vendor/ainra-sdk.js"));
 async function selfTest() {
-  const { runVector, verdictEvent } = await sdk();
+  const { conformance: { runVector }, verdictEvent } = await sdk();
   const REG = await (await fetch("net/registry.json", { cache: "no-store" })).json();
   const NOW = REG.generated_window?.verified_at ?? 0;
   const wire = (rec, R) => ({ name: rec.sub, expect: {},

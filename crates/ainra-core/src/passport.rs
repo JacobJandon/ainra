@@ -17,7 +17,8 @@ use serde_json::Value;
 use crate::name::AinraName;
 use crate::verdict::Reason;
 
-/// Authority class — how the agent's authority is rooted (MTS §15). A1 self-asserted … A4 principal-proven.
+/// Authority class — who stands behind the agent (Standard §6): A1 human-delegated, A2 organization-delegated,
+/// A3 agent-delegated, A4 autonomous. (An earlier comment here read the scale backwards.)
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum AuthClass {
     A1,

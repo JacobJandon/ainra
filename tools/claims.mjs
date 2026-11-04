@@ -111,7 +111,7 @@ const CLAIMS = [
     where: ["docs/reasons.json", "packages/mcp/src/reasons.json", "tools/conformance/CONTRACT.md", "docs/quickstarts/sdk.md",
             "docs/quickstarts/python.md", "README.md", "docs/PRESENTATION.md", "docs/STATUS.md",
             "packages/sdk-py/README.md", "packages/sdk-py/ainra/reasons.py", "packages/sdk-py/ainra/__init__.py",
-            "packages/sdk-py/tests/test_reasons.py", "packages/sdk-ts/src/index.ts",
+            "packages/sdk-py/tests/test_reasons.py", "packages/sdk-ts/src/engine.ts",
             "crates/ainra-core/src/verdict.rs", "tools/verify-60s.mjs"],
   },
   {

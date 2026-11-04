@@ -12,7 +12,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
-import { initAinra, createAinraEdgeGate, createStore, createNonceCache, runPresentationVector, runGateVector, PRIME_PATH } from "../src/index.mjs";
+import { initAinra, createAinraEdgeGate, createStore, createNonceCache, PRIME_PATH } from "../src/index.mjs";
+import { runPresentationVector, runGateVector } from "../src/conformance.mjs";
 import { Verifier, checkRequest } from "../../middleware/dist/index.js";
 import { presentationRef } from "../../sdk-ts/dist/index.js";
 

@@ -20,6 +20,7 @@ const mf = (now) => new Miniflare({
   modules: [
     { type: "ESModule", path: root + "runtimes/worker.mjs" },
     { type: "ESModule", path: root + "src/index.mjs" },
+    { type: "ESModule", path: root + "src/_engine.mjs" },
     { type: "ESModule", path: root + "wasm/ainra_wasm.js" },
     { type: "CompiledWasm", path: root + "wasm/ainra_wasm_bg.wasm" },
   ],

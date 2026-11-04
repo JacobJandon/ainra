@@ -22,7 +22,9 @@
 // or the gate refuses to exist. The freshness class (default F2, five minutes, as in @ainra/sdk) and the revoked
 // delegates come from the gate and its directory, never from the presenter (D-068).
 
-import init, * as core from "../wasm/ainra_wasm.js";
+import { initAinra, engineReady, core } from "./_engine.mjs";
+
+export { initAinra };
 
 export const PRIME_PATH = "/.well-known/ainra-presentation";
 export const PRESENTATION_HEADER = "x-ainra-passport";
@@ -32,14 +34,6 @@ export const POP_HEADER = "x-ainra-pop";
 const NONCE_TTL_SECS = 300 + 30;
 const REF_RE = /^sha-256=:[A-Za-z0-9+/]{43}=:$/;
 const DIRECT_PASSPORT_TTL_SECS = 300;
-
-let ready = null;
-/** Load the core once per isolate. `wasm` is whatever the runtime hands you for the module: a WebAssembly.Module
- *  (Workers), the bytes (Node), or a URL/Response (browsers, Deno). */
-export function initAinra(wasm) {
-  ready ??= init({ module_or_path: wasm });
-  return ready;
-}
 
 /** The send-once store (D-065): bounded, idle-first eviction, nothing outlives its credential. Only bundles that
  *  verified when they arrived are ever put here, and every request re-verifies what it names. */
@@ -128,8 +122,8 @@ export async function createAinraEdgeGate({ directory, roots, audience, freshnes
   primePath = PRIME_PATH, maxPrimeBytes = 256 * 1024, decisions = null, minEpoch = 0, currency = false } = {}) {
   if (typeof audience !== "string" || !audience) throw new Error("createAinraEdgeGate: `audience` is required — the gate must know who it is (ADR-019)");
   if (!["F1", "F2", "F3"].includes(freshness)) throw new Error(`createAinraEdgeGate: freshness must be F1, F2 or F3, not ${freshness}`);
-  if (!ready) throw new Error("@ainra/edge: call initAinra(wasm) before creating a gate");
-  await ready;
+  if (!engineReady()) throw new Error("@ainra/edge: call initAinra(wasm) before creating a gate");
+  await engineReady();
   const str = (x) => (typeof x === "string" ? x : JSON.stringify(x));
   const acc = accreditAtLeast(str(directory), str(roots), minEpoch);
   if (!acc.ok) throw new Error(acc.refusal === "rollback"
@@ -230,23 +224,7 @@ export async function createAinraEdgeGate({ directory, roots, audience, freshnes
   };
 }
 
-/** The same corpus entry the core runs — so a deployment can prove which engine answers it. */
-export function runPresentationVector(vector) {
-  if (!ready) throw new Error("@ainra/edge: call initAinra(wasm) first");
-  return JSON.parse(core.run_presentation_vector(JSON.stringify(vector)));
-}
-/** One `vectors/v1-currency` vector through the edge engine: one currency gate's life, step by step (PLAN-M51). */
-export function runCurrencyVector(vector) {
-  if (!ready) throw new Error("@ainra/edge: call initAinra(wasm) first");
-  return JSON.parse(core.run_currency_vector(JSON.stringify(vector)));
-}
 
-/** One `vectors/v1-gate` entry, answered by the core (D-073): the directory against its roots, then the bundle under
- *  the gate's policy. `{verdict:"no_gate"}` when the directory does not verify. */
-export function runGateVector(vector) {
-  if (!ready) throw new Error("@ainra/edge: call initAinra(wasm) first");
-  return JSON.parse(core.run_gate_vector(JSON.stringify(vector)));
-}
 // ── AINRA Link (D-078) ────────────────────────────────────────────────────────────────────────────────────────────
 
 /** Assemble the link for one key from a registrar's link index (`GET /links`) and its signed status publication
@@ -267,8 +245,8 @@ export function linkFromIndex(index, publication, thumbprint) {
  *  `{verdict:"invalid", reason}`. `presentedKeyB64u` is the Ed25519 key the host ALREADY verified the request with. */
 export async function createAinraLinkCheck({ directory, roots, freshness = "F2", now = () => Math.floor(Date.now() / 1000), minEpoch = 0 } = {}) {
   if (!["F1", "F2", "F3"].includes(freshness)) throw new Error(`createAinraLinkCheck: freshness must be F1, F2 or F3, not ${freshness}`);
-  if (!ready) throw new Error("@ainra/edge: call initAinra(wasm) before creating a link check");
-  await ready;
+  if (!engineReady()) throw new Error("@ainra/edge: call initAinra(wasm) before creating a link check");
+  await engineReady();
   const str = (x) => (typeof x === "string" ? x : JSON.stringify(x));
   const acc = accreditAtLeast(str(directory), str(roots), minEpoch);
   if (!acc.ok) throw new Error(acc.refusal === "rollback"
@@ -279,24 +257,14 @@ export async function createAinraLinkCheck({ directory, roots, freshness = "F2",
     JSON.parse(core.link_check(JSON.stringify(link), trust, presentedKeyB64u, now(), freshness, capability ?? ""));
 }
 
-/** One `vectors/v1-link` entry, answered by the core. */
-export function runLinkVector(vector) {
-  if (!ready) throw new Error("@ainra/edge: call initAinra(wasm) first");
-  return JSON.parse(core.run_link_vector(JSON.stringify(vector)));
-}
 
 // ── Decision records (D-079) ──────────────────────────────────────────────────────────────────────────────────────
 
 /** Check a gate's decision log against its Ed25519 public key (base64url): `{ok, count}` or `{ok:false, index,
  *  problem}`. `anchor` is the record a segment continues from, or null. */
 export function verifyDecisionChain(lines, gateKeyB64u, anchor = null) {
-  if (!ready) throw new Error("@ainra/edge: call initAinra(wasm) first");
+  if (!engineReady()) throw new Error("@ainra/edge: call initAinra(wasm) first");
   return JSON.parse(core.decision_chain(gateKeyB64u, JSON.stringify(lines), JSON.stringify(anchor)));
-}
-/** One `vectors/v1-decision` entry, answered by the core. */
-export function runDecisionVector(vector) {
-  if (!ready) throw new Error("@ainra/edge: call initAinra(wasm) first");
-  return JSON.parse(core.run_decision_vector(JSON.stringify(vector)));
 }
 
 export const version = () => core.version();

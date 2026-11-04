@@ -155,7 +155,8 @@ footer .wrap{padding:26px 20px 34px}
 </footer>
 
 <script type="module">
-import { runVector, canonicalize } from "./vendor/ainra-sdk.js";
+import { conformance, canonicalize } from "./vendor/ainra-sdk.js";
+const { runVector } = conformance;
 
 const $ = (s, r=document) => r.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));

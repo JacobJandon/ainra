@@ -83,7 +83,7 @@ NBF="$NBF" WEXP="$WEXP" NOW="$NOW" node -e '
 echo
 echo "⑥ An INDEPENDENT verifier checks the new registrar's passport — the real @ainra/sdk, trusting the SOURCE not the seller"
 node --input-type=module -e '
-import { runVector } from "./ainrascan/vendor/ainra-sdk.js";
+import { conformance } from "./ainrascan/vendor/ainra-sdk.js"; const { runVector } = conformance;
 const enc=u=>Buffer.from(u).toString("base64").replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
 const norm=v=>JSON.stringify({verdict:v.verdict,reason:v.reason??null});
 const reg=await(await fetch("http://127.0.0.1:8091/registry.json")).json();

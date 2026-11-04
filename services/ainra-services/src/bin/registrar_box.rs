@@ -23,6 +23,7 @@ use std::time::Instant;
 
 use ainra_core::{b64, Verdict};
 use ainra_services::http::{serve, Request};
+use ainra_services::registrar::principal::PrincipalPolicy;
 use ainra_services::registrar::{
     AuditEvidence, HybridB64, IssueSpec, LinkSpec, RegistrarBox, RevocationKind,
 };
@@ -202,6 +203,7 @@ fn demo_spec(rng: &mut ChaCha20Rng, operator: &str, lineage: &str) -> IssueSpec 
         audit: None,
         holder_key: None,
         holder_pop: None,
+        principal_evidence: None,
     }
 }
 /// `true` iff `sub` is a specimen THIS registrar minted through the public door (stamped `demo:specimen`) — the
@@ -278,6 +280,17 @@ fn main() {
     // M35: certify the delegates at the WALL CLOCK before serving anything. A registrar reloaded from a snapshot —
     // or created at the fixed genesis instant below — would otherwise sign with certs that lapsed long ago.
     let mut rb = rb;
+    // PLAN-M51 step 3: an A1 request is issued only on evidence this checker accepts; without one, A1 is refused.
+    let principal = PrincipalPolicy::from_env();
+    eprintln!(
+        "registrar-box '{id}': A1 issuance {}",
+        if matches!(principal, PrincipalPolicy::Checked(_)) {
+            "checked by AINRA_PRINCIPAL_CHECKER"
+        } else {
+            "refused (no principal checker configured)"
+        }
+    );
+    rb.set_principal_policy(principal);
     match if clock_pinned() {
         Ok(false)
     } else {

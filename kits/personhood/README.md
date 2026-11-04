@@ -45,6 +45,20 @@ node personhood.mjs prove --message-file binding.txt --signature 0x… \
 On success, the registrar issues with `auth_class: "A1"` and `principal_proof: <the digest>`, and files the
 evidence in its own store.
 
+## As the reference registrar's checker
+
+The reference registrar issues A1 only on evidence a principal checker accepts (PLAN-M51 step 3, D-089). This kit is
+one:
+
+```bash
+AINRA_PRINCIPAL_CHECKER="node kits/personhood/personhood.mjs check-stdin" registrar-box 127.0.0.1:4971 registrar-07 data/
+```
+
+An A1 request then carries the agent's own key with its proof of possession (`holder_key`, `holder_pop`) and
+`principal_evidence: {message, signature}` — the binding the wallet signed. The registrar sends `{registrar, holder,
+evidence}` to `check-stdin` and issues only on `{"ok":true,"principal_proof":…}`, writing the kit's digest into the
+passport. Without a checker configured, A1 is refused by name, never issued under another class.
+
 ## Proof
 
 - `make personhood-test`: offline, 14 tests. The Ethereum primitives are checked against vectors from other

@@ -4,7 +4,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
-import { initAinra, runLinkVector, runDecisionVector, verifyDecisionChain, createAinraLinkCheck } from "../src/index.mjs";
+import { initAinra, verifyDecisionChain, createAinraLinkCheck } from "../src/index.mjs";
+import { runLinkVector, runDecisionVector } from "../src/conformance.mjs";
 
 await initAinra(readFileSync(new URL("../wasm/ainra_wasm_bg.wasm", import.meta.url)));
 const dir = (d) => new URL(`../../../vectors/${d}/`, import.meta.url);

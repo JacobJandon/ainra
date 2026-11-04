@@ -28,7 +28,7 @@ const mArg = process.argv.indexOf("--mirror");
 const MIRROR = join(ROOT, mArg >= 0 ? process.argv[mArg + 1] : "build/mirror");
 if (!existsSync(MIRROR)) { console.error(`root-dark-drill: no mirror at ${MIRROR} — run 'make mirror' first.`); process.exit(2); }
 
-const sdk = await import(join(ROOT, "packages/sdk-ts/dist/index.js"));
+const sdk = { ...(await import(join(ROOT, "packages/sdk-ts/dist/index.js"))), ...(await import(join(ROOT, "packages/sdk-ts/dist/conformance.js"))) };
 let bad = 0;
 const notes = [];
 const ms = () => Number(process.hrtime.bigint() / 1000000n);

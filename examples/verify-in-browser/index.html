@@ -27,7 +27,8 @@
 <script type="module">
   // The npm dist/ is the Node build (it imports node:zlib). The browser build is what runs in a page — the same
   // source, bundled for the platform, and the same file the project's own site serves.
-  import { runVector, expectedVerdict } from "./ainra-sdk.js";
+  import { conformance } from "./ainra-sdk.js";
+  const { runVector, expectedVerdict } = conformance;
 
   // A real conformance vector, shipped with the corpus. Its recorded verdict is the answer the other three
   // independent implementations produce for the same bytes.

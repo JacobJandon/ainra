@@ -9,6 +9,7 @@
 //! `registry.json` the explorer loads.
 
 use ainra_core::{b64, status};
+use ainra_services::registrar::principal::PrincipalPolicy;
 use ainra_services::registrar::{HopSpec, IssueSpec, RegistrarBox};
 use rand_chacha::ChaCha20Rng;
 use rand_core::SeedableRng;
@@ -242,6 +243,9 @@ pub fn build(out_root: &std::path::Path) -> std::io::Result<serde_json::Value> {
         let mut rb =
             RegistrarBox::create_seeded(&dir, plan.id, 256, plan.seed, CREATE_NOW, NBF, EXP)
                 .map_err(|e| std::io::Error::other(e.to_string()))?;
+        // These are labelled TEST-ROOT specimens: their A1 lineages carry a deterministic reference, not a proof any
+        // principal checker produced, and nothing here pretends otherwise (PLAN-M51 step 3).
+        rb.set_principal_policy(PrincipalPolicy::Specimen);
         // Each registrar's issuances use a deterministic rng derived from its seed (so chain party keys are stable).
         let mut rng = ChaCha20Rng::seed_from_u64(plan.seed ^ 0xA1);
 
@@ -275,6 +279,7 @@ pub fn build(out_root: &std::path::Path) -> std::io::Result<serde_json::Value> {
                 }),
                 holder_key: None,
                 holder_pop: None,
+                principal_evidence: None,
             };
             let rec = rb
                 .issue(&spec, &[], &mut rng)

@@ -3,7 +3,8 @@
 // genesis directory + roots), lists every passport, and verifies any of them locally with the real SDK: VALID /
 // INVALID + the one verdict-event. Works whenever a contract is reachable; degrades to an honest note otherwise.
 // Everything is client-side against the same read contract mirrors use (CORS from M14). Zero telemetry.
-import { runVector, verdictEvent, serializeVerdictEvent, verifyDirectory } from "../vendor/ainra-sdk.js";
+import { conformance, verdictEvent, serializeVerdictEvent, verifyDirectory } from "../vendor/ainra-sdk.js";
+const { runVector } = conformance;
 import { fetchT, why } from "./net.mjs";
 
 const qs = new URLSearchParams(location.search);

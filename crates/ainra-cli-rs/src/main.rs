@@ -12,6 +12,7 @@ use std::path::Path;
 use std::process::exit;
 
 use ainra_core::Verdict;
+use ainra_services::registrar::principal::PrincipalPolicy;
 use ainra_services::registrar::{IssueSpec, RegistrarBox};
 use ainra_services::status::{WireDelta, WireFreshHead};
 use rand_core::SeedableRng;
@@ -102,10 +103,13 @@ fn now_or_default(args: &[String]) -> u64 {
 
 /// Load a persisted registrar or print a friendly error.
 fn load(dir: &str) -> Result<RegistrarBox, i32> {
-    RegistrarBox::load(Path::new(dir)).map_err(|e| {
+    let mut rb = RegistrarBox::load(Path::new(dir)).map_err(|e| {
         eprintln!("cannot load registrar at '{dir}': {e}\n  next: create one with `ainra init {dir} <registrar-id>` (or `make issue-first` for a ready one).");
         1
-    })
+    })?;
+    // PLAN-M51 step 3: A1 needs evidence a principal checker accepts (AINRA_PRINCIPAL_CHECKER); otherwise refused.
+    rb.set_principal_policy(PrincipalPolicy::from_env());
+    Ok(rb)
 }
 
 /// FNV-1a of a string → a stable default seed for `init` (reproducible without `--seed`).
@@ -204,6 +208,7 @@ fn cmd_issue(a: &[String]) -> i32 {
             }),
         holder_key: None,
         holder_pop: None,
+        principal_evidence: None,
     };
     let mut rb = match load(dir) {
         Ok(rb) => rb,
@@ -716,6 +721,7 @@ fn cmd_demo() -> i32 {
         }),
         holder_key: None,
         holder_pop: None,
+        principal_evidence: None,
     };
     let rec = match rb.issue(&spec, &[], &mut rng) {
         Ok(r) => r,

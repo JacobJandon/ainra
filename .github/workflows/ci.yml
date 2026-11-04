@@ -170,6 +170,17 @@ jobs:
         run: make changelog-board-check
       - name: one decode path (no second bytes→core-types parser — L5)
         run: node tools/one-decode-path.mjs
+      - name: vectors replay only through a conformance import (PLAN-M51 step 2), and the check can fail
+        run: node tools/replay-import-check.mjs && node tools/replay-import-check.mjs --negative
+      # PLAN-M51 step 4: each gate that once sat in tools/negative-control-baseline.json plants the defect it exists
+      # for and must catch it. Offline; three of them read the built SDK.
+      - name: negative controls — 14 gates shown able to fail
+        run: |
+          (cd packages/sdk-ts && npm ci --no-audit --no-fund && npm run build)
+          for g in s7-lint license-check reasons-check names-check lockfile-sync soak-ingest-check one-decode-path \
+                   outreach-check deploy-current bench-gate ainra-verify verify-60s demo-walkthrough render-samples; do
+            node tools/$g.mjs --negative || { echo "::error::tools/$g.mjs --negative did not catch its planted defect"; exit 1; }
+          done
       # These two ran in `make preflight` but not here, so a public claim could be wrong on main with CI green: the
       # M37 commit overstated how many implementations share the request-signature layer (it is three), and only a local
       # preflight caught it (D-068). Both are node-only and need nothing built.

@@ -14,7 +14,7 @@
 //
 // The "subscriber" is just the normal refresh: on any hint (real or forged), it calls `runDeltaVector` — the same
 // validation the pull path always runs. There is no trusted push-only code path.
-import { runDeltaVector } from "../packages/sdk-ts/dist/index.js";
+import { runDeltaVector } from "../packages/sdk-ts/dist/conformance.js";
 import { readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";

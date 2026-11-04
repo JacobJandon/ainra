@@ -4,7 +4,8 @@
 // provides natively (fetch-standard Request/Response, WebAssembly, atob). `make edge-runtimes` runs it in each, and
 // `workerd.mjs` runs the gate inside Cloudflare's own runtime. A claim that the gate "runs in Deno" is this file
 // passing under `deno run`, nothing less.
-import { initAinra, createAinraEdgeGate, runPresentationVector } from "../src/index.mjs";
+import { initAinra, createAinraEdgeGate } from "../src/index.mjs";
+import { runPresentationVector } from "../src/conformance.mjs";
 
 const here = new URL("./", import.meta.url);
 const read = async (u) => {

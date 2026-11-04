@@ -26,7 +26,7 @@ const V = join(ROOT, "vectors/v1");
 
 const m = await import(join(ROOT, "site/assets/wasm/ainra_wasm.js"));
 await m.default({ module_or_path: readFileSync(join(ROOT, "site/assets/wasm/ainra_wasm_bg.wasm")) });
-const sdk = await import(join(ROOT, "packages/sdk-ts/dist/index.js"));
+const sdk = await import(join(ROOT, "packages/sdk-ts/dist/conformance.js"));
 
 // Exactly the two call shapes site/verify.html uses. Keep them in step with that file.
 const wasm = (p, a, n, aud) => {

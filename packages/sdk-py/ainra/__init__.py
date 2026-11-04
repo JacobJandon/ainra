@@ -40,7 +40,6 @@ from .middleware import AinraGate, AinraLinkGate, PresentationStore, ainra_gate,
 from .presentation import presentation_ref, sign_presentation
 from .verdict import Verdict
 from .verifier import Verifier
-from .verify import verify
 
 __all__ = [
     # ADR-019 — the instance rung. Verification is automatic (step 10 of verify()); these are the PRODUCING side,
@@ -61,9 +60,6 @@ __all__ = [
     "link_from_index",
     "Verifier",
     "Verdict",
-    # Fixture semantics, kept for compatibility: it replays a vector and never decides trust. Use
-    # ainra.conformance.run_vector for replay and Verifier for decisions; this root export goes in 0.7.0.
-    "verify",
     "verify_delta",
     "verify_head",
     "verify_directory",

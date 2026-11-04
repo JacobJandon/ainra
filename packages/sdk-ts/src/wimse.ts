@@ -25,7 +25,7 @@
 
 import { b64uDecode, b64uEncode, ed25519Verify } from "./crypto.js";
 import { contentDigest, headerValue, members, memberKey } from "./presentation.js";
-import type { PresentationBundle, Verdict } from "./index.js";
+import type { PresentationBundle, Verdict } from "./engine.js";
 
 export const WIT_HEADER = "workload-identity-token";
 export const WIT_TYP = "wit+jwt";

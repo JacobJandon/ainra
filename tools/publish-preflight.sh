@@ -34,11 +34,12 @@ echo "────────────────────────�
 V_SDK=$(node -p "require('$ROOT/packages/sdk-ts/package.json').version")
 V_MW=$(node -p "require('$ROOT/packages/middleware/package.json').version")
 V_MCP=$(node -p "require('$ROOT/packages/mcp/package.json').version")
+V_EDGE=$(node -p "require('$ROOT/packages/edge/package.json').version")
 V_PY=$(grep -m1 '^version' packages/sdk-py/pyproject.toml | sed 's/.*"\(.*\)".*/\1/')
-if [ "$V_SDK" = "$V_MW" ] && [ "$V_SDK" = "$V_MCP" ] && [ "$V_SDK" = "$V_PY" ]; then
-  pass "version agreement" "all four packages at $V_SDK"
+if [ "$V_SDK" = "$V_MW" ] && [ "$V_SDK" = "$V_MCP" ] && [ "$V_SDK" = "$V_EDGE" ] && [ "$V_SDK" = "$V_PY" ]; then
+  pass "version agreement" "all five packages at $V_SDK"
 else
-  block "version agreement" "sdk=$V_SDK middleware=$V_MW mcp=$V_MCP py=$V_PY — they must match before a release goes out"
+  block "version agreement" "sdk=$V_SDK middleware=$V_MW mcp=$V_MCP edge=$V_EDGE py=$V_PY — they must match before a release goes out"
 fi
 if ! git rev-parse "v$V_SDK" >/dev/null 2>&1; then
   block "tag exists" "no tag v$V_SDK — a package must never be published from untagged source (D-040)"
@@ -58,7 +59,7 @@ if [ -z "$(git status --porcelain)" ]; then pass "clean tree" "nothing uncommitt
   skip "clean tree" "working tree is dirty — publish from a clean checkout of the tag, not from here"; fi
 
 # ── 2. npm package hygiene (what a stranger receives) ────────────────────────────────────────────────────────────
-for pkg in sdk-ts middleware mcp; do
+for pkg in sdk-ts middleware mcp edge; do
   dir="packages/$pkg"
   name=$(node -p "require('$ROOT/$dir/package.json').name")
   # a local file: dependency resolves on this machine and nowhere else — it is the classic broken first publish
@@ -112,7 +113,7 @@ if [ -n "$TARBALL" ] && online; then
     # the same runVector/expectedVerdict pair the 4-way differential uses, so a passing install is a conformant one.
     cat > "$WORK/consumer/smoke.mjs" <<'JS'
 import { readFileSync, readdirSync } from "node:fs";
-import { runVector, expectedVerdict } from "@ainra/sdk";
+import { runVector, expectedVerdict } from "@ainra/sdk/conformance";
 const stable = (o) => o === null || typeof o !== "object" ? JSON.stringify(o)
   : Array.isArray(o) ? `[${o.map(stable).join(",")}]`
   : `{${Object.keys(o).sort().map((k) => `${JSON.stringify(k)}:${stable(o[k])}`).join(",")}}`;
@@ -237,6 +238,11 @@ cat <<EOF
     npm --prefix packages/mcp pkg set dependencies.@ainra/sdk=^$V_SDK
     cd packages/mcp && npm publish --access public --provenance && cd ../..
     npm --prefix packages/mcp pkg set dependencies.@ainra/sdk=file:../sdk-ts
+
+    # @ainra/edge — no SDK dependency, but it ships the WASM engine, which is built, never committed:
+    bash tools/build-wasm-edge.sh && make edge-test
+    cd packages/edge && npm publish --access public --provenance && cd ../..
+    # (prefer the workflow: gh workflow run publish.yml -f target=npm-edge — it builds and tests the engine itself)
 
   PyPI  (prefer a Trusted Publisher from CI; a token only from a trusted machine)
     python3 -m venv ~/.venvs/ainra-publish && ~/.venvs/ainra-publish/bin/pip install build twine

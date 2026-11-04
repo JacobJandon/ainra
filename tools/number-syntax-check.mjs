@@ -37,7 +37,7 @@ const V = join(ROOT, "vectors/v1");
 const name = readdirSync(V).filter((f) => f.startsWith("instance-valid-")).sort()[0];
 const base = readFileSync(join(V, name), "utf8");
 
-const sdk = await import(join(ROOT, "packages/sdk-ts/dist/index.js"));
+const sdk = await import(join(ROOT, "packages/sdk-ts/dist/conformance.js"));
 const m = await import(join(ROOT, "site/assets/wasm/ainra_wasm.js"));
 await m.default({ module_or_path: readFileSync(join(ROOT, "site/assets/wasm/ainra_wasm_bg.wasm")) });
 

@@ -8,7 +8,7 @@ only bytes a mirror serves?
 inside it. The isolation is the method: a drill run inside the repository would pass while proving nothing, because
 every missing artifact is one directory away. No network is used at any point.
 
-**Run.** 2026-08-27T11:46:46.626Z
+**Run.** 2026-11-04T09:15:18.865Z
 
 | Step | Result |
 |---|---|

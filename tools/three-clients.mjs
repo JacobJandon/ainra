@@ -23,7 +23,7 @@ const assert = (cond, msg) => { if (!cond) throw new Error(msg); };
 
 // A · HTTP + browser SDK bundle
 async function clientHTTP() {
-  const { runVector } = await import("../site/vendor/ainra-sdk.js");
+  const { conformance: { runVector } } = await import("../site/vendor/ainra-sdk.js");
   const A = await anchors();
   const rec = await post("/demo/issue");
   assert(rec.sub, "issue failed");
@@ -38,7 +38,7 @@ async function clientHTTP() {
 // C · curl (shell) for the door + sdk-ts/dist (a different SDK entry) for verify
 async function clientCurl() {
   const curl = (args) => JSON.parse(execFileSync("curl", ["-s", "--max-time", "8", ...args], { encoding: "utf8" }));
-  const { runVector } = await import("../packages/sdk-ts/dist/index.js");
+  const { runVector } = await import("../packages/sdk-ts/dist/conformance.js");
   const A = await anchors();
   const rec = curl(["-X", "POST", `${REG}/demo/issue`]);
   assert(rec.sub, "issue failed");

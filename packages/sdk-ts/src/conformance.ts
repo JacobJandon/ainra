@@ -17,5 +17,5 @@ export {
   runDecisionVector,
   runDirectoryEpochVector,
   runCurrencyVector,
-} from "./index.js";
+} from "./engine.js";
 export { runPresentationVector } from "./presentation.js";

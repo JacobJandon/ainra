@@ -777,62 +777,74 @@ pub fn reason_str(r: Reason) -> String {
     r.as_str().to_string()
 }
 
+/// A malformed field in the vector is a refusal (`schema_violation`), never a panic: the fuzz target for deltas
+/// (PLAN-M51 step 5) found the first panic in its first second, on a vector with a non-base64url signature.
 pub fn delta_verify(v: &WireDeltaVector) -> Result<(), Reason> {
-    let root_pub = b64::decode(&v.root_pub_slh).expect("root pk");
+    delta_verify_inner(v).unwrap_or(Err(Reason::SchemaViolation))
+}
+
+fn delta_verify_inner(v: &WireDeltaVector) -> Option<Result<(), Reason>> {
+    let root_pub = b64::decode(&v.root_pub_slh).ok()?;
     let cert = checkpoint::DelegateCert {
-        delegate_ed25519: b64::decode_array::<32>(&v.cert.delegate_ed25519).expect("delegate pk"),
+        delegate_ed25519: b64::decode_array::<32>(&v.cert.delegate_ed25519).ok()?,
         scopes: v.cert.scopes.clone(),
         nbf: v.cert.nbf,
         exp: v.cert.exp,
-        sig_slh: b64::decode(&v.cert.sig_slh).expect("cert sig"),
+        sig_slh: b64::decode(&v.cert.sig_slh).ok()?,
     };
     if v.kind == "delta" {
-        let reg = v.registrar_pub.as_ref().expect("registrar_pub");
+        let reg = v.registrar_pub.as_ref()?;
         let reg_pub = crypto::HybridPublic {
-            ed25519: b64::decode_array::<32>(&reg.ed25519).expect("reg ed"),
-            mldsa65: b64::decode(&reg.mldsa65).expect("reg ml"),
+            ed25519: b64::decode_array::<32>(&reg.ed25519).ok()?,
+            mldsa65: b64::decode(&reg.mldsa65).ok()?,
         };
-        let sig = v.sig_registrar.as_ref().expect("sig_registrar");
+        let sig = v.sig_registrar.as_ref()?;
         let d = status::StatusDelta {
-            uri: v.uri.clone().expect("uri"),
-            from_seq: v.from_seq.expect("from_seq"),
-            seq: v.seq.expect("seq"),
-            ts: v.ts.expect("ts"),
-            idx: v.idx.clone().expect("idx"),
-            new_status: v.new_status.expect("new_status"),
+            uri: v.uri.clone()?,
+            from_seq: v.from_seq?,
+            seq: v.seq?,
+            ts: v.ts?,
+            idx: v.idx.clone()?,
+            new_status: v.new_status?,
             sig_registrar: crypto::HybridSig {
-                ed25519: b64::decode(&sig.ed25519).expect("sig ed"),
-                mldsa65: b64::decode(&sig.mldsa65).expect("sig ml"),
+                ed25519: b64::decode(&sig.ed25519).ok()?,
+                mldsa65: b64::decode(&sig.mldsa65).ok()?,
             },
-            countersig_delegate: b64::decode(v.countersig_delegate.as_deref().expect("countersig"))
-                .expect("countersig b64"),
+            countersig_delegate: b64::decode(v.countersig_delegate.as_deref()?).ok()?,
         };
-        d.verify(&reg_pub, &root_pub, &cert, v.now)
+        Some(d.verify(&reg_pub, &root_pub, &cert, v.now))
     } else {
         let h = status::FreshHead {
-            uri: v.uri.clone().expect("uri"),
-            seq: v.seq.expect("seq"),
-            ts: v.ts.expect("ts"),
-            status_hash: b64::decode_array::<32>(v.status_hash.as_deref().expect("hash"))
-                .expect("hash b64"),
-            sig_delegate: b64::decode(v.sig_delegate.as_deref().expect("sig")).expect("sig b64"),
+            uri: v.uri.clone()?,
+            seq: v.seq?,
+            ts: v.ts?,
+            status_hash: b64::decode_array::<32>(v.status_hash.as_deref()?).ok()?,
+            sig_delegate: b64::decode(v.sig_delegate.as_deref()?).ok()?,
         };
         let f = match v.freshness.as_deref() {
             Some("F2") => status::Freshness::F2,
             Some("F3") => status::Freshness::F3,
             _ => status::Freshness::F1,
         };
-        h.verify(&root_pub, &cert, v.now, f)
+        Some(h.verify(&root_pub, &cert, v.now, f))
     }
 }
 
 // ── directory vectors ──────────────────────────────────────────────────────────────────────────────────────
 
+/// A vector that is not shaped like one is `{"accept": false}`, never a panic (found by the directory fuzz target,
+/// PLAN-M51 step 5).
 pub fn directory_result(v: &serde_json::Value) -> serde_json::Value {
-    let d: ainra_core::directory::Directory =
-        serde_json::from_value(v["directory"].clone()).expect("dir");
-    let root_ed = b64::decode_array::<32>(v["root_ed25519"].as_str().unwrap()).expect("ed");
-    let root_slh = b64::decode(v["root_slh"].as_str().unwrap()).expect("slh");
+    let parsed = (|| {
+        let d: ainra_core::directory::Directory =
+            serde_json::from_value(v["directory"].clone()).ok()?;
+        let root_ed = b64::decode_array::<32>(v["root_ed25519"].as_str()?).ok()?;
+        let root_slh = b64::decode(v["root_slh"].as_str()?).ok()?;
+        Some((d, root_ed, root_slh))
+    })();
+    let Some((d, root_ed, root_slh)) = parsed else {
+        return json!({ "accept": false });
+    };
     match d.accredit(&root_ed, &root_slh) {
         Ok(acc) => json!({ "accept": true, "registrars": acc.anchors.registrars.len() }),
         Err(_) => json!({ "accept": false }),

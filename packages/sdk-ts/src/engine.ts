@@ -1,0 +1,2412 @@
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+// AINRA verify-only SDK — a faithful mirror of ainra-core (independent implementation #2 for the diff-harness).
+// The nine verify steps, their fixed order, and the 20 frozen reason strings match crates/ainra-core/src/verify.rs.
+//
+// Validity (ADR-017): the IDENTITY (lineage + AINRA Number) is permanent; the CREDENTIAL defaults to 366 days and
+// renews invisibly (T−30 d reissue, overlap issuance, a logged `prev_leaf` continuity chain). The window check is
+// exact — nbf inclusive, exp exclusive, no skew, no grace period. Long credentials are safe here because
+// revocation fails closed in <60 s; short certificates are what you need when it doesn't.
+
+import { inflateSync } from "node:zlib";
+import { canonicalize } from "./canon.js";
+import {
+  b64uDecode,
+  b64uEncode,
+  ed25519Verify,
+  es256kVerify,
+  hashLeaf,
+  secp256k1Affine,
+  sha256,
+  slhVerify,
+  verifyHybrid,
+  verifyInclusion,
+  type HybridPublic,
+  type HybridSig,
+} from "./crypto.js";
+
+export { canonicalize } from "./canon.js";
+
+// RFC 9421 presentation signing and verification (D-062, PLAN-M34). Re-exported from the package root so an
+// integrator gets it with `@ainra/sdk` rather than a deep import: the point of this layer is that the request
+// itself is bound, and a binding nobody can find protects nobody.
+export {
+  signPresentation, verifyPresentation, signatureBase, contentDigest, coveredComponents,
+  SIG_LABEL, SIG_ALG, PRESENTATION_HEADER, MAX_AGE_SECS, MAX_FUTURE_SECS,
+  // M36 (D-065): send the bundle once, name it by digest after that
+  PRIME_PATH, POP_HEADER, isPresentationRef, splitPresentation, joinPresentation, presentationRef,
+  // PLAN-M34 Task 3–4: hold this implementation to the core's presentation corpus
+  runPresentationVector,
+} from "./presentation.js";
+export type { PresentationReason, PresentationCheck, SignableRequest, SigParams } from "./presentation.js";
+
+// M46 (D-076): an AINRA running copy as a standard IETF WIMSE workload, plus the revocation check WIMSE lacks.
+export {
+  trustDomainOf, wimseIdentifier, mintWit, signWimseRequest, verifyWimseRequest,
+  WIT_HEADER, WIT_TYP, WIMSE_TAG, WIT_MAX_SECS, WIMSE_SIG_MAX_SECS,
+} from "./wimse.js";
+
+// ── Verdicts + the 20 frozen reasons ───────────────────────────────────────────────────────────────────────────
+export type Reason =
+  | "sig_invalid"
+  | "alg_downgrade"
+  | "expired"
+  | "not_yet_valid"
+  | "revoked"
+  | "mandate_revoked"
+  | "chain_widening"
+  | "chain_expired"
+  | "not_logged"
+  | "checkpoint_invalid"
+  | "stale_status"
+  | "name_malformed"
+  | "ceiling_exceeded"
+  | "unknown_registrar"
+  | "registrar_distrusted"
+  | "schema_violation"
+  // ADR-019 / D-047 — the instance rung. Four reasons, none reused: an integrator debugging a rejected running
+  // copy must not be handed `expired`, which reads as "your passport ran out" when the passport is fine.
+  | "instance_expired"
+  | "instance_scope_exceeds"
+  | "instance_sig_invalid"
+  | "instance_pop_invalid";
+
+export type Verdict = { verdict: "valid" } | { verdict: "invalid"; reason: Reason };
+
+const VALID: Verdict = { verdict: "valid" };
+const invalid = (reason: Reason): Verdict => ({ verdict: "invalid", reason });
+
+/** Thrown internally to short-circuit to an INVALID verdict with a reason. */
+class Reject extends Error {
+  constructor(public reason: Reason) {
+    super(reason);
+  }
+}
+
+// ── Name grammar (mirror name.rs) ──────────────────────────────────────────────────────────────────────────────
+function validateLabel(s: string): boolean {
+  if (s.length < 1 || s.length > 63) return false;
+  for (let i = 0; i < s.length; i++) {
+    const c = s.charCodeAt(i);
+    const ok = (c >= 0x61 && c <= 0x7a) || (c >= 0x30 && c <= 0x39) || c === 0x2d; // a-z 0-9 -
+    if (!ok) return false;
+  }
+  return s[0] !== "-" && s[s.length - 1] !== "-";
+}
+function validateVersion(s: string): boolean {
+  const parts = s.split(".");
+  if (parts.length < 1 || parts.length > 3) return false;
+  for (const p of parts) {
+    if (p.length === 0) return false;
+    if (!/^[0-9]+$/.test(p)) return false;
+    if (p.length > 1 && p[0] === "0") return false; // no leading zeros (except "0")
+  }
+  return true;
+}
+/** ainra:{registrar}:{operator}:{lineage}@{version} */
+function parseName(s: string): boolean {
+  const at = s.split("@");
+  if (at.length !== 2) return false;
+  if (!validateVersion(at[1])) return false;
+  const p = at[0].split(":");
+  if (p.length !== 4 || p[0] !== "ainra") return false;
+  return validateLabel(p[1]) && validateLabel(p[2]) && validateLabel(p[3]);
+}
+/** did:ainra:{registrar}:{operator}:{lineage} → returns registrar id, or null if malformed. */
+function parseDidRegistrar(s: string): string | null {
+  const p = s.split(":");
+  if (p.length !== 5 || p[0] !== "did" || p[1] !== "ainra") return null;
+  if (!validateLabel(p[2]) || !validateLabel(p[3]) || !validateLabel(p[4])) return null;
+  return p[2];
+}
+
+// ── Passport schema gate (mirror passport.rs) ──────────────────────────────────────────────────────────────────
+const FORBIDDEN_KEYS = new Set([
+  "email", "phone", "name", "full_name", "given_name", "family_name", "surname", "address", "street", "city",
+  "postcode", "zip", "ssn", "national_id", "dob", "birthdate", "gender", "photo", "ip", "geolocation",
+  "score", "trust_score", "reputation", "rating", "ranking", "karma", "credit_score",
+  "price", "amount", "fee", "cost", "payment", "balance", "invoice_total", "currency", "wallet", "iban",
+]);
+const ALLOWED_TOP = new Set([
+  "vct", "iss", "sub", "nbf", "exp", "authority", "tier", "capabilities", "scope_ceiling", "keys", "cnf",
+  "status", "log", "act_chain", "mandates", "mandates_root", "mandates_size", "transfer_history", "prev_leaf",
+]);
+// Nested deny-unknown-fields sets — mirror each Rust struct's #[serde(deny_unknown_fields)] (review finding #7).
+const ALLOWED_AUTHORITY = new Set(["class", "principal_proof"]);
+const ALLOWED_KEY = new Set(["ed25519", "mldsa65"]);
+const ALLOWED_STATUS = new Set(["status_list"]);
+const ALLOWED_STATUSREF = new Set(["idx", "uri"]);
+const ALLOWED_LOG = new Set(["leaf", "root", "checkpoint"]);
+const ALLOWED_HOP = new Set(["from", "to", "granted", "exp", "sig_ed25519", "sig_mldsa65", "sig_child_ed25519", "sig_child_mldsa65", "log_leaf"]);
+const ALLOWED_MANDATE = new Set(["id", "parent"]);
+const VCT = "ainra/passport/v1";
+
+/** Reject any key not in `allowed` on a plain object (mirror deny_unknown_fields). */
+function denyUnknown(o: unknown, allowed: Set<string>): void {
+  if (o === null || typeof o !== "object" || Array.isArray(o)) throw new Reject("schema_violation");
+  for (const k of Object.keys(o as object)) if (!allowed.has(k)) throw new Reject("schema_violation");
+}
+function reqString(v: unknown): string {
+  if (typeof v !== "string") throw new Reject("schema_violation");
+  return v;
+}
+function reqStringArray(v: unknown): string[] {
+  if (!Array.isArray(v) || v.some((x) => typeof x !== "string")) throw new Reject("schema_violation");
+  return v as string[];
+}
+
+function scanForbidden(v: unknown): void {
+  if (Array.isArray(v)) {
+    for (const it of v) scanForbidden(it);
+  } else if (v !== null && typeof v === "object") {
+    for (const [k, child] of Object.entries(v as object)) {
+      if (FORBIDDEN_KEYS.has(k.toLowerCase())) throw new Reject("schema_violation");
+      scanForbidden(child);
+    }
+  }
+}
+
+interface MandateNode {
+  id: string;
+  parent: string | null;
+}
+interface ActLink {
+  from: string;
+  to: string;
+  granted: string[];
+  exp: number;
+  sig_ed25519: string;
+  sig_mldsa65: string;
+  sig_child_ed25519: string;
+  sig_child_mldsa65: string;
+  log_leaf: string;
+}
+interface Passport {
+  iss: string;
+  sub: string;
+  nbf: number;
+  exp: number;
+  capabilities: string[];
+  scope_ceiling: string[];
+  statusIdx: number;
+  /** The status-list URI this passport points to (`status.status_list.uri`). The GA {@link Verifier} binds it to the
+   *  registrar's directory-published status URI and to the signed publication's URI, so a presenter cannot splice in
+   *  a different (all-clear) registrar's list (D-020). */
+  statusUri: string;
+  logLeaf: string;
+  act_chain: ActLink[];
+  mandates: MandateNode[];
+  /** The passport's hybrid control keys, already schema-gated as non-empty. ADR-019 uses `keys[0]` as the key that
+   *  mints instance credentials — the one that must never enter a container. */
+  keys: { ed25519: string; mldsa65: string }[];
+}
+
+function parseChecked(claims: Uint8Array): Passport {
+  let raw: unknown;
+  try {
+    raw = JSON.parse(Buffer.from(claims).toString("utf8"));
+  } catch {
+    throw new Reject("schema_violation");
+  }
+  scanForbidden(raw);
+  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) throw new Reject("schema_violation");
+  const o = raw as Record<string, unknown>;
+  for (const k of Object.keys(o)) if (!ALLOWED_TOP.has(k)) throw new Reject("schema_violation");
+  if (o.vct !== VCT) throw new Reject("schema_violation");
+  if (typeof o.sub !== "string" || !parseName(o.sub)) throw new Reject("name_malformed");
+  if (typeof o.iss !== "string" || parseDidRegistrar(o.iss) === null) throw new Reject("name_malformed");
+  // authority (nested deny_unknown_fields + required fields)
+  denyUnknown(o.authority, ALLOWED_AUTHORITY);
+  reqString((o.authority as Record<string, unknown>).class);
+  reqString((o.authority as Record<string, unknown>).principal_proof);
+  // keys — at least one; each carries BOTH algorithms as non-empty strings; no stray fields
+  const keys = o.keys;
+  if (!Array.isArray(keys) || keys.length === 0) throw new Reject("schema_violation");
+  for (const k of keys) {
+    denyUnknown(k, ALLOWED_KEY);
+    const ke = k as Record<string, unknown>;
+    if (typeof ke.ed25519 !== "string" || ke.ed25519.length === 0) throw new Reject("schema_violation");
+    if (typeof ke.mldsa65 !== "string" || ke.mldsa65.length === 0) throw new Reject("schema_violation");
+  }
+  if (typeof o.nbf !== "number" || typeof o.exp !== "number" || o.exp <= o.nbf) throw new Reject("schema_violation");
+  // capabilities + scope_ceiling are REQUIRED string arrays (Rust has no serde default — review #10)
+  const capabilities = reqStringArray(o.capabilities);
+  const scope_ceiling = reqStringArray(o.scope_ceiling);
+  // status + log shape (mirror the Rust serde structs — review #5)
+  denyUnknown(o.status, ALLOWED_STATUS);
+  const sl = (o.status as Record<string, unknown>).status_list;
+  denyUnknown(sl, ALLOWED_STATUSREF);
+  const idx = (sl as { idx: unknown }).idx;
+  // idx MUST be a non-negative integer (Rust parses it as u64 — a negative/fractional idx fails there, so it must
+  // fail here too, else a negative index would read `statusBits[-1] === undefined` as not-revoked = a bypass).
+  if (typeof idx !== "number" || !Number.isInteger(idx) || idx < 0) throw new Reject("schema_violation");
+  const statusUri = reqString((sl as Record<string, unknown>).uri);
+  denyUnknown(o.log, ALLOWED_LOG);
+  const logLeaf = reqString((o.log as Record<string, unknown>).leaf);
+  reqString((o.log as Record<string, unknown>).root);
+  reqString((o.log as Record<string, unknown>).checkpoint);
+  // act_chain: nested deny-unknown + dual-sig + log_leaf presence + structural linkage (D-012)
+  if (o.act_chain !== undefined && !Array.isArray(o.act_chain)) throw new Reject("schema_violation");
+  const act_chain = (o.act_chain as ActLink[]) ?? [];
+  for (const hop of act_chain) {
+    denyUnknown(hop, ALLOWED_HOP);
+    if (!reqString(hop.from) || !parseName(hop.from)) throw new Reject("name_malformed");
+    if (!reqString(hop.to) || !parseName(hop.to)) throw new Reject("name_malformed");
+    reqStringArray(hop.granted);
+    if (typeof hop.exp !== "number") throw new Reject("schema_violation");
+    if (!hop.sig_ed25519 || !hop.sig_mldsa65 || !hop.sig_child_ed25519 || !hop.sig_child_mldsa65 || !hop.log_leaf)
+      throw new Reject("schema_violation");
+  }
+  for (let i = 1; i < act_chain.length; i++) {
+    if (act_chain[i].from !== act_chain[i - 1].to) throw new Reject("schema_violation");
+  }
+  if (act_chain.length > 0 && act_chain[act_chain.length - 1].to !== o.sub) throw new Reject("schema_violation");
+  // Static mandates: nested deny-unknown; DYNAMIC (mandates_root/size) is M3 — fail closed (D-013 revised, review #1/#4)
+  const mandates = (o.mandates as MandateNode[]) ?? [];
+  if (o.mandates !== undefined && !Array.isArray(o.mandates)) throw new Reject("schema_violation");
+  for (const n of mandates) denyUnknown(n, ALLOWED_MANDATE);
+  if (o.mandates_root !== undefined || o.mandates_size !== undefined) throw new Reject("schema_violation");
+  // ADR-017 renewal continuity: `prev_leaf` present ⇒ a REISSUE; it must strictly decode to a 32-byte leaf hash
+  // (mirrors Rust's `b64::decode_array::<32>` gate — a malformed link would make the renewal chain unwalkable
+  // while still looking like a renewal, so it fails closed here). Two parity subtleties with the Rust side:
+  //   * Rust's `Option<String>` maps a JSON `null` to `None` (= absent, first issuance), so `null` is NOT an
+  //     error here either — treat null exactly like a missing field;
+  //   * Rust decodes with base64ct (STRICT, unpadded) which rejects a non-canonical last char (nonzero trailing
+  //     bits), whereas Node's `Buffer.from(_, "base64")` silently accepts it. So a canonical round-trip
+  //     (`b64uEncode(decode(s)) === s`) is REQUIRED — without it a 43-char non-canonical link is accepted here
+  //     and rejected by Rust, a fail-open verdict split in the SDK.
+  if (o.prev_leaf !== undefined && o.prev_leaf !== null) {
+    if (typeof o.prev_leaf !== "string") throw new Reject("schema_violation");
+    const pl = strictB64u(o.prev_leaf);
+    if (pl === null || pl.length !== 32 || b64uEncode(pl) !== o.prev_leaf) throw new Reject("schema_violation");
+  }
+  return {
+    iss: o.iss as string,
+    sub: o.sub as string,
+    nbf: o.nbf as number,
+    exp: o.exp as number,
+    capabilities,
+    scope_ceiling,
+    statusIdx: idx,
+    statusUri,
+    logLeaf,
+    act_chain,
+    mandates,
+    keys: keys as { ed25519: string; mldsa65: string }[],
+  };
+}
+
+// ── Status list + freshness (mirror status.rs) ─────────────────────────────────────────────────────────────────
+// Null-prototype lookup so a presenter-supplied freshness label of "__proto__"/"constructor" resolves to `undefined`
+// (fail closed at step 7), never to an inherited Object.prototype member that would defeat the freshness gate.
+const FRESHNESS_MAX: Record<string, number> = Object.assign(Object.create(null), { F1: 30, F2: 300, F3: 86400 });
+
+/** Hard cap on a status list's declared length: 2^24 lineages (~2 MiB PACKED bitmap, since {@link unpackStatus}
+ *  keeps the list packed and never expands it to a `boolean[]`). A larger `bit_len` is rejected (fail closed) so a
+ *  hostile bundle can neither pre-allocate an enormous bitmap nor drive an unbounded inflate. Mirrors the Rust
+ *  `StatusList::decode` cap (kept byte-parity by regenerating with the same bound). */
+const MAX_STATUS_BITS = 1 << 24;
+
+/** Decompress a status list to its PACKED bytes (LSB-first, `ceil(bitLen/8)` bytes) — never expanded to a
+ *  `boolean[]`. A `boolean[]` of `bitLen` entries costs ~180× the packed bytes in V8 (a status_len at the 2^24 cap
+ *  would be ~360 MB, an unauthenticated compression-amplification OOM); the packed `Uint8Array` is ≤ 2 MiB at the
+ *  cap. Read individual bits with {@link statusBit}. */
+function unpackStatus(compressed: Uint8Array, bitLen: number): Uint8Array {
+  // Bound the declared length BEFORE touching the allocator (review: unbounded status_len → OOM).
+  if (!Number.isInteger(bitLen) || bitLen < 0 || bitLen > MAX_STATUS_BITS) throw new Reject("stale_status");
+  const need = Math.ceil(bitLen / 8);
+  let packed: Uint8Array;
+  try {
+    // Cap the decompressed size to exactly what the declared length needs (+ a little slack). A zlib bomb that would
+    // inflate past this throws RangeError → mapped to stale_status (status unavailable ⇒ fail closed).
+    packed = new Uint8Array(inflateSync(compressed, { maxOutputLength: need + 8 }));
+  } catch {
+    throw new Reject("stale_status");
+  }
+  // Fail closed on a truncated list — mirror Rust StatusList::decode's length guard (review #3): a blob shorter
+  // than the declared length must NOT be read past its end as 0 (valid).
+  if (packed.length < need) throw new Reject("stale_status");
+  return packed;
+}
+
+/** Resolve one lineage's status from a packed list. **Fail closed**: an index at/beyond `bitLen` is `revoked`
+ *  (`true`), never valid — mirrors Rust `StatusList::status_of`. */
+function statusBit(packed: Uint8Array, bitLen: number, idx: number): boolean {
+  if (idx < 0 || idx >= bitLen) return true;
+  return ((packed[idx >> 3] >> (idx & 7)) & 1) === 1;
+}
+
+// ── Delegation chain (mirror chain.rs) ─────────────────────────────────────────────────────────────────────────
+function subset(a: string[], b: string[]): boolean {
+  return a.every((x) => b.includes(x));
+}
+function hopSigningBytes(h: ActLink): Uint8Array {
+  return new TextEncoder().encode(canonicalize({ from: h.from, to: h.to, granted: h.granted, exp: h.exp }));
+}
+function hopLeaf(h: ActLink): Uint8Array {
+  return hashLeaf(hopSigningBytes(h));
+}
+
+// ── Mandate (mirror mandate.rs) ────────────────────────────────────────────────────────────────────────────────
+function checkMandatePath(path: MandateNode[], revoked: Set<string>): void {
+  if (path.length === 0) return;
+  if (path[0].parent !== null && path[0].parent !== undefined) throw new Reject("schema_violation");
+  for (let i = 1; i < path.length; i++) {
+    if (path[i].parent !== path[i - 1].id) throw new Reject("schema_violation");
+  }
+  if (path.some((n) => revoked.has(n.id))) throw new Reject("mandate_revoked");
+}
+
+// ── The verify inputs ──────────────────────────────────────────────────────────────────────────────────────────
+export interface RegistrarInfo {
+  issuerKey: HybridPublic;
+  logRootKey: Uint8Array;
+  /** D-044 graduated-distrust cutoff. `undefined` = fully trusted; a number = refuse this registrar's credentials
+   *  logged at leaf index >= it, while everything earlier keeps verifying. Keyed on log position, never on a date,
+   *  so a backdated credential cannot slip under it. */
+  distrustFromLeaf?: number;
+  /** The registrar's status-list-signing hybrid key (from the directory). The GA {@link Verifier} authenticates a
+   *  presented status list against this before trusting a single bit — so a presenter cannot forge an all-clear
+   *  status to bypass revocation (D-020). Absent when anchors are hand-built (raw `runVector` conformance path). */
+  statusKey?: HybridPublic;
+  /** The registrar's directory-published status-list URI. The signed publication in the bundle AND the passport's
+   *  own claimed status URI must both equal this — a triple binding that stops a presenter splicing another
+   *  registrar's list. Present iff {@link statusKey} is. */
+  statusUri?: string;
+}
+export type TrustAnchors = Record<string, RegistrarInfo>;
+
+export interface HopLogProof {
+  leafIndex: number;
+  proof: Uint8Array[];
+}
+/** ADR-002 delegate certificate + delegate signature. */
+export interface DelegateCert {
+  delegateEd25519: Uint8Array;
+  scopes: string[];
+  nbf: number;
+  exp: number;
+  sigSlh: Uint8Array;
+}
+export type CheckpointSig =
+  | { mode: "root"; slh: Uint8Array }
+  | { mode: "delegate"; cert: DelegateCert; sigEd25519: Uint8Array };
+
+export interface MandateInclusion {
+  leafIndex: number;
+  proof: Uint8Array[];
+}
+
+export interface Presentation {
+  claims: Uint8Array;
+  issuerSig: HybridSig;
+  now: number;
+  chainKeys: HybridPublic[];
+  hopProofs: HopLogProof[];
+  /** The status list as PACKED bytes (LSB-first) — never a `boolean[]` (see {@link unpackStatus}). Read a lineage
+   *  with {@link statusBit}. */
+  statusBits: Uint8Array;
+  /** The declared bit length of {@link statusBits} (an index ≥ this is fail-closed `revoked`). */
+  statusBitLen: number;
+  statusIssuedAt: number;
+  freshness: string;
+  checkpoint: { origin: string; size: number; root: Uint8Array; rootB64: string };
+  checkpointSig: CheckpointSig;
+  leafIndex: number;
+  inclusionProof: Uint8Array[];
+  mandatePath: MandateNode[];
+  mandateProofs: MandateInclusion[];
+  mandateRevocations: Set<string>;
+  /** Revoked delegate-cert fingerprints (base64url SHA-256), M4 — from the dual-root-signed directory. A checkpoint
+   *  signed by a revoked delegate is `checkpoint_invalid`. Empty = no delegate revocations known (M1–M3 behaviour). */
+  revokedDelegates: Set<string>;
+  /** ADR-019 / D-047 — the instance rung. `undefined` = a passport presented directly (pre-M28 behaviour). */
+  instance?: { ic: InstanceCredential; pop: InstancePop };
+  /** The VERIFIER's own audience — never the presenter's word for it. */
+  audience?: string;
+}
+
+/** ADR-019: the credential a RUNNING COPY carries. Minted by the passport's control key, which never enters the
+ *  container; short (≤1 h), narrower than the passport, and holder-bound by {@link InstancePop}. */
+export interface InstanceCredential {
+  sub: string;
+  iid: string;
+  ikey: HybridPublic;
+  nbf: number;
+  exp: number;
+  capabilities: string[];
+  aud: string;
+  passportLeaf: Uint8Array;
+  sig: HybridSig;
+}
+/** The presenter's proof it holds the instance key — what makes the presentation holder-bound, not bearer. */
+export interface InstancePop {
+  aud: string;
+  nonce: string;
+  ts: number;
+  sig: HybridSig;
+}
+
+/** ≤ 1 h instance-credential ceiling (ADR-019) — mirrors `ainra_core::consts::INSTANCE_CRED_DEFAULT_SECS`. */
+export const INSTANCE_CRED_DEFAULT_SECS = 60 * 60;
+/** PoP timestamp tolerance — mirrors `ainra_core::instance::POP_MAX_SKEW_SECS`. A FRESHNESS-layer tolerance
+ *  (ADR-016), never applied to a validity window: the instance window is compared exactly, like the passport's. */
+export const POP_MAX_SKEW_SECS = 30;
+
+/** How far a PoP may be dated into the FUTURE — clock skew only (D-050). Mirrors
+ *  `ainra_core::instance::POP_MAX_FUTURE_SECS`. Every second here is a second a presenter can add to a captured
+ *  PoP's life, and buys an honest party almost nothing. */
+export const POP_MAX_FUTURE_SECS = 5;
+
+/** Longest `iid` a verifier will look at (D-053). Mirrors `ainra_core::instance::MAX_IID_LEN`. The field is
+ *  attacker-chosen and reaches the verifier's LOG, so it is bounded before it is read. */
+export const MAX_IID_LEN = 64;
+
+/** Most capabilities either side of the ∩ check may carry (D-053). Mirrors
+ *  `ainra_core::instance::MAX_CAPABILITIES`. The subset test is O(n×m) and neither side was bounded. */
+export const MAX_CAPABILITIES = 256;
+
+/** Canonical bytes the passport's control key signs. Field order mirrors `InstanceCredential::signing_bytes` in
+ *  ainra-core byte-for-byte; the four-way differential is what keeps them honest. */
+export function instanceSigningBytes(ic: InstanceCredential): Uint8Array {
+  return new TextEncoder().encode(canonicalize({
+    aud: ic.aud,
+    capabilities: ic.capabilities,
+    exp: ic.exp,
+    iid: ic.iid,
+    ikey: { ed25519: b64uEncode(ic.ikey.ed25519), mldsa65: b64uEncode(ic.ikey.mldsa65) },
+    nbf: ic.nbf,
+    passport_leaf: b64uEncode(ic.passportLeaf),
+    sub: ic.sub,
+  }));
+}
+/** SHA-256 over an instance credential's signing bytes — mirrors `InstanceCredential::digest` (D-049). */
+export function instanceCredDigest(ic: InstanceCredential): Uint8Array {
+  return sha256(instanceSigningBytes(ic));
+}
+
+/** Canonical bytes the INSTANCE key signs.
+ *
+ *  `cred` binds the proof to ONE credential (D-049). Without it the body named neither the credential nor the
+ *  instance, so a PoP captured from an honest presentation could be replayed with a different credential minted to
+ *  the same instance key at the same audience — a wider one, or one from another lineage. A nonce cache does not
+ *  stop that: the forwarded PoP is fresh. */
+export function popSigningBytes(pop: InstancePop, ic: InstanceCredential): Uint8Array {
+  return new TextEncoder().encode(canonicalize({
+    aud: pop.aud,
+    cred: b64uEncode(instanceCredDigest(ic)),
+    nonce: pop.nonce,
+    ts: pop.ts,
+  }));
+}
+
+const SCOPE_CHECKPOINT = "checkpoint-daily";
+/** ≤ 92-day delegate-cert cap (ADR-002) — mirrors `ainra_core::consts::DELEGATE_CERT_MAX_SECS`. */
+const DELEGATE_CERT_MAX_SECS = 92 * 24 * 60 * 60;
+
+/** Default passport validity — 366 days (ADR-017). Mirrors `ainra_core::consts::PASSPORT_VALIDITY_DEFAULT_SECS`.
+ *  Identity (the lineage + AINRA Number) is eternal; the CREDENTIAL is bounded. Long validity is affordable
+ *  because revocation fails closed (<60 s) — short certs are what you need when it doesn't. */
+export const PASSPORT_VALIDITY_DEFAULT_SECS = 366 * 24 * 60 * 60;
+/** Renewal lead — REISSUE at T−30 d (ADR-017). Mirrors `ainra_core::consts::RENEWAL_LEAD_SECS`. */
+export const RENEWAL_LEAD_SECS = 30 * 24 * 60 * 60;
+/** True once a credential has entered its ADR-017 renewal window (now ≥ exp − 30 d). A scheduling hint for
+ *  holders — the verifier's window check is unaffected (no grace period anywhere; expiry is expiry). */
+export function renewalDue(exp: number, now: number): boolean {
+  return now >= exp - RENEWAL_LEAD_SECS;
+}
+
+/** SHA-256 fingerprint of a delegate cert = hash of its canonical signing bytes (mirrors DelegateCert::fingerprint).
+ *  Returned base64url so it compares directly against the wire/directory `revoked_delegates` list. */
+function certFingerprintB64(c: DelegateCert): string {
+  const bytes = new TextEncoder().encode(
+    canonicalize({ delegate: b64uEncode(c.delegateEd25519), exp: c.exp, nbf: c.nbf, scopes: c.scopes }),
+  );
+  return b64uEncode(sha256(bytes));
+}
+
+/** STRICT unpadded base64url decode — the ONE canonical gateway every external base64 ingestion routes through
+ *  (D-029). Returns null on ANY input Rust's `b64::decode` (base64ct `Base64UrlUnpadded`) would reject, so the two
+ *  implementations reject byte-for-byte identically:
+ *    * a character outside the unpadded base64url alphabet — `+`/`/` (standard-alphabet swap), `=` (padding), or
+ *      whitespace — is caught by the alphabet regex; Node's lenient `Buffer.from(x,'base64')` would otherwise
+ *      silently drop or accept them;
+ *    * a NON-CANONICAL last character (nonzero trailing bits) is caught by the round-trip: base64ct rejects it,
+ *      but `Buffer.from` accepts it as the same bytes — so `b64uEncode(decode(s)) === s` is REQUIRED, else a
+ *      43-char non-canonical hash/key/sig is a fail-OPEN verdict split in the SDK (M9/M12 fail-open class).
+ *  Empty string → empty array (valid). */
+export function strictB64u(s: string): Uint8Array | null {
+  if (!/^[A-Za-z0-9_-]*$/.test(s)) return null;
+  try {
+    const b = b64uDecode(s);
+    if (b64uEncode(b) !== s) return null; // non-canonical trailing bits — base64ct rejects, Buffer.from doesn't
+    return b;
+  } catch {
+    return null;
+  }
+}
+
+/** Strict-decode `s` or fail closed with `reason`. This is how the verify path ingests every base64url field
+ *  from external input — never the lenient `b64uDecode` directly — so a non-canonical encoding can neither be
+ *  normalised into acceptance nor pose as a distinct wire string for the same bytes (D-029). */
+function dec(s: string, reason: Reason = "schema_violation"): Uint8Array {
+  const b = strictB64u(s);
+  if (b === null) throw new Reject(reason);
+  return b;
+}
+
+/** Decode + length-check a list of base64url SHA-256 fingerprints, returning a canonical-b64 array — or null if
+ *  ANY is malformed (not valid base64url, or not 32 bytes). Mirrors `Directory::accredit`, which decodes each
+ *  fingerprint to `[u8;32]` and fails closed (`unknown_registrar`) on a bad one; re-encoding canonicalises so the
+ *  set compares byte-for-byte against `certFingerprintB64` regardless of the wire form (review parity fix). */
+function decodeFingerprints(list: string[]): string[] | null {
+  const out: string[] = [];
+  for (const s of list) {
+    const b = strictB64u(s);
+    if (b === null || b.length !== 32) return null;
+    out.push(b64uEncode(b));
+  }
+  return out;
+}
+
+/** Verify a checkpoint signature in either ADR-002 mode. Fail closed → false. Mirrors checkpoint.rs verify_sig_mode. */
+function verifyCheckpointSig(
+  logRootKey: Uint8Array,
+  cp: { origin: string; rootB64: string; size: number },
+  sig: CheckpointSig,
+  now: number,
+): boolean {
+  const cpMsg = new TextEncoder().encode(canonicalize({ origin: cp.origin, root: cp.rootB64, size: cp.size }));
+  if (sig.mode === "root") return slhVerify(logRootKey, cpMsg, sig.slh);
+  // delegate mode: (1) cert root-signature, (2) ≤92-day lifetime, (3) window, (4) scope, (5) delegate signature
+  const c = sig.cert;
+  const certMsg = new TextEncoder().encode(
+    canonicalize({ delegate: b64uEncode(c.delegateEd25519), exp: c.exp, nbf: c.nbf, scopes: c.scopes }),
+  );
+  if (!slhVerify(logRootKey, certMsg, c.sigSlh)) return false;
+  if (c.exp <= c.nbf || c.exp - c.nbf > DELEGATE_CERT_MAX_SECS) return false; // lifetime out of range (review #9)
+  if (now < c.nbf || now >= c.exp) return false;
+  if (!c.scopes.includes(SCOPE_CHECKPOINT)) return false;
+  return ed25519Verify(c.delegateEd25519, cpMsg, sig.sigEd25519);
+}
+
+// ── Signed status deltas + fresh head (mirror status.rs StatusDelta / FreshHead) ───────────────────────────────
+const SCOPE_DELTA = "delta-countersign";
+const SCOPE_FRESH_HEAD = "fresh-head";
+
+/** Verify an ADR-002 delegate cert for a given scope. Fail closed → false. Mirrors DelegateCert::verify. */
+function verifyDelegateCert(cert: DelegateCert, rootKey: Uint8Array, now: number, scope: string): boolean {
+  // A cert with no canonical encoding (a time beyond 2^53) was signed by nobody: false, as Rust and Python answer —
+  // never a thrown CanonError, which the Verifier would report as schema_violation (PLAN-M51 review; vector c18).
+  let certMsg: Uint8Array;
+  try {
+    certMsg = new TextEncoder().encode(
+      canonicalize({ delegate: b64uEncode(cert.delegateEd25519), exp: cert.exp, nbf: cert.nbf, scopes: cert.scopes }),
+    );
+  } catch {
+    return false;
+  }
+  if (!slhVerify(rootKey, certMsg, cert.sigSlh)) return false;
+  if (cert.exp <= cert.nbf || cert.exp - cert.nbf > DELEGATE_CERT_MAX_SECS) return false;
+  if (now < cert.nbf || now >= cert.exp) return false;
+  if (!cert.scopes.includes(scope)) return false;
+  return true;
+}
+
+/** Fail-closed freshness (mirror status.rs Freshness::check): future-dated, older than the class, OR an
+ *  unrecognized class ⇒ stale. In Rust `Freshness` is a closed enum so an unknown class cannot exist; here it
+ *  arrives as a string, so an unrecognized value must fail CLOSED (stale), never accept. */
+function freshnessStale(freshness: string, now: number, issuedAt: number): boolean {
+  const max = FRESHNESS_MAX[freshness];
+  if (max === undefined) return true; // unknown class → fail closed (review #7)
+  if (issuedAt > now) return true; // future-dated → suspect → stale
+  return now - issuedAt > max;
+}
+
+export interface StatusDelta {
+  uri: string;
+  fromSeq: number;
+  seq: number;
+  ts: number;
+  idx: number[];
+  newStatus: boolean;
+  sigRegistrar: HybridSig;
+  countersigDelegate: Uint8Array;
+}
+export interface FreshHead {
+  uri: string;
+  seq: number;
+  ts: number;
+  statusHash: Uint8Array;
+  sigDelegate: Uint8Array;
+}
+
+function deltaSigningBytes(d: StatusDelta): Uint8Array {
+  return new TextEncoder().encode(
+    canonicalize({ from_seq: d.fromSeq, idx: d.idx, new_status: d.newStatus, seq: d.seq, ts: d.ts, uri: d.uri }),
+  );
+}
+function freshHeadSigningBytes(h: FreshHead): Uint8Array {
+  return new TextEncoder().encode(
+    canonicalize({ seq: h.seq, status_hash: b64uEncode(h.statusHash), ts: h.ts, uri: h.uri }),
+  );
+}
+
+/**
+ * Verify a signed status delta. Returns null (accept) or the closed Reason (reject), in the SAME fixed order as
+ * ainra-core StatusDelta::verify: structure → registrar hybrid sig → delegate cert → delegate countersig.
+ */
+export function verifyDelta(
+  d: StatusDelta,
+  registrarPub: HybridPublic,
+  rootKey: Uint8Array,
+  cert: DelegateCert,
+  now: number,
+): Reason | null {
+  // (1) structure: single-step monotonic advance, strictly-ascending indices.
+  if (d.seq !== d.fromSeq + 1 || d.seq === 0) return "stale_status";
+  for (let i = 1; i < d.idx.length; i++) if (!(d.idx[i - 1] < d.idx[i])) return "stale_status";
+  // canonicalization can reject an out-of-JS-range / non-integer signed field; Rust maps that signing-bytes error
+  // to stale_status (status unavailable). Mirror it here instead of throwing (review #6).
+  let msg: Uint8Array;
+  try {
+    msg = deltaSigningBytes(d);
+  } catch {
+    return "stale_status";
+  }
+  // (2) registrar hybrid signature (both-or-invalid).
+  const h = verifyHybrid(registrarPub, msg, d.sigRegistrar);
+  if (h) return h;
+  // (3) delegate cert authorizes deltas, and (4) the countersignature verifies.
+  if (!verifyDelegateCert(cert, rootKey, now, SCOPE_DELTA)) return "checkpoint_invalid";
+  return ed25519Verify(cert.delegateEd25519, msg, d.countersigDelegate) ? null : "checkpoint_invalid";
+}
+
+/**
+ * Verify a delegate-signed fresh head. Returns null (accept) or the Reason. Mirrors FreshHead::verify: cert (scope
+ * fresh-head) → delegate signature → freshness. Does NOT bind to a held list (caller compares statusHash separately).
+ */
+export function verifyFreshHead(
+  head: FreshHead,
+  rootKey: Uint8Array,
+  cert: DelegateCert,
+  now: number,
+  freshness: string,
+): Reason | null {
+  if (!verifyDelegateCert(cert, rootKey, now, SCOPE_FRESH_HEAD)) return "checkpoint_invalid";
+  // Rust maps a fresh-head signing-bytes canon error to checkpoint_invalid; mirror it rather than throw (review #6).
+  let msg: Uint8Array;
+  try {
+    msg = freshHeadSigningBytes(head);
+  } catch {
+    return "checkpoint_invalid";
+  }
+  if (!ed25519Verify(cert.delegateEd25519, msg, head.sigDelegate)) return "checkpoint_invalid";
+  return freshnessStale(freshness, now, head.ts) ? "stale_status" : null;
+}
+
+/** SHA-256 head identity — mirrors StatusList::head_hash (canonical {bit_len, status_list, uri}). */
+export function headHash(uri: string, bitLen: number, statusListB64: string): Uint8Array {
+  return sha256(new TextEncoder().encode(canonicalize({ bit_len: bitLen, status_list: statusListB64, uri })));
+}
+
+/** The AINRA verify orchestrator — mirrors ainra-core::verify::verify step for step. Never throws; returns a Verdict. */
+export function verify(pres: Presentation, anchors: TrustAnchors): Verdict {
+  try {
+    verifyInner(pres, anchors);
+    return VALID;
+  } catch (e) {
+    if (e instanceof Reject) return invalid(e.reason);
+    throw e;
+  }
+}
+
+function verifyInner(pres: Presentation, anchors: TrustAnchors): void {
+  // 1. schema gate
+  const p = parseChecked(pres.claims);
+
+  // 2. issuer registrar is accredited. `Object.hasOwn` (not truthiness) so an inherited member — e.g. the grammar-
+  //    valid label "constructor" resolving to Object.prototype.constructor — can never masquerade as an anchor.
+  const registrar = parseDidRegistrar(p.iss);
+  if (registrar === null) throw new Reject("name_malformed");
+  if (!Object.hasOwn(anchors, registrar)) throw new Reject("unknown_registrar");
+  const reg = anchors[registrar];
+
+  // 3. validity window
+  if (pres.now < p.nbf) throw new Reject("not_yet_valid");
+  if (pres.now >= p.exp) throw new Reject("expired");
+
+  // 4. issuer hybrid signature
+  const h = verifyHybrid(reg.issuerKey, pres.claims, pres.issuerSig);
+  if (h) throw new Reject(h);
+
+  // 5. scope ceiling
+  if (!subset(p.capabilities, p.scope_ceiling)) throw new Reject("ceiling_exceeded");
+
+  // 6. delegation chain: every hop DUAL-signed (delegator + delegatee, D-012), then monotone ∩-narrowing.
+  if (p.act_chain.length > 0) {
+    if (pres.chainKeys.length !== p.act_chain.length + 1) throw new Reject("schema_violation");
+    if (pres.hopProofs.length !== p.act_chain.length) throw new Reject("schema_violation");
+    for (let i = 0; i < p.act_chain.length; i++) {
+      const hop = p.act_chain[i];
+      const msg = hopSigningBytes(hop);
+      // Hop signature bytes: strict decode. A non-canonical encoding is alg_downgrade, exactly as core's
+      // chain.rs maps a b64::decode failure — so the two implementations reject a malformed hop sig identically.
+      const parent: HybridSig = { ed25519: dec(hop.sig_ed25519, "alg_downgrade"), mldsa65: dec(hop.sig_mldsa65, "alg_downgrade") };
+      const rp = verifyHybrid(pres.chainKeys[i], msg, parent);
+      if (rp) throw new Reject(rp);
+      const child: HybridSig = { ed25519: dec(hop.sig_child_ed25519, "alg_downgrade"), mldsa65: dec(hop.sig_child_mldsa65, "alg_downgrade") };
+      const rc = verifyHybrid(pres.chainKeys[i + 1], msg, child);
+      if (rc) throw new Reject(rc);
+    }
+    let effCaps = p.act_chain[0].granted;
+    let effExp = p.act_chain[0].exp;
+    for (let i = 1; i < p.act_chain.length; i++) {
+      const hop = p.act_chain[i];
+      if (!subset(hop.granted, effCaps)) throw new Reject("chain_widening");
+      if (hop.exp > effExp) throw new Reject("chain_expired");
+      effCaps = hop.granted;
+      effExp = hop.exp;
+    }
+    if (!subset(p.capabilities, effCaps)) throw new Reject("chain_widening");
+    if (p.exp > effExp) throw new Reject("chain_expired");
+  } else if (pres.chainKeys.length > 0 || pres.hopProofs.length > 0) {
+    throw new Reject("schema_violation");
+  }
+
+  // 7. status: freshness then revocation
+  const maxAge = FRESHNESS_MAX[pres.freshness];
+  if (maxAge === undefined) throw new Reject("stale_status");
+  if (pres.statusIssuedAt > pres.now || pres.now - pres.statusIssuedAt > maxAge) throw new Reject("stale_status");
+  const idx = p.statusIdx;
+  const revoked = statusBit(pres.statusBits, pres.statusBitLen, idx); // fail closed past the end
+  if (revoked) throw new Reject("revoked");
+
+  // 8. mandate subtree — the STATIC authenticated path in the signed passport. Dynamic (mandates_root) is M3 and is
+  //    already rejected at the schema gate (D-013 revised), so no presenter-supplied path is honoured — must be empty.
+  if (pres.mandatePath.length > 0 || pres.mandateProofs.length > 0) throw new Reject("schema_violation");
+  checkMandatePath(p.mandates, pres.mandateRevocations);
+
+  // 9. logged-before-valid: checkpoint sig (root/delegate), credential leaf binding+inclusion, then EVERY hop's
+  //    log_leaf binding+inclusion.
+  if (!verifyCheckpointSig(reg.logRootKey, pres.checkpoint, pres.checkpointSig, pres.now))
+    throw new Reject("checkpoint_invalid");
+  // Delegate revocation (M4): a checkpoint signed by a revoked delegate is checkpoint_invalid even though the cert
+  // itself still verifies. Mirrors verify.rs — the revoked set comes from the dual-root-signed directory.
+  if (pres.checkpointSig.mode === "delegate" && pres.revokedDelegates.has(certFingerprintB64(pres.checkpointSig.cert)))
+    throw new Reject("checkpoint_invalid");
+  const expectedLeaf = prelogLeaf(pres.claims);
+  // log.leaf: strict decode (non-canonical → not_logged, matching core's decode_array→NotLogged), then the
+  // 32-byte length + binding check.
+  const claimedLeaf = dec(p.logLeaf, "not_logged");
+  if (claimedLeaf.length !== 32 || !eqBytes(claimedLeaf, expectedLeaf)) throw new Reject("not_logged");
+  if (!verifyInclusion(claimedLeaf, pres.leafIndex, pres.checkpoint.size, pres.inclusionProof, pres.checkpoint.root)) {
+    throw new Reject("not_logged");
+  }
+  // D-044 graduated distrust — AFTER inclusion, and the order is load-bearing. `leafIndex` is only a proven fact
+  // once inclusion has shown the leaf really sits there; testing the cutoff earlier would let a presenter claim a
+  // low index to slip under it. Mirrors verify.rs exactly.
+  if (reg.distrustFromLeaf !== undefined && pres.leafIndex >= reg.distrustFromLeaf)
+    throw new Reject("registrar_distrusted");
+  for (let i = 0; i < p.act_chain.length; i++) {
+    const hop = p.act_chain[i];
+    const anchored = dec(hop.log_leaf, "not_logged");
+    const recomputed = hopLeaf(hop);
+    if (anchored.length !== 32 || !eqBytes(anchored, recomputed)) throw new Reject("not_logged");
+    const hp = pres.hopProofs[i];
+    if (!verifyInclusion(anchored, hp.leafIndex, pres.checkpoint.size, hp.proof, pres.checkpoint.root))
+      throw new Reject("not_logged");
+    if (reg.distrustFromLeaf !== undefined && hp.leafIndex >= reg.distrustFromLeaf)
+      throw new Reject("registrar_distrusted");
+  }
+
+  // 10. ADR-019 — the instance rung, LAST and deliberately so. Everything above establishes the passport is real,
+  //     unexpired, in scope, unrevoked and logged; only then is it worth asking whether the presenter may speak
+  //     for it. The ordering is what makes passport revocation kill every instance with `revoked` from step 7,
+  //     rather than an instance-layer reason that would point a debugging integrator at the container.
+  if (pres.instance) {
+    verifyInstance(pres.instance.ic, pres.instance.pop, p, expectedLeaf, pres.now, pres.audience ?? "");
+  }
+}
+
+/** The instance rung, in a fixed order, first-failure-wins. Mirrors `ainra_core::instance::verify_instance`.
+ *  Single-use of the nonce is NOT enforced here — that is caller state, and the SDK holds none. */
+function verifyInstance(
+  ic: InstanceCredential,
+  pop: InstancePop,
+  p: Passport,
+  passportLeaf: Uint8Array,
+  now: number,
+  expectedAud: string,
+): void {
+  // (1) binding — belongs to the passport actually presented and proven logged.
+  if (ic.sub !== p.sub || !eqBytes(ic.passportLeaf, passportLeaf)) throw new Reject("instance_sig_invalid");
+  // (2) window — exact, no skew, plus the ceiling enforced at VERIFY (not only at issuance).
+  if (ic.exp <= ic.nbf || ic.exp - ic.nbf > INSTANCE_CRED_DEFAULT_SECS) throw new Reject("instance_expired");
+  if (now < ic.nbf || now >= ic.exp) throw new Reject("instance_expired");
+  // (3) scope — narrowing only. Bounded first (D-053): the subset test below is O(n×m).
+  if (ic.capabilities.length > MAX_CAPABILITIES || p.capabilities.length > MAX_CAPABILITIES) throw new Reject("schema_violation");
+  if (!ic.capabilities.every((c) => p.capabilities.includes(c))) throw new Reject("instance_scope_exceeds");
+  // (4) credential signature under the PASSPORT's control key.
+  const pkey: HybridPublic = { ed25519: dec(p.keys[0].ed25519, "instance_sig_invalid"), mldsa65: dec(p.keys[0].mldsa65, "instance_sig_invalid") };
+  if (verifyHybrid(pkey, instanceSigningBytes(ic), ic.sig)) throw new Reject("instance_sig_invalid");
+  // (5) proof-of-possession — audience, freshness, then the signature under the INSTANCE key.
+  // The empty audience is a SENTINEL, not a value — see the note in ainra-core's instance.rs. `"" === ""` passed,
+  // so a credential minted with `aud: ""` was accepted by every verifier that had not named itself, which is the
+  // documented default.
+  if (expectedAud === "" || ic.aud === "" || pop.aud === "") throw new Reject("instance_pop_invalid");
+  if (ic.aud !== expectedAud || pop.aud !== expectedAud) throw new Reject("instance_pop_invalid");
+  // Age and clock skew are different quantities (D-050). The symmetric comparison here gave a 61-second window
+  // the PRESENTER positioned — dating a PoP forward bought thirty more seconds of life.
+  if (now - pop.ts > POP_MAX_SKEW_SECS || pop.ts - now > POP_MAX_FUTURE_SECS) throw new Reject("instance_pop_invalid");
+  if (verifyHybrid(ic.ikey, popSigningBytes(pop, ic), pop.sig)) throw new Reject("instance_pop_invalid");
+}
+
+function prelogLeaf(claims: Uint8Array): Uint8Array {
+  let body: Record<string, unknown>;
+  try {
+    body = JSON.parse(Buffer.from(claims).toString("utf8")) as Record<string, unknown>;
+  } catch {
+    throw new Reject("schema_violation");
+  }
+  delete body.log;
+  return hashLeaf(new TextEncoder().encode(canonicalize(body)));
+}
+
+function eqBytes(a: Uint8Array, b: Uint8Array): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+  return true;
+}
+
+// ── Wire-vector runner (mirror tools/vector-gen run()) ─────────────────────────────────────────────────────────
+interface WireKey {
+  ed25519: string;
+  mldsa65: string;
+}
+interface WireCheckpointSig {
+  mode: string;
+  slh?: string;
+  cert?: { delegate_ed25519: string; scopes: string[]; nbf: number; exp: number; sig_slh: string };
+  sig_ed25519?: string;
+}
+export interface WireVector {
+  name: string;
+  expect: { verdict: string; reason?: string };
+  anchors: Record<string, { issuer_key: WireKey; log_root_key: string; distrust_from_leaf?: number }>;
+  presentation: {
+    claims: string;
+    issuer_sig: WireKey;
+    now: number;
+    chain_keys: WireKey[];
+    hop_proofs: { leaf_index: number; proof: string[] }[];
+    status_list: string;
+    status_len: number;
+    status_issued_at: number;
+    freshness: string;
+    // The registrar's SIGNED status publication (D-020). Present in a real `/present` bundle; optional here because
+    // the self-contained conformance corpus (runVector) does not carry it — only the GA {@link Verifier} authenticates
+    // it, against the directory's status key. `status_uri` is the URI the publication was signed over.
+    status_uri?: string;
+    status_sig_ed25519?: string;
+    status_sig_mldsa65?: string;
+    // The delegate-signed FRESH HEAD + its cert (D-021, M6). A currency-mode {@link Verifier} verifies the head,
+    // binds it to the presented list by head-hash, and enforces its monotonic `seq` — closing genuine-snapshot
+    // replay. Optional (absent in the conformance corpus and for default verifiers).
+    fresh_head?: { uri: string; seq: number; ts: number; status_hash: string; sig_delegate: string };
+    status_delegate_cert?: { delegate_ed25519: string; scopes: string[]; nbf: number; exp: number; sig_slh: string };
+    checkpoint: { origin: string; size: number; root: string };
+    checkpoint_sig: WireCheckpointSig;
+    leaf_index: number;
+    inclusion_proof: string[];
+    mandate_revocations: string[];
+    revoked_delegates?: string[];
+    /** ADR-019 — absent on every pre-M28 vector, so the existing corpus is byte-unchanged. */
+    instance?: {
+      sub: string; iid: string; ikey: WireKey; nbf: number; exp: number;
+      capabilities: string[]; aud: string; passport_leaf: string; sig: WireKey;
+      pop: { aud: string; nonce: string; ts: number; sig: WireKey };
+    };
+    audience?: string;
+  };
+}
+
+function decodeCheckpointSig(w: WireCheckpointSig): CheckpointSig {
+  if (w.mode === "root") return { mode: "root", slh: dec(w.slh ?? "") };
+  const c = w.cert!;
+  return {
+    mode: "delegate",
+    cert: {
+      delegateEd25519: dec(c.delegate_ed25519),
+      scopes: c.scopes,
+      nbf: c.nbf,
+      exp: c.exp,
+      sigSlh: dec(c.sig_slh),
+    },
+    sigEd25519: dec(w.sig_ed25519 ?? ""),
+  };
+}
+
+/** A self-contained presentation the verifier checks: exactly a `WireVector`'s `presentation` block (no anchors —
+ * those come from the trusted directory; and `now`/`revoked_delegates` on the wire are IGNORED by the GA
+ * {@link Verifier}, which supplies its own clock + the directory's revocation set). */
+export type PresentationBundle = WireVector["presentation"];
+
+/** What a presenter sends to a {@link Verifier} — untrusted, all of it. The fields a conformance VECTOR uses to pin the
+ *  verifier's own policy are optional here and IGNORED: the clock, the audience, the freshness class and the revoked
+ *  delegates are the verifier's (its constructor and its `now` argument), never the bundle's (D-068, ADR-019). The
+ *  type says so, so a caller cannot mistake setting them for having set the policy. */
+export type PresentedBundle = Omit<PresentationBundle, "now" | "audience" | "freshness" | "revoked_delegates" | "mandate_revocations"> & {
+  /** Ignored: the verifier's clock is the `now` argument. */
+  now?: unknown;
+  /** Ignored: the audience is the verifier's own. */
+  audience?: unknown;
+  /** Ignored: the freshness class is the verifier's own. */
+  freshness?: unknown;
+  /** Ignored: revoked delegates come from the signed directory. */
+  revoked_delegates?: unknown;
+  /** Ignored: there is no dynamic mandate feed; the set is empty. */
+  mandate_revocations?: unknown;
+};
+
+/** Decode a wire presentation into verify inputs. `now` and `revoked` are supplied by the CALLER (the verifier's
+ * own clock + the trusted directory's revoked-delegate set) — a presenter cannot dictate either. Throws `Reject`
+ * on a malformed status list (fail closed); other decode errors propagate for the caller's try/catch. */
+
+/** Decode the ADR-019 instance layer, ENFORCING RUNTIME TYPES.
+ *
+ * TypeScript's types are erased at runtime, so `nbf: number` is a promise about the source, not about the bytes.
+ * Without these checks a JSON string reached the window comparisons, every relational operator against it produced
+ * `NaN`, and `NaN` comparisons are ALL false — so `now < nbf`, `now >= exp` and `exp - nbf > ceiling` all passed at
+ * once. A credential validly minted with `"nbf": "-"` therefore verified with **no validity window, no one-hour
+ * ceiling, and (via `pop.ts`) no proof-of-possession freshness**: an unbounded bearer token, which is exactly the
+ * pre-ADR-019 state the rung exists to end. Found by the M30 adversarial review; `ainra-core` was never exposed
+ * (serde types these `u64`) and the Python SDK guards with `isinstance`, so TS was the only implementation without
+ * the check — and the corpus could not see it, because the generator only ever emits integers.
+ *
+ * Refused as `schema_violation`, matching what serde does in the Rust core. */
+/** Decode a wire instance object into the credential + proof the verify and mint APIs take.
+ *
+ *  Exported because D-049 requires it: a container receives its credential as JSON and must hand the DECODED
+ *  credential to {@link proveInstancePossession}. Without this it would have to hand-roll strict base64url, which
+ *  is the one thing D-029 says every implementation must do in exactly one place. Throws `Reject` on any
+ *  non-canonical field rather than returning a partly-decoded object. */
+export function decodeInstance(i: NonNullable<PresentationBundle["instance"]>): { ic: InstanceCredential; pop: InstancePop } {
+  const int = (v: unknown): number => {
+    // Number.isInteger is not enough on its own: it accepts -0 and any float that happens to be integral. The
+    // wire form must be a plain non-negative integer, so the same value cannot arrive spelled several ways.
+    if (typeof v !== "number" || !Number.isInteger(v) || Object.is(v, -0) || v < 0) throw new Reject("schema_violation");
+    return v;
+  };
+  const str = (v: unknown): string => {
+    if (typeof v !== "string") throw new Reject("schema_violation");
+    return v;
+  };
+  if (!i.pop || typeof i.pop !== "object") throw new Reject("schema_violation");
+  if (!Array.isArray(i.capabilities) || i.capabilities.some((c) => typeof c !== "string"))
+    throw new Reject("schema_violation");
+  // D-053: bound the attacker-chosen fields at the decode gate, before anything reads or logs them.
+  if (typeof i.iid !== "string" || i.iid.length > MAX_IID_LEN) throw new Reject("schema_violation");
+  if (i.capabilities.length > MAX_CAPABILITIES) throw new Reject("schema_violation");
+  return {
+    ic: {
+      sub: str(i.sub), iid: str(i.iid),
+      ikey: { ed25519: dec(i.ikey.ed25519), mldsa65: dec(i.ikey.mldsa65) },
+      nbf: int(i.nbf), exp: int(i.exp),
+      capabilities: i.capabilities as string[], aud: str(i.aud),
+      passportLeaf: dec(i.passport_leaf),
+      sig: { ed25519: dec(i.sig.ed25519), mldsa65: dec(i.sig.mldsa65) },
+    },
+    pop: {
+      aud: str(i.pop.aud), nonce: str(i.pop.nonce), ts: int(i.pop.ts),
+      sig: { ed25519: dec(i.pop.sig.ed25519), mldsa65: dec(i.pop.sig.mldsa65) },
+    },
+  };
+}
+
+function decodePresentation(pr: PresentedBundle, revoked: Set<string>, now: number, audience: string): Presentation {
+  return {
+    claims: dec(pr.claims),
+    issuerSig: { ed25519: dec(pr.issuer_sig.ed25519), mldsa65: dec(pr.issuer_sig.mldsa65) },
+    now,
+    chainKeys: pr.chain_keys.map((k) => ({ ed25519: dec(k.ed25519), mldsa65: dec(k.mldsa65) })),
+    hopProofs: pr.hop_proofs.map((hp) => ({ leafIndex: hp.leaf_index, proof: hp.proof.map((s) => dec(s)) })),
+    statusBits: unpackStatus(dec(pr.status_list), pr.status_len),
+    statusBitLen: pr.status_len,
+    statusIssuedAt: pr.status_issued_at,
+    // Read here only for the fixture path (a vector pins its class); the Verifier overwrites it with its own.
+    freshness: pr.freshness as PresentationBundle["freshness"],
+    checkpoint: { origin: pr.checkpoint.origin, size: pr.checkpoint.size, root: dec(pr.checkpoint.root), rootB64: pr.checkpoint.root },
+    checkpointSig: decodeCheckpointSig(pr.checkpoint_sig),
+    leafIndex: pr.leaf_index,
+    inclusionProof: pr.inclusion_proof.map((s) => dec(s)),
+    mandatePath: [],
+    mandateProofs: [],
+    // Likewise: a vector's revocation set; the Verifier replaces it with the empty authenticated set.
+    mandateRevocations: new Set(pr.mandate_revocations as PresentationBundle["mandate_revocations"]),
+    revokedDelegates: revoked,
+    instance: pr.instance ? decodeInstance(pr.instance) : undefined,
+    audience,
+  };
+}
+
+/** Reconstruct a wire vector into verify inputs and produce the verdict. A Reject thrown while DECODING the
+ * presentation (e.g. a truncated status list — review #3) fails closed to that reason, never a crash. The vector
+ * carries its own `now` + `revoked_delegates` (the conformance corpus is self-contained). *
+ * Reached through `@ainra/sdk/conformance` only (not the package root, since 0.7.0). It replays a test vector and
+ * never decides whether to trust a presenter — use {@link Verifier}.
+ */
+export function runVector(v: WireVector): Verdict {
+  try {
+    const pr = v.presentation;
+    const anchors: TrustAnchors = Object.create(null);
+    for (const [id, r] of Object.entries(v.anchors)) {
+      anchors[id] = {
+        issuerKey: { ed25519: dec(r.issuer_key.ed25519), mldsa65: dec(r.issuer_key.mldsa65) },
+        logRootKey: dec(r.log_root_key),
+        // D-044: wire is snake_case, the TS surface is camelCase. Forgetting this mapping is precisely how an
+        // implementation silently returns VALID where the reference returns registrar_distrusted — which is what
+        // `make diff` caught on the first run of these vectors.
+        distrustFromLeaf: r.distrust_from_leaf ?? undefined,
+      };
+    }
+    // Canonicalise the trusted revoked-delegate fingerprints so the byte-set comparison against
+    // `certFingerprintB64` is exact regardless of the wire encoding (review parity fix).
+    const revoked = new Set(decodeFingerprints(pr.revoked_delegates ?? []) ?? (pr.revoked_delegates ?? []));
+    return verify(decodePresentation(pr, revoked, pr.now, pr.audience ?? ""), anchors);
+  } catch (e) {
+    if (e instanceof Reject) return invalid(e.reason);
+    throw e;
+  }
+}
+
+// ── The GA Verifier — the 5-line wedge (load a signed directory once, verify presentations against it) ───────────
+
+/** A verifier's freshness policy — the maximum age it tolerates for a status publication. The VERIFIER chooses this
+ *  (default F2 = 5 min); a presenter cannot downgrade it by advertising a laxer class in the bundle. */
+export type FreshnessClass = "F1" | "F2" | "F3";
+
+/**
+ * Authenticate a presented status list against the registrar's directory-published status key (D-020). The presenter
+ * supplies the compressed bitmap + `issued_at`, but they mean nothing until this proves the registrar signed *exactly*
+ * those bytes. Three bindings, all fail-closed to `stale_status` (status unauthenticated ⇒ unavailable ⇒ fail closed):
+ *   (a) the bundle carries a hybrid status signature (`status_sig_ed25519` + `status_sig_mldsa65`) and a `status_uri`;
+ *   (b) the passport's claimed status URI, the bundle's signed URI, and the directory's published URI all agree —
+ *       so a presenter cannot splice in another registrar's (all-clear) list;
+ *   (c) the hybrid signature verifies over the canonical `{bit_len, issued_at, status_list, uri}` (mirrors the Rust
+ *       `StatusSigning` body) under the registrar's status key.
+ */
+function authenticateStatus(info: RegistrarInfo, claimedUri: string, bundle: PresentedBundle): void {
+  const uri = bundle.status_uri;
+  const sigEd = bundle.status_sig_ed25519;
+  const sigMl = bundle.status_sig_mldsa65;
+  if (typeof uri !== "string" || typeof sigEd !== "string" || typeof sigMl !== "string")
+    throw new Reject("stale_status"); // (a) no signed publication ⇒ cannot authenticate ⇒ fail closed
+  // (b) triple URI binding (info.statusUri is guaranteed present when info.statusKey is).
+  if (uri !== info.statusUri || claimedUri !== info.statusUri) throw new Reject("stale_status");
+  const ed = strictB64u(sigEd);
+  const ml = strictB64u(sigMl);
+  if (ed === null || ml === null) throw new Reject("stale_status");
+  let signing: Uint8Array;
+  try {
+    signing = new TextEncoder().encode(
+      canonicalize({ bit_len: bundle.status_len, issued_at: bundle.status_issued_at, status_list: bundle.status_list, uri }),
+    );
+  } catch {
+    throw new Reject("stale_status");
+  }
+  // (c) any hybrid-verify failure (bad sig or algorithm downgrade) ⇒ status unauthenticated ⇒ fail closed.
+  if (verifyHybrid(info.statusKey as HybridPublic, signing, { ed25519: ed, mldsa65: ml })) throw new Reject("stale_status");
+}
+
+/**
+ * Currency check (D-021, M6 — **currency mode only**). Authenticating the status list proves the registrar signed it
+ * and bounds its age; this additionally proves it is the CURRENT head, closing genuine-snapshot **replay**. It
+ * verifies the bundle's delegate-signed **fresh head** (cert → the registrar's log root, delegate signature, F1
+ * recency), binds the head to the presented list by **head-hash**, and enforces a **monotonic `seq`** across
+ * presentations — a seq lower than one already observed for this uri is a replay of a superseded head.
+ *
+ * HONEST LIMIT: the monotonic-seq check closes replay only for a verifier that OBSERVES the head advance — one that
+ * has already verified a newer presentation (e.g. a shared gateway where some party presents the current head), or
+ * that independently polls the registrar's fresh head. A purely passive verifier only ever shown the stale head
+ * cannot know a newer one exists; the F1 (≤30 s) freshness still bounds that residual window. All failures fail
+ * closed to `stale_status`.
+ */
+function authenticateCurrency(
+  info: RegistrarInfo,
+  bundle: PresentedBundle,
+  now: number,
+  seqSeen: Map<string, number>,
+  revokedDelegates: Set<string>,
+): void {
+  const fh = bundle.fresh_head;
+  const wc = bundle.status_delegate_cert;
+  if (!fh || !wc) throw new Reject("stale_status"); // currency mode REQUIRES a fresh head (an absent one can't downgrade)
+  const statusHash = strictB64u(fh.status_hash);
+  const sigDelegate = strictB64u(fh.sig_delegate);
+  const dEd = strictB64u(wc.delegate_ed25519);
+  const dSlh = strictB64u(wc.sig_slh);
+  if (statusHash === null || sigDelegate === null || dEd === null || dSlh === null) throw new Reject("stale_status");
+  if (
+    typeof fh.uri !== "string" ||
+    !Number.isInteger(fh.seq) || fh.seq < 0 ||
+    !Number.isInteger(fh.ts) ||
+    !Number.isInteger(wc.nbf) || !Number.isInteger(wc.exp) ||
+    !Array.isArray(wc.scopes) || wc.scopes.some((s) => typeof s !== "string")
+  ) {
+    throw new Reject("stale_status");
+  }
+  const head: FreshHead = { uri: fh.uri, seq: fh.seq, ts: fh.ts, statusHash, sigDelegate };
+  const cert: DelegateCert = { delegateEd25519: dEd, scopes: wc.scopes, nbf: wc.nbf, exp: wc.exp, sigSlh: dSlh };
+  // (1) fresh head verifies to the registrar's log root, F1-recent (cert scope fresh-head, delegate sig, ts window).
+  if (verifyFreshHead(head, info.logRootKey, cert, now, "F1")) throw new Reject("stale_status");
+  // (1b) a delegate the directory revokes signs no head, as it signs no checkpoint (PLAN-M51; vector c17).
+  if (revokedDelegates.has(certFingerprintB64(cert))) throw new Reject("stale_status");
+  // (2) the head names THIS registrar's status uri (already bound to info.statusUri via authenticateStatus).
+  if (head.uri !== info.statusUri) throw new Reject("stale_status");
+  // (3) head-hash binding: the fresh head must name the EXACT list being presented (bit_len + compressed bytes + uri).
+  if (!eqBytes(headHash(head.uri, bundle.status_len, bundle.status_list), statusHash)) throw new Reject("stale_status");
+  // (4) monotonic seq: a lower seq than one already observed for this uri is a replay of a superseded head.
+  const seen = seqSeen.get(head.uri);
+  if (seen !== undefined && head.seq < seen) throw new Reject("stale_status");
+  seqSeen.set(head.uri, seen === undefined ? head.seq : Math.max(seen, head.seq));
+}
+
+
+/**
+ * A ready-to-use AINRA verifier. Build it once from a **dual-root-signed directory** (which supplies the trust
+ * anchors + the revoked-delegate set), then `.verify(bundle, now)` any number of presentations. Everything is
+ * local, offline, and fail-closed: a malformed directory yields `null` from {@link fromDirectory}; a malformed or
+ * failing presentation yields an `invalid` Verdict, never a throw, never a wrong `valid`.
+ *
+ * ```ts
+ * import { Verifier } from "@ainra/sdk";
+ * const verifier = Verifier.fromDirectory(directory, rootEd25519, rootSlh);   // 1. trust, once
+ * if (!verifier) throw new Error("untrusted directory");                      // 2. fail closed
+ * const verdict = verifier.verify(bundle, Math.floor(Date.now() / 1000));     // 3. verify, per request
+ * if (verdict.verdict !== "valid") deny(verdict.reason);                      // 4. act
+ * ```
+ *
+ * The verifier — never the presenter — owns three trust inputs: its own **clock** (`now`), the directory's
+ * **revoked-delegate** set, and its **freshness policy**. It also authenticates the presented **status list**
+ * against the registrar's directory-published status key before trusting a single revocation bit (D-020), and
+ * ignores any presenter-supplied mandate-revocation set. A presenter therefore cannot **forge** an all-clear status,
+ * downgrade freshness, or drop a mandate revocation to make a dead passport verify.
+ *
+ * **Freshness bounds revocation LATENCY, not currency.** The status list is a stapled, registrar-signed *snapshot*;
+ * the verifier proves its signature and that it is no older than the freshness class, but not that it is the *latest*
+ * one. So a presenter CAN replay a genuine snapshot taken *before* its lineage was revoked, and it will verify VALID
+ * until that snapshot ages out of the window (F1 ≤30 s · F2 ≤5 min · F3 ≤24 h) — the same replay-within-validity that
+ * OCSP stapling has. Pick **F1** for hot revocation paths. **Currency mode** (`currency: true`) goes further: it
+ * requires the bundle's delegate-signed **fresh head**, binds it to the presented list by head-hash, and enforces a
+ * **monotonic head sequence** — so once this verifier has observed a newer head (from any presentation, or an
+ * out-of-band poll), a replayed superseded snapshot is rejected. It is stateful (keeps a per-uri max seq).
+ */
+export class Verifier {
+  readonly anchors: TrustAnchors;
+  readonly revokedDelegates: Set<string>;
+  readonly epoch: number;
+  /** The verifier's freshness policy (default F2 = 5 min). The presenter's advertised class is ignored. */
+  readonly freshness: FreshnessClass;
+  /** Currency mode: require + verify + head-hash-bind the fresh head and enforce a monotonic seq (D-021, M6). */
+  readonly currency: boolean;
+  /** This verifier's own audience (ADR-019). An instance credential addressed elsewhere is refused. Empty string
+   *  = this verifier accepts no instance credentials, which is the fail-closed default: a service that has not
+   *  said who it is cannot be the intended recipient of anything. */
+  readonly audience: string;
+  /** Per-uri highest fresh-head `seq` this verifier has observed (currency mode). A lower seq is a replay. */
+  private readonly seqSeen: Map<string, number> = new Map();
+  private constructor(acc: AccreditedSet, freshness: FreshnessClass, currency: boolean, audience: string) {
+    this.anchors = acc.anchors;
+    this.revokedDelegates = acc.revokedDelegates;
+    this.epoch = acc.epoch;
+    this.freshness = freshness;
+    this.currency = currency;
+    this.audience = audience;
+  }
+  /** Verify the dual-root-signed directory and build a Verifier; `null` if the directory is not authentic.
+   *  `freshness` sets the verifier's own status-freshness policy (default `"F2"` = 5 min). `currency` (default
+   *  `false`) enables the fresh-head + monotonic-seq replay defence (see the class docs). */
+  static fromDirectory(
+    d: WireDirectory,
+    rootEd25519: Uint8Array,
+    rootSlh: Uint8Array,
+    freshness: FreshnessClass = "F2",
+    currency = false,
+    audience = "",
+  ): Verifier | null {
+    const acc = verifyDirectory(d, rootEd25519, rootSlh);
+    return acc === null ? null : new Verifier(acc, freshness, currency, audience);
+  }
+  /** Convenience: build from a directory + the ceremony's base64url root keys (as published in `roots.json`). */
+  static fromDirectoryB64(
+    d: WireDirectory,
+    rootEd25519B64: string,
+    rootSlhB64: string,
+    freshness: FreshnessClass = "F2",
+    currency = false,
+    audience = "",
+  ): Verifier | null {
+    let ed: Uint8Array, slh: Uint8Array;
+    try {
+      ed = dec(rootEd25519B64);
+      slh = dec(rootSlhB64);
+    } catch {
+      return null;
+    }
+    return Verifier.fromDirectory(d, ed, slh, freshness, currency, audience);
+  }
+  /** Verify one presentation at the verifier's own `now` (unix seconds). The verifier supplies the clock, the
+   * directory's revoked-delegate set, its own freshness policy, and an EMPTY mandate-revocation set; and it
+   * authenticates the presented status list against the registrar's directory status key before trusting any bit.
+   * The presenter cannot dictate any of these. Never throws. */
+  verify(bundle: PresentedBundle, now: number): Verdict {
+    try {
+      // Steps 1–2 up front, on CHEAP inputs only — decode the small claims blob, resolve the registrar, and
+      // AUTHENTICATE the status signature over the *compressed* bytes (a signature over the b64 string; no inflate).
+      // Doing this before decodePresentation means an unauthenticated presenter fails here, BEFORE the status list is
+      // ever decompressed — so a compression-amplification DoS (a tiny blob that inflates to a huge bitmap) can never
+      // allocate. Only a list the registrar genuinely signed is decompressed (and even then bounded, see unpackStatus).
+      const p = parseChecked(dec(bundle.claims)); // throws Reject (correct reason) on a malformed passport
+      const registrar = parseDidRegistrar(p.iss);
+      if (registrar === null) throw new Reject("name_malformed");
+      if (!Object.hasOwn(this.anchors, registrar)) throw new Reject("unknown_registrar");
+      const info = this.anchors[registrar];
+      // An accredited registrar with no status key cannot have its revocations authenticated → fail closed. Every
+      // real directory entry carries a status key, so this only bites a malformed/legacy directory.
+      if (!info.statusKey) throw new Reject("stale_status");
+      authenticateStatus(info, p.statusUri, bundle); // over compressed bytes — no decompression yet
+      // Currency mode (D-021): additionally require+verify the fresh head, bind it to this list, enforce monotonic
+      // seq — closing genuine-snapshot replay. Also cheap (no decompression). Fails closed to stale_status.
+      if (this.currency) authenticateCurrency(info, bundle, now, this.seqSeen, this.revokedDelegates);
+
+      // The status list is now proven to be exactly what the registrar signed; decompress it and run full verify.
+      const pres = decodePresentation(bundle, this.revokedDelegates, now, this.audience);
+      // Presenter-controlled fields the verifier MUST override (fail-safe defaults, not the bundle's word):
+      //  · mandate revocations — a presenter must not be able to drop a revocation; M5 GA has no dynamic mandate
+      //    feed, so the authenticated set is empty (static mandates in the signed passport are still enforced).
+      pres.mandateRevocations = new Set();
+      //  · freshness class — the verifier's policy, so a presenter cannot advertise a laxer class to dodge staleness.
+      //    NOTE: freshness bounds revocation LATENCY (a genuine, registrar-signed status is trusted until it ages out
+      //    of this class); it does not prove currency. A presenter can replay a genuine pre-revocation snapshot until
+      //    it exceeds the window — that is the stapled-snapshot model's inherent latency, closed to sub-window by the
+      //    (M6) fresh-head binding. Choose F1 for hot revocation paths.
+      pres.freshness = this.freshness;
+      //  · AUDIENCE (ADR-019) — supplied as an ARGUMENT to decodePresentation above, never read off the bundle.
+      //    The bundle carries an `audience` field so the CONFORMANCE CORPUS can pin audience cases
+      //    deterministically, and the first version of this class passed that field straight through: a presenter
+      //    could set it to match a stolen credential's `aud` and audience binding would stop nothing. It was first
+      //    fixed by overriding the field after decode — but an override is a line a future edit can drop, so the
+      //    decoder no longer reads the field at all. A field nobody reads cannot be forgotten.
+      return verify(pres, this.anchors);
+    } catch (e) {
+      if (e instanceof Reject) return invalid(e.reason);
+      // A structurally-broken bundle (missing field, bad base64) fails closed, never a crash or a wrong valid.
+      return invalid("schema_violation");
+    }
+  }
+
+  /** AINRA Link (D-078): who stands behind `presentedKey` — a 32-byte Ed25519 key, or a 33-byte compressed secp256k1
+   *  point (ES256K, D-082) — a key this gate has ALREADY verified the
+   *  request's signature with. Uses the directory's anchors and revoked delegates, this verifier's freshness class,
+   *  and authenticates the status publication before reading a bit. `capability` is what the request exercises.
+   *  A key with no link is the caller's outcome ("not linked") — this checks the link it is given. Never throws. */
+  /** Check a registrar's receipt for a gate's logged decision head (D-081) against this verifier's accredited
+   *  registrars: the statement names and was signed by `gateKey`, and it is logged under a checkpoint the
+   *  registrar's log key signed. Never throws. */
+  verifyHeadReceipt(receipt: WireHeadReceipt, gateKey: Uint8Array, now: number): HeadVerdict {
+    try {
+      return { verdict: "valid", statement: verifyHeadReceiptInner(receipt, this.anchors, this.revokedDelegates, gateKey, now) };
+    } catch (e) {
+      if (e instanceof Reject) return { verdict: "invalid", reason: e.reason };
+      return { verdict: "invalid", reason: "schema_violation" };
+    }
+  }
+
+  verifyLink(link: WireLink, presentedKey: Uint8Array, now: number, capability?: string): LinkVerdict {
+    try {
+      return { verdict: "valid", ...verifyLinkInner(link, this.anchors, this.revokedDelegates, presentedKey, now, this.freshness, capability) };
+    } catch (e) {
+      if (e instanceof Reject) return { verdict: "invalid", reason: e.reason };
+      return { verdict: "invalid", reason: "schema_violation" };
+    }
+  }
+}
+
+/** The expected verdict recorded in a wire vector, as a comparable Verdict. */
+export function expectedVerdict(v: WireVector): Verdict {
+  return v.expect.verdict === "valid" ? VALID : invalid(v.expect.reason as Reason);
+}
+
+// ── Delta / fresh-head conformance vectors (mirror tools/vector-gen delta corpus) ───────────────────────────────
+interface WireDeltaCert {
+  delegate_ed25519: string;
+  scopes: string[];
+  nbf: number;
+  exp: number;
+  sig_slh: string;
+}
+function decodeDeltaCert(c: WireDeltaCert): DelegateCert {
+  return {
+    delegateEd25519: dec(c.delegate_ed25519),
+    scopes: c.scopes,
+    nbf: c.nbf,
+    exp: c.exp,
+    sigSlh: dec(c.sig_slh),
+  };
+}
+export interface WireDeltaVector {
+  name: string;
+  kind: "delta" | "fresh_head";
+  expect: { accept: boolean; reason?: string };
+  root_pub_slh: string;
+  cert: WireDeltaCert;
+  now: number;
+  // delta fields
+  registrar_pub?: WireKey;
+  uri?: string;
+  from_seq?: number;
+  seq?: number;
+  ts?: number;
+  idx?: number[];
+  new_status?: boolean;
+  sig_registrar?: WireKey;
+  countersig_delegate?: string;
+  // fresh-head fields
+  status_hash?: string;
+  sig_delegate?: string;
+  freshness?: string;
+}
+
+/** The accept/reason a delta or fresh-head vector reduces to under the sdk-ts verifier — the diff-harness compares
+ *  this to the ainra-core-baked `expect`. *
+ * Reached through `@ainra/sdk/conformance` only (not the package root, since 0.7.0). It replays a test vector and
+ * never decides whether to trust a presenter — use {@link Verifier}.
+ */
+export function runDeltaVector(v: WireDeltaVector): { accept: boolean; reason?: string } {
+  const rootKey = dec(v.root_pub_slh);
+  const cert = decodeDeltaCert(v.cert);
+  let r: Reason | null;
+  if (v.kind === "delta") {
+    const delta: StatusDelta = {
+      uri: v.uri!,
+      fromSeq: v.from_seq!,
+      seq: v.seq!,
+      ts: v.ts!,
+      idx: v.idx!,
+      newStatus: v.new_status!,
+      sigRegistrar: { ed25519: dec(v.sig_registrar!.ed25519), mldsa65: dec(v.sig_registrar!.mldsa65) },
+      countersigDelegate: dec(v.countersig_delegate!),
+    };
+    const registrarPub: HybridPublic = {
+      ed25519: dec(v.registrar_pub!.ed25519),
+      mldsa65: dec(v.registrar_pub!.mldsa65),
+    };
+    r = verifyDelta(delta, registrarPub, rootKey, cert, v.now);
+  } else {
+    const head: FreshHead = {
+      uri: v.uri!,
+      seq: v.seq!,
+      ts: v.ts!,
+      statusHash: dec(v.status_hash!),
+      sigDelegate: dec(v.sig_delegate!),
+    };
+    r = verifyFreshHead(head, rootKey, cert, v.now, v.freshness ?? "F1");
+  }
+  return r === null ? { accept: true } : { accept: false, reason: r };
+}
+
+// ── Signed registrar directory (mirror ainra-core::directory) ───────────────────────────────────────────────────
+export interface WireDirectoryEntry {
+  /** D-044 graduated-distrust cutoff, absent when the registrar is fully trusted. */
+  distrust_from_leaf?: number;
+  registrar: string;
+  issuer_ed25519: string;
+  issuer_mldsa65: string;
+  log_root_slh: string;
+  /** base64url status-signing hybrid public key (D-020). `#[serde(default)]` on the Rust side ⇒ may be "" (a legacy
+   *  entry with no status authentication); such a registrar's passports fail closed in the GA {@link Verifier}. */
+  status_ed25519?: string;
+  status_mldsa65?: string;
+  status_uri: string;
+}
+export interface WireDirectory {
+  epoch: number;
+  issued_at: number;
+  entries: WireDirectoryEntry[];
+  revoked_delegates?: string[];
+  sig_root_ed25519: string;
+  sig_root_slh: string;
+}
+
+/** The authenticated result of verifying a directory: trust anchors + the revoked-delegate fingerprint set. */
+export interface AccreditedSet {
+  anchors: TrustAnchors;
+  revokedDelegates: Set<string>;
+  epoch: number;
+}
+
+/**
+ * Verify a directory against BOTH ceremony root public keys (FROST-Ed25519 group key + SLH-DSA root) and turn it
+ * into trust anchors + a revoked-delegate set. Returns null on any failure (the caller maps that to
+ * `unknown_registrar`: no authentic directory ⇒ no registrar known). Mirrors `Directory::accredit` step for step:
+ * (1) FROST/Ed25519 root sig, (2) SLH-DSA root sig — both required, (3) entries strictly sorted+unique.
+ */
+export function verifyDirectory(d: WireDirectory, rootEd25519: Uint8Array, rootSlh: Uint8Array): AccreditedSet | null {
+  const revoked = d.revoked_delegates ?? [];
+  // canonicalize can throw on an out-of-JS-range signed field (e.g. epoch > 2^53); Rust maps that signing-bytes
+  // error to unknown_registrar (reject). Mirror it — never throw.
+  let msg: Uint8Array;
+  try {
+    msg = new TextEncoder().encode(
+      canonicalize({ entries: d.entries, epoch: d.epoch, issued_at: d.issued_at, revoked_delegates: revoked }),
+    );
+  } catch {
+    return null;
+  }
+  // (1) FROST/Ed25519 root signature.
+  let edSig: Uint8Array;
+  try {
+    edSig = dec(d.sig_root_ed25519);
+  } catch {
+    return null;
+  }
+  if (edSig.length !== 64 || !ed25519Verify(rootEd25519, msg, edSig)) return null;
+  // (2) SLH-DSA root signature — BOTH must verify.
+  let slhSig: Uint8Array;
+  try {
+    slhSig = dec(d.sig_root_slh);
+  } catch {
+    return null;
+  }
+  if (!slhVerify(rootSlh, msg, slhSig)) return null;
+  // (3) registrar ids MUST be ASCII (parity: Rust's UTF-8 String Ord vs JS UTF-16 order agree only on ASCII), then
+  // strictly sorted + unique.
+  for (const e of d.entries) if (e.registrar.length === 0 || !/^[\x00-\x7f]*$/.test(e.registrar)) return null;
+  for (let i = 1; i < d.entries.length; i++) {
+    if (d.entries[i - 1].registrar >= d.entries[i].registrar) return null;
+  }
+  const anchors: TrustAnchors = Object.create(null);
+  for (const e of d.entries) {
+    // STRICT base64url (Rust `b64::decode` rejects any non-alphabet char; Node's Buffer.from is lenient — parity).
+    const ed = strictB64u(e.issuer_ed25519);
+    const ml = strictB64u(e.issuer_mldsa65);
+    const lr = strictB64u(e.log_root_slh);
+    if (ed === null || ml === null || lr === null) return null;
+    if (ed.length !== 32) return null;
+    const info: RegistrarInfo = {
+      issuerKey: { ed25519: ed, mldsa65: ml },
+      logRootKey: lr,
+      distrustFromLeaf: typeof e.distrust_from_leaf === "number" ? e.distrust_from_leaf : undefined,
+    };
+    // Status-signing key (D-020) — extracted opportunistically. It does NOT participate in the directory-accept
+    // decision (Rust `Directory::accredit` ignores these fields entirely, so phase-E accept/reject stays byte-parity);
+    // a status key is set ONLY when both halves decode to a well-formed key AND a non-empty URI binds it. Anything
+    // else leaves it unset → the GA Verifier fails that registrar's passports closed (`stale_status`), never open.
+    const sEd = strictB64u(e.status_ed25519 ?? "");
+    const sMl = strictB64u(e.status_mldsa65 ?? "");
+    if (sEd !== null && sEd.length === 32 && sMl !== null && sMl.length > 0 && e.status_uri.length > 0) {
+      info.statusKey = { ed25519: sEd, mldsa65: sMl };
+      info.statusUri = e.status_uri;
+    }
+    anchors[e.registrar] = info;
+  }
+  // (4) revoked-delegate fingerprints: decode + length-check each, fail closed on a malformed one (Rust parity).
+  const revNorm = decodeFingerprints(revoked);
+  if (revNorm === null) return null;
+  return { anchors, revokedDelegates: new Set(revNorm), epoch: d.epoch };
+}
+
+// ── Directory rollback (PLAN-M50) ─────────────────────────────────────────────────────────────────────────────────
+// Written from `ainra_core::directory::{accredit_at_least, DirectoryHolder}`; held to `vectors/v1-directory-epoch` in
+// `make diff`. Both roots signed every old directory too, so authenticity cannot refuse a replayed one — only the
+// epoch can: an older directory may still accredit a registrar the root has withdrawn, or omit a revoked delegate.
+// Authenticity is checked first, so a forged directory claiming a high epoch never raises anyone's floor.
+
+/** Why a directory was not accepted. Its own vocabulary, outside the frozen credential reasons. */
+export type DirectoryRefusal = "unauthentic" | "rollback";
+export type DirectoryAcceptance =
+  | { ok: true; accredited: AccreditedSet }
+  | { ok: false; refusal: "unauthentic" }
+  | { ok: false; refusal: "rollback"; epoch: number; floor: number };
+
+/** {@link verifyDirectory}, then refuse an authentic directory whose epoch is below `minEpoch`. */
+export function verifyDirectoryAtLeast(d: WireDirectory, rootEd25519: Uint8Array, rootSlh: Uint8Array, minEpoch: number): DirectoryAcceptance {
+  const acc = verifyDirectory(d, rootEd25519, rootSlh);
+  if (acc === null) return { ok: false, refusal: "unauthentic" };
+  if (acc.epoch < minEpoch) return { ok: false, refusal: "rollback", epoch: acc.epoch, floor: minEpoch };
+  return { ok: true, accredited: acc };
+}
+
+/** Which accredited registrar's log signed this checkpoint, or `null` (PLAN-M50 step 5). The directory is verified
+ *  against both roots; the checkpoint's origin must be `ainra-log/<registrar>`; its signature must verify under that
+ *  registrar's log root key at `now` (either ADR-002 mode); and a delegate the directory revokes signs nothing. What
+ *  the genesis board uses to count a witness cosignature only over a checkpoint the log really signed. */
+export function verifyLogCheckpoint(
+  d: WireDirectory,
+  rootEd25519: Uint8Array,
+  rootSlh: Uint8Array,
+  checkpoint: { origin: string; size: number; root: string },
+  checkpointSig: WireCheckpointSig,
+  now: number,
+): string | null {
+  const acc = verifyDirectory(d, rootEd25519, rootSlh);
+  if (acc === null || typeof checkpoint?.origin !== "string" || !checkpoint.origin.startsWith("ainra-log/")) return null;
+  const registrar = checkpoint.origin.slice("ainra-log/".length);
+  if (!Object.hasOwn(acc.anchors, registrar) || !isU64(checkpoint.size) || !isU64(now)) return null;
+  try {
+    if (dec(checkpoint.root).length !== 32) return null;
+    const sig = decodeCheckpointSig(checkpointSig);
+    if (!verifyCheckpointSig(acc.anchors[registrar].logRootKey, { origin: checkpoint.origin, rootB64: checkpoint.root, size: checkpoint.size }, sig, now))
+      return null;
+    if (sig.mode === "delegate" && acc.revokedDelegates.has(certFingerprintB64(sig.cert))) return null;
+  } catch {
+    return null;
+  }
+  return registrar;
+}
+
+/** What a long-lived verifier keeps between directory refreshes: the highest epoch it has accepted. Hand it each new
+ *  directory; it refuses anything older than what it already accepted. A restart starts again from `minEpoch` —
+ *  persisting the floor across restarts is the deployment's job. */
+export function createDirectoryHolder(o: { rootEd25519: Uint8Array; rootSlh: Uint8Array; minEpoch?: number }) {
+  let floor = o.minEpoch ?? 0;
+  return {
+    /** The epoch below which a directory is refused. */
+    floor(): number {
+      return floor;
+    },
+    accept(d: WireDirectory): DirectoryAcceptance {
+      const r = verifyDirectoryAtLeast(d, o.rootEd25519, o.rootSlh, floor);
+      if (r.ok) floor = r.accredited.epoch;
+      return r;
+    },
+    /** A {@link Verifier} built from `d`, only if this holder accepts it; otherwise the refusal. */
+    verifier(d: WireDirectory, freshness: FreshnessClass = "F2", currency = false, audience = ""): Verifier | Exclude<DirectoryAcceptance, { ok: true }> {
+      const r = this.accept(d);
+      if (!r.ok) return r;
+      // Through the public constructor path, which re-verifies both root signatures: there is deliberately no way to
+      // build a Verifier from a trust set that did not come from a verified directory.
+      return Verifier.fromDirectory(d, o.rootEd25519, o.rootSlh, freshness, currency, audience) as Verifier;
+    },
+  };
+}
+export type DirectoryHolder = ReturnType<typeof createDirectoryHolder>;
+
+/** `vectors/v1-directory-epoch`: the vector's directories, in order, to a holder starting at `min_epoch`. */
+export interface WireDirectoryEpochVector {
+  name: string;
+  root_ed25519: string;
+  root_slh: string;
+  min_epoch?: number;
+  directories: WireDirectory[];
+}
+export type DirectoryEpochResult = { accept: true; epoch: number; registrars: number } | { accept: false; refusal: DirectoryRefusal };
+export function runDirectoryEpochVector(v: WireDirectoryEpochVector): DirectoryEpochResult[] {
+  let ed: Uint8Array | null = null, slh: Uint8Array | null = null;
+  try {
+    ed = dec(v.root_ed25519);
+    slh = dec(v.root_slh);
+  } catch {
+    ed = slh = null;
+  }
+  const holder = ed && slh && ed.length === 32 ? createDirectoryHolder({ rootEd25519: ed, rootSlh: slh, minEpoch: v.min_epoch ?? 0 }) : null;
+  return (v.directories ?? []).map((d): DirectoryEpochResult => {
+    if (!holder) return { accept: false, refusal: "unauthentic" };
+    const r = holder.accept(d);
+    return r.ok ? { accept: true, epoch: r.accredited.epoch, registrars: Object.keys(r.accredited.anchors).length } : { accept: false, refusal: r.refusal };
+  });
+}
+
+/** Directory conformance vector (mirror the vector-gen directory corpus): accept + registrar count, or reject. */
+export interface WireDirectoryVector {
+  name: string;
+  expect: { accept: boolean; registrars?: number };
+  directory: WireDirectory;
+  root_ed25519: string;
+  root_slh: string;
+}
+/** Reached through `@ainra/sdk/conformance` only (not the package root, since 0.7.0). It replays a test vector and
+ * never decides whether to trust a presenter — use {@link Verifier}. */
+export function runDirectoryVector(v: WireDirectoryVector): { accept: boolean; registrars?: number } {
+  const acc = verifyDirectory(v.directory, dec(v.root_ed25519), dec(v.root_slh));
+  if (acc === null) return { accept: false };
+  return { accept: true, registrars: Object.keys(acc.anchors).length };
+}
+
+// ── M16 Task 4: the ONE verdict EVENT shape every AINRA-aware surface emits (see docs/PRESENTATION.md) ──
+// Fields, fixed order: status · reason · name · number · tier · freshness_age_s. `number` is the PERMANENT identity
+// (the version-less DID `did:ainra:reg:op:lineage`); `name` is the full versioned credential. `freshness_age_s` is
+// `now - status_issued_at` (how old the revocation info is). The middleware, the MCP server, and the `ainra` CLI all
+// emit exactly this, byte-identical — a differential asserts it.
+export interface VerdictEvent {
+  status: "valid" | "invalid";
+  reason: Reason | null;
+  name: string | null;
+  number: string | null;
+  tier: string | null;
+  freshness_age_s: number | null;
+  /** ADR-019 — the running copy's opaque instance id, or `null` when a passport was presented directly. Always
+   *  present: a variable-shape event would make every consumer branch, and one serializer's bytes being every
+   *  surface's bytes is the entire point of this shape. */
+  instance_iid: string | null;
+  /** ADR-019 — when this copy's credential expires. An operator watching these sees short numbers, and a long one
+   *  is a finding. */
+  instance_exp: number | null;
+}
+/** The permanent AINRA Number: strip `@version` from a name → `did:ainra:reg:op:lineage`. `null` if it doesn't parse. */
+export function numberFromName(sub: string): string | null {
+  const m = /^ainra:([a-z0-9-]+):([a-z0-9-]+):([a-z0-9-]+)@/.exec(sub);
+  return m ? `did:ainra:${m[1]}:${m[2]}:${m[3]}` : null;
+}
+/** Build the canonical verdict event from a presentation bundle (wire form), its verdict, and the verifier's `now`. */
+export function verdictEvent(
+  pres: { claims?: string; status_issued_at?: number; instance?: { iid?: string; exp?: number } },
+  verdict: Verdict,
+  now: number,
+): VerdictEvent {
+  let name: string | null = null, number: string | null = null, tier: string | null = null, age: number | null = null;
+  try {
+    if (typeof pres.claims === "string") {
+      const bytes = strictB64u(pres.claims);
+      if (bytes) {
+        const c = JSON.parse(new TextDecoder().decode(bytes)) as { sub?: unknown; tier?: unknown };
+        if (typeof c.sub === "string") { name = c.sub; number = numberFromName(c.sub); }
+        if (typeof c.tier === "string") tier = c.tier;
+      }
+    }
+    if (typeof pres.status_issued_at === "number") age = Math.max(0, Math.trunc(now - pres.status_issued_at));
+  } catch { /* undecodable claims → null fields; still a well-formed event */ }
+  const inst = (pres as { instance?: { iid?: unknown; exp?: unknown } }).instance;
+  // D-053: the event is built for REFUSED bundles too, so this is the presenter writing into the operator's log.
+  // An `iid` past the bound is not a malformed value to pass along, it is not an `iid` — emit null.
+  const instance_iid = typeof inst?.iid === "string" && inst.iid.length <= MAX_IID_LEN ? inst.iid : null;
+  const instance_exp = typeof inst?.exp === "number" ? inst.exp : null;
+  return { status: verdict.verdict, reason: verdict.verdict === "valid" ? null : verdict.reason, name, number, tier, freshness_age_s: age, instance_iid, instance_exp };
+}
+/** Canonical serialization — fixed key order, compact. MUST byte-match the Rust `ainra verify --event` emitter. */
+export function serializeVerdictEvent(e: VerdictEvent): string {
+  return JSON.stringify({ status: e.status, reason: e.reason, name: e.name, number: e.number, tier: e.tier, freshness_age_s: e.freshness_age_s, instance_iid: e.instance_iid, instance_exp: e.instance_exp });
+}
+
+// ── ADR-019 helpers: mint an instance credential, and present as a running copy ──────────────────────────────────
+//
+// These are the ergonomics half of the rung. Without them the credential exists in the verifier and nowhere else,
+// and "build the rung" would mean "make it possible to verify something nobody can produce".
+
+/** A hybrid keypair as these helpers take it: the two secret keys plus the two public keys. Signing lives in the
+ *  caller's crypto (node:crypto + a FIPS-204 library) because this SDK is a VERIFIER and holds no signing code —
+ *  the same reason it has no key generation. Pass a `sign` callback and keep your secrets out of this library. */
+export type HybridSigner = (msg: Uint8Array) => Promise<HybridSig> | HybridSig;
+
+/** Mint an instance credential for one running copy.
+ *
+ * `controlSign` MUST be the passport's control key — the key ADR-019 says never enters the container. Run this on
+ * the issuing side (an orchestrator, an init container, a sidecar with a mount the workload cannot read), hand the
+ * result plus the instance SECRET into the container, and hand nothing else.
+ *
+ * `lifetimeSecs` is clamped to the ADR-019 ceiling here as a convenience; the verifier enforces it regardless, so
+ * this clamp is a courtesy to the caller and not the control. */
+export async function mintInstanceCredential(args: {
+  passportClaimsB64: string;
+  instancePublic: HybridPublic;
+  capabilities: string[];
+  audience: string;
+  now: number;
+  lifetimeSecs?: number;
+  iid: string;
+  controlSign: HybridSigner;
+}): Promise<InstanceCredential> {
+  const claims = strictB64u(args.passportClaimsB64);
+  if (!claims) throw new Error("passportClaimsB64 is not canonical base64url");
+  const parsed = JSON.parse(new TextDecoder().decode(claims)) as { sub: string; capabilities: string[] };
+  const life = Math.min(args.lifetimeSecs ?? INSTANCE_CRED_DEFAULT_SECS, INSTANCE_CRED_DEFAULT_SECS);
+  // Narrowing is the caller's job to get right, but minting something the verifier will certainly refuse is a
+  // silent trap, so it is refused here where the error can name the capability.
+  const extra = args.capabilities.filter((c) => !parsed.capabilities.includes(c));
+  if (extra.length) throw new Error(`instance capabilities must narrow: ${extra.join(", ")} not held by the passport`);
+  const ic: InstanceCredential = {
+    sub: parsed.sub,
+    iid: args.iid,
+    ikey: args.instancePublic,
+    nbf: args.now,
+    exp: args.now + life,
+    capabilities: args.capabilities,
+    aud: args.audience,
+    passportLeaf: prelogLeaf(claims),
+    sig: { ed25519: new Uint8Array(), mldsa65: new Uint8Array() },
+  };
+  ic.sig = await args.controlSign(instanceSigningBytes(ic));
+  return ic;
+}
+
+/** Produce the proof-of-possession a running copy sends with each presentation.
+ *
+ * `instanceSign` is the container's own key — the ONLY key material ADR-019 puts in the container. A fresh `nonce`
+ * per presentation is the caller's responsibility: this SDK binds it into the signed bytes so single-use CAN be
+ * enforced, and enforces nothing itself, because a replay cache is state. */
+export async function proveInstancePossession(args: {
+  audience: string;
+  /** The credential this proof accompanies. Required since D-049: a PoP that does not name its credential is a
+   *  proof about a key, and keys outlive credentials. */
+  credential: InstanceCredential;
+  nonce: string;
+  now: number;
+  instanceSign: HybridSigner;
+}): Promise<InstancePop> {
+  // D-049: refuse to produce an unbound proof. A PoP with no credential named is a proof about a KEY, and keys
+  // outlive credentials — it is exactly the artefact an attacker forwards. Failing here rather than emitting one
+  // is the whole point of making `credential` required.
+  if (!args.credential || typeof args.credential !== "object") throw new Reject("schema_violation");
+  if (!args.audience) throw new Reject("schema_violation");
+  if (args.credential.aud !== args.audience) throw new Reject("schema_violation");
+  const pop: InstancePop = {
+    aud: args.audience,
+    nonce: args.nonce,
+    ts: args.now,
+    sig: { ed25519: new Uint8Array(), mldsa65: new Uint8Array() },
+  };
+  pop.sig = await args.instanceSign(popSigningBytes(pop, args.credential));
+  return pop;
+}
+
+// ── AINRA Link (D-078) — status and attribution for keys agents already have ────────────────────────────────────
+// Written from D-078 and the frozen order in `ainra_core::link::verify_link`; held to `vectors/v1-link` in
+// `make diff`. A gate that has ALREADY verified a request's Ed25519 signature asks: which accountable operator
+// stands behind this key, and is it revoked? Nothing here makes a request genuine; it attributes a genuine one.
+
+const LINK_V = "ainra-link-1";
+const LINK_POP_PURPOSE = "ainra-link-pop-1";
+const ALLOWED_LINK = new Set(["v", "registrar", "passport", "subject", "scope", "nbf", "exp", "status", "passport_status", "pop", "log"]);
+const ALLOWED_LINK_SUBJECT = new Set(["kind", "alg", "thumbprint"]);
+const ALLOWED_LINK_LOG = new Set(["leaf"]);
+
+/** One link as a gate receives it: an index entry (or the agent's own copy), the checkpoint it is proven under, and
+ *  the registrar's signed status publication. Mirrors `ainra_adapter::WireLink`. */
+export interface WireLink {
+  claims: string;
+  registrar_sig: WireKey;
+  leaf_index: number;
+  inclusion_proof: string[];
+  checkpoint: { origin: string; size: number; root: string };
+  checkpoint_sig: WireCheckpointSig;
+  status_list: string;
+  status_len: number;
+  status_issued_at: number;
+  status_uri?: string;
+  status_sig_ed25519?: string;
+  status_sig_mldsa65?: string;
+}
+
+/** Who a valid link attributes the key to. */
+export interface LinkAttribution {
+  registrar: string;
+  operator: string;
+  passport: string;
+  scope: string[];
+}
+export type LinkVerdict = ({ verdict: "valid" } & LinkAttribution) | { verdict: "invalid"; reason: Reason };
+
+interface LinkClaims {
+  registrar: string;
+  passport: string;
+  alg: "Ed25519" | "ES256K";
+  thumbprint: string;
+  scope: string[];
+  nbf: number;
+  exp: number;
+  statusUri: string;
+  statusIdx: number;
+  passportIdx: number;
+  pop: Uint8Array;
+  leaf: Uint8Array;
+}
+
+function isU64(v: unknown): v is number {
+  return typeof v === "number" && Number.isSafeInteger(v) && v >= 0;
+}
+
+/** The link schema gate, in `LinkClaims::parse_checked`'s order. Every failure is `schema_violation` except a
+ *  passport name outside the grammar (`name_malformed`). */
+function parseLinkChecked(raw: Uint8Array): LinkClaims {
+  let o: Record<string, unknown>;
+  try {
+    o = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(raw));
+  } catch {
+    throw new Reject("schema_violation");
+  }
+  if (typeof o !== "object" || o === null || Array.isArray(o)) throw new Reject("schema_violation");
+  // deny_unknown_fields, every field required, every type exact — what serde does on the Rust side.
+  denyUnknown(o, ALLOWED_LINK);
+  for (const k of ALLOWED_LINK) if (!Object.hasOwn(o, k)) throw new Reject("schema_violation");
+  const subject = o.subject as Record<string, unknown>;
+  const status = o.status as Record<string, unknown>;
+  const pstatus = o.passport_status as Record<string, unknown>;
+  const log = o.log as Record<string, unknown>;
+  for (const [obj, allowed] of [[subject, ALLOWED_LINK_SUBJECT], [status, ALLOWED_STATUSREF], [pstatus, ALLOWED_STATUSREF], [log, ALLOWED_LINK_LOG]] as const) {
+    if (typeof obj !== "object" || obj === null || Array.isArray(obj)) throw new Reject("schema_violation");
+    denyUnknown(obj, allowed);
+    for (const k of allowed) if (!Object.hasOwn(obj, k)) throw new Reject("schema_violation");
+  }
+  const v = reqString(o.v);
+  const registrar = reqString(o.registrar);
+  const passport = reqString(o.passport);
+  const kind = reqString(subject.kind);
+  const alg = reqString(subject.alg);
+  const thumbprint = reqString(subject.thumbprint);
+  const scope = reqStringArray(o.scope);
+  const popB64 = reqString(o.pop);
+  const leafB64 = reqString(log.leaf);
+  const statusUri = reqString(status.uri);
+  const passportUri = reqString(pstatus.uri);
+  if (!isU64(o.nbf) || !isU64(o.exp) || !isU64(status.idx) || !isU64(pstatus.idx)) throw new Reject("schema_violation");
+  // The signed bytes must already be canonical (D-029): one record, one byte string, everywhere.
+  let again: string;
+  try {
+    again = canonicalize(o);
+  } catch {
+    throw new Reject("schema_violation");
+  }
+  if (!eqBytes(new TextEncoder().encode(again), raw)) throw new Reject("schema_violation");
+  if (v !== LINK_V || kind !== "jwk" || (alg !== "Ed25519" && alg !== "ES256K")) throw new Reject("schema_violation");
+  const tp = strictB64u(thumbprint);
+  const pop = strictB64u(popB64);
+  const leaf = strictB64u(leafB64);
+  if (tp === null || tp.length !== 32 || pop === null || pop.length !== 64 || leaf === null || leaf.length !== 32)
+    throw new Reject("schema_violation");
+  if (scope.length > MAX_CAPABILITIES || scope.some((s) => s.length === 0 || new TextEncoder().encode(s).length > 128))
+    throw new Reject("schema_violation");
+  // Both bits live in the one list the registrar signs.
+  if (statusUri !== passportUri || status.idx === pstatus.idx) throw new Reject("schema_violation");
+  if (o.nbf >= o.exp) throw new Reject("schema_violation");
+  if (!parseName(passport)) throw new Reject("name_malformed");
+  // A registrar links only passports it issued itself.
+  if (passport.split(":")[1] !== registrar) throw new Reject("schema_violation");
+  return {
+    registrar, passport, alg, thumbprint, scope, nbf: o.nbf, exp: o.exp,
+    statusUri, statusIdx: status.idx, passportIdx: pstatus.idx, pop, leaf,
+  };
+}
+
+/** RFC 7638 thumbprint of a secp256k1 key given as a 33-byte compressed point (D-082): base64url(SHA-256(
+ *  `{"crv":"secp256k1","kty":"EC","x":"…","y":"…"}`)), the names RFC 8812 registers. `null` for anything else. */
+export function jwkThumbprintEs256k(pk: Uint8Array): string | null {
+  const p = secp256k1Affine(pk);
+  if (!p) return null;
+  return b64uEncode(sha256(new TextEncoder().encode(canonicalize({ crv: "secp256k1", kty: "EC", x: b64uEncode(p.x), y: b64uEncode(p.y) }))));
+}
+
+/** The RFC 7638 thumbprint of a key a gate has verified, by length: 32 bytes is Ed25519, 33 a compressed secp256k1
+ *  point (ES256K, D-082). `null` for anything else — a gate refuses that key (`sig_invalid`). This is how a gate finds
+ *  the key's entry in a link index. */
+export function presentedKeyThumbprint(pk: Uint8Array): string | null {
+  return jwkThumbprintOf(pk);
+}
+
+function jwkThumbprintOf(pk: Uint8Array): string | null {
+  return pk.length === 32 ? jwkThumbprintEd25519(pk) : pk.length === 33 ? jwkThumbprintEs256k(pk) : null;
+}
+
+/** RFC 7638 thumbprint of an Ed25519 public key: base64url(SHA-256(`{"crv":"Ed25519","kty":"OKP","x":"…"}`)). */
+export function jwkThumbprintEd25519(pk: Uint8Array): string {
+  return b64uEncode(sha256(new TextEncoder().encode(canonicalize({ crv: "Ed25519", kty: "OKP", x: b64uEncode(pk) }))));
+}
+
+/** What the linked key signs to consent to a link (D-078). Frozen. */
+export function linkPopSigningBytes(registrar: string, passport: string, thumbprint: string, nbf: number): Uint8Array {
+  return new TextEncoder().encode(canonicalize({ purpose: LINK_POP_PURPOSE, registrar, passport, thumbprint, nbf }));
+}
+
+/** Verify a link as a gate: schema, accredited registrar, the status publication authenticated against the
+ *  directory's status key (before anything is decompressed), then the signatures, proof of control, scope, both
+ *  status bits and logged-before-valid — first failure wins, in the core's order. */
+function verifyLinkInner(
+  w: WireLink,
+  anchors: TrustAnchors,
+  revokedDelegates: Set<string>,
+  presentedKey: Uint8Array,
+  now: number,
+  freshness: FreshnessClass,
+  capability: string | undefined,
+): LinkAttribution {
+  const raw = dec(w.claims);
+  const c = parseLinkChecked(raw);
+  if (!Object.hasOwn(anchors, c.registrar)) throw new Reject("unknown_registrar");
+  const reg = anchors[c.registrar];
+  if (!reg.statusKey) throw new Reject("stale_status");
+  authenticateStatus(reg, c.statusUri, w as unknown as PresentationBundle);
+  const packed = (() => {
+    const z = strictB64u(w.status_list);
+    if (z === null) throw new Reject("stale_status");
+    return unpackStatus(z, w.status_len);
+  })();
+  const sig: HybridSig = { ed25519: dec(w.registrar_sig.ed25519), mldsa65: dec(w.registrar_sig.mldsa65) };
+  const cpRoot = dec(w.checkpoint.root);
+  if (cpRoot.length !== 32) throw new Reject("schema_violation");
+  const cpSig = decodeCheckpointSig(w.checkpoint_sig);
+  const proof = w.inclusion_proof.map((h) => {
+    const b = dec(h);
+    if (b.length !== 32) throw new Reject("schema_violation");
+    return b;
+  });
+  if (!isU64(w.leaf_index) || !isU64(w.status_issued_at) || !isU64(w.checkpoint.size)) throw new Reject("schema_violation");
+
+  // window, exact
+  if (now < c.nbf) throw new Reject("not_yet_valid");
+  if (now >= c.exp) throw new Reject("expired");
+  // the registrar signed exactly these bytes, with both halves of its key
+  const r = verifyHybrid(reg.issuerKey, raw, sig);
+  if (r) throw new Reject(r);
+  // the key the gate verified is the linked key, and that key consented to this link
+  // — same algorithm (by length: 32 bytes Ed25519, 33 a compressed secp256k1 point, D-082), same thumbprint
+  const presentedAlg = presentedKey.length === 32 ? "Ed25519" : presentedKey.length === 33 ? "ES256K" : null;
+  if (presentedAlg !== c.alg || jwkThumbprintOf(presentedKey) !== c.thumbprint) throw new Reject("sig_invalid");
+  const consent = linkPopSigningBytes(c.registrar, c.passport, c.thumbprint, c.nbf);
+  if (!(presentedAlg === "Ed25519" ? ed25519Verify(presentedKey, consent, c.pop) : es256kVerify(presentedKey, consent, c.pop)))
+    throw new Reject("sig_invalid");
+  // scope
+  if (capability !== undefined && c.scope.length > 0 && !c.scope.includes(capability)) throw new Reject("ceiling_exceeded");
+  // status: fresh, then the link's own bit, then the operator's lineage
+  if (freshnessStale(freshness, now, w.status_issued_at)) throw new Reject("stale_status");
+  if (statusBit(packed, w.status_len, c.statusIdx)) throw new Reject("revoked");
+  if (statusBit(packed, w.status_len, c.passportIdx)) throw new Reject("revoked");
+  // logged before valid
+  if (!verifyCheckpointSig(reg.logRootKey, { origin: w.checkpoint.origin, rootB64: w.checkpoint.root, size: w.checkpoint.size }, cpSig, now))
+    throw new Reject("checkpoint_invalid");
+  if (cpSig.mode === "delegate" && revokedDelegates.has(certFingerprintB64(cpSig.cert))) throw new Reject("checkpoint_invalid");
+  if (!eqBytes(c.leaf, prelogLeaf(raw))) throw new Reject("not_logged");
+  if (!verifyInclusion(c.leaf, w.leaf_index, w.checkpoint.size, proof, cpRoot)) throw new Reject("not_logged");
+  if (reg.distrustFromLeaf !== undefined && w.leaf_index >= reg.distrustFromLeaf) throw new Reject("registrar_distrusted");
+  return { registrar: c.registrar, operator: c.passport.split(":")[2], passport: c.passport, scope: c.scope };
+}
+
+/** A registrar's link index, as `GET /links` serves it (D-078, D-079: fetched whole, never looked up by key). */
+export interface LinkIndex {
+  registrar: string;
+  checkpoint: { origin: string; size: number; root: string };
+  checkpoint_sig: WireCheckpointSig;
+  links: Array<{ thumbprint: string; claims: string; registrar_sig: WireKey; leaf_index: number; inclusion_proof: string[] }>;
+}
+/** A registrar's signed status publication, as `GET /status-list` serves it. */
+export interface StatusPublication {
+  uri: string;
+  status_list_b64: string;
+  bit_len: number;
+  issued_at: number;
+  sig_ed25519: string;
+  sig_mldsa65: string;
+}
+
+/** Assemble the {@link WireLink} for one key from a registrar's two published documents. `null` means the key is
+ *  not linked at this registrar. Assembling trusts nothing: {@link Verifier.verifyLink} checks every part, so an
+ *  index or a publication from a mirror is as good as one from the registrar. */
+export function linkFromIndex(index: LinkIndex, publication: StatusPublication, thumbprint: string): WireLink | null {
+  const e = index.links.find((l) => l.thumbprint === thumbprint);
+  if (!e) return null;
+  return {
+    claims: e.claims,
+    registrar_sig: e.registrar_sig,
+    leaf_index: e.leaf_index,
+    inclusion_proof: e.inclusion_proof,
+    checkpoint: index.checkpoint,
+    checkpoint_sig: index.checkpoint_sig,
+    status_list: publication.status_list_b64,
+    status_len: publication.bit_len,
+    status_issued_at: publication.issued_at,
+    status_uri: publication.uri,
+    status_sig_ed25519: publication.sig_ed25519,
+    status_sig_mldsa65: publication.sig_mldsa65,
+  };
+}
+
+/** Run one `vectors/v1-gate` vector (D-073): build the GA {@link Verifier} from the vector's directory and roots with
+ *  the gate's own freshness class and audience, and verify the bundle at the gate's clock. This is what a gate
+ *  decides — the directory checked against both roots, the status authenticated, nothing taken on the presenter's
+ *  word — where {@link runVector} is the fixture-semantics verify function. `no_gate` when the directory does not
+ *  verify: a gate that cannot establish trust does not exist. *
+ * Reached through `@ainra/sdk/conformance` only (not the package root, since 0.7.0). It replays a test vector and
+ * never decides whether to trust a presenter — use {@link Verifier}.
+ */
+export function runGateVector(v: {
+  directory: WireDirectory;
+  roots: { root_ed25519: string; root_slh: string };
+  bundle: PresentationBundle;
+  now: number;
+  audience: string;
+  freshness: FreshnessClass;
+}): { verdict: "valid" } | { verdict: "invalid"; reason: string } | { verdict: "no_gate" } {
+  const gate = Verifier.fromDirectoryB64(v.directory, v.roots.root_ed25519, v.roots.root_slh, v.freshness, false, v.audience);
+  if (!gate) return { verdict: "no_gate" };
+  const r = gate.verify(v.bundle, v.now);
+  return r.verdict === "valid" ? { verdict: "valid" } : { verdict: "invalid", reason: r.reason };
+}
+
+/** Run one `vectors/v1-currency` vector (D-021, PLAN-M51): ONE currency-mode {@link Verifier} from the vector's
+ *  directory and roots decides every step's bundle at that step's clock, remembering each fresh head it accepted.
+ *  One `{verdict[, reason]}` per step; `no_gate` when the directory does not verify. */
+export function runCurrencyVector(v: {
+  directory: WireDirectory;
+  roots: { root_ed25519: string; root_slh: string };
+  audience: string;
+  freshness: FreshnessClass;
+  steps: Array<{ bundle: PresentationBundle; now: number }>;
+}): Array<{ verdict: "valid" } | { verdict: "invalid"; reason: string }> | { verdict: "no_gate" } {
+  const gate = Verifier.fromDirectoryB64(v.directory, v.roots.root_ed25519, v.roots.root_slh, v.freshness, true, v.audience);
+  if (!gate) return { verdict: "no_gate" };
+  return v.steps.map((s) => {
+    const r = gate.verify(s.bundle, s.now);
+    return r.verdict === "valid" ? { verdict: "valid" } : { verdict: "invalid", reason: r.reason };
+  });
+}
+
+/** Run one `vectors/v1-link` vector (D-078): the GA {@link Verifier} from the vector's directory and roots with the
+ *  gate's own freshness class, then {@link Verifier.verifyLink} at the gate's clock for the key it verified and the
+ *  capability the request exercises. `no_gate` when the directory does not verify. *
+ * Reached through `@ainra/sdk/conformance` only (not the package root, since 0.7.0). It replays a test vector and
+ * never decides whether to trust a presenter — use {@link Verifier}.
+ */
+export function runLinkVector(v: {
+  directory: WireDirectory;
+  roots: { root_ed25519: string; root_slh: string };
+  link: WireLink;
+  presented_key: string;
+  now: number;
+  freshness: FreshnessClass;
+  capability: string | null;
+}): LinkVerdict | { verdict: "no_gate" } {
+  const gate = Verifier.fromDirectoryB64(v.directory, v.roots.root_ed25519, v.roots.root_slh, v.freshness);
+  if (!gate) return { verdict: "no_gate" };
+  const key = strictB64u(v.presented_key);
+  if (key === null || (key.length !== 32 && key.length !== 33)) return { verdict: "invalid", reason: "schema_violation" };
+  return gate.verifyLink(v.link, key, v.now, v.capability ?? undefined);
+}
+
+// ── Signed decision records (D-079) ─────────────────────────────────────────────────────────────────────────────
+// Written from D-079 and `ainra_core::decision`; held to `vectors/v1-decision` in `make diff`. A gate signs one
+// record per decision with its own Ed25519 key and chains each to the one before; anyone with the gate's public key
+// can check the log end to end. The field set is closed, so there is nowhere to put personal data.
+
+export const DECISION_V = "ainra-decision-1";
+export type ChainProblem = "schema" | "gate" | "signature" | "sequence" | "link" | "clock" | "truncated" | "forked";
+export type ChainResult = { ok: true; count: number } | { ok: false; index: number; problem: ChainProblem };
+/** The record a log segment continues from: its `seq`, `at` and digest (base64url). */
+export interface ChainAnchor { seq: number; at: number; digest: string }
+export interface DecisionRecord {
+  v: string; gate: string; seq: number; at: number; kind: "passport" | "link"; subject: string;
+  passport?: string; operator?: string; verdict: "valid" | "invalid"; reason?: string; request: string;
+  status?: { uri: string; issued_at: number; list: string };
+  checkpoint?: { origin: string; size: number; root: string };
+  policy: { freshness: FreshnessClass; audience: string };
+  prev: string; sig: string;
+}
+
+const DECISION_FIELDS = new Set(["v", "gate", "seq", "at", "kind", "subject", "passport", "operator", "verdict", "reason", "request", "status", "checkpoint", "policy", "prev", "sig"]);
+const DECISION_OPTIONAL = new Set(["passport", "operator", "reason", "status", "checkpoint"]);
+const FROZEN_REASONS: ReadonlySet<string> = new Set([
+  "registrar_distrusted", "sig_invalid", "alg_downgrade", "expired", "not_yet_valid", "revoked", "mandate_revoked",
+  "chain_widening", "chain_expired", "not_logged", "checkpoint_invalid", "stale_status", "name_malformed",
+  "ceiling_exceeded", "unknown_registrar", "schema_violation", "instance_expired", "instance_scope_exceeds",
+  "instance_sig_invalid", "instance_pop_invalid",
+]);
+
+// The request-signature refusals (D-062): a good credential on a request it did not sign is a decision too.
+const PRESENTATION_REASONS: ReadonlySet<string> = new Set(["presentation_unsigned", "presentation_sig_invalid", "presentation_stale", "presentation_replayed"]);
+
+function b64Len(s: unknown, n: number): boolean {
+  if (typeof s !== "string") return false;
+  const b = strictB64u(s);
+  return b !== null && b.length === n;
+}
+function exactObject(o: unknown, fields: string[]): o is Record<string, unknown> {
+  if (o === null || typeof o !== "object" || Array.isArray(o)) return false;
+  const keys = Object.keys(o);
+  return keys.length === fields.length && fields.every((f) => Object.hasOwn(o, f));
+}
+
+/** Parse one log line the way `DecisionRecord::parse_checked` does; `null` for anything outside version 1. */
+function parseDecision(line: string): DecisionRecord | null {
+  let o: Record<string, unknown>;
+  try {
+    o = JSON.parse(line);
+  } catch {
+    return null;
+  }
+  if (o === null || typeof o !== "object" || Array.isArray(o)) return null;
+  for (const k of Object.keys(o)) if (!DECISION_FIELDS.has(k)) return null;
+  for (const k of DECISION_FIELDS) {
+    if (!Object.hasOwn(o, k)) { if (!DECISION_OPTIONAL.has(k)) return null; continue; }
+    // An explicit null is not "absent": the Rust record would re-encode without it and refuse the line.
+    if (o[k] === null) return null;
+  }
+  for (const k of ["v", "gate", "kind", "subject", "verdict", "request", "prev", "sig"]) if (typeof o[k] !== "string") return null;
+  for (const k of ["passport", "operator", "reason"]) if (k in o && typeof o[k] !== "string") return null;
+  if (!isU64(o.seq) || !isU64(o.at)) return null;
+  const st = o.status, cp = o.checkpoint, pol = o.policy;
+  if (st !== undefined && !(exactObject(st, ["uri", "issued_at", "list"]) && typeof st.uri === "string" && isU64(st.issued_at) && b64Len(st.list, 32))) return null;
+  if (cp !== undefined && !(exactObject(cp, ["origin", "size", "root"]) && typeof cp.origin === "string" && isU64(cp.size) && b64Len(cp.root, 32))) return null;
+  if (!(exactObject(pol, ["freshness", "audience"]) && typeof pol.audience === "string" && ["F1", "F2", "F3"].includes(pol.freshness as string))) return null;
+  try {
+    if (canonicalize(o) !== line) return null;
+  } catch {
+    return null;
+  }
+  const r = o as unknown as DecisionRecord;
+  if (r.v !== DECISION_V || !b64Len(r.gate, 32) || !b64Len(r.request, 32) || !b64Len(r.sig, 64)) return null;
+  if (!(r.seq === 0 && r.prev === "") && !b64Len(r.prev, 32)) return null;
+  if (r.kind === "passport") {
+    if (!parseName(r.subject) || r.passport !== undefined) return null;
+  } else if (r.kind === "link") {
+    if (!b64Len(r.subject, 32) || (r.passport !== undefined && !parseName(r.passport))) return null;
+  } else return null;
+  const okVerdict =
+    (r.verdict === "valid" && r.reason === undefined) ||
+    (r.verdict === "invalid" && r.reason === "not_linked" && r.kind === "link") ||
+    (r.verdict === "invalid" && r.reason !== undefined && (FROZEN_REASONS.has(r.reason) || PRESENTATION_REASONS.has(r.reason)));
+  if (!okVerdict) return null;
+  if (r.operator !== undefined && (r.operator.length === 0 || new TextEncoder().encode(r.operator).length > 63)) return null;
+  return r;
+}
+
+/** What the gate signs: the canonical record without `sig`. */
+export function decisionSigningBytes(r: Omit<DecisionRecord, "sig"> & { sig?: string }): Uint8Array {
+  const { sig: _sig, ...rest } = r;
+  void _sig;
+  return new TextEncoder().encode(canonicalize(rest));
+}
+
+/** Sign and serialise one record. `prevLine` is the previous log line (`""` for the first); `seq` and `prev` are
+ *  filled in from it, so a gate cannot get the chain wrong by hand. Returns the new line. */
+export function signDecision(
+  r: Omit<DecisionRecord, "v" | "gate" | "seq" | "prev" | "sig">,
+  gatePublic: Uint8Array,
+  prevLine: string,
+  sign: (msg: Uint8Array) => Uint8Array,
+): string {
+  const prev = prevLine === "" ? null : parseDecision(prevLine);
+  if (prevLine !== "" && prev === null) throw new Error("the previous line is not a decision record");
+  const rec: Omit<DecisionRecord, "sig"> = {
+    ...r,
+    v: DECISION_V,
+    gate: jwkThumbprintEd25519(gatePublic),
+    seq: prev ? prev.seq + 1 : 0,
+    prev: prev ? b64uEncode(sha256(new TextEncoder().encode(prevLine))) : "",
+  };
+  // Optional fields are left out, never written as undefined or null: absent and null are different records.
+  for (const k of Object.keys(rec) as (keyof typeof rec)[]) if (rec[k] === undefined) delete rec[k];
+  const line = canonicalize({ ...rec, sig: b64uEncode(sign(decisionSigningBytes(rec))) });
+  if (parseDecision(line) === null) throw new Error("this record would not verify: a field is outside the vocabulary");
+  return line;
+}
+
+/** Check a decision log against the gate's Ed25519 public key. Per record, in this order: schema, gate, signature,
+ *  sequence, link, clock — the core's order. Removing records from the END of a log is invisible to this check
+ *  (`vectors/v1-decision/d17`): compare the last digest with a head the gate published. */
+export function verifyDecisionChain(lines: string[], gateKey: Uint8Array, anchor?: ChainAnchor | null): ChainResult {
+  const gate = jwkThumbprintEd25519(gateKey);
+  let last: { seq: number; at: number; digest: string } | null = anchor ?? null;
+  for (let index = 0; index < lines.length; index++) {
+    const fail = (problem: ChainProblem): ChainResult => ({ ok: false, index, problem });
+    const r = parseDecision(lines[index]);
+    if (r === null) return fail("schema");
+    if (r.gate !== gate) return fail("gate");
+    if (!ed25519Verify(gateKey, decisionSigningBytes(r), strictB64u(r.sig) as Uint8Array)) return fail("signature");
+    const wantSeq = last ? last.seq + 1 : 0;
+    if (r.seq !== wantSeq) return fail("sequence");
+    if (r.prev !== (last ? last.digest : "")) return fail("link");
+    if (last && r.at < last.at) return fail("clock");
+    last = { seq: r.seq, at: r.at, digest: b64uEncode(sha256(new TextEncoder().encode(lines[index]))) };
+  }
+  return { ok: true, count: lines.length };
+}
+
+// ── Logged heads (D-081) ────────────────────────────────────────────────────────────────────────────────────────
+// Written from D-081 and `ainra_core::decision`; held to `vectors/v1-decision` d22–d32. A chain shows every edit,
+// deletion and reordering but not records cut from its end. A gate signs a head statement — where its log stood —
+// and a registrar logs it; a log checked against a logged head that stops short reads `truncated`, and one with a
+// different record at that position reads `forked`.
+
+export const HEAD_V = "ainra-decision-head-1";
+/** A gate's signed statement of where its decision log stood. One canonical line. */
+export interface HeadStatement { v: string; gate: string; seq: number; at: number; head: string; sig: string }
+/** A registrar's receipt for a logged head, as `POST /decision-head` answers. */
+export interface WireHeadReceipt {
+  registrar: string;
+  statement: string;
+  leaf_index: number;
+  inclusion_proof: string[];
+  checkpoint: { origin: string; size: number; root: string };
+  checkpoint_sig: WireCheckpointSig;
+}
+export type HeadVerdict = { verdict: "valid"; statement: HeadStatement } | { verdict: "invalid"; reason: Reason };
+
+function parseHead(line: string): HeadStatement | null {
+  let o: unknown;
+  try {
+    o = JSON.parse(line);
+  } catch {
+    return null;
+  }
+  if (!exactObject(o, ["v", "gate", "seq", "at", "head", "sig"])) return null;
+  for (const k of ["v", "gate", "head", "sig"]) if (typeof o[k] !== "string") return null;
+  if (!isU64(o.seq) || !isU64(o.at)) return null;
+  try {
+    if (canonicalize(o) !== line) return null;
+  } catch {
+    return null;
+  }
+  const h = o as unknown as HeadStatement;
+  if (h.v !== HEAD_V || !b64Len(h.gate, 32) || !b64Len(h.head, 32) || !b64Len(h.sig, 64)) return null;
+  return h;
+}
+
+/** What the gate signs: the canonical statement without `sig`. */
+export function headSigningBytes(h: Omit<HeadStatement, "sig"> & { sig?: string }): Uint8Array {
+  const { sig: _sig, ...rest } = h;
+  void _sig;
+  return new TextEncoder().encode(canonicalize(rest));
+}
+
+function verifyHeadInner(line: string, gateKey: Uint8Array): HeadStatement {
+  const h = parseHead(line);
+  if (h === null) throw new Reject("schema_violation");
+  if (h.gate !== jwkThumbprintEd25519(gateKey)) throw new Reject("sig_invalid");
+  if (!ed25519Verify(gateKey, headSigningBytes(h), strictB64u(h.sig) as Uint8Array)) throw new Reject("sig_invalid");
+  return h;
+}
+
+/** Check a head statement line was signed by `gateKey` and names it. Never throws. */
+export function verifyHeadStatement(line: string, gateKey: Uint8Array): HeadVerdict {
+  try {
+    return { verdict: "valid", statement: verifyHeadInner(line, gateKey) };
+  } catch (e) {
+    if (e instanceof Reject) return { verdict: "invalid", reason: e.reason };
+    return { verdict: "invalid", reason: "schema_violation" };
+  }
+}
+
+/** The head statement for a log whose last line is `lastLine`, signed by the gate. What a gate hands a registrar. */
+export function signHeadStatement(lastLine: string, gatePublic: Uint8Array, sign: (msg: Uint8Array) => Uint8Array): string {
+  const r = parseDecision(lastLine);
+  if (r === null) throw new Error("the last line is not a decision record");
+  const h = {
+    v: HEAD_V, gate: jwkThumbprintEd25519(gatePublic), seq: r.seq, at: r.at,
+    head: b64uEncode(sha256(new TextEncoder().encode(lastLine))),
+  };
+  return canonicalize({ ...h, sig: b64uEncode(sign(headSigningBytes(h))) });
+}
+
+/** A registrar's receipt for a head: the statement, then that it is logged under a checkpoint the registrar's log key
+ *  signed — the same steps, in the same order, as a link's logged-before-valid check. */
+function verifyHeadReceiptInner(r: WireHeadReceipt, anchors: TrustAnchors, revokedDelegates: Set<string>, gateKey: Uint8Array, now: number): HeadStatement {
+  if (r === null || typeof r !== "object" || typeof r.statement !== "string" || typeof r.registrar !== "string") throw new Reject("schema_violation");
+  const h = verifyHeadInner(r.statement, gateKey);
+  if (!Object.hasOwn(anchors, r.registrar)) throw new Reject("unknown_registrar");
+  const reg = anchors[r.registrar];
+  if (!r.checkpoint || !isU64(r.leaf_index) || !isU64(r.checkpoint.size) || !Array.isArray(r.inclusion_proof)) throw new Reject("schema_violation");
+  const cpRoot = dec(r.checkpoint.root);
+  if (cpRoot.length !== 32) throw new Reject("schema_violation");
+  const cpSig = decodeCheckpointSig(r.checkpoint_sig);
+  const proof = r.inclusion_proof.map((x) => {
+    const b = dec(x);
+    if (b.length !== 32) throw new Reject("schema_violation");
+    return b;
+  });
+  if (!verifyCheckpointSig(reg.logRootKey, { origin: r.checkpoint.origin, rootB64: r.checkpoint.root, size: r.checkpoint.size }, cpSig, now))
+    throw new Reject("checkpoint_invalid");
+  if (cpSig.mode === "delegate" && revokedDelegates.has(certFingerprintB64(cpSig.cert))) throw new Reject("checkpoint_invalid");
+  if (!verifyInclusion(hashLeaf(new TextEncoder().encode(r.statement)), r.leaf_index, r.checkpoint.size, proof, cpRoot))
+    throw new Reject("not_logged");
+  return h;
+}
+
+/** Check a decision log against a logged head: the chain as {@link verifyDecisionChain} checks it, then — when the
+ *  head's record falls in or just before this segment — that the log reaches it and holds exactly that record. A log
+ *  that grew after the head was logged holds; one that stops short is `truncated`; a different record is `forked`. */
+export function verifyDecisionChainToHead(lines: string[], gateKey: Uint8Array, anchor: ChainAnchor | null | undefined, head: HeadStatement): ChainResult {
+  if (head.gate !== jwkThumbprintEd25519(gateKey)) return { ok: false, index: 0, problem: "gate" };
+  const r = verifyDecisionChain(lines, gateKey, anchor);
+  if (!r.ok) return r;
+  const first = anchor ? anchor.seq + 1 : 0;
+  if (head.seq < first) {
+    if (anchor && anchor.seq === head.seq && anchor.digest !== head.head) return { ok: false, index: 0, problem: "forked" };
+    return r;
+  }
+  const at = head.seq - first;
+  if (at >= lines.length) return { ok: false, index: lines.length, problem: "truncated" };
+  if (b64uEncode(sha256(new TextEncoder().encode(lines[at]))) !== head.head) return { ok: false, index: at, problem: "forked" };
+  return r;
+}
+
+export type HeadChainResult = ChainResult | { ok: false; head: Reason };
+
+/** Run one `vectors/v1-decision` vector. A vector may carry a head (D-081): `head`, a statement the checker holds, or
+ *  `receipt`, a registrar's receipt for one, with `directory`, `roots` and `now`. The head is checked first.
+ * Reached through `@ainra/sdk/conformance` only (not the package root, since 0.7.0). It replays a test vector and
+ * never decides whether to trust a presenter — use {@link Verifier}.
+ */
+export function runDecisionVector(v: {
+  gate_key: string; lines: string[]; anchor: ChainAnchor | null;
+  head?: string; receipt?: WireHeadReceipt; directory?: WireDirectory; roots?: { root_ed25519: string; root_slh: string }; now?: number;
+}): HeadChainResult {
+  const key = strictB64u(v.gate_key);
+  if (key === null || key.length !== 32) return { ok: false, index: 0, problem: "schema" };
+  if (v.anchor !== null && v.anchor !== undefined) {
+    const d = strictB64u(v.anchor.digest);
+    if (!isU64(v.anchor.seq) || !isU64(v.anchor.at) || d === null || d.length !== 32) return { ok: false, index: 0, problem: "schema" };
+  }
+  let head: HeadStatement | null = null;
+  if (v.receipt !== undefined && v.receipt !== null) {
+    const gate = v.directory && v.roots ? Verifier.fromDirectoryB64(v.directory, v.roots.root_ed25519, v.roots.root_slh, "F3") : null;
+    if (!gate) return { ok: false, head: "unknown_registrar" };
+    const hv = gate.verifyHeadReceipt(v.receipt, key, v.now ?? 0);
+    if (hv.verdict === "invalid") return { ok: false, head: hv.reason };
+    head = hv.statement;
+  } else if (typeof v.head === "string") {
+    const hv = verifyHeadStatement(v.head, key);
+    if (hv.verdict === "invalid") return { ok: false, head: hv.reason };
+    head = hv.statement;
+  }
+  return head ? verifyDecisionChainToHead(v.lines, key, v.anchor, head) : verifyDecisionChain(v.lines, key, v.anchor);
+}
+
+/** The digest a decision record keeps of a request: SHA-256 over the canonical `{authority, content_digest, method,
+ *  path}` — what the request's signature covers, never its body (`content_digest` is the header, or ""). */
+export function decisionRequestDigest(req: { method: string; authority: string; path: string; contentDigest?: string }): string {
+  return b64uEncode(sha256(new TextEncoder().encode(canonicalize({
+    authority: req.authority, content_digest: req.contentDigest ?? "", method: req.method, path: req.path,
+  }))));
+}
+
+/** What a gate records about one decision; the log adds who, when in sequence, and the chain. */
+export type DecisionInput = Omit<DecisionRecord, "v" | "gate" | "seq" | "prev" | "sig" | "policy">;
+
+/** A gate's decision log (D-079). `append` receives each new line (write it to a file, a queue, anywhere
+ *  append-only); `lastLine` resumes a log after a restart. `head()` is the digest to publish, so a reader can tell
+ *  when records were cut from the end. The key never leaves `sign`. */
+export function createDecisionLog(o: {
+  gatePublic: Uint8Array;
+  sign: (msg: Uint8Array) => Uint8Array;
+  append: (line: string) => void;
+  freshness: FreshnessClass;
+  audience?: string;
+  lastLine?: string;
+}) {
+  let last = o.lastLine ?? "";
+  return {
+    record(d: DecisionInput): string {
+      const line = signDecision({ ...d, policy: { freshness: o.freshness, audience: o.audience ?? "" } }, o.gatePublic, last, o.sign);
+      o.append(line);
+      last = line;
+      return line;
+    },
+    head(): string {
+      return last === "" ? "" : b64uEncode(sha256(new TextEncoder().encode(last)));
+    },
+    /** The signed head statement for where the log stands now (D-081) — hand it to a registrar's
+     *  `POST /decision-head` with the gate's public key. `""` while the log is empty. */
+    statement(): string {
+      return last === "" ? "" : signHeadStatement(last, o.gatePublic, o.sign);
+    },
+  };
+}
+export type DecisionLog = ReturnType<typeof createDecisionLog>;
+

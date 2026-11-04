@@ -7,6 +7,8 @@ set -uo pipefail
 # what makes it reproducible. The daemon now defaults to the wall clock, so pinning is stated, not assumed.
 export AINRA_CLOCK=pinned
 cd "$(dirname "$0")/.."
+# The verdicts below come from the SDK this checkout builds — never from a bundle left over from an earlier build.
+[ -f packages/sdk-ts/dist/conformance.js ] || make -s sdk-build >/dev/null
 REG=127.0.0.1:4907 ; RID=registrar-07 ; ART=http://127.0.0.1:8091 ; NOW=$((1775865600 + 10*24*3600))
 TOKEN="$(cat stage/.issue-token 2>/dev/null)"
 fail(){ echo "  ✗ $1"; exit 1; }
@@ -29,7 +31,7 @@ echo "  ✓ OPTIONS preflight answered (browser client-verify won't be blocked)"
 
 echo "== 2. verify a published lineage in the REAL SDK, over the public artifacts (root not consulted) =="
 V=$(node --input-type=module -e '
-import { runVector } from "./packages/sdk-ts/browser/ainra-sdk.js";
+import { runVector } from "./packages/sdk-ts/dist/conformance.js";
 const enc=(u)=>Buffer.from(u).toString("base64").replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
 const reg=await (await fetch(process.argv[1]+"/registry.json")).json(); const now=reg.generated_window.verified_at;
 const wire=(rec,R)=>({name:rec.sub,expect:{},anchors:{[R.registrar]:{issuer_key:R.accreditation.issuer_key,log_root_key:R.accreditation.log_root_key}},presentation:{claims:enc(new TextEncoder().encode(rec.claims)),issuer_sig:{ed25519:rec.issuer_sig_ed25519,mldsa65:rec.issuer_sig_mldsa65},now,chain_keys:rec.chain_keys,hop_proofs:rec.hop_proofs,status_list:R.status_list.status_list_b64,status_len:R.status_list.bit_len,status_issued_at:R.status_list.issued_at,freshness:"F3",checkpoint:{origin:rec.log_origin,size:rec.checkpoint_size,root:rec.checkpoint_root},checkpoint_sig:rec.checkpoint_sig,leaf_index:rec.leaf_index,inclusion_proof:rec.inclusion_proof,mandate_revocations:[],revoked_delegates:[]}});

@@ -15,7 +15,7 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { checkRequest, verdictEvent, serializeVerdictEvent } from "../packages/middleware/dist/index.js";
-import { runVector } from "../packages/sdk-ts/dist/index.js";
+import { runVector } from "../packages/sdk-ts/dist/conformance.js";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 const V1 = ROOT + "vectors/v1/";

@@ -3,7 +3,8 @@
 // in the visitor's browser, with real cryptography: issue → logged-before-valid → verify (the SDK recomputes the
 // inclusion proof locally) → revoke → re-verify (fail-closed). Streams the one canonical M16 verdict-event at each
 // verify. If no registrar is reachable (e.g. a public static deploy), the section degrades to an honest note.
-import { runVector, verdictEvent, serializeVerdictEvent } from "../vendor/ainra-sdk.js";
+import { conformance, verdictEvent, serializeVerdictEvent } from "../vendor/ainra-sdk.js";
+const { runVector } = conformance;
 import { fetchT, why } from "./net.mjs";
 
 const qs = new URLSearchParams(location.search);

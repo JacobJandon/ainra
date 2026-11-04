@@ -173,7 +173,7 @@ DIFF OK: all implementations agree (core ↔ sdk ↔ P0 ↔ py)
 
 `ainra.conformance` holds the corpus runners (`run_vector`, `run_gate_vector`, `run_link_vector`, …). `run_vector`
 believes a vector's own clock, class and status list, so it must never decide trust: use `Verifier` for that (D-075).
-The root `ainra.verify` is the same fixture-semantics function, kept for compatibility; it goes in 0.7.0.
+Since 0.7.0 the package root no longer exports the fixture-semantics `verify` (0.6.0 kept it, for compatibility).
 
 ## Tests
 

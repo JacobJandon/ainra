@@ -28,19 +28,19 @@ against ADR-002's 92-day ceiling (Rust and TypeScript both do), and no vector ha
 checkpoint under an over-long cert, and a currency step with a fresh head under one, close it. And no implementation
 refuses a fresh head signed by a delegate the directory revokes, though all refuse its checkpoints; currency mode will.
 
-**2. One import path for replaying vectors.** Move the in-repo consumers (site JS, tools, publish-preflight smoke) to
+**2. One import path for replaying vectors.** *Done 2026-11-04: every caller, the browser bundle (a `conformance` namespace) and `@ainra/edge` (`@ainra/edge/conformance`, before its first publish); `make replay-imports` and its `--negative`; and the 0.7.0 removal itself, with a test that holds the root's hand-written export list to the engine.* Move the in-repo consumers (site JS, tools, publish-preflight smoke) to
 `@ainra/sdk/conformance` and `ainra.conformance`, so the 0.7.0 removal from the package roots is one line. WITNESS: a
 gate that fails when anything in the repository imports a replay function from a package root.
 
-**3. A1 means a checked principal proof.** The reference registrar issues `auth_class: A1` only with a principal
+**3. A1 means a checked principal proof.** *Done 2026-11-04 (D-089): refused without a checker, refused on the checker's reason, issued only with the checker's proof; tested against the real binary, red with the check disabled.* The reference registrar issues `auth_class: A1` only with a principal
 proof a pluggable checker accepts (the personhood kit first); anything else is refused, not downgraded silently.
 WITNESS: an A1 request with a junk proof must be refused.
 
-**4. Negative-control debt and the S7 scan.** Name a witness for the gates in `tools/negative-control-baseline.json`,
+**4. Negative-control debt and the S7 scan.** *Done 2026-11-04: all fifteen baseline gates have a `--negative` mode, the baseline is empty, and `make negative-controls` runs them in CI; the S7 scan covers every directory a registry ships. What a third round of mutants still gets past is recorded in `docs/drills/NEGATIVE-CONTROLS.md`.* Name a witness for the gates in `tools/negative-control-baseline.json`,
 starting with `s7-lint`, `reasons-check` and `presentation-diff`, so the baseline shrinks; widen the S7 scan to the
 shipped packages. WITNESS: each named control shown red once.
 
-**5. Fuzz the newer parsers.** Coverage-guided targets for link (ES256K), decision and head receipts, RFC 9421
+**5. Fuzz the newer parsers.** *Done 2026-11-04: five targets, a recorded 600-second run of each (`docs/drills/FUZZ.md`); it found two panics in the adapter's vector runners, fixed and kept as tests.* Coverage-guided targets for link (ES256K), decision and head receipts, RFC 9421
 presentations, directories and deltas; one recorded soak run.
 
 ## Done means

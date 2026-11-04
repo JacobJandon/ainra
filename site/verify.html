@@ -924,11 +924,11 @@ async function loadEngine(){
     const s = await import("./vendor/ainra-sdk.js");
     return { kind:"js", label:"@ainra/sdk · JavaScript mirror",
       note:"WebAssembly did not load here, so this ran the independent JavaScript implementation instead. The differential holds both to the same answers on all 1153 vectors — but the Rust core did not run in this tab, and we would rather say that than let you assume it did.",
-      // The audience is written onto the presentation because `runVector` reads it from there and nowhere else.
+      // The audience is written onto the presentation because `conformance.runVector` reads it from there and nowhere else.
       // Both engines therefore verify for the SAME audience — this page used to hand the WASM engine nothing and
       // the JS engine whatever the pasted bundle claimed, so the two disagreed the moment an instance credential
       // was involved: one refused it, the other let the presenter name the verifier.
-      verify:(pres,anchors,now,aud)=>{ const v=s.runVector({name:"",expect:{},anchors,presentation:{...pres,audience:aud}});
+      verify:(pres,anchors,now,aud)=>{ const v=s.conformance.runVector({name:"",expect:{},anchors,presentation:{...pres,audience:aud}});
                                    return { verdict:v.verdict, reason:v.reason, event:null }; } };
   }catch(e){ return null; }
 }

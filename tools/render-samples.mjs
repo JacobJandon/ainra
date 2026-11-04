@@ -7,10 +7,26 @@
 // Every value on the card is read from the sample's real claims (or derived from the real Ed25519 public key, for
 // the fingerprint + portrait identicon). Nothing is invented; every card is labeled SPECIMEN, matching the landing
 // page's own convention for its demo card.
+//
+//   node tools/render-samples.mjs --negative   plants bad inputs in a temp dir; each must fail or show the refusal
+//
+// WITNESS: this is a RENDERER, not a verifier — it draws the verdict the Rust `sample_passport` example computed and
+// re-verifies nothing, so its only failing exits are "no inputs" (exit 1) and a sample it cannot parse. `--negative`
+// runs THIS tool as a separate process with AINRA_SAMPLES_DATA/AINRA_SAMPLES_OUT pointed at a temp dir (the committed
+// samples/ are never written) on three plants: an empty data dir (must exit 1 naming the missing samples), a sample
+// file cut off mid-JSON (must exit non-zero with a JSON SyntaxError and write no manifest), and the valid sample
+// carrying the verdict a revoked credential gets. A refused credential is drawn in four places and each is checked:
+// the data page's verdict line ("INVALID · REASON: REVOKED"), its machine-readable zone ("…REVOKED<<…") and its
+// portrait legend ("…CAP · REVOKED"), and the stamps page's refusal stamp (REVOKED, "VERDICT: INVALID"); none of
+// the VALID forms may appear, and the manifest must record the refused verdict. The committed revoked sample must
+// show the same refusal. The untouched valid sample must still render VALID in all three data-page places with no
+// refusal stamp, so a renderer that prints INVALID on everything cannot pass.
 
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import crypto from "node:crypto";
+import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
@@ -488,4 +504,66 @@ function main() {
   fs.writeFileSync(path.join(OUT_DIR, "manifest.json"), JSON.stringify({ rendered }, null, 2) + "\n");
 }
 
-main();
+// ── the negative control (see WITNESS above): each plant renders into its own temp tree via a fresh process ──
+function negative() {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "ainra-render-neg-"));
+  const committed = (f) => fs.readFileSync(path.join(ROOT, "samples/data", f), "utf8");
+  const valid = committed("sample-valid.json");
+  const run = (name, files) => {
+    const data = path.join(tmp, name, "data"), out = path.join(tmp, name, "out");
+    fs.mkdirSync(data, { recursive: true });
+    for (const [f, body] of Object.entries(files)) fs.writeFileSync(path.join(data, f), body);
+    const r = spawnSync(process.execPath, [fileURLToPath(import.meta.url)], {
+      encoding: "utf8", env: { ...process.env, AINRA_SAMPLES_DATA: data, AINRA_SAMPLES_OUT: out },
+    });
+    const read = (f) => { try { return fs.readFileSync(path.join(out, f), "utf8"); } catch { return ""; } };
+    const manifest = (() => { try { return JSON.parse(read("manifest.json")); } catch { return null; } })();
+    return { code: r.status, err: (r.stderr || "").trim(), page: (kind, side) => read(`passport-${kind}-${side}.svg`), manifest };
+  };
+  // Where a verdict is drawn: the data page's verdict line, machine-readable zone and portrait legend, and the
+  // stamps page's refusal stamp. The text is as it sits in the SVG (so "<" is escaped).
+  const VALID_FORMS = ["ROOT SIGNATURE VALID", "&lt;VALID&lt;", "CAP · VALID"];
+  const REFUSED_DATA = ["INVALID · REASON: REVOKED", "REVOKED&lt;", "CAP · REVOKED"];
+  const REFUSED_STAMPS = [">REVOKED<", "VERDICT: INVALID"];
+  // null when every place shows the refusal and no place shows VALID; otherwise what is wrong
+  const refusal = (r, kind) => {
+    const data = r.page(kind, "data"), stamps = r.page(kind, "stamps");
+    const wrong = [
+      ...REFUSED_DATA.filter((t) => !data.includes(t)).map((t) => `data page lacks "${t}"`),
+      ...VALID_FORMS.filter((t) => data.includes(t)).map((t) => `data page shows "${t}"`),
+      ...REFUSED_STAMPS.filter((t) => !stamps.includes(t)).map((t) => `stamps page lacks "${t}"`),
+    ];
+    const m = r.manifest?.rendered?.find((x) => x.kind === kind);
+    if (!(m && m.verdict.verdict === "invalid" && m.verdict.reason === "revoked")) wrong.push("manifest does not record the refused verdict");
+    if (r.code !== 0) wrong.push(`exit ${r.code}`);
+    return wrong.length ? wrong.join("; ") : null;
+  };
+  const refused = JSON.stringify({ ...JSON.parse(valid), verdict: { verdict: "invalid", reason: "revoked" } });
+  const checks = [
+    ["control: the untouched valid sample renders VALID", () => { const r = run("control", { "sample-valid.json": valid });
+      const data = r.page("valid", "data"), stamps = r.page("valid", "stamps");
+      const ok = r.code === 0 && VALID_FORMS.every((t) => data.includes(t)) && !/INVALID|REVOKED/.test(data) && !/INVALID|REVOKED/.test(stamps) && r.manifest?.rendered?.[0]?.verdict?.verdict === "valid";
+      return ok ? "ok control: exit 0, the data page reads VALID in all three places, no refusal stamp" : null; }],
+    ["control: the committed revoked sample shows the refusal", () => { const why = refusal(run("revoked", { "sample-revoked.json": committed("sample-revoked.json") }), "revoked");
+      return why === null ? "ok control: the committed revoked sample shows the refusal on both pages" : why; }],
+    ["an empty data dir", () => { const r = run("empty", {});
+      return r.code === 1 && /no sample-\*\.json found/.test(r.err) ? `ok caught an empty data dir — exit 1 (${r.err.split("\n")[0]})` : null; }],
+    ["a sample cut off mid-JSON", () => { const r = run("truncated", { "sample-valid.json": valid.slice(0, valid.length >> 1) });
+      return r.code !== 0 && /SyntaxError/.test(r.err) && /JSON/.test(r.err) && !r.manifest ? `ok caught a sample cut off mid-JSON — exit ${r.code} (SyntaxError), no manifest written` : null; }],
+    ["a refused verdict on the valid sample", () => { const why = refusal(run("refused", { "sample-valid.json": refused }), "valid");
+      return why === null ? "ok caught a refused verdict on the valid sample — both pages show the refusal, nowhere VALID" : why; }],
+  ];
+  let missed = 0;
+  for (const [label, check] of checks) {
+    const said = check();
+    if (said && said.startsWith("ok ")) console.log(said);
+    else { console.error(`MISSED ${label}${said ? ` — ${said}` : ""}`); missed++; }
+  }
+  fs.rmSync(tmp, { recursive: true, force: true });
+  if (missed) { console.error(`\nrender-samples negative control FAILED: ${missed} of ${checks.length} not as required`); process.exit(1); }
+  console.log(`\nrender-samples negative control OK: ${checks.length - 2} planted bad inputs failed or showed the refusal, the valid control rendered VALID and the revoked one refused.`);
+  process.exit(0);
+}
+
+if (process.argv.includes("--negative")) negative();
+else main();

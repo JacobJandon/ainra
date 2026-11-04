@@ -17,7 +17,7 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { verify } from "web-bot-auth";
 import { verifierFromJWK } from "web-bot-auth/crypto";
-import { runPresentationVector } from "../../packages/sdk-ts/dist/index.js";
+import { runPresentationVector } from "../../packages/sdk-ts/dist/conformance.js";
 
 const DIR = new URL("../../vectors/v1-presentation/", import.meta.url);
 const NEGATIVE = process.argv.includes("--negative");

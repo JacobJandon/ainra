@@ -24,9 +24,14 @@ const WORDS = ["zero", "one", "two", "three", "four", "five", "six", "seven", "e
 const num = (w) => (/^\d+$/.test(w) ? Number(w) : WORDS.indexOf(w.toLowerCase()));
 
 // ── the checks, as pure functions over text, so the negative controls can feed them fixtures ────────────────────────
-function newestReleaseRows(tag, docs) {
+// `atTag`: this tree IS the tagged commit (a release build, or CI on the tag push). The ROADMAP "Shipped" row and the
+// RELEASING pin record the tag, so they are written after it and cannot be inside the tree it points at — v0.7.0's
+// `make release` and its tag CI both went red on exactly that. The CHANGELOG section is in the release commit and is
+// still required; on main (or any other commit) all three are. Same shape as changelog-board-guard's tag-build rule.
+function newestReleaseRows(tag, docs, atTag = false) {
   const v = tag.slice(1), out = [];
   if (!new RegExp(`^## \\[v?${v.replace(/\./g, "\\.")}\\]`, "m").test(docs.changelog)) out.push(`CHANGELOG.md has no "## [${v}]" section for ${tag}`);
+  if (atTag) return out;
   if (!docs.roadmap.includes(`| **${tag}** |`)) out.push(`ROADMAP.md has no "| **${tag}** |" row under Shipped`);
   if (!docs.releasing.includes(`| **${tag}** |`)) out.push(`RELEASING.md has no "| **${tag}** |" tag-pin row`);
   return out;
@@ -57,6 +62,8 @@ function mirrorKeepsHeadings(name, html) {
 const controls = [
   ["a tagged version still called unreleased",
     unreleasedButTagged(["v0.6.0"], { "fixture ROADMAP": "| **Unreleased (0.6.0)** | … |" }).length === 1],
+  ["the tagged commit's own build still needs its CHANGELOG section",
+    newestReleaseRows("v9.9.9", { changelog: "## [9.9.8] — x", roadmap: "", releasing: "" }, true).length === 1],
   ["a newest tag with no ROADMAP row",
     newestReleaseRows("v9.9.9", { changelog: "## [9.9.9] — x", roadmap: "| **v9.9.8** |", releasing: "| **v9.9.9** |" }).length === 1],
   ["a drill count off by one",
@@ -74,8 +81,14 @@ for (const [what, caught] of controls) {
 const tags = execFileSync("git", ["-C", ROOT, "tag", "--list", "v*", "--sort=-v:refname"], { encoding: "utf8" })
   .split("\n").filter((t) => /^v\d+\.\d+\.\d+$/.test(t));
 const problems = [];
+let atTag = false;
 if (!tags.length) problems.push("no release tags in this clone — fetch them (git fetch --tags); the gate will not pass on an empty list");
-else problems.push(...newestReleaseRows(tags[0], { changelog: read("CHANGELOG.md"), roadmap: read("ROADMAP.md"), releasing: read("RELEASING.md") }));
+else {
+  const commit = (ref) => { try { return execFileSync("git", ["-C", ROOT, "rev-parse", `${ref}^{commit}`], { encoding: "utf8" }).trim(); } catch { return null; } };
+  atTag = commit(tags[0]) !== null && commit(tags[0]) === commit("HEAD");
+  if (atTag) console.log(`  · HEAD is ${tags[0]} itself: its ROADMAP and RELEASING rows are written after the tag, so only its CHANGELOG section is checked here`);
+  problems.push(...newestReleaseRows(tags[0], { changelog: read("CHANGELOG.md"), roadmap: read("ROADMAP.md"), releasing: read("RELEASING.md") }, atTag));
+}
 const current = ["README.md", "ROADMAP.md", "RELEASING.md", "docs/STATUS.md", "docs/PUBLISHING.md", "SECURITY.md", "CHANGELOG.md"];
 problems.push(...unreleasedButTagged(tags, Object.fromEntries(current.map((f) => [f, read(f)]))));
 // Drill counts: current-state documents only. A dated post-mortem saying "the five drills" was true when written.
@@ -89,4 +102,4 @@ if (bad || problems.length) {
   console.error(`RELEASE-STATE-CHECK FAILED — ${problems.length} drift(s)${bad ? `, ${bad} negative control(s) not caught` : ""}.`);
   process.exit(1);
 }
-console.log(`RELEASE-STATE-CHECK OK — newest tag ${tags[0]} is recorded in CHANGELOG, ROADMAP and RELEASING; no tagged version is called unreleased; drill counts agree; every mirror keeps its headings (${controls.length} negative controls caught).`);
+console.log(`RELEASE-STATE-CHECK OK — newest tag ${tags[0]} is recorded in ${atTag ? "CHANGELOG (this is its own tagged tree)" : "CHANGELOG, ROADMAP and RELEASING"}; no tagged version is called unreleased; drill counts agree; every mirror keeps its headings (${controls.length} negative controls caught).`);

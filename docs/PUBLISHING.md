@@ -2,16 +2,17 @@
 # Publishing to npm and PyPI
 
 **Status: PUBLISHED — npm and PyPI. v0.4.0 on 2026-09-15, v0.4.1 on 2026-09-19, v0.5.0 on 2026-10-31 (`@ainra/mcp` on
-2026-11-01, below), v0.6.0 on 2026-11-03 — all four by trusted publishing.** All four artifacts are live on
+2026-11-01, below), v0.6.0 on 2026-11-03, v0.7.0 on 2026-11-04 — by trusted publishing, and `@ainra/edge` for the first time.** All four artifacts are live on
 the public registries **with Sigstore provenance** — built on a GitHub-hosted runner via
 `.github/workflows/publish.yml`, which is the only publish path because provenance cannot be retrofitted onto a
 version that is already public. v0.4.1 added `@ainra/mcp`, published for the first time once it could be installed
 rather than cloned, and superseded a PyPI wheel that reported its own version wrongly.
 
 ```
-packages            0.6.0 · sdk + middleware + mcp LIVE on npm — trusted publishing, attestations YES
+packages            0.7.0 · sdk + middleware + mcp LIVE on npm — trusted publishing, attestations YES
+                           @ainra/edge LIVE on npm since 0.7.0 — first publish by token from publish.yml,
+                           attestation YES; trusted publishing from its next version
                            PyPI `ainra` LIVE — trusted publishing, PEP 740 attestations, no token
-not yet published   @ainra/edge (the maintainer's step: a first name and a first publish)
 publish-preflight   READY — tag matches the package tree byte for byte
 install smokes      npm 1153/1153 · py wheel 1153/1153
 ```
@@ -55,6 +56,18 @@ package whose SDK peer would override the range.
 
 **Trusted publishing on all three npm packages:** `NPM_TOKEN` is deleted, and 0.6.0 of `@ainra/sdk`,
 `@ainra/middleware` and `@ainra/mcp` published by OIDC alone.
+
+**The eighth, on v0.7.0 (2026-11-04): a brand-new package, `@ainra/edge`.** A Trusted Publisher can only be set on a
+package that exists, so its first version went through `publish.yml` with a short-lived granular token (`--ref v0.7.0
+-f target=npm-edge`): the WASM engine was built from the tag on the runner, the package's tests ran against it, the
+tarball was checked for the engine, and it published with provenance (Sigstore log index 3691428741). Three things to
+know. (1) npm printed that tokens which bypass 2FA "are being restricted for account changes and direct publishing" —
+this route may not work for the next brand-new package; publishing that one from the maintainer's machine with a 2FA
+code would cost its first version its provenance. (2) npm created a version `0.0.0-stage` ("Temporary package
+placeholder for staged publishing") in the same second as the real one; `latest` is 0.7.0, so installs get the real
+package. (3) A second run started a minute later was refused, E409 "Cannot publish over previously staged version" —
+a duplicate click, not a failure. After it: the Trusted Publisher is set on `@ainra/edge`, and the token is to be
+deleted from the repository secrets and from npm.
 
 **PyPI went token-free from its very first version**, which is the difference worth remembering: its pending
 publisher (project `ainra` · `JacobJandon` · `ainra` · `publish.yml` · environment **`pypi`** — this job *does*

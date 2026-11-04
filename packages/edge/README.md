@@ -15,6 +15,10 @@ the core can't, because the core has no state:
 
 Both are bounded and kept per isolate. Behind several isolates, pass shared ones.
 
+```sh
+npm i @ainra/edge
+```
+
 ```js
 import { initAinra, createAinraEdgeGate } from "@ainra/edge";
 import wasm from "@ainra/edge/wasm";             // wasm/ainra_wasm_bg.wasm

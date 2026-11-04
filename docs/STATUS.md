@@ -326,6 +326,5 @@ DECISIONS D-027/D-028, MTS ADR-017.
 
 The recorded public genesis ceremony (custodians being recruited), external verifiers running the kit against
 challenges minted on the wall-clock network (M35), independent witnesses and an outside rebuild (the genesis board
-counts both from evidence), and the rest of [PLAN-M50](PLAN-M50.md). `@ainra/edge` is built and tested but not yet
-on npm (the maintainer's step). Live proofs: every drill in `tools/live-drills.sh`, in one command, `make
+counts both from evidence), and the rest of [PLAN-M50](PLAN-M50.md). `@ainra/edge` is on npm since 0.7.0, with provenance. Live proofs: every drill in `tools/live-drills.sh`, in one command, `make
 live-drills`, which CI runs (D-073).

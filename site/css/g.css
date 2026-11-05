@@ -607,3 +607,36 @@ html[data-motion="off"] .g-search,html[data-motion="off"] .g-search__form{transi
 .g-side li a:hover,.g-side li a:focus-visible{text-decoration:underline;text-underline-offset:3px}
 .g-side li a:hover::after,.g-side li a:focus-visible::after{opacity:1;transform:translate(0,-50%)}
 .g-side li:hover{border-left-color:var(--green)}
+
+/* ── the carousel, measured against the reference: 18 px chips on white tiles, the selected one filling grey;
+   the card a little inset under the chip row, square-cornered; the label a graphite box over its top-left corner ── */
+.g-tabs__bar{margin-bottom:40px}
+.g-tabs__chips{gap:12px}
+.g-tabs__chips button{font:400 18px/1 var(--sans);padding:7px 10px;border-radius:0;background:var(--card);color:var(--ink-soft)}
+.g-tabs__chips button:not([aria-selected="true"]):hover{background:var(--card);color:var(--ink)}
+.g-tabs__chips button[aria-selected="true"]{background:var(--card);color:var(--ink)}
+.g-tabs__chips button[aria-selected="true"]::after{background:#DCDFD8}
+.g-tabs__all{font-family:var(--sans);font-size:13px;letter-spacing:.02em;padding:9px 18px;border-radius:0}
+.g-car{margin:0 14px;border-radius:0}
+.g-car__card{border-radius:0;border:0}
+.g-tabs__label{left:24px;top:24px;gap:10px;max-width:min(560px,72%);background:#2A2D31;padding:22px 24px;border-radius:0}
+.g-tabs__k{font-family:var(--sans);font-size:18px;letter-spacing:.02em;color:#E2E4E6}
+.g-tabs__label b{font-size:clamp(22px,2.3vw,32px);letter-spacing:-.02em}
+@media (max-width:800px){.g-tabs__chips button{font-size:16px}.g-car{margin:0}.g-tabs__label{left:auto;top:auto;max-width:none}}
+
+/* phones, measured against the reference: a slim top bar with the mark, and at the bottom no bar at all — three
+   compact buttons floating 16 px from the edges (menu and search at the left, the request at the right) */
+@media (max-width:700px){
+  nav:not([class]) .nav-in,.nav-float nav:not([class]) .nav-in{height:56px;min-height:56px;padding:0 16px}
+  nav:not([class]) .brand .sigil{width:26px;height:26px}
+  nav:not([class]) .brand .wm{font-size:18px}
+  .nav-r{left:16px;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));padding:0;background:transparent;border-top:0;gap:0;pointer-events:none}
+  .nav-r > *{pointer-events:auto}
+  .nav-r .btn,.nav-r .g-sq,.nav-r .g-menubtn{height:38px;min-height:38px}
+  .nav-r .g-sq,.nav-r .g-menubtn{width:38px;padding:0;background:var(--paper)}
+  .nav-r .g-menubtn{order:1;margin:0}
+  .nav-r .g-sq{order:2;margin:0 0 0 -1px}
+  .nav-r > .btn:first-child{order:3;margin:0 0 0 auto;padding:0 14px;font-size:15px;background:var(--ink);color:var(--paper);border-color:var(--ink)}
+  body{padding-bottom:70px}
+  .g-side{bottom:70px}
+}

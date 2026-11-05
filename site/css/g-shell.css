@@ -199,6 +199,7 @@ html[data-motion="off"] .g-search,html[data-motion="off"] .g-search__form{transi
 .g-side li a:hover,.g-side li a:focus-visible{text-decoration:underline;text-underline-offset:3px}
 .g-side li a:hover::after,.g-side li a:focus-visible::after{opacity:1;transform:translate(0,-50%)}
 .g-side li:hover{border-left-color:var(--green)}
+@media (max-width:700px){nav:not([class]) .nav-in,.nav-float nav:not([class]) .nav-in{height:56px;min-height:56px;padding:0 16px}nav:not([class]) .brand .sigil{width:26px;height:26px}nav:not([class]) .brand .wm{font-size:18px}.nav-r{left:16px;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));padding:0;background:transparent;border-top:0;gap:0;pointer-events:none}.nav-r > *{pointer-events:auto}.nav-r .btn,.nav-r .g-sq,.nav-r .g-menubtn{height:38px;min-height:38px}.nav-r .g-sq,.nav-r .g-menubtn{width:38px;padding:0;background:var(--paper)}.nav-r .g-menubtn{order:1;margin:0}.nav-r .g-sq{order:2;margin:0 0 0 -1px}.nav-r > .btn:first-child{order:3;margin:0 0 0 auto;padding:0 14px;font-size:15px;background:var(--ink);color:var(--paper);border-color:var(--ink)}.g-side{bottom:70px}}
 /* the inner pages' sticky chapter rail sits below the floating header */
 @media (min-width:1024px){.chapter-rail{top:104px}}
 /* a jump to any section lands below the floating header, not under it */

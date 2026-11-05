@@ -132,3 +132,6 @@ site/media/**/*.mp4
 site/media/**/*.webm
 site/media/*.mp4
 site/media/*.webm
+
+# the media kit (logos, banners, films, screenshots) is generated locally by ainra-private/design/2026-11-04/media-kit/build.mjs
+/media-kit/

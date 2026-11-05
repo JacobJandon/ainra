@@ -1,7 +1,7 @@
 {
   "name": "AINRA — the neutral root of AI-agent identity",
   "short_name": "AINRA",
-  "description": "The identity layer for autonomous AI. An open standard anyone can verify.",
+  "description": "A passport for every AI agent. An open standard, held by no one, that anyone can verify.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

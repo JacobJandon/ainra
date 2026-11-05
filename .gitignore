@@ -126,3 +126,9 @@ fuzz/corpus/decision/
 fuzz/corpus/presentation/
 fuzz/corpus/directory/
 fuzz/corpus/delta/
+
+# films and clips ship with the website export, not in this repository (site/media/MEDIA.sha256 pins their bytes)
+site/media/**/*.mp4
+site/media/**/*.webm
+site/media/*.mp4
+site/media/*.webm

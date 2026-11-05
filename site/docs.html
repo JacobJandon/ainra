@@ -9,137 +9,145 @@
 <meta name="theme-color" content="#F5F6F3">
 <meta name="agent-instructions" content="If you are an AI agent, read /llms.txt for a machine-readable capability map.">
 <link rel="canonical" href="https://ainra.org/docs.html">
-<link rel="preload" href="fonts/bricolage-grotesque-latin-wght.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="fonts/faces.css">
+<link rel="stylesheet" href="css/ainra.css">
+<link rel="stylesheet" href="css/living.css">
+<link rel="stylesheet" href="css/g-shell.css">
+
 <style>
-:root{--ink:#0B1220;--paper:#F5F6F3;--card:#FFFFFF;--green:#1A6B4E;--green-br:#57C08F;--amber:#8a6a14;--muted:#5A6372;--line:#E2E5DF;
---mono:'B612 Mono',ui-monospace,'SFMono-Regular',Menlo,Consolas,monospace;--body:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;--display:'Bricolage Grotesque',system-ui,sans-serif}
-*{margin:0;padding:0;box-sizing:border-box}
-@media(prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
-/* §14 — the two signals beyond reduced-motion (the nav is solid now, so there is no translucent surface left): give a
-   high-contrast reader darker text, and no moving field behind the words. */
-@media(prefers-reduced-transparency:reduce){#life-field{display:none}}
-@media(prefers-contrast:more){:root{--muted:#3A4250}#life-field{display:none}:focus-visible{outline-width:3px}}
-[id]{scroll-margin-top:92px}
-body{font-family:var(--body);background:var(--paper);color:var(--ink);font-size:.97rem;line-height:1.65;-webkit-font-smoothing:antialiased}
-a{color:inherit;text-decoration:none}
-::selection{background:rgba(87,192,143,.28)}
-.wrap{max-width:1240px;margin:0 auto;padding:0 24px}
-.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--green)}
-h1,h2,h3{font-family:var(--display);font-weight:700;letter-spacing:-.015em}
-button{font-family:var(--body);cursor:pointer;border:none;background:none;color:inherit}
-:focus-visible{outline:2px solid var(--green);outline-offset:3px;border-radius:4px}
-.skip{position:absolute;left:-9999px;top:0;z-index:200;background:var(--ink);color:#fff;padding:10px 16px;font-weight:600}
-.skip:focus{left:0}
-/* nav (shared chrome; stamped from _includes by the sync tool) */
-nav{position:sticky;top:0;z-index:60;background:var(--paper);border-bottom:1px solid var(--line)}
-.nav-in{display:flex;align-items:center;justify-content:space-between;height:70px;gap:16px}
-.brand{display:flex;align-items:center;gap:12px;min-width:0}
-.brand .sigil{width:48px;height:48px;flex:none}
-.brand .sigil svg{display:block;width:100%;height:100%}
-.brand .wm{font-family:var(--display);font-weight:800;font-size:21px;letter-spacing:.02em}
-.brand .mean{border-left:1px solid var(--line);padding-left:12px;font-family:var(--mono);font-size:8.5px;line-height:1.5;letter-spacing:.16em;color:var(--muted);text-transform:uppercase;white-space:nowrap}
-@media(max-width:1360px){.brand .mean{display:none}}
-.nav-links{display:flex;gap:24px;font-size:14px;font-weight:500;color:var(--muted)}
-.nav-links a:hover{color:var(--ink)}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:99px;font-weight:600;font-size:14.5px;padding:10px 20px;border:1px solid transparent;transition:transform .15s ease,background .15s ease,border-color .15s ease}
-.btn:active{transform:scale(.98)}
-.btn-ink{background:var(--ink);color:#fff}
-.btn-ink:hover{background:#1d2a44}
-.btn-ghost{border-color:var(--line);background:var(--card);color:var(--ink)}
-.btn-ghost:hover{border-color:var(--ink)}
-nav .btn{white-space:nowrap;flex:none}
-.burger{display:none;width:40px;height:40px;border:1px solid var(--line);border-radius:10px;background:var(--card);place-items:center;font-family:var(--mono);font-size:15px}
-.burger{transition:background .15s,color .15s,transform .1s ease-out}
-.burger:active{transform:scale(.96)}
-.burger[aria-expanded="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
-.mi{position:relative}
-.mi>button{display:inline-flex;align-items:center;gap:5px;font-size:14px;font-weight:500;color:var(--muted);padding:9px 12px;border-radius:10px}
-.mi>button:hover{color:var(--ink);background:rgba(11,18,32,.045)}
-.car{font-size:9px;opacity:.6}
-.dd{position:absolute;top:calc(100% + 6px);left:0;min-width:238px;background:var(--card);border:1px solid rgba(11,18,32,.14);border-radius:14px;padding:7px;display:none;box-shadow:0 24px 60px rgba(11,18,32,.12);z-index:70}
-.mi.open .dd{display:block}
-.dd a{display:block;font-size:13.5px;font-weight:500;color:var(--muted);padding:9px 11px;border-radius:9px}
-.dd a span{display:block;font-size:11.5px;font-weight:400;color:var(--muted);opacity:.85;margin-top:1px}
-.dd a:hover{background:rgba(26,107,78,.06);color:var(--ink)}
-nav .ndocs{font-size:14px;font-weight:500;color:var(--muted);padding:9px 12px;border-radius:10px}
-nav .ndocs:hover{color:var(--ink);background:rgba(11,18,32,.045)}
-nav .ndocs[aria-current="page"],.nav-links a[aria-current="page"]{color:var(--green);font-weight:700}
-.nav-r{margin-left:auto;display:flex;gap:10px;align-items:center}
-.openbadge{display:inline-flex;align-items:center;gap:9px;font-size:11px;font-weight:600;color:var(--muted);border:1px solid rgba(11,18,32,.14);border-radius:99px;padding:6px 13px;font-family:var(--body);letter-spacing:0}
-@media(min-width:901px){.nav-links{display:none!important}}
-@media(max-width:900px){.mi,.nav-hide,nav .ndocs{display:none}
-.nav-links{display:none;position:absolute;top:70px;left:0;right:0;background:var(--paper);border-bottom:1px solid var(--line);flex-direction:column;gap:0;padding:8px 24px}
-.nav-links a{padding:12px 0;border-top:1px solid var(--line)}
-.nav-links.open{display:flex}
-.burger{display:grid}}
-@media(max-width:1150px){.nav-hide-mid{display:none}}
-/* docs shell */
-.docs{display:grid;grid-template-columns:232px minmax(0,1fr) 200px;gap:44px;padding:40px 0 80px}
-.side{position:sticky;top:92px;align-self:start;max-height:calc(100vh - 110px);overflow:auto;padding-right:6px}
-.side h5{font-family:var(--mono);font-size:9.5px;letter-spacing:.22em;color:var(--muted);text-transform:uppercase;margin:20px 0 8px}
-.side h5:first-child{margin-top:0}
-.side a{display:block;font-size:13.5px;font-weight:500;color:var(--muted);padding:6px 10px;border-left:2px solid var(--line);transition:.12s}
-.side a:hover{color:var(--ink);border-color:var(--muted)}
-.side a.on{color:var(--green);border-color:var(--green);font-weight:600}
-.toc{position:sticky;top:92px;align-self:start}
-.toc h5{font-family:var(--mono);font-size:9.5px;letter-spacing:.22em;color:var(--muted);text-transform:uppercase;margin-bottom:10px}
-.toc a{display:block;font-size:12.5px;color:var(--muted);padding:4px 0}
-.toc a:hover{color:var(--green)}
-.crumb{font-family:var(--mono);font-size:10px;letter-spacing:.18em;color:var(--muted);text-transform:uppercase;margin-bottom:14px}
-.crumb b{color:var(--green)}
-.doc{min-width:0}
-.doc h1{font-size:clamp(1.9rem,3.6vw,2.7rem);line-height:1.05;margin-bottom:14px}
-.doc .lede{color:var(--muted);font-size:16px;max-width:640px}
-.doc h2{font-size:clamp(1.25rem,2.2vw,1.7rem);margin:52px 0 10px;padding-top:18px;border-top:1px solid var(--line)}
-.doc p{margin:10px 0;max-width:660px;color:#22304a}
-.doc p code, .doc li code{font-family:var(--mono);font-size:12.5px;background:rgba(11,18,32,.06);padding:1px 6px;border-radius:5px}
-.doc ul{margin:10px 0 10px 20px;max-width:640px}
-.doc li{margin:5px 0}
-.codeblock{position:relative;background:#0A101E;border-radius:12px;margin:16px 0;max-width:720px;overflow:hidden}
-.codeblock .cap{display:block;font-family:var(--mono);font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.35);padding:10px 16px 0}
-.codeblock pre{font-family:var(--mono);font-size:12.5px;line-height:1.8;color:#C9D2E0;white-space:pre;overflow-x:auto;padding:8px 16px 16px}
-.codeblock .g{color:var(--green-br)}.codeblock .c{color:#8B94A6}.codeblock .w{color:#F5F6F3}
-.note{border:1px solid var(--line);border-left:3px solid var(--green);background:var(--card);border-radius:0 10px 10px 0;padding:12px 16px;margin:16px 0;max-width:660px;font-size:14px}
-.note.amber{border-left-color:var(--amber)}
-.pn{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:56px;max-width:720px}
-.pn a{border:1px solid var(--line);border-radius:12px;padding:14px 16px;background:var(--card);transition:border-color .15s}
-.pn a:hover{border-color:var(--green)}
-.pn .lab{font-family:var(--mono);font-size:9px;letter-spacing:.18em;color:var(--muted);text-transform:uppercase}
-.pn .t{font-weight:600;margin-top:4px}
-.pn .next{text-align:right}
-@media(max-width:1100px){.docs{grid-template-columns:210px minmax(0,1fr)}.toc{display:none}}
-@media(max-width:820px){.docs{grid-template-columns:1fr;gap:20px}
-.side{position:static;max-height:none;display:flex;gap:4px 14px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:14px}
-.side h5{width:100%;margin:8px 0 2px}
-.side a{border-left:none;padding:4px 0}}
-footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
-.foot{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:32px}
-.foot h4{font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:var(--muted);text-transform:uppercase;margin-bottom:14px}
-.foot ul{list-style:none;display:grid;gap:9px;font-size:13.5px;color:var(--muted)}
-.foot ul a:hover{color:var(--ink)}
-.status{margin-top:52px;padding-top:20px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--muted)}
-.status .live{display:inline-flex;align-items:center;gap:7px}
-.status .live i{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2.4s infinite}
-@media(max-width:760px){.foot{grid-template-columns:1fr 1fr}}
-
-.doc-masthead{font-size:clamp(30px,4.4vw,44px);line-height:1.06;margin:0 0 14px;font-family:var(--display);letter-spacing:-.02em;font-weight:730}
-.doc .tbl{font-family:var(--mono);font-size:12.5px;line-height:1.65;background:rgba(11,18,32,.04);border:1px solid rgba(11,18,32,.1);border-radius:10px;padding:14px 16px;overflow-x:auto;white-space:pre;margin:0 0 16px}
-.doc hr{border:none;border-top:1px solid rgba(11,18,32,.12);margin:34px 0}
-
-/* ── polish pass: press feedback, wayfinding, cross-page transitions, announce on small screens ─────────── */
-@media(prefers-reduced-motion:no-preference){
-  .btn{transition:transform .16s,box-shadow .16s,background .16s,border-color .16s}
-  .btn:hover{transform:translateY(-1px);box-shadow:0 6px 18px -8px rgba(11,18,32,.4)}
-  .btn:active{transform:translateY(0);box-shadow:none}
+/* AINRA docs — Spec Sheet concept (BRIEF-v2 §3.6, Docs). Layout unique to this page only; tokens and shared
+   components (sec-head, earmark, code panel, index row, state chip, chapter rail) come from css/ainra.css and are
+   never redefined here. */
+.docs{display:grid;grid-template-columns:minmax(0,1fr);row-gap:var(--s6);padding-top:var(--s7)}
+@media (min-width:1024px){
+  .docs{grid-template-columns:220px minmax(0,1fr);column-gap:var(--s7)}
+  .chapter-rail{align-self:start;max-height:calc(100vh - 48px);overflow-y:auto;border-bottom:0}
 }
-nav .nav-links a[aria-current="page"],nav .ndocs[aria-current="page"]{text-decoration:underline;text-underline-offset:6px;text-decoration-thickness:2px}
-@media(max-width:480px){.announce{font-size:11px;padding:8px 12px}}
-@media(max-width:1023px){nav .mean{display:none}}
-</style></head><body id="top">
+.rail-grp{display:block;padding:var(--s5) 12px var(--s2)}
+.chapter-rail > .rail-grp:first-child{padding-top:0}
+.chapter-rail ul{list-style:none}
+@media (max-width:1023px){
+  .chapter-rail{display:flex;gap:var(--s2)}
+  .chapter-rail ul{display:flex;gap:var(--s2)}
+  .rail-grp{display:none}
+}
+.doc{min-width:0}
+.chap + .chap{margin-top:var(--s9)}
+.chap__body{min-width:0;max-width:760px}
+.chap__anchor{display:none}
+@media (min-width:1360px){
+  .chap{display:grid;grid-template-columns:minmax(0,760px) 200px;column-gap:var(--s7)}
+  .chap__anchor{display:block;align-self:start;margin-top:var(--s4);font-family:var(--mono);font-size:var(--fs-earmark);
+    line-height:16px;letter-spacing:.04em;color:var(--muted);text-decoration:underline;text-underline-offset:3px}
+  .chap__anchor:hover{color:var(--ink)}
+}
+@media (min-width:1280px){
+  /* Living Spec: no empty right third. Each chapter is a 2-up grid read left to right, then down: paragraphs, lists
+     and code panels take the next free cell in order; headings, tables, index rows and notes span both. No reordering
+     (no dense packing), no newspaper columns: the reading order is the source order. The anchor sits in the earmark row. */
+  .chap{display:block}
+  .chap__body,.chap--flow .specdoc{max-width:none;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:var(--s7);row-gap:var(--s5);align-items:start}
+  .chap__body > *,.specdoc > *{margin-top:0!important;min-width:0}
+  /* heading left, first words right: the chapter head opens up so its h2 takes the left cell and the next item the right */
+  .chap__body > .sec-head{display:contents}
+  .chap__body > .sec-head > .sec-head__row{grid-column:1 / -1;border-top:1px solid var(--line);padding-top:var(--s4);position:relative}
+  .chap__body > .sec-head > .sec-head__row::before{content:"";position:absolute;left:0;right:0;top:0;height:5px;background-image:linear-gradient(to right,var(--rule-strong) 0 1px,transparent 1px);background-size:calc((100% + var(--s7)) / 12) 5px;background-repeat:repeat-x}
+  .chap__body > .sec-head > .split{grid-column:1;margin-top:var(--s3)}
+  .chap__body > .sec-head + p,.chap__body > .sec-head + .lede{margin-top:var(--s3)!important}
+  .chap__body > .sec-head,.chap__body > .index,.chap__body > .pn,.chap__body > .tbl,.chap__body > .tier-table,.chap__body > table,.chap__body > .specdoc,
+  .specdoc > .sec-head,.specdoc > h3,.specdoc > .doc-masthead,.specdoc > .tbl,.specdoc > table,.specdoc > hr,.specdoc > .index{grid-column:1 / -1}
+  .doc .chap p,.doc .chap li{max-width:none}
+  /* the Standard: balanced columns, cut at every Part and sub-heading so no column runs past about a screen */
+  .chap--flow .specdoc{display:block;columns:2;column-gap:var(--s7);column-rule:1px solid var(--line)}
+  .specdoc > * + *{margin-top:var(--s4)!important}
+  .specdoc > .sec-head,.specdoc > h3,.specdoc > .doc-masthead,.specdoc > table,.specdoc > hr,.specdoc > .index{column-span:all}
+  .specdoc > .tbl{column-span:all}
+  .specdoc p{orphans:3;widows:3}
+  .specdoc > .doc-masthead{margin-top:var(--s5)!important}
+  .doc .chap__body > ul,.doc .chap__body > ol{grid-column:1 / -1;columns:2;column-gap:var(--s7);max-width:none}
+  .chap__body > p:has(+ ul),.chap__body > p:has(+ ol){grid-column:1 / -1}
+  .chap__body > ul > li,.chap__body > ol > li{break-inside:avoid}
+  .chap__body > .faq{grid-column:1 / -1;display:grid;grid-template-columns:1fr 1fr;column-gap:var(--s7);row-gap:var(--s5);align-items:start}
+  .faq p + p{margin-top:0!important}
+  .specdoc > .sec-head{margin-top:var(--s7)!important}
+}
+.sec-head__row a[href^="#"]{text-transform:none}
+.doc h1{max-width:14ch}
+.chap .sec-head [id]{scroll-margin-top:96px}
+.chap__body > * + *,.specdoc > * + *,.chap-sub > * + *{margin-top:var(--s4)}
+.chap__body > .sec-head + *{margin-top:0}
+.doc p,.doc ul,.doc ol{max-width:var(--measure)}
+.doc ul,.doc ol{padding-left:1.25em}
+.doc li + li{margin-top:var(--s2)}
+.doc :not(pre) > code{font-size:.84em;background:var(--band);padding:1px 4px;border-radius:var(--r-ctl);overflow-wrap:anywhere}
+.doc .code-panel{margin-top:var(--s5)}
+.doc .code-panel pre{white-space:pre;overflow-wrap:normal;overflow-x:auto;padding-bottom:2px}
+.doc .code-panel .g{color:var(--green-br)}
+.doc .code-panel .w{color:var(--code-text);font-weight:700}
+.note{background:var(--card);border:1px solid var(--line);box-shadow:inset 2px 0 0 var(--ink);padding:var(--s4) var(--s5);font-size:var(--fs-small);line-height:1.6;max-width:var(--measure)}
+.note.amber{box-shadow:inset 2px 0 0 var(--amber)}
+.doc .index{padding-left:0;max-width:none;margin-top:var(--s5)}
+.doc .index li + li{margin-top:0}
+.doc .index-row__main{grid-column:1 / 12}
+.doc .index--p .index-row{padding:14px 0}
+.doc .index--p .index-row__name{font-size:var(--fs-h4);font-weight:500;letter-spacing:0}
+.genesis{list-style:none;padding-left:0!important}
+.genesis li{border-top:1px solid var(--line);padding-top:var(--s3)}
+.genesis li + li{margin-top:var(--s3)}
+.genesis .state-chip{vertical-align:1px}
+.faq p{border-top:1px solid var(--line);padding-top:var(--s4)}
+.faq p + p{margin-top:var(--s5)}
+.faq p > b:first-child{display:block;font-size:var(--fs-h4);line-height:1.35;font-weight:500;margin-bottom:var(--s2)}
+.doc-masthead{font-size:var(--fs-h2);line-height:1.1;letter-spacing:-.02em;font-weight:var(--w-display);margin-top:var(--s7)!important}
+.specdoc h3{margin-top:var(--s6)!important}
+.specdoc .doc-masthead + h3{margin-top:var(--s3)!important;font-size:var(--fs-h4)}
+.specdoc .sec-head{margin-top:var(--s8)!important;margin-bottom:var(--s5)}
+.specdoc .sec-head h2{font-size:var(--fs-h3);font-weight:500;letter-spacing:.01em}
+.specdoc .sec-head .split{margin-top:var(--s5)}
+.specdoc .sec-head + *{margin-top:0}
+.doc .tbl{font-family:var(--mono);font-size:var(--fs-data);line-height:1.6;background:var(--band);border:1px solid var(--line);padding:var(--s4);overflow-x:auto;white-space:pre}
+.doc hr{border:0;border-top:1px solid var(--line);margin-top:var(--s7)!important}
+.chap-sub{scroll-margin-top:24px}
+.tier-table{width:100%;border-collapse:collapse;font-size:var(--fs-small);line-height:1.5}
+.tier-table th{text-align:left;font-family:var(--mono);font-size:var(--fs-earmark);letter-spacing:.08em;text-transform:uppercase;font-weight:400;color:var(--muted);padding:0 var(--s4) var(--s2) 0;border-bottom:1px solid var(--rule-strong)}
+.tier-table td{vertical-align:top;padding:var(--s3) var(--s4) var(--s3) 0;border-top:1px solid var(--line)}
+@media (max-width:600px){
+  .tier-table thead{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+  .tier-table,.tier-table tbody,.tier-table tr,.tier-table td{display:block}
+  .tier-table tr{border-top:1px solid var(--line);padding:var(--s3) 0}
+  .tier-table td{border:0;padding:2px 0}
+  .tier-table td::before{content:attr(data-label);display:block;font-family:var(--mono);font-size:var(--fs-earmark);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+}
+.pn{display:grid;grid-template-columns:1fr 1fr;margin-top:var(--s9)!important;border-top:1px solid var(--line);border-bottom:1px solid var(--line);max-width:760px}
+.pn a{display:block;padding:var(--s5) var(--s4);min-height:44px;transition:background var(--t-fast) var(--ease)}
+.pn a + a{border-left:1px solid var(--line)}
+.pn a:hover{background:var(--card)}
+.pn .lab{display:block}
+.pn .t{margin-top:var(--s2);font-size:var(--fs-h4);font-weight:500}
+.pn .next{text-align:right}
+@media (max-width:600px){.pn{grid-template-columns:1fr} .pn a + a{border-left:0;border-top:1px solid var(--line)} .pn .next{text-align:left}}
+</style><script>/* reveal only when motion is on (the same decision as js/motion.mjs), set before first paint */
+try{var m=localStorage.getItem("ainra-motion");if(m!=="off"&&(m==="on"||!matchMedia("(prefers-reduced-motion: reduce)").matches))document.documentElement.classList.add("rv")}catch(e){if(!matchMedia("(prefers-reduced-motion: reduce)").matches)document.documentElement.classList.add("rv")}
+/* fail safe: if js/reveal.mjs never starts, show everything rather than leave the page hidden */
+setTimeout(function(){var h=document.documentElement;if(!h.dataset.rvReady)h.classList.remove("rv")},2500)</script>
+</head><body class="gi-page" id="top">
+<div class="g-intro" id="gIntro" aria-hidden="true"><div class="g-intro__panel"><svg class="g-intro__mark" viewBox="0 0 112 112">
+      <path class="gi-body" pathLength="1" d="M 98.4 33.5 A 48 48 0 1 1 78.5 13.6" fill="none" stroke="#0B1220" stroke-width="3" stroke-linecap="round"/>
+      <path d="M 95.8 29.2 L 98.7 27.2 M 91.7 23.9 L 94.3 21.5 M 86.9 19.2 L 89.1 16.6" stroke="#0B1220" stroke-width="1" opacity=".5"/>
+      <path d="M 80.6 11.5 L 83.4 18.5 L 76.4 15.7 Z" fill="#0B1220"/>
+      <circle cx="79.6" cy="14.2" r="1.1" fill="#F5F6F3"/>
+      <circle cx="56" cy="56" r="36" stroke="#0B1220" stroke-width="1.2" fill="none"/>
+      <circle cx="56" cy="56" r="26" stroke="#0B1220" stroke-width="1.6" fill="none"/>
+      <ellipse cx="56" cy="56" rx="11" ry="26" stroke="#0B1220" stroke-width="1" fill="none"/>
+      <line x1="30" y1="56" x2="82" y2="56" stroke="#0B1220" stroke-width="1.1"/>
+      <path d="M33.5 43 h45 M33.5 69 h45" stroke="#0B1220" stroke-width="0.8" opacity="0.6"/>
+      <path d="M56 30 a26 26 0 0 1 26 26" stroke="#1A6B4E" stroke-width="3" stroke-linecap="round" fill="none"/>
+      <circle cx="56" cy="56" r="2.4" fill="#0B1220"/>
+    </svg></div></div>
+
 <a href="#main" class="skip">Skip to content</a>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><g id="ainra-sigil">
-  <path d="M 98.4 33.5 A 48 48 0 1 0 78.5 13.6" fill="none" stroke="#0B1220" stroke-width="3" stroke-linecap="round"/>
+  <path d="M 98.4 33.5 A 48 48 0 1 1 78.5 13.6" fill="none" stroke="#0B1220" stroke-width="3" stroke-linecap="round"/>
   <path d="M 80.6 11.5 L 83.4 18.5 L 76.4 15.7 Z" fill="#0B1220"/>
   <circle cx="56" cy="56" r="36" stroke="#0B1220" stroke-width="1.2" fill="none"/>
   <circle cx="56" cy="56" r="26" stroke="#0B1220" stroke-width="1.6" fill="none"/>
@@ -151,186 +159,326 @@ nav .nav-links a[aria-current="page"],nav .ndocs[aria-current="page"]{text-decor
 <nav><div class="wrap nav-in">
   <a class="brand" href="index.html" aria-label="AINRA — Agent Identity and Naming Registry Authority">
     <span class="sigil" aria-hidden="true"><svg viewBox="0 0 112 112"><use href="#ainra-sigil"/></svg></span>
-    <span class="wm">AINRA</span><span class="mean">Agent Identity &amp; Naming<br>Registry Authority</span></a>
-  <a href="verify.html" class="ndocs">Verify</a>
-  <a href="get.html" class="ndocs">Network</a>
-  <a href="landscape.html" class="ndocs">Landscape</a>
-  <a href="foundation.html" class="ndocs">Foundation</a>
-  <a href="docs.html" class="ndocs">Docs</a>
-  <div class="nav-r">
-    <a class="btn btn-ghost nav-hide" href="https://github.com/JacobJandon/ainra" rel="noopener" aria-label="Source repository on GitHub"><svg class="gh" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" style="display:inline-block;vertical-align:-3px;margin-right:8px;flex:none" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>GitHub</a>
-    <a class="btn btn-ink nav-hide" href="foundation.html#access">Join the founding table</a>
-    <button class="burger" id="burger" aria-label="Menu" aria-expanded="false">≡</button>
+    <span class="wm">AINRA</span></a>
+  <div class="nav-links-d" hidden>
+    <a href="verify.html">Verify</a>
+    <a href="get.html">Network</a>
+    <a href="landscape.html">Landscape</a>
+    <a href="foundation.html">Foundation</a>
+    <a href="docs.html" style="color:var(--green)">Docs</a>
   </div>
-  <div class="nav-links" id="navLinks"><a href="index.html">The root</a><a href="verify.html">Verify</a><a href="get.html">Network</a><a href="landscape.html">Landscape</a><a href="foundation.html">Foundation</a><a href="docs.html" style="color:var(--green)">Docs</a><a href="foundation.html#access">Join the founding table</a><a href="https://github.com/JacobJandon/ainra" rel="noopener"><svg class="gh" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" style="display:inline-block;vertical-align:-3px;margin-right:8px;flex:none" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>GitHub</a></div>
+  <div class="nav-r"><a class="btn btn-ghost" href="verify.html#try">Try it live →</a><a class="g-sq" href="scan.html" aria-label="Browse the record"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.5"/></svg></a><button class="g-menubtn" type="button" data-g-menu aria-expanded="false" aria-controls="gMenu"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" stroke-width="1.5" fill="none"/></svg><span class="vh">Menu</span></button></div>
+  <div class="nav-links" id="navLinks"><a href="index.html">The root</a><a href="verify.html">Verify</a><a href="get.html">Network</a><a href="landscape.html">Landscape</a><a href="foundation.html">Foundation</a><a href="docs.html" style="color:var(--green)">Docs</a><a href="foundation.html#access">Join the founding table</a><a href="https://github.com/JacobJandon/ainra" rel="noopener"><svg class="gh" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>GitHub</a></div>
 </div></nav>
-<main id="main"><div class="wrap docs">
-  <aside class="side" aria-label="Docs navigation">
-    <h5>Get started</h5>
-    <a href="#introduction" class="on">Introduction</a>
-    <a href="#install">Get the reference</a>
-    <h5>Use it</h5>
-    <a href="#verify">Verify in five lines</a>
-    <a href="#gate">Gate a route</a>
-    <a href="#request">Prove the request</a>
-    <a href="#cli">The CLI lifecycle</a>
-    <a href="#agents">For agents</a>
-    <h5>Prove it</h5>
-    <a href="#conformance">Your own implementation</a>
-    <a href="#release">Verify a release</a>
-    <h5>Organization</h5>
-    <a href="#charter">Charter &amp; the four rules</a>
-    <a href="#one-root">Why one root</a>
-    <a href="#plan">The plan</a>
-    <a href="#faq">FAQ</a>
-    <h5>Reference</h5>
-    <a href="#standard">The Standard</a>
-    <a href="verify.html">Verification</a>
-    <a href="get.html">Use the network</a>
-    <a href="foundation.html">Honest status</a>
-    <a href="https://github.com/JacobJandon/ainra" rel="noopener">Source ↗</a>
-  </aside>
+<div class="g-menu" id="gMenu" role="dialog" aria-modal="true" aria-labelledby="gMenuTitle" hidden>
+  <div class="wrap g-menu__in">
+    <h2 class="vh" id="gMenuTitle">Menu</h2>
+    <p class="g-menu__about"><b>AINRA</b> — Agent Identity &amp; Naming Registry Authority. An open standard, held by no one.</p>
+    <div class="g-menu__cols">
+      <div class="g-menu__col">
+        <p class="g-menu__k">Navigation</p>
+        <ul class="g-menu__big">
+          <li><a href="verify.html">Verify</a><ul><li><a href="verify.html#try">↳ Try a passport</a></li><li><a href="docs.html#verify">↳ How a check works</a></li></ul></li>
+          <li><a href="get.html">Network</a></li>
+          <li><a href="landscape.html">Landscape</a></li>
+          <li><a href="foundation.html">Foundation</a><ul><li><a href="foundation.html#access">↳ Join the founding table</a></li></ul></li>
+          <li><a href="docs.html">Docs</a><ul><li><a href="docs.html#standard">↳ The Standard</a></li><li><a href="docs.html#install">↳ Install</a></li></ul></li>
+        </ul>
+      </div>
+      <div class="g-menu__col">
+        <p class="g-menu__k">The record, as published</p>
+        <dl class="g-menu__kv">
+          <div><dt>Passports in the record</dt><dd data-stamp="issued">80</dd></div>
+          <div><dt>Registrars</dt><dd data-stamp="registrars">2</dd></div>
+          <div><dt>Revoked</dt><dd data-stamp="revoked">53</dd></div>
+          <div><dt>Witnesses</dt><dd>0 · <a href="https://github.com/JacobJandon/ainra/blob/main/outreach/WITNESS-CALL.md">recruiting</a></dd></div>
+        </dl>
+        <p class="g-menu__note">Read from <a href="net/registry.json">net/registry.json</a>.</p>
+      </div>
+      <div class="g-menu__col">
+        <p class="g-menu__k">Quick links</p>
+        <ul class="g-menu__small">
+          <li><a href="https://github.com/JacobJandon/ainra">Source on GitHub</a></li>
+          <li><a href="docs.html#standard">Read the Standard</a></li>
+          <li><a href="scan.html">Browse the record</a></li>
+          <li><a href="RELEASE-VERIFY.md">Verify a release</a></li>
+          <li><a href="llms.txt">For AI agents: llms.txt</a></li>
+          <li><a href="mailto:info@ainra.org">info@ainra.org</a></li><li><a href="mailto:mihail@ainra.org">mihail@ainra.org</a></li><li><a href="mailto:eric@ainra.org">eric@ainra.org</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
 
-  <article class="doc">
-    <div class="crumb"><b>DOCS</b> / GET STARTED</div>
-    <h1 id="introduction">Every check runs on your machine.</h1>
+<header class="gi-hero" id="g-top">
+  <div class="wrap">
+    <nav class="gi-sub" aria-label="On this page"><span class="gi-sub__k">AINRA / Docs</span><a href="#g-docs-get-started">Docs / get started</a><a href="#g-get-the-reference">Get the reference</a><a href="#g-verify-in-five-lines">Verify in five lines</a><a href="#g-gate-a-route">Gate a route</a><a href="#g-prove-the-request-not-just-the-agent">Prove the request, not just…</a><a href="#g-the-cli-lifecycle">The CLI lifecycle</a></nav>
+    <h1 class="gi-title" aria-label="Docs"><span style="--i:0">D</span><span style="--i:1">o</span><span style="--i:2">c</span><span style="--i:3">s</span></h1>
+<aside class="g-side" id="gSide" aria-label="About this page" data-side>
+  <div class="g-side__head"><span>Details</span><button class="g-side__x" type="button" aria-label="Close details" data-side-close>×</button></div>
+  <ul>
+    <li><span>Read</span>The Standard, the CLI and the SDKs</li>
+    <li><span>Licence</span>Apache-2.0 / MIT</li>
+    <li><span>Checks</span>Offline-capable · fail-closed</li>
+  </ul>
+</aside>
+<button class="g-side__tab" type="button" aria-controls="gSide" aria-expanded="false" data-side-open>Details</button>
+  </div>
+</header>
+
+<main id="main"><div class="wrap docs">
+  <nav aria-label="Chapters" class="chapter-rail">
+    <span class="earmark rail-grp">Get started</span>
+    <ol>
+      <li><a href="#introduction"><span>01</span>Introduction</a></li>
+      <li><a href="#install"><span>02</span>Get the reference</a></li>
+    </ol>
+    <span class="earmark rail-grp">Use it</span>
+    <ol>
+      <li><a href="#verify"><span>03</span>Verify in five lines</a></li>
+      <li><a href="#gate"><span>04</span>Gate a route</a></li>
+      <li><a href="#request"><span>05</span>Prove the request</a></li>
+      <li><a href="#cli"><span>06</span>The CLI lifecycle</a></li>
+      <li><a href="#agents"><span>07</span>For agents</a></li>
+    </ol>
+    <span class="earmark rail-grp">Prove it</span>
+    <ol>
+      <li><a href="#conformance"><span>08</span>Your own implementation</a></li>
+      <li><a href="#release"><span>09</span>Verify a release</a></li>
+    </ol>
+    <span class="earmark rail-grp">Organization</span>
+    <ol>
+      <li><a href="#charter"><span>10</span>Charter &amp; the four rules</a></li>
+      <li><a href="#one-root"><span>11</span>Why one root</a></li>
+      <li><a href="#plan"><span>12</span>The plan</a></li>
+      <li><a href="#faq"><span>13</span>FAQ</a></li>
+    </ol>
+    <span class="earmark rail-grp">Reference</span>
+    <ol>
+      <li><a href="#standard"><span>14</span>The Standard</a></li>
+      <li><a href="#integrate-instance"><span>15</span>Verifying a running copy</a></li>
+    </ol>
+    <ul>
+      <li><a href="verify.html">Verification</a></li>
+      <li><a href="get.html">Use the network</a></li>
+      <li><a href="foundation.html">Honest status</a></li>
+      <li><a href="https://github.com/JacobJandon/ainra" rel="noopener">Source ↗</a></li>
+    </ul>
+  </nav>
+
+<article class="doc">
+  <section id="g-docs-get-started" class="chap chap--flow" data-chapter="introduction">
+    <div class="chap__body">
+      <div class="sec-head"><div class="sec-head__row"><span class="earmark"><b>/01</b> · DOCS / GET STARTED</span><a href="#introduction">↳ #introduction</a></div>
+        <div class="split"><h2 class="split__full title" id="introduction" data-was-h1>Every check runs on your machine.</h2></div></div>
     <p class="lede">AINRA gives every AI agent a passport it can prove: who it is, who stands behind it, what it may do, and whether it is still trusted — verifiable offline, fail-closed, with the root switched off. These docs take you from zero to a verified passport in about a minute per page.</p>
     <div class="note">Everything below is real cryptography against a <b>local testbed</b> or the <b>staging TEST-ROOT</b>. The production root is born only at a recorded public ceremony — a pending, honestly-labeled milestone.</div>
+    </div>
+  </section>
 
-    <h2 id="install">Get the reference</h2>
+  <section id="g-get-the-reference" class="chap" data-chapter="install">
+    <div class="chap__body">
+      <div class="sec-head"><div class="sec-head__row"><span class="earmark"><b>/02</b> · GET THE REFERENCE</span><a href="#install">↳ #install</a></div>
+        <div class="split"><h2 class="split__full" id="install">Get the reference</h2></div></div>
     <p>Clone the public repository. Every gate passes from a cold clone — that is the project's standing promise, re-proven by CI nightly and by the board in <code>docs/releases/</code>.</p>
-    <div class="codeblock"><span class="cap">terminal</span><pre>$ git clone https://github.com/JacobJandon/ainra && cd ainra
+    <div class="code-panel"><div class="code-panel__body"><span class="code-panel__cap">terminal</span><button class="code-panel__copy" type="button" aria-live="polite">COPY</button><pre tabindex="0">$ git clone https://github.com/JacobJandon/ainra && cd ainra
 $ make verify        <span class="c"># the real verifier: a valid + a revoked credential, named reasons</span>
-$ make issue-first   <span class="c"># a local registrar + your first issued, verified passport</span></pre></div>
+$ make issue-first   <span class="c"># a local registrar + your first issued, verified passport</span></pre></div></div>
     <p><b>Or install the verifier from a registry.</b> Published with attestations that bind each artifact to the workflow that built it, so you can check its provenance before you trust it — which is the point of a verifier.</p>
-    <div class="codeblock"><span class="cap">terminal</span><pre>$ npm i @ainra/sdk        <span class="c"># Sigstore provenance</span>
+    <div class="code-panel"><div class="code-panel__body"><span class="code-panel__cap">terminal</span><button class="code-panel__copy" type="button" aria-live="polite">COPY</button><pre tabindex="0">$ npm i @ainra/sdk        <span class="c"># Sigstore provenance</span>
 $ npm audit signatures    <span class="c"># proves which workflow built it</span>
 
-$ pip install ainra       <span class="c"># PEP 740 attestations, published token-free</span></pre></div>
-    <p>Prefer no checkout? Download <a href="ainra-cli-v0.3.3.zip" style="color:var(--green);font-weight:600">the reference CLI (zip)</a> — zero dependencies, runs on any platform with just <code>node</code>. The <a href="https://github.com/JacobJandon/ainra/releases" rel="noopener" style="color:var(--green);font-weight:600">releases page</a> carries the signed artifacts (a Linux x86_64 binary, the CC0 vector corpus, provenance and SBOM) for anyone verifying the release itself.</p>
+$ pip install ainra       <span class="c"># PEP 740 attestations, published token-free</span></pre></div></div>
+    <p>Prefer no checkout? Download <a href="ainra-cli-v0.3.3.zip">the reference CLI (zip)</a> — zero dependencies, runs on any platform with just <code>node</code>. The <a href="https://github.com/JacobJandon/ainra/releases" rel="noopener">releases page</a> carries the signed artifacts (a Linux x86_64 binary, the CC0 vector corpus, provenance and SBOM) for anyone verifying the release itself.</p>
+    </div>
+  </section>
 
-    <h2 id="verify">Verify in five lines</h2>
+  <section id="g-verify-in-five-lines" class="chap" data-chapter="verify">
+    <div class="chap__body">
+      <div class="sec-head"><div class="sec-head__row"><span class="earmark"><b>/03</b> · VERIFY IN FIVE LINES</span><a href="#verify">↳ #verify</a></div>
+        <div class="split"><h2 class="split__full" id="verify">Verify in five lines</h2></div></div>
     <p>Point at a root-signed directory, verify the bundle, gate on the verdict. <code>VALID</code> proceeds; anything else returns a named reason — <code>revoked</code>, <code>stale_status</code>, <code>alg_downgrade</code>, … The decision stays yours.</p>
-    <div class="codeblock"><span class="cap">typescript · @ainra/sdk</span><pre><span class="w">import</span> { Verifier } <span class="w">from</span> <span class="g">"@ainra/sdk"</span>;
+    <div class="code-panel"><div class="code-panel__body"><span class="code-panel__cap">typescript · @ainra/sdk</span><button class="code-panel__copy" type="button" aria-live="polite">COPY</button><pre tabindex="0"><span class="w">import</span> { Verifier } <span class="w">from</span> <span class="g">"@ainra/sdk"</span>;
 
 <span class="w">const</span> v = <span class="w">await</span> Verifier.fromDirectory(dir);
 <span class="w">const</span> verdict = v.verify(bundle, now);
-<span class="c">// → { status: "VALID" } — or a named reason</span></pre></div>
-    <div class="codeblock"><span class="cap">python · independent verifier</span><pre><span class="w">from</span> ainra <span class="w">import</span> Verifier
+<span class="c">// → { status: "VALID" } — or a named reason</span></pre></div></div>
+    <div class="code-panel"><div class="code-panel__body"><span class="code-panel__cap">python · independent verifier</span><button class="code-panel__copy" type="button" aria-live="polite">COPY</button><pre tabindex="0"><span class="w">from</span> ainra <span class="w">import</span> Verifier
 
 v = Verifier.from_directory(dir, root_ed, root_slh)
 verdict = v.verify(bundle, now)
-<span class="c"># → verdict.valid is True — or verdict.reason</span></pre></div>
+<span class="c"># → verdict.valid is True — or verdict.reason</span></pre></div></div>
     <div class="note">Four independently written implementations — Rust core, TypeScript SDK, the reference CLI, and Python — agree on <b>1153/1153</b> conformance vectors, on verdict <i>and</i> reason. A disagreement would be a finding.</div>
+    </div>
+  </section>
 
-    <h2 id="gate">Gate a route</h2>
+  <section id="g-gate-a-route" class="chap" data-chapter="gate">
+    <div class="chap__body">
+      <div class="sec-head"><div class="sec-head__row"><span class="earmark"><b>/04</b> · GATE A ROUTE</span><a href="#gate">↳ #gate</a></div>
+        <div class="split"><h2 class="split__full" id="gate">Gate a route</h2></div></div>
     <p>The middleware turns a verdict into an HTTP decision: invalid agents receive <code>403</code> plus an <code>x-ainra-reason</code> header, fail-closed.</p>
-    <div class="codeblock"><span class="cap">node · @ainra/middleware</span><pre><span class="w">import</span> { ainraGate, Verifier } <span class="w">from</span> <span class="g">"@ainra/middleware"</span>;
+    <div class="code-panel"><div class="code-panel__body"><span class="code-panel__cap">node · @ainra/middleware</span><button class="code-panel__copy" type="button" aria-live="polite">COPY</button><pre tabindex="0"><span class="w">import</span> { ainraGate, Verifier } <span class="w">from</span> <span class="g">"@ainra/middleware"</span>;
 
-app.use(<span class="g">"/agent"</span>, ainraGate(verifier));</pre></div>
+app.use(<span class="g">"/agent"</span>, ainraGate(verifier));</pre></div></div>
+    </div>
+  </section>
 
-    <h2 id="request">Prove the request, not just the agent</h2>
+  <section id="g-prove-the-request-not-just-the-agent" class="chap" data-chapter="request">
+    <div class="chap__body">
+      <div class="sec-head"><div class="sec-head__row"><span class="earmark"><b>/05</b> · PROVE THE REQUEST, NOT JUST THE AGENT</span><a href="#request">↳ #request</a></div>
+        <div class="split"><h2 class="split__full" id="request">Prove the request, not just the agent</h2></div></div>
     <p>A valid passport says an agent exists. It says nothing about <em>this</em> request, and a header on its own can be copied and replayed. So a running copy signs each request with its own short-lived key (RFC 9421), and the gate binds the passport to one method, one host and one path, inside five minutes.</p>
     <ol>
       <li><b>Send the passport once.</b> <code>POST /.well-known/ainra-presentation</code> with the bundle. The gate checks it in full and answers <code>201</code> with a digest, <code>sha-256=:…:</code>. It keeps only bundles that verify.</li>
       <li><b>Then sign each request.</b> It carries the digest in <code>x-ainra-passport</code>, a fresh proof of possession in <code>x-ainra-pop</code>, and the <code>signature-input</code> / <code>signature</code> pair, which covers the method, host, path, body digest and that header. That comes to about 11 KB of headers, well under common server limits. The whole passport in one header would not fit.</li>
       <li><b>The gate says why when it refuses.</b> <code>presentation_unsigned</code> · <code>presentation_sig_invalid</code> (moved, altered or wrong key) · <code>presentation_stale</code> · <code>presentation_replayed</code> · and <code>428 presentation_unknown</code> if it doesn't hold the bundle yet, meaning "send it, then retry".</li>
     </ol>
-    <div class="codeblock"><span class="cap">node · @ainra/middleware</span><pre><span class="w">const</span> store = createPresentationStore();
+    <div class="code-panel"><div class="code-panel__body"><span class="code-panel__cap">node · @ainra/middleware</span><button class="code-panel__copy" type="button" aria-live="polite">COPY</button><pre tabindex="0"><span class="w">const</span> store = createPresentationStore();
 app.post(PRIME_PATH, express.json({ limit: <span class="g">"256kb"</span> }), ainraPrime(verifier, { store }));
-app.use(<span class="g">"/agent"</span>, ainraGate(verifier, { store, requireSignature: <span class="w">true</span>, seenNonce }));</pre></div>
+app.use(<span class="g">"/agent"</span>, ainraGate(verifier, { store, requireSignature: <span class="w">true</span>, seenNonce }));</pre></div></div>
     <p><b>At the edge.</b> <code>@ainra/edge</code> is the same gate for Workers, Deno and Node's fetch. It's a <code>Request</code> → decision function running <code>ainra-core</code> itself, compiled to WebAssembly. It trusts only a directory signed by both ceremony roots, and it applies its own freshness policy, not the presenter's. It lives in the repository (<code>packages/edge</code>) and isn't on npm yet.</p>
-    <div class="codeblock"><span class="cap">edge · @ainra/edge</span><pre><span class="w">const</span> gate = <span class="w">await</span> createAinraEdgeGate({
+    <div class="code-panel"><div class="code-panel__body"><span class="code-panel__cap">edge · @ainra/edge</span><button class="code-panel__copy" type="button" aria-live="polite">COPY</button><pre tabindex="0"><span class="w">const</span> gate = <span class="w">await</span> createAinraEdgeGate({
   directory, roots, audience: <span class="g">"https://shop.example"</span> });
 <span class="w">const</span> g = <span class="w">await</span> gate(request);
-<span class="w">return</span> g.allow ? fetch(request) : g.response;</pre></div>
-    <p><b>Beside a signature agent.</b> If an operator already signs its agents' requests as a signature agent (the Web Bot Auth profile of RFC 9421, keys in a directory at its origin), keep that signature. The running copy adds its own beside it, and each verifier reads only its own label. That profile defines no revocation: a withdrawn key keeps verifying until a verifier fetches the directory again. AINRA revokes the passport itself, and a gate refuses it once its status snapshot is fresh, within the gate's freshness class (five minutes by default). <a href="https://github.com/JacobJandon/ainra/blob/main/docs/SIGNATURE-AGENTS.md" rel="noopener" style="color:var(--green);font-weight:600">How to run both</a>.</p>
-    <p><b>As a WIMSE workload.</b> The IETF's agent-identity drafts build on WIMSE workload identity: a short-lived Workload Identity Token, and requests signed with RFC 9421. A running copy can speak that too. Its token is signed by its passport's key, and the passport's name is its trust domain. A service that speaks only WIMSE accepts it. An AINRA-aware service also checks the passport, so it refuses a revoked one within its freshness class. WIMSE itself has no revocation: a token stays valid until it expires. <a href="https://github.com/JacobJandon/ainra/blob/main/docs/WIMSE.md" rel="noopener" style="color:var(--green);font-weight:600">How it maps</a>.</p>
+<span class="w">return</span> g.allow ? fetch(request) : g.response;</pre></div></div>
+    <p><b>Beside a signature agent.</b> If an operator already signs its agents' requests as a signature agent (the Web Bot Auth profile of RFC 9421, keys in a directory at its origin), keep that signature. The running copy adds its own beside it, and each verifier reads only its own label. That profile defines no revocation: a withdrawn key keeps verifying until a verifier fetches the directory again. AINRA revokes the passport itself, and a gate refuses it once its status snapshot is fresh, within the gate's freshness class (five minutes by default). <a href="https://github.com/JacobJandon/ainra/blob/main/docs/SIGNATURE-AGENTS.md" rel="noopener">How to run both</a>.</p>
+    <p><b>As a WIMSE workload.</b> The IETF's agent-identity drafts build on WIMSE workload identity: a short-lived Workload Identity Token, and requests signed with RFC 9421. A running copy can speak that too. Its token is signed by its passport's key, and the passport's name is its trust domain. A service that speaks only WIMSE accepts it. An AINRA-aware service also checks the passport, so it refuses a revoked one within its freshness class. WIMSE itself has no revocation: a token stays valid until it expires. <a href="https://github.com/JacobJandon/ainra/blob/main/docs/WIMSE.md" rel="noopener">How it maps</a>.</p>
     <p>How it's checked: the request profile is stated once in <code>ainra-core</code>, and three implementations (Rust, TypeScript, Python) must agree on its conformance vectors. An independent open-source signature-agent verifier checks the vectors that carry both signatures. <code>make identity-e2e</code>, <code>make edge-e2e</code> and <code>make signature-agent-e2e</code> run the whole journey against a live registrar.</p>
+    </div>
+  </section>
 
-    <h2 id="cli">The CLI lifecycle</h2>
+  <section id="g-the-cli-lifecycle" class="chap" data-chapter="cli">
+    <div class="chap__body">
+      <div class="sec-head"><div class="sec-head__row"><span class="earmark"><b>/06</b> · THE CLI LIFECYCLE</span><a href="#cli">↳ #cli</a></div>
+        <div class="split"><h2 class="split__full" id="cli">The CLI lifecycle</h2></div></div>
     <p>The whole lifecycle, locally, no server — a persistent registrar in a directory you own.</p>
-    <div class="codeblock"><span class="cap">terminal</span><pre>$ ainra init ./reg registrar-07
+    <div class="code-panel"><div class="code-panel__body"><span class="code-panel__cap">terminal</span><button class="code-panel__copy" type="button" aria-live="polite">COPY</button><pre tabindex="0">$ ainra init ./reg registrar-07
 $ ainra issue ./reg --operator acme --lineage invoicing --version 1.0.0 --tier L2
 $ ainra verify ./reg ainra:registrar-07:acme:invoicing@1.0.0
 <span class="g">VALID</span>
 $ ainra revoke ./reg ainra:registrar-07:acme:invoicing@1.0.0 --reason key-compromise
 $ ainra verify ./reg ainra:registrar-07:acme:invoicing@1.0.0
-<span class="c">INVALID · revoked</span></pre></div>
+<span class="c">INVALID · revoked</span></pre></div></div>
     <p>Renewal is first-class: <code>ainra renew</code> reissues with logged continuity (<code>prev_leaf</code>) — identity is eternal, credentials are bounded.</p>
+    </div>
+  </section>
 
-    <h2 id="agents">For agents</h2>
+  <section id="g-for-agents" class="chap chap--flow" data-chapter="agents">
+    <div class="chap__body">
+      <div class="sec-head"><div class="sec-head__row"><span class="earmark"><b>/07</b> · FOR AGENTS</span><a href="#agents">↳ #agents</a></div>
+        <div class="split"><h2 class="split__full" id="agents">For agents</h2></div></div>
     <p>An agent onboards itself from the machine-readable map — no account, no human in the loop:</p>
     <ul>
       <li><code>/llms.txt</code> — the capability map (what exists, what to fetch, honest status).</li>
       <li><code>/skills.md</code> — deterministic onboarding steps, executable exactly as written (CI replays them).</li>
       <li><code>/.well-known/skills/index.json</code> — installable skill index: <code>npx skills add …</code></li>
     </ul>
+    </div>
+  </section>
 
-    <h2 id="conformance">Prove your own implementation</h2>
+  <section id="g-prove-your-own-implementation" class="chap" data-chapter="conformance">
+    <div class="chap__body">
+      <div class="sec-head"><div class="sec-head__row"><span class="earmark"><b>/08</b> · PROVE YOUR OWN IMPLEMENTATION</span><a href="#conformance">↳ #conformance</a></div>
+        <div class="split"><h2 class="split__full" id="conformance">Prove your own implementation</h2></div></div>
     <p>AINRA certifies no one. The corpus and the runner are published; you point the runner at your implementation over a documented stdin/stdout contract, sign your own result, and anyone re-runs it to check. <b>We don't certify implementations — we make certification unnecessary.</b></p>
-    <div class="codeblock"><span class="cap">terminal</span><pre>$ make conformance                    <span class="c"># the 3 in-repo impls, clean, same corpus hash</span>
+    <div class="code-panel"><div class="code-panel__body"><span class="code-panel__cap">terminal</span><button class="code-panel__copy" type="button" aria-live="polite">COPY</button><pre tabindex="0">$ make conformance                    <span class="c"># the 3 in-repo impls, clean, same corpus hash</span>
 $ node tools/conformance/run.mjs --impl ./my-verifier.sh
-$ node tools/conformance/attest.mjs   <span class="c"># sign your result with YOUR key</span></pre></div>
+$ node tools/conformance/attest.mjs   <span class="c"># sign your result with YOUR key</span></pre></div></div>
     <p>The doctrine and roles: <code>docs/conformance/PROGRAMME.md</code> · the wire contract: <code>tools/conformance/CONTRACT.md</code>. A deliberately broken implementation is caught with named divergences — a conformance tool that cannot fail is theatre.</p>
+    </div>
+  </section>
 
-    <h2 id="release">Verify a release</h2>
+  <section id="g-verify-a-release" class="chap" data-chapter="release">
+    <div class="chap__body">
+      <div class="sec-head"><div class="sec-head__row"><span class="earmark"><b>/09</b> · VERIFY A RELEASE</span><a href="#release">↳ #release</a></div>
+        <div class="split"><h2 class="split__full" id="release">Verify a release</h2></div></div>
     <p>Releases are signed with an offline SSH key and — the stronger check — reproducible: rebuild the corpus byte-for-byte from the tag, no key needed.</p>
-    <div class="codeblock"><span class="cap">terminal</span><pre>$ ssh-keygen -Y verify -f allowed_signers -I release@ainra.org \
+    <div class="code-panel"><div class="code-panel__body"><span class="code-panel__cap">terminal</span><button class="code-panel__copy" type="button" aria-live="polite">COPY</button><pre tabindex="0">$ ssh-keygen -Y verify -f allowed_signers -I release@ainra.org \
     -n file -s SHA256SUMS.sig &lt; SHA256SUMS
 <span class="g">Good "file" signature</span>
 $ sha256sum -c SHA256SUMS
-$ make repro                          <span class="c"># byte-exact rebuild — trust the bytes, not us</span></pre></div>
+$ make repro                          <span class="c"># byte-exact rebuild — trust the bytes, not us</span></pre></div></div>
     <p>The four-step guide with real pasted output lives in <code>RELEASE-VERIFY.md</code>.</p>
+    </div>
+  </section>
 
-
-    <h2 id="charter">Charter &amp; the four rules</h2>
+  <section id="g-charter-the-four-rules" class="chap chap--flow" data-chapter="charter">
+    <div class="chap__body">
+      <div class="sec-head"><div class="sec-head__row"><span class="earmark"><b>/10</b> · CHARTER &amp; THE FOUR RULES</span><a href="#charter">↳ #charter</a></div>
+        <div class="split"><h2 class="split__full" id="charter">Charter &amp; the four rules</h2></div></div>
     <p>The whole standard is four sentences made mechanical:</p>
-    <ul>
-      <li><b>Birth</b> — no identity without a verified, accountable entity behind it. Ever.</li>
-      <li><b>Life</b> — anyone can verify any passport, offline; verification never reports to anyone.</li>
-      <li><b>Death</b> — only the issuer, the principal, or due process can revoke; every revocation is public, appealable, and honored by every verifier within its freshness window — under a minute at the strict setting.</li>
-      <li><b>Neutrality</b> — the root records facts. Never money, personal data, reputation, or judgment.</li>
-    </ul>
-    <p>They distill six charter prohibitions, amendable only by supermajority in every member constituency after twelve months of public comment: <b>issues no passports · computes no scores · processes no payments · holds no personal data · never gates L0 existence · features no registrar, ever</b>.</p>
+    <ol class="index index--compact">
+        <li><div class="index-row"><span class="index-row__main"><span class="index-row__name">Birth</span><span class="index-row__text">no identity without a verified, accountable entity behind it. Ever.</span></span><span class="index-row__idx">/R1</span></div></li>
+        <li><div class="index-row"><span class="index-row__main"><span class="index-row__name">Life</span><span class="index-row__text">anyone can verify any passport, offline; verification never reports to anyone.</span></span><span class="index-row__idx">/R2</span></div></li>
+        <li><div class="index-row"><span class="index-row__main"><span class="index-row__name">Death</span><span class="index-row__text">only the issuer, the principal, or due process can revoke; every revocation is public, appealable, and honored by every verifier within its freshness window — under a minute at the strict setting.</span></span><span class="index-row__idx">/R3</span></div></li>
+        <li><div class="index-row"><span class="index-row__main"><span class="index-row__name">Neutrality</span><span class="index-row__text">the root records facts. Never money, personal data, reputation, or judgment.</span></span><span class="index-row__idx">/R4</span></div></li>
+    </ol>
+    <p>They distill six charter prohibitions, amendable only by supermajority in every member constituency after twelve months of public comment:</p>
+    <ol class="index index--compact index--p">
+        <li><div class="index-row"><span class="index-row__main"><span class="index-row__name">issues no passports</span></span><span class="index-row__idx">/P1</span></div></li>
+        <li><div class="index-row"><span class="index-row__main"><span class="index-row__name">computes no scores</span></span><span class="index-row__idx">/P2</span></div></li>
+        <li><div class="index-row"><span class="index-row__main"><span class="index-row__name">processes no payments</span></span><span class="index-row__idx">/P3</span></div></li>
+        <li><div class="index-row"><span class="index-row__main"><span class="index-row__name">holds no personal data</span></span><span class="index-row__idx">/P4</span></div></li>
+        <li><div class="index-row"><span class="index-row__main"><span class="index-row__name">never gates L0 existence</span></span><span class="index-row__idx">/P5</span></div></li>
+        <li><div class="index-row"><span class="index-row__main"><span class="index-row__name">features no registrar, ever</span></span><span class="index-row__idx">/P6</span></div></li>
+    </ol>
     <p>Root keys are threshold-held (5-of-9) across five-plus jurisdictions and rotated in public ceremonies; independent witnesses cosign every log checkpoint; the whole root is forkable from public data — the right to leave is what keeps it worth staying with.</p>
+    </div>
+  </section>
 
-    <h2 id="one-root">Why the root must be one</h2>
+  <section id="g-why-the-root-must-be-one" class="chap chap--flow" data-chapter="one-root">
+    <div class="chap__body">
+      <div class="sec-head"><div class="sec-head__row"><span class="earmark"><b>/11</b> · WHY THE ROOT MUST BE ONE</span><a href="#one-root">↳ #one-root</a></div>
+        <div class="split"><h2 class="split__full" id="one-root">Why the root must be one</h2></div></div>
     <p><b>The problem.</b> Agent IDs are multiplying, each an island — an agent verified in one scheme is a stranger in every other, so trust does not transfer.</p>
         <p><b>The proposal.</b> AINRA is that connective root for agent identity. Existing and future issuers stay independent — their technology, their customers, their business — and accredit into one rulebook: publish issuance to a transparency log, publish revocation that fails closed, chain to the root's keys. From that moment one verification path covers all of them, and an agent's standing earned under one issuer is legible under every other.</p>
     <p><b>Why neutral and non-profit is load-bearing, not branding.</b> No issuer joins a competitor's root — that is why none of the islands can unite the others. Only a body that issues nothing, scores nothing, sells nothing, and competes with no one can anchor rivals; the charter enforces this in code, and the whole design is forkable so the ecosystem can leave if the root ever goes wrong. Uniting the issuers is the entire mission: <b>one root, many issuers, every check local.</b></p>
 
-    <p>The drawn architecture — the root, the registrar ring, the agents, the verifiers — lives on the <a href="index.html#root">landing page</a>.</p>
+    <p>The drawn architecture — the root, the registrar ring, the agents, the verifiers — lives on the <a href="index.html">landing page</a>.</p>
+    </div>
+  </section>
 
-    <h2 id="plan">The plan</h2>
+  <section id="g-the-plan" class="chap chap--flow" data-chapter="plan">
+    <div class="chap__body">
+      <div class="sec-head"><div class="sec-head__row"><span class="earmark"><b>/12</b> · THE PLAN</span><a href="#plan">↳ #plan</a></div>
+        <div class="split"><h2 class="split__full" id="plan">The plan</h2></div></div>
     <p>A member-governed, non-profit federation: issuers, attestors, verifiers, resolution &amp; data providers, witnesses, and public-interest members each form a constituency in the assembly, which elects the board under charter constraints. Custodians and witnesses stand structurally apart from both.</p>
     <p><b>Genesis, in order:</b></p>
-    <ul>
-      <li><b>Ceremony rehearsed</b> — DONE · FROST 5-of-9 across nine isolated processes, reproducible transcript (<code>make ceremony-rehearsal-multi</code>).</li>
-      <li><b>Recorded public ceremony</b> — PENDING · sealed hardware on camera, air-gapped share generation, scripted T−30d → T+14d with a public abort playbook.</li>
-      <li><b>Independent verifiers</b> — RECRUITING · three or more strangers verify fresh, un-precomputable challenges on their own machines and sign what they saw.</li>
-      <li><b>The soak</b> — PENDING · fourteen days, three regions, signed reports; the founding declaration refuses to render without the evidence.</li>
+    <ul class="genesis">
+      <li><b>Ceremony rehearsed</b> — <span class="state-chip state-chip--done">DONE</span> · FROST 5-of-9 across nine isolated processes, reproducible transcript (<code>make ceremony-rehearsal-multi</code>).</li>
+      <li><b>Recorded public ceremony</b> — <span class="state-chip state-chip--pending">PENDING</span> · sealed hardware on camera, air-gapped share generation, scripted T−30d → T+14d with a public abort playbook.</li>
+      <li><b>Independent verifiers</b> — <span class="state-chip state-chip--gap">RECRUITING</span> · three or more strangers verify fresh, un-precomputable challenges on their own machines and sign what they saw.</li>
+      <li><b>The soak</b> — <span class="state-chip state-chip--pending">PENDING</span> · fourteen days, three regions, signed reports; the founding declaration refuses to render without the evidence.</li>
     </ul>
     <p><b>Economics:</b> capped per-lineage-year fees at cents scale, flat accreditation, grants. Verification free, forever; at scale the cap falls toward archival cost.</p>
     <p><b>The road:</b> Prove (now — the implementations agree, a stranger's clone passes every gate) → Anchor (charter ratified, first public ceremony, live registrars) → Endure (pre-decided responses to pressure) → Disappear — which means <b>become unnecessary, not vanish</b>: a relay race, not a solo marathon, ending in verification as boring as the clock, plus a managed-migration clause (if a legitimately adopted successor emerges, the root's final duty is an orderly migration into it).</p>
     <div class="note amber">Production logs sealed today: <b>0</b>. The three real-world genesis rows are events, not code — nothing here counts them done before they happen.</div>
+    </div>
+  </section>
 
-    <h2 id="faq">FAQ</h2>
+  <section id="g-faq" class="chap chap--flow" data-chapter="faq">
+    <div class="chap__body">
+      <div class="sec-head"><div class="sec-head__row"><span class="earmark"><b>/13</b> · FAQ</span><a href="#faq">↳ #faq</a></div>
+        <div class="split"><h2 class="split__full" id="faq">FAQ</h2></div></div>
+<div class="faq">
     <p><b>Is AINRA a company?</b> No — an international, member-governed, non-profit federation. It never competes with members, holds no equity, and is charter-bound out of issuing, scoring, payments, and personal data.</p>
     <p><b>Why should anyone trust you?</b> You shouldn't have to. The spec is public, the code runs in sixty seconds, keys will be split across jurisdictions, every action lands in witness-cosigned logs — and the standard is forkable, so if we go wrong, the ecosystem leaves with everything. <i>Verify, don't trust</i> applies to us first.</p>
     <p><b>Nobody's on it yet — why join first?</b> The alternative is pairwise trust-wiring at N² cost, forever. Verification is useful on day one with zero counterparties, and the founding table writes the rules everyone else inherits. The honest counter — LOGS SEALED: 0 — is the point: the first seats are authorship, not sponsorship.</p>
     <p><b>What does it cost?</b> Verifying: nothing, ever. Issuing: capped cents-scale per lineage-year through independent registrars.</p>
+    </div>
+    </div>
+  </section>
 
-
-    <h2 id="standard">The Standard — v5.1, in full</h2>
-    <p>The complete public specification. Implementable by anyone — no license, fee, or permission. Canonical file: <a href="AINRA_I_The_Standard.md" download style="color:var(--green);font-weight:600">AINRA_I_The_Standard.md</a>.</p>
+  <section id="g-the-standard-v5-1-in-full" class="chap chap--flow" data-chapter="standard">
+    <div class="chap__body">
+      <div class="sec-head"><div class="sec-head__row"><span class="earmark"><b>/14</b> · THE STANDARD — V5.1, IN FULL</span><a href="#standard">↳ #standard</a></div>
+        <div class="split"><h2 class="split__full" id="standard">The Standard — v5.1, in full</h2></div></div>
+    <p>The complete public specification. Implementable by anyone — no license, fee, or permission. Canonical file: <a href="AINRA_I_The_Standard.md" download>AINRA_I_The_Standard.md</a>.</p>
 <div class="specdoc"><p class="doc-masthead">AINRA — THE STANDARD</p>
 <h3>Agent Identity &amp; Naming Registry Authority · Master Specification v5.1 · July 2026</h3>
 <p><i>Document I of III. Public. Supersedes and consolidates all prior specification versions (v1–v5.0) and the one-pager. This document names no third party anywhere; every example uses placeholder registrars by constitutional rule. Category: <b>the identity layer for autonomous AI</b>. Canonical description: &quot;The neutral root of AI agent identity.&quot; v5.1 changes: root cryptography reissued for assumption diversity (Part I, key architecture); delegated online signing named honestly; no semantic changes elsewhere.</i></p>
 
-<hr>
-
-<h2>PART 0 — PRINCIPLES (NORMATIVE, CONSTITUTIONAL)</h2>
+<div class="sec-head"><div class="sec-head__row"><span class="earmark">PART 0 · PRINCIPLES</span></div><div class="split"><h2 class="split__full">PART 0 — PRINCIPLES (NORMATIVE, CONSTITUTIONAL)</h2></div></div>
 
 <p><b>0.1 The problem, stated once.</b> The majority of internet traffic is automated; machine identities outnumber humans roughly 80:1 inside enterprises; most organizations cannot see their agent-to-agent traffic; and every major platform, network, and directory has shipped its own agent identity that no other system can verify. A legitimate agent cannot prove itself away from home; a malicious one banned in one place walks into the next; nothing stops a compromised fleet everywhere at once; and past one hop of delegation, no deployed protocol proves who authorized what. The missing piece is a root — the one component nobody can build alone.</p>
 
@@ -348,9 +496,7 @@ $ make repro                          <span class="c"># byte-exact rebuild — t
 
 <p><b>0.8 Login → decision.</b> The historical trust boundary was the login: one human, one prompt, one yes. Agents act continuously at machine volume, so the boundary moves to the decision — every action, evaluated in context. Division of labor: <b>the root standardizes every input to the decision</b> (identity, chain, authority, ceilings, live status — cached, offline-capable, freshness-classed); <b>the decision itself always belongs to the verifier.</b> The root never decides.</p>
 
-<hr>
-
-<h2>PART I — THE ROOT (AINRA)</h2>
+<div class="sec-head"><div class="sec-head__row"><span class="earmark">PART I · THE ROOT</span></div><div class="split"><h2 class="split__full">PART I — THE ROOT (AINRA)</h2></div></div>
 
 <h3>1. The Charter — six prohibitions</h3>
 <p>Amendable only by supermajority within <i>every</i> constituency after twelve months of public comment:</p>
@@ -374,7 +520,7 @@ $ make repro                          <span class="c"># byte-exact rebuild — t
 
 <h3>5. The passport</h3>
 <p>Canonical JSON, signed whole by the registrar with Ed25519 and ML-DSA-65. It reuses some SD-JWT VC claim names but is not a JWT; every claim is shown, and there is no field-level disclosure today. Canonical schema (illustrative values; placeholder registrar by S7):</p>
-<div class="tbl">{
+<div class="tbl" tabindex="0">{
   &quot;type&quot;: &quot;agent-passport&quot;, &quot;v&quot;: 1, &quot;serial&quot;: &quot;AP-8F2E-C41&quot;,
   &quot;ainra_name&quot;: &quot;ainra:registrar-07:acme:invoicing@4.2.1&quot;,
   &quot;lineage&quot;: &quot;invoicing&quot;, &quot;version&quot;: &quot;4.2.1&quot;,
@@ -405,11 +551,11 @@ $ make repro                          <span class="c"># byte-exact rebuild — t
 <table class="tier-table">
 <thead><tr><th>Tier</th><th>Requirements</th><th>Typical consequence granted by verifiers</th></tr></thead>
 <tbody>
-<tr><td><b>L0 Declared</b></td><td>Valid keypair + logged registration + revocation endpoint. Permissionless by charter.</td><td>Sandbox, attributed crawl</td></tr>
-<tr><td><b>L1 Anchored</b></td><td>+ verified domain control or established wallet history</td><td>Rate-limited APIs, low-value micropayments</td></tr>
-<tr><td><b>L2 Operated</b></td><td>+ KYB-verified operator, declared model lineage, soulbound lineage</td><td>Standard commerce, B2B data exchange</td></tr>
-<tr><td><b>L3 Backed</b></td><td>+ a checked principal proof + liability-insurance attestation</td><td>Consumer-scale payments, contract execution</td></tr>
-<tr><td><b>L4 Regulated</b></td><td>+ sector license, independent audit, third-party work validation</td><td>High-value autonomy, critical infrastructure</td></tr>
+<tr><td data-label="Tier"><b>L0 Declared</b></td><td data-label="Requirements">Valid keypair + logged registration + revocation endpoint. Permissionless by charter.</td><td data-label="Typical consequence granted by verifiers">Sandbox, attributed crawl</td></tr>
+<tr><td data-label="Tier"><b>L1 Anchored</b></td><td data-label="Requirements">+ verified domain control or established wallet history</td><td data-label="Typical consequence granted by verifiers">Rate-limited APIs, low-value micropayments</td></tr>
+<tr><td data-label="Tier"><b>L2 Operated</b></td><td data-label="Requirements">+ KYB-verified operator, declared model lineage, soulbound lineage</td><td data-label="Typical consequence granted by verifiers">Standard commerce, B2B data exchange</td></tr>
+<tr><td data-label="Tier"><b>L3 Backed</b></td><td data-label="Requirements">+ a checked principal proof + liability-insurance attestation</td><td data-label="Typical consequence granted by verifiers">Consumer-scale payments, contract execution</td></tr>
+<tr><td data-label="Tier"><b>L4 Regulated</b></td><td data-label="Requirements">+ sector license, independent audit, third-party work validation</td><td data-label="Typical consequence granted by verifiers">High-value autonomy, critical infrastructure</td></tr>
 </tbody>
 </table>
 <p>The root labels; every verifier sets its own floor. Five levels; you set the floor.</p>
@@ -419,37 +565,31 @@ $ make repro                          <span class="c"># byte-exact rebuild — t
 
 <h3>9. Revocation fabric &amp; transparency logs</h3>
 <p>One compressed, signed status structure every verifier mirrors; push channels propagate deltas, and each verifier refuses a revoked passport within its own freshness class — <b>under 60 seconds issue-to-rejection at the strict class (F1)</b>, 5 minutes at F2 (the SDK default), a day at F3 — every class failing closed. Revocation scopes: a version (kills its entire fleet), a lineage, a mandate subtree, or a registrar (wholesale). Every event — registration, issuance, re-certification, transfer, mandate grant/revoke, accreditation action — is sealed <b>before validity</b> in append-only, hash-chained Merkle logs whose checkpoints are cosigned by <b>independent witnesses</b>; anyone may run a monitor; registrars must fund one watching a competitor; the logs are mirrorable and the whole system forkable, so history cannot be rewritten and the root cannot quietly lie. &quot;Logged before valid&quot; is load-bearing: unlogged is invalid.</p>
+<div class="chap-sub" data-chapter="integrate-instance">
 <h3 id="integrate-instance">Verifying a running copy</h3>
 <p>An agent has one <b>passport</b>. Each running copy of it — a container, a worker — carries an <b>instance credential</b> instead of the lineage&rsquo;s key: minted outside the container by the passport&rsquo;s control key, narrowed to fewer capabilities, valid for at most an hour, addressed to one audience, and bound to a key only that copy holds. Before this existed, whoever read a container held the lineage&rsquo;s key and a presentation that worked anywhere for a year.</p>
 <p>Integrating changes one thing: <b>tell the verifier who you are</b>. The audience is never read from the presentation, and an empty audience refuses every instance credential — a service that has not said who it is cannot be the intended recipient of anything. Four refusal reasons belong to this layer and never collapse into <code>expired</code>; a revoked passport still reports <code>revoked</code>, because the lineage failed rather than the copy. Runnable end to end: <code>node examples/instance-deployment.mjs</code>.</p>
-<div class="note"><b>Where that is design and not yet fact:</b> the paragraph above describes the standard. Checkpoint cosigning by independent witnesses is <b>built and drilled but unstaffed — there are zero witness operators today</b>, so the part that would stop the root showing different histories to different parties is not in force. Everything else there is running: logged-before-valid is enforced in every implementation, the logs are mirrorable, and the system is forkable from public artifacts. Running a witness is one command (<code>bash kits/witness/be-a-witness.sh</code>) and needs no accreditation.</div>
+<div class="note amber"><b>Where that is design and not yet fact:</b> the paragraph above describes the standard. Checkpoint cosigning by independent witnesses is <b>built and drilled but unstaffed — there are zero witness operators today</b>, so the part that would stop the root showing different histories to different parties is not in force. Everything else there is running: logged-before-valid is enforced in every implementation, the logs are mirrorable, and the system is forkable from public artifacts. Running a witness is one command (<code>bash kits/witness/be-a-witness.sh</code>) and needs no accreditation.</div>
+</div>
 
 <h3>10. Threat model (condensed register)</h3>
 <p>Root-key compromise → threshold + standby + ceremony-only use. Registrar fraud → audits, monitors, wholesale de-accreditation with customer grace. Impersonation → key-in-signature binding + mTLS instance creds. Replay/theft → minutes-TTL local credentials. Delegation laundering → dual-signed narrowing chains (depth is not capped today). Sybil floods → L0 grants existence, not consequence. Revocation suppression → freshness classes fail closed. Log fork/rewrite → witness cosigning, open monitors. Jurisdictional coercion → custodian spread; namespace censorship is structurally impossible below quorum. Privacy attack → no PII at root; principals checked at the registrar and seen only as a digest; graph shows structure, never behavior. Capture of governance → constituency supermajorities, 12-month comment, public everything. Price abuse → charter fee caps that only fall. Explorer manipulation → independence + client-side verification. Metaphor-imported failure modes (registrar race-to-bottom, registry price creep, public-record privacy conflict) → uniform tier standards + falling caps + zero-PII design, respectively. Successor standard emerges → managed-migration clause (Part V.4). Root institutional failure → fork-readiness drills; the standard outlives the institution.</p>
 
-<hr>
-
-<h2>PART II — THE PUBLIC RECORD &amp; EXPLORERS</h2>
+<div class="sec-head"><div class="sec-head__row"><span class="earmark">PART II · THE PUBLIC RECORD &amp; EXPLORERS</span></div><div class="split"><h2 class="split__full">PART II — THE PUBLIC RECORD &amp; EXPLORERS</h2></div></div>
 
 <p>The record — every passport, registrar, checkpoint, revocation — is public, witness-cosigned, and shows <b>what exists, never what agents did</b>. Independent explorers render it; <b>the root operates no explorer and funds none.</b> Explorer requirements (any implementation claiming conformance): facts, never scores; no rankings, ads, or promotion; mechanical ordering, labeled; structurally identical registrar pages; every fact one click from its cryptographic proof; client-side verification available (&quot;don&#x27;t trust, verify&quot;); open-source and mirrorable. Search grammar: free text plus typed prefixes <code>name: lineage: operator: registrar: log: witness: tier: class:</code>, grouped by object type, ordered by recency, zero personalization. Freshness SLOs: log-to-page &lt;30 s; revocation-to-page &lt;5 s. Root→explorer interface: public endpoints only, identical to what any mirror receives — no funding, staffing, instruction, emphasis, or private channel.</p>
 
-<hr>
-
-<h2>PART III — INTEROP PROFILES (GENERIC)</h2>
+<div class="sec-head"><div class="sec-head__row"><span class="earmark">PART III · INTEROP PROFILES</span></div><div class="split"><h2 class="split__full">PART III — INTEROP PROFILES (GENERIC)</h2></div></div>
 
 <p>How existing layers plug in without replacement — keep what you built, gain everyone else: <b>payment networks</b> keep tokens and checkout; key-directory lookups resolve through the root; gain cross-network recognition and the shared switch. <b>Runtime identity/control planes</b> keep gateways and per-action policy; consume the record as the standardized input to every decision; gain cross-boundary trust. <b>Edge/bot defense</b> keeps signature checks; mirrors the root directory behind them; gains operator/tier/status behind every signature — a welcome lane. <b>Enterprise identity</b> keeps internal directories; mints a passport at boundary-crossing; internal chains feed the authority chain. <b>On-chain registries</b> keep permissionless registration; entries auto-map to L0–L1; transfers logged; gain off-chain acceptance. <b>Merchants/APIs</b>: one verify middleware plus a tier floor — an afternoon. <b>Insurers/auditors</b> read passports, chains, logs — attributable history, the raw material for pricing agents. <b>Regulators</b> recognize tiers and classes and read the same public logs as anyone — oversight without operating anything or holding anyone&#x27;s data.</p>
 
-<hr>
-
-<h2>PART IV — THE FIRST REGISTRAR (ARM&#x27;S-LENGTH)</h2>
+<div class="sec-head"><div class="sec-head__row"><span class="earmark">PART IV · THE FIRST REGISTRAR</span></div><div class="split"><h2 class="split__full">PART IV — THE FIRST REGISTRAR (ARM&#x27;S-LENGTH)</h2></div></div>
 
 <p><b>Meridian</b> (named here as required disclosure — never in examples, defaults, or interfaces) exists to prove the flows and seed the market, under posture declared honestly: an issuer, therefore not neutral, therefore kept <b>outside, visible, and equal-footed.</b> Obligations: (i) identical public rules, fees, audits, timelines as every registrar; (ii) zero non-public access; (iii) never appears in root examples, defaults, or interfaces (Charter 6, S7); permitted distinctions are &quot;first&quot; and &quot;reference,&quot; both expiring; its materials may carry the standard attribution mark — <b>&quot;Built on the AINRA open standard&quot;</b> — available to every registrar identically, direction strictly one-way (registrars reference the standard; the root displays no one&#x27;s mark); (iv) conflicts register, interlocks (target zero), and inter-body payments published annually; (v) open-sources its full registrar stack (&quot;registrar-in-a-box&quot;) to seed competitors; (vi) recurring <b>sunset review</b> until ordinary — continue as one-of-many, spin fully out, or wind down. Scope: L1–L3 only; the licensed L4 lane belongs to regulated registrars. Mechanically it is a registrar in the full Part 0.5 sense: every issuance registers into the root; every customer may leave with history intact.</p>
 
 <p><b>Inter-body interface table (all published):</b> Root→registrars: rulebook, contract, fees, audits — identical for all; never leads, capital, or preview access. Root→explorers: public endpoints only. Registrar↔explorer: none beyond public data. Any exception: none permitted; exceptions are the scandal.</p>
 
-<hr>
-
-<h2>PART V — GOVERNANCE, ECONOMICS, ROADMAP</h2>
+<div class="sec-head"><div class="sec-head__row"><span class="earmark">PART V · GOVERNANCE, ECONOMICS, ROADMAP</span></div><div class="split"><h2 class="split__full">PART V — GOVERNANCE, ECONOMICS, ROADMAP</h2></div></div>
 
 <p><b>1. Bodies.</b> AINRA is constituted as an <b>international, member-governed, non-profit federation</b> : legitimacy flows <i>from</i> the members, the rules bind only those who join, and the federation itself never competes with them. Membership classes span the whole ecosystem: <b>issuer members</b> (accredited registrars of every class), <b>attestor members</b> (principal-proof providers), <b>verifier members</b> (edges, gateways, merchants, control planes), <b>resolution and data members</b>, <b>witness members</b>, and <b>public-interest members</b> — each class a constituency in the assembly, which elects the board under charter constraints; membership dues are the capped per-lineage fees of §2, identical within class. Custodians (keys) and witnesses (logs) remain structurally separate from board and assembly alike. Everything material is public: statutes, minutes, budgets, audits, fee schedules, and ceremonies (recorded). Existing identity systems join as members through the door that fits their function — an issuer&#x27;s credentials upgrade in place to passports, an attestor&#x27;s proof becomes a first-class field available through every registrar, a verifier consumes the record — so federation replaces the quadratic cost of pairwise integrations with a single membership.</p>
 
@@ -462,42 +602,32 @@ $ make repro                          <span class="c"># byte-exact rebuild — t
 <hr>
 
 <p><i>Everything above composes from open standards proven at internet scale — signed messages, hybrid-signed credentials, resolvable identifiers, witnessed append-only logs, threshold ceremonies, compressed status proofs. Proven parts; new assembly; and a charter that keeps the center small forever.</i></p></div>
+    </div>
+  </section>
 
     <div class="pn">
-      <a href="verify.html"><span class="lab">Related</span><div class="t">← How verification works</div></a>
-      <a href="get.html" class="next"><span class="lab">Next</span><div class="t">Use the live network →</div></a>
+      <a href="verify.html"><span class="lab earmark">Related</span><div class="t">← How verification works</div></a>
+      <a href="get.html" class="next"><span class="lab earmark">Next</span><div class="t">Use the live network →</div></a>
     </div>
-  </article>
-
-  <aside class="toc" aria-label="On this page">
-    <h5>On this page</h5>
-    <a href="#introduction">Introduction</a>
-    <a href="#install">Get the reference</a>
-    <a href="#verify">Verify in five lines</a>
-    <a href="#gate">Gate a route</a>
-    <a href="#request">Prove the request</a>
-    <a href="#cli">The CLI lifecycle</a>
-    <a href="#agents">For agents</a>
-    <a href="#conformance">Your own implementation</a>
-    <a href="#release">Verify a release</a>
-    <a href="#charter">Charter</a>
-    <a href="#plan">The plan</a>
-    <a href="#faq">FAQ</a>
-    <a href="#standard">The Standard</a>
-  </aside>
+</article>
 </div></main>
 
-<footer>
-  <div class="wrap">
-    <div class="foot">
-      <div>
-        <a class="brand" href="index.html" aria-label="AINRA — Agent Identity and Naming Registry Authority">
-          <span class="sigil" style="width:38px;height:38px" aria-hidden="true"><svg viewBox="0 0 112 112"><use href="#ainra-sigil"/></svg></span>
-          <span class="wm" style="font-size:17px">AINRA</span>
-          <span class="mean">Agent Identity &amp; Naming<br>Registry Authority</span>
-        </a>
-        <p style="margin-top:16px;font-size:13px;color:var(--muted);max-width:26ch">The neutral root of AI agent identity. Est. 2026.</p>
-      </div>
+<footer class="g-foot">
+  <div class="g-foot__in">
+    <div class="g-foot__l">
+      <p>© 2026 AINRA contributors.<br>Apache-2.0 OR MIT.</p>
+      <hr>
+      <p class="g-foot__mean"><b>AINRA</b> — Agent Identity &amp; Naming Registry Authority. The neutral root of AI agent identity. Founding 2026.</p>
+      <hr>
+      <span class="foot-motion"><button class="motion-btn" type="button" data-motion-toggle aria-pressed="true" hidden><svg class="i-on" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 2h2v8H3zM7 2h2v8H7z" fill="currentColor"/></svg><svg class="i-off" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 2v8l7-4z" fill="currentColor"/></svg><span data-motion-label>Motion: on</span></button></span>
+      <hr>
+      <ul class="g-foot__pills">
+        <li><a href="https://github.com/JacobJandon/ainra" rel="noopener">GitHub</a></li>
+        <li><a href="AINRA_I_The_Standard.md" download>The Standard</a></li>
+        <li><a href="mailto:info@ainra.org">Email</a></li>
+      </ul>
+    </div>
+    <div class="g-foot__cols">
       <div>
         <h4>Protocol</h4>
         <ul>
@@ -507,7 +637,7 @@ $ make repro                          <span class="c"># byte-exact rebuild — t
           <li><a href="index.html#top">The passport</a></li>
           <li><a href="verify.html#authority">Authority model</a></li>
           <li><a href="docs.html">Docs</a></li>
-          </ul>
+        </ul>
       </div>
       <div>
         <h4>Ecosystem</h4>
@@ -515,6 +645,8 @@ $ make repro                          <span class="c"># byte-exact rebuild — t
           <li><a href="verify.html#align">Where you plug in</a></li>
           <li><a href="verify.html#tiers">Assurance tiers</a></li>
           <li><a href="index.html#integrate">Onboard an agent</a></li>
+          <li><a href="landscape.html">The landscape</a></li>
+          <li><a href="get.html">Run a registrar</a></li>
         </ul>
       </div>
       <div>
@@ -526,39 +658,93 @@ $ make repro                          <span class="c"># byte-exact rebuild — t
           <li><a href="#faq">FAQ</a></li>
           <li><a href="foundation.html#access">Get involved</a></li>
           <li><a href="mailto:info@ainra.org">info@ainra.org</a></li>
+          <li><a href="mailto:mihail@ainra.org">mihail@ainra.org</a></li>
+          <li><a href="mailto:eric@ainra.org">eric@ainra.org</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Documents</h4>
+        <ul>
+          <li><a href="AINRA_I_The_Standard.md" download>Canonical file (raw)</a></li>
+          <li><a href="foundation.html#release-integrity">Release integrity</a></li>
+          <li><a href="https://github.com/JacobJandon/ainra/blob/main/docs/DECISIONS.md" rel="noopener">Decision log</a></li>
+          <li><a href="https://github.com/JacobJandon/ainra/blob/main/docs/TRADEOFFS.md" rel="noopener">Trade-offs</a></li>
+          <li><a href="https://github.com/JacobJandon/ainra/blob/main/SECURITY.md" rel="noopener">Security</a></li>
         </ul>
       </div>
     </div>
-    <div class="status">
-      <span class="live"><i aria-hidden="true"></i> ROOT STATUS: PRE-CEREMONY</span>
-      <span>LOGS SEALED: 0 · WITNESSES: 0 — SPLIT-VIEW GUARANTEE NOT IN FORCE · <a href="https://github.com/JacobJandon/ainra/blob/main/outreach/WITNESS-CALL.md">RECRUITING</a> · SPEC PUBLIC · CLI v0.3.3</span>
-      <span>ISSUES NOTHING · SCORES NOTHING · SEES NO PII · FAVORS NO ONE</span>
-    
-      <span class="openbadge"><svg style="width:26px;height:26px;color:#8A93A0" viewBox="0 0 160 160" aria-hidden="true"><use href="#ainra-crest"/></svg>An open standard · held by no one</span></div>
+  </div>
+  <div class="status g-foot__status">
+    <span class="live">ROOT STATUS: PRE-CEREMONY</span>
+    <span>LOGS SEALED: 0 · WITNESSES: 0 — SPLIT-VIEW GUARANTEE NOT IN FORCE · <a href="https://github.com/JacobJandon/ainra/blob/main/outreach/WITNESS-CALL.md">RECRUITING</a> · SPEC PUBLIC · CLI v0.3.3</span>
+    <span>ISSUES NOTHING · SCORES NOTHING · SEES NO PII · FAVORS NO ONE</span>
+    <span class="rclock" data-record-clock><span class="rclock__l"><span class="rclock__k">PUBLISHED RECORD</span> <span data-stamp="published-iso">2026-11-04T18:19:51Z</span></span><span class="rclock__s"><span class="rclock__k">RECORD</span> <span data-stamp="published-date">2026-11-04</span></span><span data-rc-more hidden> · <span class="rclock__l"><span class="rclock__k">AGE</span> <span data-rc-age></span></span><span class="rclock__s" data-rc-days></span> · <b data-rc-state></b></span></span>
+    <span class="openbadge"><svg viewBox="0 0 160 160" aria-hidden="true" style="color:#8A93A0"><use href="#ainra-crest"/></svg>An open standard · held by no one</span>
   </div>
 </footer>
 <script>
 (function(){
-  var closeDD=function(){document.querySelectorAll('.mi.open').forEach(function(m){m.classList.remove('open');var b=m.querySelector('[data-dd]');if(b)b.setAttribute('aria-expanded','false');});};
-  document.querySelectorAll('[data-dd]').forEach(function(b){b.addEventListener('click',function(e){e.stopPropagation();
-    var mi=b.parentElement,was=mi.classList.contains('open');closeDD();
-    if(!was){mi.classList.add('open');b.setAttribute('aria-expanded','true');}});});
-  document.addEventListener('click',closeDD);
-  document.addEventListener('keydown',function(e){if(e.key==='Escape')closeDD();});
-  var burger=document.getElementById('burger'),links=document.getElementById('navLinks');
-  if(burger&&links){burger.addEventListener('click',function(){var o=links.classList.toggle('open');burger.setAttribute('aria-expanded',o?'true':'false');});}
-  /* sidebar active state follows scroll */
-  var ids=['introduction','install','verify','gate','cli','agents','conformance','release','charter','plan','faq','standard'];
-  var side=[].slice.call(document.querySelectorAll('.side a[href^="#"]'));
-  function mark(){var y=scrollY+120,cur=ids[0];ids.forEach(function(id){var el=document.getElementById(id);if(el&&el.offsetTop<=y)cur=id;});
-    side.forEach(function(a){a.classList.toggle('on',a.getAttribute('href')==='#'+cur);});}
-  addEventListener('scroll',mark,{passive:true});mark();
+  var $=function(id){return document.getElementById(id);};
+
+  /* mobile menu */
+  var burger=$('burger'),links=$('navLinks');
+  if(burger&&links){
+    var close=function(){links.classList.remove('open');burger.setAttribute('aria-expanded','false');};
+    burger.addEventListener('click',function(){var o=links.classList.toggle('open');burger.setAttribute('aria-expanded',o?'true':'false');});
+    links.querySelectorAll('a').forEach(function(a){a.addEventListener('click',close);});
+    document.addEventListener('keydown',function(e){if(e.key==='Escape'&&links.classList.contains('open')){close();burger.focus();}});
+  }
+
+  /* copy buttons: COPY → COPIED → COPY after 1.6s; on failure COPY FAILED and the text is selected instead.
+     A terminal panel copies its commands only (the "$ " prompts, comments and printed output are left out). */
+  var commands=function(pre){
+    var lines=pre.textContent.split('\n'),out=[],cont=false;
+    lines.forEach(function(l){
+      if(/^\$ /.test(l)||cont){var c=l.replace(/^\$ /,'').replace(/\s+#\s.*$/,'');out.push(c);cont=/\\\s*$/.test(c);}
+    });
+    return out.length?out.join('\n'):pre.textContent;
+  };
+  document.querySelectorAll('.code-panel__copy').forEach(function(btn){
+    var pre=btn.parentNode.querySelector('pre');if(!pre)return;
+    var reset=function(){setTimeout(function(){btn.textContent='COPY';},1600);};
+    var pick=function(){var r=document.createRange();r.selectNodeContents(pre);var g=getSelection();g.removeAllRanges();g.addRange(r);};
+    btn.addEventListener('click',function(){
+      var ok=function(){btn.textContent='COPIED';reset();};
+      var fail=function(){btn.textContent='COPY FAILED';pick();reset();};
+      if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(commands(pre)).then(ok,fail);else fail();
+    });
+  });
+
+  /* chapter rail: marks the link of the chapter in the middle of the screen. It moves and reveals nothing;
+     clicking a link is an ordinary anchor jump. */
+  var railLinks={};
+  document.querySelectorAll('.chapter-rail a[href^="#"]').forEach(function(a){railLinks[a.getAttribute('href').slice(1)]=a;});
+  var marks=[].slice.call(document.querySelectorAll('[data-chapter]'));
+  if('IntersectionObserver' in window&&marks.length){
+    var inView=new Set();
+    var mark=function(){
+      var cur=null;marks.forEach(function(el){if(inView.has(el))cur=el;});
+      if(!cur)return;
+      var id=cur.getAttribute('data-chapter');
+      Object.keys(railLinks).forEach(function(k){var a=railLinks[k],on=k===id;a.classList.toggle('is-current',on);
+        if(on)a.setAttribute('aria-current','true');else a.removeAttribute('aria-current');});
+    };
+    var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting)inView.add(e.target);else inView.delete(e.target);});mark();},
+      {rootMargin:'-40% 0px -55% 0px'});
+    marks.forEach(function(el){io.observe(el);});
+  }
 })();
 </script>
+<script type="module" src="js/motion.mjs"></script>
+<script type="module" src="js/clock.mjs"></script>
+<script type="module" src="js/glyphs.mjs"></script>
+<script type="module" src="js/page.mjs"></script>
 <script type="module" src="js/life.mjs"></script>
 <script>/* aria-current-marker: answer "where am I?" in the nav (§16 wayfinding) */
 (function(){var p=location.pathname.split("/").pop()||"index.html";
 document.querySelectorAll('nav a[href]').forEach(function(a){var h=a.getAttribute("href");
 if(h&&h.split("#")[0]===p)a.setAttribute("aria-current","page");});})();</script>
+<script type="module" src="js/reveal.mjs"></script>
+<script type="module" src="js/g.mjs"></script>
 </body>
 </html>

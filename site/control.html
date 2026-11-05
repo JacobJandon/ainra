@@ -26,6 +26,7 @@
 <meta name="twitter:image" content="https://ainra.org/og-cover.png">
 <link rel="preload" href="fonts/bricolage-grotesque-latin-wght.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="fonts/faces.css">
+<link rel="stylesheet" href="css/g-shell.css">
 <style>
 
 :root{--ink:#0B1220;--ink-2:#111B30;--paper:#F5F6F3;--card:#FFFFFF;--green:#1A6B4E;--green-br:#57C08F;--red:#A83A2C;--amber:#8a6a14;--muted:#5A6372;--line:#E2E5DF;
@@ -242,8 +243,26 @@ table.ep th{color:var(--muted);font-weight:700;font-size:11px;letter-spacing:.06
 .actions button:hover{background:var(--paper)}
 
 </style>
+<script>/* reveal only when motion is on (the same decision as js/motion.mjs), set before first paint */
+try{var m=localStorage.getItem("ainra-motion");if(m!=="off"&&(m==="on"||!matchMedia("(prefers-reduced-motion: reduce)").matches))document.documentElement.classList.add("rv")}catch(e){if(!matchMedia("(prefers-reduced-motion: reduce)").matches)document.documentElement.classList.add("rv")}
+/* fail safe: if js/reveal.mjs never starts, show everything rather than leave the page hidden */
+setTimeout(function(){var h=document.documentElement;if(!h.dataset.rvReady)h.classList.remove("rv")},2500)</script>
 </head>
-<body id="top">
+<body class="gi-page" id="top">
+<div class="g-intro" id="gIntro" aria-hidden="true"><div class="g-intro__panel"><svg class="g-intro__mark" viewBox="0 0 112 112">
+      <path class="gi-body" pathLength="1" d="M 98.4 33.5 A 48 48 0 1 1 78.5 13.6" fill="none" stroke="#0B1220" stroke-width="3" stroke-linecap="round"/>
+      <path d="M 95.8 29.2 L 98.7 27.2 M 91.7 23.9 L 94.3 21.5 M 86.9 19.2 L 89.1 16.6" stroke="#0B1220" stroke-width="1" opacity=".5"/>
+      <path d="M 80.6 11.5 L 83.4 18.5 L 76.4 15.7 Z" fill="#0B1220"/>
+      <circle cx="79.6" cy="14.2" r="1.1" fill="#F5F6F3"/>
+      <circle cx="56" cy="56" r="36" stroke="#0B1220" stroke-width="1.2" fill="none"/>
+      <circle cx="56" cy="56" r="26" stroke="#0B1220" stroke-width="1.6" fill="none"/>
+      <ellipse cx="56" cy="56" rx="11" ry="26" stroke="#0B1220" stroke-width="1" fill="none"/>
+      <line x1="30" y1="56" x2="82" y2="56" stroke="#0B1220" stroke-width="1.1"/>
+      <path d="M33.5 43 h45 M33.5 69 h45" stroke="#0B1220" stroke-width="0.8" opacity="0.6"/>
+      <path d="M56 30 a26 26 0 0 1 26 26" stroke="#1A6B4E" stroke-width="3" stroke-linecap="round" fill="none"/>
+      <circle cx="56" cy="56" r="2.4" fill="#0B1220"/>
+    </svg></div></div>
+
 <a href="#main" class="skip">Skip to content</a>
 
 <div class="announce">Real issuance + the real record on a <b>TEST-ROOT</b> — every passport here is a labelled specimen with real cryptography, verified on your machine. <a href="foundation.html">Honest status →</a></div>
@@ -251,22 +270,76 @@ table.ep th{color:var(--muted);font-weight:700;font-size:11px;letter-spacing:.06
 <nav><div class="wrap nav-in">
   <a class="brand" href="index.html" aria-label="AINRA — Agent Identity and Naming Registry Authority">
     <span class="sigil" aria-hidden="true"><svg viewBox="0 0 112 112"><use href="#ainra-sigil"/></svg></span>
-    <span class="wm">AINRA</span><span class="mean">Agent Identity &amp; Naming<br>Registry Authority</span></a>
-  <a href="verify.html" class="ndocs">Verify</a>
-  <a href="get.html" class="ndocs">Network</a>
-  <a href="landscape.html" class="ndocs">Landscape</a>
-  <a href="foundation.html" class="ndocs">Foundation</a>
-  <a href="docs.html" class="ndocs">Docs</a>
-  <div class="nav-r">
-    <a class="btn btn-ghost nav-hide" href="https://github.com/JacobJandon/ainra" rel="noopener" aria-label="Source repository on GitHub"><svg class="gh" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" style="display:inline-block;vertical-align:-3px;margin-right:8px;flex:none" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>GitHub</a>
-    <a class="btn btn-ink nav-hide" href="foundation.html#access">Join the founding table</a>
-    <button class="burger" id="burger" aria-label="Menu" aria-expanded="false">≡</button>
+    <span class="wm">AINRA</span></a>
+  <div class="nav-links-d" hidden>
+    <a href="verify.html">Verify</a>
+    <a href="get.html">Network</a>
+    <a href="landscape.html">Landscape</a>
+    <a href="foundation.html">Foundation</a>
+    <a href="docs.html">Docs</a>
   </div>
-  <div class="nav-links" id="navLinks"><a href="index.html">The root</a><a href="verify.html">Verify</a><a href="get.html">Network</a><a href="landscape.html">Landscape</a><a href="foundation.html">Foundation</a><a href="docs.html">Docs</a><a href="foundation.html#access">Join the founding table</a><a href="https://github.com/JacobJandon/ainra" rel="noopener"><svg class="gh" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" style="display:inline-block;vertical-align:-3px;margin-right:8px;flex:none" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>GitHub</a></div>
+  <div class="nav-r"><a class="btn btn-ghost" href="verify.html#try">Try it live →</a><a class="g-sq" href="scan.html" aria-label="Browse the record"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.5"/></svg></a><button class="g-menubtn" type="button" data-g-menu aria-expanded="false" aria-controls="gMenu"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" stroke-width="1.5" fill="none"/></svg><span class="vh">Menu</span></button></div>
+  <div class="nav-links" id="navLinks"><a href="index.html">The root</a><a href="verify.html">Verify</a><a href="get.html">Network</a><a href="landscape.html">Landscape</a><a href="foundation.html">Foundation</a><a href="docs.html">Docs</a><a href="foundation.html#access">Join the founding table</a><a href="https://github.com/JacobJandon/ainra" rel="noopener"><svg class="gh" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>GitHub</a></div>
 </div></nav>
+<div class="g-menu" id="gMenu" role="dialog" aria-modal="true" aria-labelledby="gMenuTitle" hidden>
+  <div class="wrap g-menu__in">
+    <h2 class="vh" id="gMenuTitle">Menu</h2>
+    <p class="g-menu__about"><b>AINRA</b> — Agent Identity &amp; Naming Registry Authority. An open standard, held by no one.</p>
+    <div class="g-menu__cols">
+      <div class="g-menu__col">
+        <p class="g-menu__k">Navigation</p>
+        <ul class="g-menu__big">
+          <li><a href="verify.html">Verify</a><ul><li><a href="verify.html#try">↳ Try a passport</a></li><li><a href="docs.html#verify">↳ How a check works</a></li></ul></li>
+          <li><a href="get.html">Network</a></li>
+          <li><a href="landscape.html">Landscape</a></li>
+          <li><a href="foundation.html">Foundation</a><ul><li><a href="foundation.html#access">↳ Join the founding table</a></li></ul></li>
+          <li><a href="docs.html">Docs</a><ul><li><a href="docs.html#standard">↳ The Standard</a></li><li><a href="docs.html#install">↳ Install</a></li></ul></li>
+        </ul>
+      </div>
+      <div class="g-menu__col">
+        <p class="g-menu__k">The record, as published</p>
+        <dl class="g-menu__kv">
+          <div><dt>Passports in the record</dt><dd data-stamp="issued">80</dd></div>
+          <div><dt>Registrars</dt><dd data-stamp="registrars">2</dd></div>
+          <div><dt>Revoked</dt><dd data-stamp="revoked">53</dd></div>
+          <div><dt>Witnesses</dt><dd>0 · <a href="https://github.com/JacobJandon/ainra/blob/main/outreach/WITNESS-CALL.md">recruiting</a></dd></div>
+        </dl>
+        <p class="g-menu__note">Read from <a href="net/registry.json">net/registry.json</a>.</p>
+      </div>
+      <div class="g-menu__col">
+        <p class="g-menu__k">Quick links</p>
+        <ul class="g-menu__small">
+          <li><a href="https://github.com/JacobJandon/ainra">Source on GitHub</a></li>
+          <li><a href="docs.html#standard">Read the Standard</a></li>
+          <li><a href="scan.html">Browse the record</a></li>
+          <li><a href="RELEASE-VERIFY.md">Verify a release</a></li>
+          <li><a href="llms.txt">For AI agents: llms.txt</a></li>
+          <li><a href="mailto:info@ainra.org">info@ainra.org</a></li><li><a href="mailto:mihail@ainra.org">mihail@ainra.org</a></li><li><a href="mailto:eric@ainra.org">eric@ainra.org</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<header class="gi-hero" id="g-top">
+  <div class="wrap">
+    <nav class="gi-sub" aria-label="On this page"><span class="gi-sub__k">AINRA / Control</span><a href="#g-root-and-directory">Root and directory</a><a href="#g-alarms">Alarms</a><a href="#g-epoch-history">Epoch history</a><a href="#g-registrars">Registrars</a></nav>
+    <h1 class="gi-title" aria-label="Control"><span style="--i:0">C</span><span style="--i:1">o</span><span style="--i:2">n</span><span style="--i:3">t</span><span style="--i:4">r</span><span style="--i:5">o</span><span style="--i:6">l</span></h1>
+<aside class="g-side" id="gSide" aria-label="About this page" data-side>
+  <div class="g-side__head"><span>Details</span><button class="g-side__x" type="button" aria-label="Close details" data-side-close>×</button></div>
+  <ul>
+    <li><span>Reads</span>The published record and its signatures, nothing else</li>
+    <li><span>Writes</span>Nothing — the control room is read-only</li>
+    <li><span>Alarms</span>On every contract the record breaks</li>
+  </ul>
+</aside>
+<button class="g-side__tab" type="button" aria-controls="gSide" aria-expanded="false" data-side-open>Details</button>
+  </div>
+</header>
+
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><g id="ainra-sigil">
-  <path d="M 98.4 33.5 A 48 48 0 1 0 78.5 13.6" fill="none" stroke="#0B1220" stroke-width="3" stroke-linecap="round"/>
+  <path d="M 98.4 33.5 A 48 48 0 1 1 78.5 13.6" fill="none" stroke="#0B1220" stroke-width="3" stroke-linecap="round"/>
   <path d="M 80.6 11.5 L 83.4 18.5 L 76.4 15.7 Z" fill="#0B1220"/>
   <circle cx="56" cy="56" r="36" stroke="#0B1220" stroke-width="1.2" fill="none"/>
   <circle cx="56" cy="56" r="26" stroke="#0B1220" stroke-width="1.6" fill="none"/>
@@ -283,16 +356,16 @@ table.ep th{color:var(--muted);font-weight:700;font-size:11px;letter-spacing:.06
   <div class="wrap">
     <div class="chead">
       <span class="eyebrow">Control room · reads only</span>
-      <h1>The network, checked in your browser.</h1>
+      <h2 data-was-h1>The network, checked in your browser.</h2>
       <p class="lede">Everything the operator checks, checked here from the public record: the directory against both roots, every epoch it has had, and each registrar's log and status. Nothing on this page can sign, publish or change anything.</p>
     </div>
     <div class="banner" id="banner" aria-live="polite"><span>LOADING THE PUBLIC RECORD…</span></div>
     <div class="verdict" id="verdict" role="status" aria-live="polite"><span class="v">CHECKING</span><span id="vtext">nothing has been checked yet</span></div>
     <div class="cgrid">
-      <section class="panel" aria-labelledby="h-root"><h2 id="h-root">Root and directory</h2><ul class="rows" id="rows-root"></ul></section>
-      <section class="panel" aria-labelledby="h-alarms"><h2 id="h-alarms">Alarms</h2><ul class="rows" id="rows-alarms"><li><span class="tag info">·</span><span>none yet</span></li></ul></section>
-      <section class="panel" aria-labelledby="h-epochs" style="grid-column:1/-1"><h2 id="h-epochs">Epoch history</h2><div id="epochs" style="overflow-x:auto"></div></section>
-      <section class="panel" aria-labelledby="h-reg" style="grid-column:1/-1"><h2 id="h-reg">Registrars</h2><ul class="rows" id="rows-reg"></ul></section>
+      <section id="g-root-and-directory" class="panel" aria-labelledby="h-root"><h2 id="h-root">Root and directory</h2><ul class="rows" id="rows-root"></ul></section>
+      <section id="g-alarms" class="panel" aria-labelledby="h-alarms"><h2 id="h-alarms">Alarms</h2><ul class="rows" id="rows-alarms"><li><span class="tag info">·</span><span>none yet</span></li></ul></section>
+      <section id="g-epoch-history" class="panel" aria-labelledby="h-epochs" style="grid-column:1/-1"><h2 id="h-epochs">Epoch history</h2><div id="epochs" style="overflow-x:auto"></div></section>
+      <section id="g-registrars" class="panel" aria-labelledby="h-reg" style="grid-column:1/-1"><h2 id="h-reg">Registrars</h2><ul class="rows" id="rows-reg"></ul></section>
     </div>
     <div class="actions"><button type="button" id="recheck">Check again</button><button type="button" id="forget">Forget what this browser has seen</button></div>
     <div class="limits">
@@ -307,17 +380,22 @@ table.ep th{color:var(--muted);font-weight:700;font-size:11px;letter-spacing:.06
   </div>
 </main>
 
-<footer>
-  <div class="wrap">
-    <div class="foot">
-      <div>
-        <a class="brand" href="index.html" aria-label="AINRA — Agent Identity and Naming Registry Authority">
-          <span class="sigil" style="width:38px;height:38px" aria-hidden="true"><svg viewBox="0 0 112 112"><use href="#ainra-sigil"/></svg></span>
-          <span class="wm" style="font-size:17px">AINRA</span>
-          <span class="mean">Agent Identity &amp; Naming<br>Registry Authority</span>
-        </a>
-        <p style="margin-top:16px;font-size:13px;color:var(--muted);max-width:26ch">The neutral root of AI agent identity. Est. 2026.</p>
-      </div>
+<footer class="g-foot">
+  <div class="g-foot__in">
+    <div class="g-foot__l">
+      <p>© 2026 AINRA contributors.<br>Apache-2.0 OR MIT.</p>
+      <hr>
+      <p class="g-foot__mean"><b>AINRA</b> — Agent Identity &amp; Naming Registry Authority. The neutral root of AI agent identity. Founding 2026.</p>
+      <hr>
+      <span class="foot-motion"><button class="motion-btn" type="button" data-motion-toggle aria-pressed="true" hidden><svg class="i-on" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 2h2v8H3zM7 2h2v8H7z" fill="currentColor"/></svg><svg class="i-off" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 2v8l7-4z" fill="currentColor"/></svg><span data-motion-label>Motion: on</span></button></span>
+      <hr>
+      <ul class="g-foot__pills">
+        <li><a href="https://github.com/JacobJandon/ainra" rel="noopener">GitHub</a></li>
+        <li><a href="AINRA_I_The_Standard.md" download>The Standard</a></li>
+        <li><a href="mailto:info@ainra.org">Email</a></li>
+      </ul>
+    </div>
+    <div class="g-foot__cols">
       <div>
         <h4>Protocol</h4>
         <ul>
@@ -327,7 +405,7 @@ table.ep th{color:var(--muted);font-weight:700;font-size:11px;letter-spacing:.06
           <li><a href="index.html#top">The passport</a></li>
           <li><a href="verify.html#authority">Authority model</a></li>
           <li><a href="docs.html">Docs</a></li>
-          </ul>
+        </ul>
       </div>
       <div>
         <h4>Ecosystem</h4>
@@ -335,6 +413,8 @@ table.ep th{color:var(--muted);font-weight:700;font-size:11px;letter-spacing:.06
           <li><a href="verify.html#align">Where you plug in</a></li>
           <li><a href="verify.html#tiers">Assurance tiers</a></li>
           <li><a href="index.html#integrate">Onboard an agent</a></li>
+          <li><a href="landscape.html">The landscape</a></li>
+          <li><a href="get.html">Run a registrar</a></li>
         </ul>
       </div>
       <div>
@@ -346,15 +426,28 @@ table.ep th{color:var(--muted);font-weight:700;font-size:11px;letter-spacing:.06
           <li><a href="docs.html#faq">FAQ</a></li>
           <li><a href="foundation.html#access">Get involved</a></li>
           <li><a href="mailto:info@ainra.org">info@ainra.org</a></li>
+          <li><a href="mailto:mihail@ainra.org">mihail@ainra.org</a></li>
+          <li><a href="mailto:eric@ainra.org">eric@ainra.org</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Documents</h4>
+        <ul>
+          <li><a href="AINRA_I_The_Standard.md" download>Canonical file (raw)</a></li>
+          <li><a href="foundation.html#release-integrity">Release integrity</a></li>
+          <li><a href="https://github.com/JacobJandon/ainra/blob/main/docs/DECISIONS.md" rel="noopener">Decision log</a></li>
+          <li><a href="https://github.com/JacobJandon/ainra/blob/main/docs/TRADEOFFS.md" rel="noopener">Trade-offs</a></li>
+          <li><a href="https://github.com/JacobJandon/ainra/blob/main/SECURITY.md" rel="noopener">Security</a></li>
         </ul>
       </div>
     </div>
-    <div class="status">
-      <span class="live"><i aria-hidden="true"></i> ROOT STATUS: PRE-CEREMONY</span>
-      <span>LOGS SEALED: 0 · WITNESSES: 0 — SPLIT-VIEW GUARANTEE NOT IN FORCE · <a href="https://github.com/JacobJandon/ainra/blob/main/outreach/WITNESS-CALL.md">RECRUITING</a> · SPEC PUBLIC · CLI v0.3.3</span>
-      <span>ISSUES NOTHING · SCORES NOTHING · SEES NO PII · FAVORS NO ONE</span>
-    
-      <span class="openbadge"><svg style="width:26px;height:26px;color:#8A93A0" viewBox="0 0 160 160" aria-hidden="true"><use href="#ainra-crest"/></svg>An open standard · held by no one</span></div>
+  </div>
+  <div class="status g-foot__status">
+    <span class="live">ROOT STATUS: PRE-CEREMONY</span>
+    <span>LOGS SEALED: 0 · WITNESSES: 0 — SPLIT-VIEW GUARANTEE NOT IN FORCE · <a href="https://github.com/JacobJandon/ainra/blob/main/outreach/WITNESS-CALL.md">RECRUITING</a> · SPEC PUBLIC · CLI v0.3.3</span>
+    <span>ISSUES NOTHING · SCORES NOTHING · SEES NO PII · FAVORS NO ONE</span>
+    <span class="rclock" data-record-clock><span class="rclock__l"><span class="rclock__k">PUBLISHED RECORD</span> <span data-stamp="published-iso">2026-11-04T18:19:51Z</span></span><span class="rclock__s"><span class="rclock__k">RECORD</span> <span data-stamp="published-date">2026-11-04</span></span><span data-rc-more hidden> · <span class="rclock__l"><span class="rclock__k">AGE</span> <span data-rc-age></span></span><span class="rclock__s" data-rc-days></span> · <b data-rc-state></b></span></span>
+    <span class="openbadge"><svg viewBox="0 0 160 160" aria-hidden="true" style="color:#8A93A0"><use href="#ainra-crest"/></svg>An open standard · held by no one</span>
   </div>
 </footer>
 
@@ -481,5 +574,8 @@ $("recheck").addEventListener("click", check);
 $("forget").addEventListener("click", () => { try { for (const k of Object.keys(localStorage)) if (k.startsWith("ainra-ctl:")) localStorage.removeItem(k); } catch { /* nothing stored */ } check(); });
 check();
 </script>
+<script type="module" src="js/reveal.mjs"></script>
+<script type="module" src="js/g.mjs"></script>
+<script type="module" src="js/motion.mjs"></script>
 </body>
 </html>

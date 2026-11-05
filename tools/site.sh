@@ -53,6 +53,11 @@ cp "$TMP/ainra-cli-v${VER}.zip" "$SITE/ainra-cli-v${VER}.zip"
 echo "built $SITE/ — 7 self-contained pages + refreshed downloads (CLI v${VER}, Standard $(wc -l < "$SITE/AINRA_I_The_Standard.md") lines)."
 echo "  the download CLI == apps/cli-node (canonical); the Standard == docs/AINRA_I_The_Standard.md (canonical)."
 
+# Final state first: write the published record's values into the pages and includes (site/net/*.json through the
+# same renderer the browser uses), so every number reads with JavaScript off. Before the include sync, so the synced
+# nav/footer carry the stamped values.
+node tools/record-stamp.mjs
+
 # M17: keep the content pages' shared header/footer in sync from site/_includes/ (one source of truth, no drift).
 node tools/site-includes.mjs
 

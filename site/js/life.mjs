@@ -1,147 +1,166 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
-// Conway's Game of Life as the site's background — the AINRA doctrine made visible: simple rules build complex
-// systems. Three rules (B3/S23) on a toroidal grid, and everything that happens on screen emerges from them.
+// Conway's Game of Life — the AINRA doctrine made visible: simple rules build complex systems. B3/S23, exactly
+// Conway, on a toroidal grid, and everything that happens in a field emerges from three rules and one seed.
 //
-// Design: a fixed, full-viewport canvas at z-index 0 behind the page (content is lifted to z-index 1); cells are
-// 7px pixels drawn 6×6 for the site's pixel-art grain, in the brand green, with age-faded alpha so newborn cells
-// shimmer and old colonies settle into faint texture. A random classic pattern (glider, r-pentomino, LWSS, acorn)
-// is stamped every 30 generations so the field never dies out. On the landing the field starts BELOW the hero
-// (drawing is clipped to the hero's live bottom edge, with a short fade ramp), taking over as you scroll; on other
-// pages it runs behind the whole page. Zero interaction cost: pointer-events none, rAF-gated to one generation per
-// 120 ms, paused by the browser when the tab is hidden, and fully static under prefers-reduced-motion (one seeded
-// generation drawn once — texture, no motion).
+// The seed is the published record (MOTION.md M07/M19/M20). 32 bytes of a real hash — a checkpoint root, a status
+// hash, the sha256 of a published file — laid out as a 16×16 tile of bits (MSB first). The field is tiled with it;
+// tile k is XORed with the bits of the 32-bit word k·2654435761, so tiles differ deterministically. The same record
+// always grows the same field: anyone can reproduce generation n from the file named in the readout.
+//
+// Solid colour only: a cell's age is one of three opaque tints (newborn, young, settled), never alpha. Only changed
+// cells are redrawn. Stepping is done by the page's one scheduler (motion.mjs): paused off-screen, in a hidden tab,
+// and with motion off, when the field shows one still frame (generation 64 for the band, 32 for ribbons and 404).
+//
+// Markup: <div class="life" data-life data-seed="cycle|sha:<file>|checkpoint:<registrar>|path" data-hz="5">, with
+// optional [data-life-gen], [data-life-pop], [data-life-seed], [data-life-glider] inside it.
+import { register, motionOn } from "./motion.mjs";
 
-const CS = 9;            // cell size (px) — drawn CS-1 so the 1px gap keeps the pixel grid visible
-const TICK = 150;        // ms per generation
-const DENSITY = 0.07;    // initial random seed density
-const STAMP_EVERY = 50;  // generations between pattern injections
-const FADE_PX = 48;      // alpha ramp below the hero clip edge
-const ALPHA = 0.16;      // global visibility factor — the field is texture, never a subject
+const css = (n, d) => getComputedStyle(document.documentElement).getPropertyValue(n).trim() || d;
 
-const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-// ── the three rules (B3/S23), cells carry their AGE (0 = dead, ≥1 = generations alive, capped) ───────────────────
-const alloc = (w, h) => new Uint8Array(w * h);
-const seed = (g, density) => { for (let i = 0; i < g.length; i++) g[i] = Math.random() < density ? 1 : 0; };
-function neighbours(g, w, h, x, y) {
-  let n = 0;
-  for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
-    if (!dx && !dy) continue;
-    if (g[((y + dy + h) % h) * w + ((x + dx + w) % w)] > 0) n++;
+export class Field {
+  constructor(canvas, o = {}) {
+    this.cv = canvas; this.ctx = canvas.getContext("2d", { alpha: false });
+    this.pitch = o.pitch || 8; this.size = o.size || 7;
+    this.col = [css("--band", "#ECEEE9"), css("--life-new", "#9CC7B0"), css("--life-mid", "#BFD1C5"), css("--life-cell", "#D3D6D1")];
+    this.cols = 0; this.rows = 0; this.gen = 0; this.pop = 0; this.hist = [];
   }
-  return n;
-}
-function step(cur, next, w, h) {
-  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-    const i = y * w + x, n = neighbours(cur, w, h, x, y);
-    next[i] = cur[i] > 0 ? (n === 2 || n === 3 ? Math.min(cur[i] + 1, 255) : 0) : (n === 3 ? 1 : 0);
-  }
-}
-// classic still-breeding patterns, stamped at a random spot to keep the field alive
-const PATTERNS = [
-  [[0, 1], [1, 2], [2, 0], [2, 1], [2, 2]],                                     // glider
-  [[0, 1], [0, 2], [1, 0], [1, 1], [2, 1]],                                     // r-pentomino
-  [[0, 1], [0, 4], [1, 0], [2, 0], [2, 4], [3, 0], [3, 1], [3, 2], [3, 3]],     // lightweight spaceship
-  [[0, 1], [1, 3], [2, 0], [2, 1], [2, 4], [2, 5], [2, 6]],                     // acorn
-];
-function stamp(g, w, h) {
-  const x = Math.floor(Math.random() * (w - 10)) + 5, y = Math.floor(Math.random() * (h - 10)) + 5;
-  const p = PATTERNS[Math.floor(Math.random() * PATTERNS.length)];
-  for (const [dy, dx] of p) g[((y + dy + h) % h) * w + ((x + dx + w) % w)] = 1;
-}
-
-// ── the field ────────────────────────────────────────────────────────────────────────────────────────────────────
-// Lift the page above the canvas once. NOTE: nav is deliberately EXCLUDED — it carries its own
-// position:sticky;z-index:60, and a body>nav rule here (specificity 0,0,2) would beat it and kill sticky.
-const style = document.createElement("style");
-style.textContent = `#life-field{position:fixed;inset:0;z-index:0;pointer-events:none}
-body>main,body>header,body>footer{position:relative;z-index:1}`;
-document.head.appendChild(style);
-
-const canvas = document.createElement("canvas");
-canvas.id = "life-field";
-canvas.setAttribute("aria-hidden", "true");
-document.body.prepend(canvas);
-const ctx = canvas.getContext("2d");
-const hero = document.getElementById("hero"); // landing only — the field starts below it
-
-let W = 0, H = 0, cols = 0, rows = 0, cur, next, gen = 0, last = 0;
-
-function size() {
-  const dpr = window.devicePixelRatio || 1;
-  W = window.innerWidth; H = window.innerHeight;
-  canvas.width = W * dpr; canvas.height = H * dpr;
-  canvas.style.width = W + "px"; canvas.style.height = H + "px";
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  const c = Math.ceil(W / CS), r = Math.ceil(H / CS);
-  const g = alloc(c, r);
-  if (cur) { // preserve the overlapping region across resizes instead of restarting the world
-    for (let y = 0; y < Math.min(rows, r); y++) for (let x = 0; x < Math.min(cols, c); x++) g[y * c + x] = cur[y * cols + x];
-  } else seed(g, DENSITY);
-  cols = c; rows = r; cur = g; next = alloc(c, r);
-}
-
-// age → colour: newborn cells are brighter and more present, old colonies fade into the paper
-function fill(age, ramp) {
-  const t = Math.min(age, 40) / 40;
-  return `rgba(26,${Math.round(160 - t * 56)},${Math.round(92 - t * 32)},${((0.5 - t * 0.35) * ALPHA * ramp).toFixed(3)})`;
-}
-
-function draw() {
-  ctx.clearRect(0, 0, W, H);
-  // clip above the hero's live bottom edge (landing); elsewhere clipY is 0 and the whole viewport is field
-  const clipY = hero ? Math.max(0, hero.getBoundingClientRect().bottom) : 0;
-  const firstRow = Math.floor(clipY / CS);
-  for (let y = firstRow; y < rows; y++) {
-    const py = y * CS;
-    const ramp = FADE_PX ? Math.min(1, Math.max(0, (py - clipY) / FADE_PX)) : 1;
-    if (ramp <= 0) continue;
-    for (let x = 0; x < cols; x++) {
-      const age = cur[y * cols + x];
-      if (age > 0) { ctx.fillStyle = fill(age, ramp); ctx.fillRect(x * CS, py, CS - 1, CS - 1); }
+  resize(w, h) {
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const cols = Math.max(4, Math.floor(w / this.pitch)), rows = Math.max(3, Math.floor(h / this.pitch));
+    this.cv.width = Math.round(w * dpr); this.cv.height = Math.round(h * dpr);
+    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    this.w = w; this.h = h;
+    this.ox = Math.floor((w - cols * this.pitch) / 2); this.oy = Math.floor((h - rows * this.pitch) / 2) + 1;
+    if (cols !== this.cols || rows !== this.rows) {
+      const n = cols * rows, old = this.cur, oc = this.cols, or = this.rows;
+      this.cols = cols; this.rows = rows; this.n = n;
+      this.cur = new Uint8Array(n); this.nxt = new Uint8Array(n); this.age = new Uint8Array(n); this.ci = new Uint8Array(n);
+      this.dirty = new Int32Array(n); this.nd = 0;
+      this.L = new Int32Array(cols); this.R = new Int32Array(cols);
+      for (let x = 0; x < cols; x++) { this.L[x] = (x - 1 + cols) % cols; this.R[x] = (x + 1) % cols; }
+      if (old) for (let y = 0; y < Math.min(or, rows); y++) for (let x = 0; x < Math.min(oc, cols); x++) this.cur[y * cols + x] = old[y * oc + x];
     }
   }
-}
-
-let lastClip = -1;
-let running = false;
-// A field nobody can see should not cost anything. The loop stops when the tab is hidden and restarts on
-// return — the same restraint the rest of the site applies to network requests, applied to the CPU.
-function start() { if (!running && !reduced) { running = true; last = performance.now(); requestAnimationFrame(frame); } }
-document.addEventListener("visibilitychange", () => { if (document.hidden) running = false; else start(); });
-
-function frame(t) {
-  if (document.hidden) { running = false; return; }   // let the loop die rather than burn a background tab
-  requestAnimationFrame(frame);
-  // The clip edge follows the hero at DISPLAY rate, not at generation rate — pinning it to the 150ms
-  // tick made the field's top edge stair-step down the page while scrolling (§11 frame-level smoothness).
-  if (hero) {
-    const cy = Math.max(0, hero.getBoundingClientRect().bottom);
-    if (Math.abs(cy - lastClip) > 0.5) { lastClip = cy; draw(); }
+  seed(bytes) {
+    const { cols, rows } = this, tx = Math.ceil(cols / 16);
+    for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) {
+      const b = (y & 15) * 16 + (x & 15), k = (y >> 4) * tx + (x >> 4), w = Math.imul(k, 2654435761) >>> 0;
+      const bit = ((bytes[b >> 3] >> (7 - (b & 7))) & 1) ^ ((w >>> (b & 31)) & 1);
+      const i = y * cols + x; this.cur[i] = bit; this.age[i] = bit; this.ci[i] = bit ? 1 : 0;
+    }
+    this.gen = 0; this.hist = []; this.pop = this.count(); this.full = true;
   }
-  if (t - last < TICK) return;
-  last = t; gen++;
-  if (gen % STAMP_EVERY === 0) stamp(cur, cols, rows);
-  step(cur, next, cols, rows);
-  [cur, next] = [next, cur];
-  draw();
+  count() { let p = 0; for (let i = 0; i < this.n; i++) p += this.cur[i]; return p; }
+  step() {
+    const { cols, rows, cur, nxt, age, ci, L, R, dirty } = this;
+    let nd = 0, pop = 0;
+    for (let y = 0; y < rows; y++) {
+      const up = ((y - 1 + rows) % rows) * cols, mid = y * cols, dn = ((y + 1) % rows) * cols;
+      for (let x = 0; x < cols; x++) {
+        const l = L[x], r = R[x];
+        const n = cur[up + l] + cur[up + x] + cur[up + r] + cur[mid + l] + cur[mid + r] + cur[dn + l] + cur[dn + x] + cur[dn + r];
+        const i = mid + x, alive = cur[i] ? (n === 2 || n === 3) : n === 3;
+        nxt[i] = alive ? 1 : 0;
+        let a = alive ? (cur[i] ? Math.min(255, age[i] + 1) : 1) : 0;
+        age[i] = a; pop += alive ? 1 : 0;
+        const c = a === 0 ? 0 : a === 1 ? 1 : a < 8 ? 2 : 3;
+        if (c !== ci[i]) { ci[i] = c; dirty[nd++] = i; }
+      }
+    }
+    this.cur = nxt; this.nxt = cur; this.nd = nd; this.pop = pop; this.gen++;
+    this.hist.push(pop); if (this.hist.length > 65) this.hist.shift();
+  }
+  stagnant() {
+    if (this.pop === 0) return true;
+    if (this.hist.length < 65) return false;
+    return Math.abs(this.hist[64] - this.hist[0]) < Math.max(1, this.hist[64] * 0.01);
+  }
+  draw() {
+    const { ctx, pitch: p, size: s, ox, oy, cols, ci, col } = this;
+    if (this.full) {
+      ctx.fillStyle = col[0]; ctx.fillRect(0, 0, this.w, this.h);
+      for (let c = 1; c < 4; c++) { ctx.fillStyle = col[c]; for (let i = 0; i < this.n; i++) if (ci[i] === c) ctx.fillRect(ox + (i % cols) * p, oy + ((i / cols) | 0) * p, s, s); }
+      this.full = false; this.nd = 0; return;
+    }
+    const { dirty, nd } = this;
+    for (let c = 0; c < 4; c++) {
+      ctx.fillStyle = col[c];
+      for (let k = 0; k < nd; k++) { const i = dirty[k]; if (ci[i] === c) ctx.fillRect(ox + (i % cols) * p, oy + ((i / cols) | 0) * p, s, s); }
+    }
+    this.nd = 0;
+  }
+  /** A glider at (x, y), travelling down and to the right. */
+  glider(x, y) {
+    const { cols, rows } = this;
+    for (const [dy, dx] of [[0, 1], [1, 2], [2, 0], [2, 1], [2, 2]]) {
+      const i = ((y + dy + rows) % rows) * cols + ((x + dx + cols) % cols);
+      this.cur[i] = 1; this.age[i] = 1; if (this.ci[i] !== 1) { this.ci[i] = 1; this.dirty[this.nd++] = i; }
+    }
+    this.pop = this.count();
+  }
 }
 
-size();
-let rsz; window.addEventListener("resize", () => {
-  clearTimeout(rsz);
-  // size() reassigns canvas.width, which CLEARS the bitmap. Without a redraw the reduced-motion path
-  // (one static generation) loses the field entirely on any resize or phone rotation.
-  rsz = setTimeout(() => { size(); draw(); }, 120);
-});
-// The hero's spark easter egg releases real gliders into this field (CustomEvent from index.html).
-// The doctrine, playable: one click adds five cells under three rules, and something alive comes of it.
-addEventListener("ainra:glider", (e) => {
-  if (reduced || !cur) return;
-  const gx = Math.max(2, Math.min(cols - 8, Math.floor((e.detail?.x ?? W / 2) / CS)));
-  const clipY = hero ? Math.max(0, hero.getBoundingClientRect().bottom) : 0;
-  const gy = Math.max(1, Math.floor(clipY / CS) + 2);
-  for (const [dy, dx] of PATTERNS[0]) cur[((gy + dy) % rows) * cols + ((gx + dx) % cols)] = 1;
-});
-if (reduced) draw();               // one seeded generation, drawn once — texture without motion
-else start();
+const pad4 = (n) => String(n).padStart(4, "0");
+
+async function seedsFor(el) {
+  const spec = el.dataset.seed || "cycle";
+  if (spec === "path") {
+    const p = location.pathname;
+    let bytes;
+    try { bytes = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(p))); }
+    catch { bytes = new Uint8Array(32); for (let i = 0; i < p.length; i++) bytes[i % 32] = (bytes[i % 32] * 31 + p.charCodeAt(i)) & 255; }
+    return [{ label: `sha256("${p}")`, value: [...bytes].map((b) => b.toString(16).padStart(2, "0")).join(""), bytes }];
+  }
+  const { loadRecord, seedCycle } = await import("./record.mjs");
+  const { net } = await loadRecord();
+  const all = seedCycle(net);
+  if (spec === "cycle") return all;
+  const [kind, arg] = spec.split(":");
+  const pick = all.filter((s) => (kind === "sha" ? s.label === `sha256(${arg})` : s.label.includes(arg)));
+  return pick.length ? pick.concat(all.filter((s) => !pick.includes(s))) : all;
+}
+
+async function boot(el) {
+  const host = el.querySelector(".life__field") || el;
+  const canvas = document.createElement("canvas");
+  canvas.setAttribute("aria-hidden", "true");
+  host.prepend(canvas);
+  const f = new Field(canvas, { pitch: +el.dataset.pitch || 8, size: (+el.dataset.pitch || 8) - 1 });
+  const scope = el.closest("figure") || el;   // a readout may sit beside the field, inside the same figure
+  const out = { gen: scope.querySelector("[data-life-gen]"), pop: scope.querySelector("[data-life-pop]"), seed: scope.querySelector("[data-life-seed]"), state: scope.querySelector("[data-life-state]") };
+  const still = +el.dataset.still || 64;
+  let seeds;
+  try { seeds = await seedsFor(el); } catch { seeds = []; }
+  if (!seeds.length) { el.classList.add("is-unseeded"); return; }   // no record, no field: never a random one
+  let si = 0, lastText = 0, mine = 0;
+  const size = () => { const r = host.getBoundingClientRect(); f.resize(Math.max(8, Math.round(r.width)), Math.max(8, Math.round(r.height))); };
+  const reseed = (i) => {
+    si = i % seeds.length; f.seed(seeds[si].bytes);
+    if (out.seed) out.seed.textContent = seeds[si].label + " · " + short(seeds[si].value || "");
+  };
+  const text = (paused) => {
+    if (out.gen) out.gen.textContent = pad4(f.gen);
+    if (out.pop) out.pop.textContent = pad4(f.pop);
+    if (out.state) out.state.textContent = paused ? "PAUSED" : mine ? `+${mine} GLIDER${mine > 1 ? "S" : ""} (YOURS)` : "RUNNING";
+  };
+  size(); reseed(0);
+  const stillFrame = () => { reseed(si); for (let g = 0; g < still; g++) f.step(); f.full = true; f.draw(); text(true); };
+  register({
+    el, name: "life:" + (el.dataset.name || el.dataset.seed || "field"), hz: +el.dataset.hz || 5,
+    step(now) {
+      f.step();
+      if (f.gen >= 1024 || f.stagnant()) { reseed(si + 1); mine = 0; }
+      if (now - lastText > 190) { lastText = now; text(false); }
+    },
+    draw(isStill) { if (isStill) stillFrame(); else f.draw(); },
+  });
+  if (motionOn()) { f.full = true; f.draw(); text(false); }
+  // OD-M3: add a glider — by pointer on the field, or by the visible button (keyboard)
+  const add = (x, y) => { f.glider(x, y); mine++; if (!motionOn()) { f.draw(); } text(!motionOn()); };
+  canvas.addEventListener("click", (e) => { const r = canvas.getBoundingClientRect(); add(Math.floor((e.clientX - r.left - f.ox) / f.pitch), Math.floor((e.clientY - r.top - f.oy) / f.pitch)); });
+  el.querySelector("[data-life-glider]")?.addEventListener("click", () => add(Math.floor(f.cols * 0.2 + Math.random() * f.cols * 0.6) | 0, 2));
+  let rz; new ResizeObserver(() => { clearTimeout(rz); rz = setTimeout(() => { size(); f.full = true; f.draw(); }, 150); }).observe(host);
+}
+const short = (s) => (s.length > 14 ? `${s.slice(0, 8)}…${s.slice(-4)}` : s);  // same form as record-view short(s, 8, 4)
+
+document.querySelectorAll("[data-life]").forEach((el) => { boot(el).catch(() => el.classList.add("is-unseeded")); });

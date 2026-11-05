@@ -20,461 +20,93 @@
 <meta name="twitter:title" content="Foundation — AINRA">
 <meta name="twitter:description" content="Exactly what exists today — and what does not yet. Operator-run genesis root; public ceremony pending.">
 <meta name="twitter:image" content="https://ainra.org/og-cover.png">
-<noscript><style>.rv,.t-line,.verify-line{opacity:1!important;transform:none!important}.sec-head .hero-h{font-family:var(--display);font-size:clamp(1.9rem,4vw,2.75rem);font-weight:730;line-height:1.1;margin-top:12px;letter-spacing:-.03em}
-
-</style></noscript><meta name="description" content="Prove your agent, check theirs — and here is exactly what exists behind that today: the public Standard v5.1, a reference CLI, ten signed releases, and zero sealed logs until the first public ceremony.">
-<link rel="preload" href="fonts/bricolage-grotesque-latin-wght.woff2" as="font" type="font/woff2" crossorigin>
+<meta name="description" content="Prove your agent, check theirs — and here is exactly what exists behind that today: the public Standard v5.1, a reference CLI, ten signed releases, and zero sealed logs until the first public ceremony.">
 <link rel="stylesheet" href="fonts/faces.css">
+<link rel="stylesheet" href="css/ainra.css">
+<link rel="stylesheet" href="css/living.css">
+<link rel="stylesheet" href="css/g-shell.css">
+
 <style>
+/* AINRA foundation — Spec Sheet concept (BRIEF-v2 §3.6, Foundation). Layout unique to this page only; tokens and
+   shared components (chapter rail, register, state chips, spec row, index rows, steps rail, code panel) come from
+   css/ainra.css and are never redefined here. */
+.f-layout{display:grid;grid-template-columns:220px minmax(0,1fr);column-gap:var(--s7);align-items:start}
+.f-layout > .chapter-rail{align-self:start;margin-top:var(--section)}
+.f-body{min-width:0}
+@media (max-width:1023px){.f-layout{grid-template-columns:minmax(0,1fr)}.f-layout > .chapter-rail{margin-top:var(--s4)}}
 
-:root{
-  --ink:#0B1220; --ink-2:#111B30; --paper:#F5F6F3; --card:#FFFFFF;
-  --green:#1A6B4E; --green-br:#57C08F; --muted:#5A6372; --line:#E2E5DF;
-  --mono:'B612 Mono',ui-monospace,'SFMono-Regular',Menlo,Consolas,monospace;
-  --body:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
-  --display:'Bricolage Grotesque',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
-}
-*{margin:0;padding:0;box-sizing:border-box}
-@media(prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
-/* §14 — the two signals beyond reduced-motion (the nav is solid now, so there is no translucent surface left): give a
-   high-contrast reader darker text, and no moving field behind the words. */
-@media(prefers-reduced-transparency:reduce){#life-field{display:none}}
-@media(prefers-contrast:more){:root{--muted:#3A4250}#life-field{display:none}:focus-visible{outline-width:3px}}
-body{font-family:var(--body);background:var(--paper);color:var(--ink);font-size:1rem;line-height:1.6;-webkit-font-smoothing:antialiased}
-::selection{background:var(--green);color:#fff}
-a{color:inherit;text-decoration:none}
-.wrap{max-width:1080px;margin:0 auto;padding:0 24px}
-.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--green)}
-h1,h2,h3{font-family:var(--display);letter-spacing:-.02em}
-button{font-family:var(--body);cursor:pointer;border:none;background:none;color:inherit}
-:focus-visible{outline:2px solid var(--green);outline-offset:3px;border-radius:4px}
-.skip{position:absolute;left:-9999px;top:0;z-index:200;background:var(--ink);color:#fff;padding:10px 16px;border-radius:0 0 8px 0;font-weight:600}
-.skip:focus{left:0}
+.f-hero .split{margin-top:var(--s5);row-gap:var(--s5)}
+.f-motto{font-family:var(--mono);font-size:var(--fs-data);line-height:1.55;letter-spacing:.04em;color:var(--ink);max-width:46ch}
+.f-hero .lede{margin-top:var(--s4)}
+.f-register{margin-top:var(--s8)}
+.register .state-chip{text-transform:none} /* the live states are already upper case; this keeps "v5.1" and "v0.3.3" as written */
+.f-body code{font-size:.86em}
+.f-live{margin-top:var(--s6)}
+.f-live__note{margin-top:var(--s3);color:var(--ink-soft);max-width:var(--measure)}
+.f-live__note b{color:var(--ink);font-weight:600}
 
-.brand{display:flex;align-items:center;gap:12px;min-width:0}
-.brand .sigil{width:48px;height:48px;flex:none}
-.brand .sigil svg{display:block;width:100%;height:100%}
-.brand .wm{font-family:var(--display);font-weight:800;font-size:21px;letter-spacing:.02em}
-.brand .mean{border-left:1px solid var(--line);padding-left:12px;font-family:var(--mono);font-size:8.5px;line-height:1.5;letter-spacing:.16em;color:var(--muted);text-transform:uppercase;white-space:nowrap}
-@media(max-width:560px){.brand .mean{display:none}}
+.f-cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--gap)}
+.f-cols > div{border-top:1px solid var(--line);padding-top:var(--s4)}
+.f-cols h3{margin-top:var(--s3)}
+.f-cols p{margin-top:var(--s2);font-size:var(--fs-small);color:var(--ink-soft)}
+@media (max-width:900px){.f-cols{grid-template-columns:1fr}}
+.f-close{margin-top:var(--s6);max-width:var(--measure);color:var(--ink-soft)}
+.f-close b{color:var(--ink);font-weight:600}
 
-nav{position:sticky;top:0;z-index:60;background:var(--paper);border-bottom:1px solid var(--line)}
-.nav-in{display:flex;align-items:center;justify-content:space-between;height:70px;gap:16px}
-.nav-links{display:flex;gap:24px;font-size:14px;font-weight:500;color:var(--muted)}
-.nav-links a:hover{color:var(--ink)}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:99px;font-weight:600;font-size:14.5px;padding:10px 20px;border:1px solid transparent;transition:transform .15s ease,background .15s ease,border-color .15s ease}
-.btn:active{transform:scale(.98)}
-.btn-ink{background:var(--ink);color:#fff}
-.btn-ink:hover{background:#1d2a44}
-.btn-ghost{border-color:var(--line);background:var(--card);color:var(--ink)}
-.btn-ghost:hover{border-color:var(--ink)}
-.burger{display:none;width:40px;height:40px;border:1px solid var(--line);border-radius:10px;background:var(--card);place-items:center;font-family:var(--mono);font-size:15px}
-.burger{transition:background .15s,color .15s,transform .1s ease-out}
-.burger:active{transform:scale(.96)}
-.burger[aria-expanded="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
-@media(max-width:900px){
-  .nav-links{display:none;position:absolute;top:70px;left:0;right:0;background:var(--paper);border-bottom:1px solid var(--line);flex-direction:column;gap:0;padding:8px 24px}
-  .nav-links a{padding:12px 0;border-top:1px solid var(--line)}
-  .nav-links.open{display:flex}
-  .burger{display:grid}
-}
+.f-genesis .index-row__detail{grid-column:8 / 13;display:grid;gap:var(--s2);align-content:start;justify-items:start}
+@media (max-width:900px){.f-genesis .index-row__detail{grid-column:1 / -1}}
+.f-fine{font-family:var(--mono);font-size:var(--fs-earmark);letter-spacing:.04em;line-height:1.5;color:var(--muted)}
+.f-note{margin-top:var(--s5);max-width:var(--measure);font-size:var(--fs-small);color:var(--ink);box-shadow:inset 2px 0 0 var(--amber);padding:var(--s2) var(--s3)}
+.f-note b{font-weight:600}
 
-.hero{padding:70px 0 60px;position:relative;overflow:hidden}
-.hero-grid{display:grid;grid-template-columns:1.04fr .96fr;gap:52px;align-items:center}
-@media(max-width:960px){.hero-grid{grid-template-columns:1fr;gap:48px}.hero{padding:48px 0 44px}}
-.pill{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;letter-spacing:.06em;padding:7px 14px;border:1px solid var(--line);border-radius:99px;background:var(--card);color:var(--muted);margin-bottom:26px;transition:border-color .15s}
-.pill:hover{border-color:var(--green)}
-.pill .dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2.4s infinite}
-.pill .arr{color:var(--green)}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
-.hero h1{font-size:clamp(2.7rem,6.2vw,4.4rem);font-weight:780;line-height:1;letter-spacing:-.038em}
-.hero h1 .u{box-shadow:inset 0 -0.13em 0 rgba(26,107,78,.26)}
-.hero .sub{margin-top:22px;font-size:17.5px;color:var(--muted);max-width:36em;line-height:1.65}
-.cta-row{display:flex;gap:12px;margin-top:28px;flex-wrap:wrap}
+.f-road__cta{margin-top:var(--s6)}
 
-/* passport — right of hero, full data */
-.pass-wrap{perspective:1600px;display:flex;justify-content:center}
-.passport{width:min(560px,100%);background:var(--card);border:1px solid var(--line);border-radius:12px;
-  box-shadow:0 1px 2px rgba(11,18,32,.05),0 22px 52px -24px rgba(11,18,32,.22);
-  position:relative;overflow:hidden;transition:box-shadow .25s ease;will-change:transform}
-.passport::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.16;
-  background:repeating-radial-gradient(circle at 118% -18%,rgba(26,107,78,.05) 0 2px,transparent 2px 10px),
-             repeating-radial-gradient(circle at -18% 118%,rgba(26,107,78,.05) 0 2px,transparent 2px 10px)}
-.pass-wm{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;
-  font-family:var(--display);font-weight:800;font-size:120px;letter-spacing:.06em;
-  color:transparent;-webkit-text-stroke:1px rgba(11,18,32,.045);transform:rotate(-16deg)}
-.pass-head{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:13px 18px;border-bottom:1px solid var(--line);font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--muted);position:relative}
-.pass-head b{color:var(--ink);font-weight:700;display:flex;align-items:center;gap:10px}
-.pass-head .sigil{width:26px;height:26px;flex:none}
-.pass-head .sigil svg{display:block;width:100%;height:100%}
-.pass-body{display:grid;grid-template-columns:104px 1fr;gap:16px;padding:16px 18px 10px;position:relative}
-.portrait{width:104px;height:104px;border:1px solid var(--line);border-radius:8px;background:var(--paper);display:grid;grid-template-columns:repeat(7,1fr);grid-template-rows:repeat(7,1fr);gap:2px;padding:8px;position:relative}
-.portrait i{border-radius:1.5px}
-.portrait i.on{background:var(--ink)}
-.portrait i.gn{background:var(--green)}
-.portrait::after{content:"AGENT PORTRAIT";position:absolute;left:0;right:0;bottom:-14px;text-align:center;font-family:var(--mono);font-size:7px;letter-spacing:.18em;color:var(--muted)}
-.fields{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px;align-content:start}
-.f label{display:block;font-family:var(--mono);font-size:8.5px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin-bottom:2px}
-.f div{font-size:13px;font-weight:600;letter-spacing:-.01em}
-.f .ok{color:var(--green);font-family:var(--mono);font-size:10.5px}
-.tier-chip{display:inline-block;font-family:var(--mono);font-size:10px;font-weight:700;color:var(--green);border:1.5px solid var(--green);border-radius:5px;padding:2px 7px;letter-spacing:.06em}
-.datarows{margin:8px 18px 0;border-top:1px dashed var(--line);padding-top:10px;display:grid;gap:6px}
-.dr{display:grid;grid-template-columns:78px 1fr;gap:10px;font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;align-items:baseline}
-.dr b{color:var(--muted);font-weight:400;letter-spacing:.12em;font-size:8.5px}
-.dr span{color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.dr span i{font-style:normal;color:var(--green)}
-.authority{padding:10px 18px 12px;position:relative}
-.authority label{display:block;font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase;margin-bottom:3px}
-.authority div{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;color:var(--ink);font-weight:700}
-.mrz-zone{margin:0 12px 12px;background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:11px 13px;position:relative}
-.mrz{font-family:var(--mono);font-size:clamp(8.5px,1.9vw,11px);letter-spacing:.06em;line-height:1.75;color:var(--ink);white-space:pre;overflow:hidden}
-.mrz .caret{display:inline-block;width:.55em;height:1em;background:var(--green);vertical-align:-2px;animation:pulse 1s infinite}
-.verify-line{margin-top:9px;padding-top:9px;border-top:1px dashed var(--line);display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--green);opacity:0;transform:translateY(3px)}
-.verify-line.in{opacity:1;transform:none;transition:opacity .45s ease,transform .45s ease}
-.verify-line i{width:6px;height:6px;border-radius:50%;background:var(--green);flex:none}
-.verify-line span{color:var(--muted)}
-@media(max-width:480px){.pass-body{grid-template-columns:88px 1fr;gap:12px}.portrait{width:88px;height:88px}.pass-wm{font-size:88px}.dr{grid-template-columns:66px 1fr}}
+.seats .index-row{padding-left:var(--s4);padding-right:var(--s4)}
+.seats .index-row__main{grid-column:1 / -1}
+.seat-hint{margin-top:var(--s4);font-family:var(--mono);font-size:var(--fs-earmark);letter-spacing:.06em;line-height:1.6;color:var(--muted)}
+.seat-hint.warn{color:var(--ink);box-shadow:inset 2px 0 0 var(--amber);padding-left:var(--s2)}
+.f-go{margin-top:var(--s4);display:flex;flex-wrap:wrap;gap:var(--s3) var(--s5);align-items:center}
+.f-go__note{font-size:var(--fs-small);color:var(--ink-soft);max-width:52ch}
+.f-alt{display:inline-flex;align-items:center;min-height:44px;margin-top:var(--s4);font-family:var(--mono);font-size:var(--fs-earmark);letter-spacing:.08em;text-decoration:underline;text-underline-offset:3px}
+.f-alt:hover{color:var(--green-deep)}
 
-.interop{border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:var(--card);padding:24px 0}
-.interop .wrap{display:flex;flex-direction:column;gap:14px;align-items:center}
-.interop .row{display:flex;align-items:center;gap:12px 32px;flex-wrap:wrap;justify-content:center}
-.interop span{font-family:var(--mono);font-size:12px;letter-spacing:.08em;color:var(--muted)}
-.interop .lead{color:var(--ink);font-weight:700;font-size:10.5px;text-transform:uppercase;letter-spacing:.16em}
+.f-ri .split{row-gap:var(--s5)}
+.f-ri .code-panel__cap{padding-right:0}
+.f-ri .code-panel p{margin-top:var(--s3);font-family:var(--mono);font-size:12px;line-height:1.55;color:var(--code-muted)}
+.f-ri .code-panel code{color:var(--code-text)}
+.f-ri__how p{margin-top:var(--s2);max-width:var(--measure);color:var(--ink-soft)}
+.f-hero .split > .split__l{grid-column:1 / 7}.f-hero .split > .split__r{grid-column:7 / 13}
+@media (max-width:900px){.f-hero .split > .split__l,.f-hero .split > .split__r{grid-column:1 / -1}}
+.glyph-key{margin-top:var(--s6);border-top:1px solid var(--rule-strong);padding-top:var(--s3);max-width:520px}
+.glyph-key ul{list-style:none;display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;margin-top:var(--s3)}
+.glyph-key li{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:11px;letter-spacing:.05em;color:var(--ink)}
+.glyph-key .src{margin-top:var(--s3)}
+.register__row > h3 .glyph{margin-right:2px}
+@media (max-width:600px){.glyph-key ul{grid-template-columns:1fr}}
+</style><script>/* reveal only when motion is on (the same decision as js/motion.mjs), set before first paint */
+try{var m=localStorage.getItem("ainra-motion");if(m!=="off"&&(m==="on"||!matchMedia("(prefers-reduced-motion: reduce)").matches))document.documentElement.classList.add("rv")}catch(e){if(!matchMedia("(prefers-reduced-motion: reduce)").matches)document.documentElement.classList.add("rv")}
+/* fail safe: if js/reveal.mjs never starts, show everything rather than leave the page hidden */
+setTimeout(function(){var h=document.documentElement;if(!h.dataset.rvReady)h.classList.remove("rv")},2500)</script>
+</head><body class="gi-page" id="top">
+<div class="g-intro" id="gIntro" aria-hidden="true"><div class="g-intro__panel"><svg class="g-intro__mark" viewBox="0 0 112 112">
+      <path class="gi-body" pathLength="1" d="M 98.4 33.5 A 48 48 0 1 1 78.5 13.6" fill="none" stroke="#0B1220" stroke-width="3" stroke-linecap="round"/>
+      <path d="M 95.8 29.2 L 98.7 27.2 M 91.7 23.9 L 94.3 21.5 M 86.9 19.2 L 89.1 16.6" stroke="#0B1220" stroke-width="1" opacity=".5"/>
+      <path d="M 80.6 11.5 L 83.4 18.5 L 76.4 15.7 Z" fill="#0B1220"/>
+      <circle cx="79.6" cy="14.2" r="1.1" fill="#F5F6F3"/>
+      <circle cx="56" cy="56" r="36" stroke="#0B1220" stroke-width="1.2" fill="none"/>
+      <circle cx="56" cy="56" r="26" stroke="#0B1220" stroke-width="1.6" fill="none"/>
+      <ellipse cx="56" cy="56" rx="11" ry="26" stroke="#0B1220" stroke-width="1" fill="none"/>
+      <line x1="30" y1="56" x2="82" y2="56" stroke="#0B1220" stroke-width="1.1"/>
+      <path d="M33.5 43 h45 M33.5 69 h45" stroke="#0B1220" stroke-width="0.8" opacity="0.6"/>
+      <path d="M56 30 a26 26 0 0 1 26 26" stroke="#1A6B4E" stroke-width="3" stroke-linecap="round" fill="none"/>
+      <circle cx="56" cy="56" r="2.4" fill="#0B1220"/>
+    </svg></div></div>
 
-.stats{padding:72px 0 8px}
-.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:14px;overflow:hidden}
-.stat{background:var(--card);padding:26px 22px}
-.stat .n{font-family:var(--display);font-size:clamp(1.7rem,3.4vw,2.4rem);font-weight:750;letter-spacing:-.03em}
-.stat .n em{font-style:normal;color:var(--green)}
-.stat p{font-size:13px;color:var(--muted);margin-top:6px;line-height:1.5}
-.stat .src{font-family:var(--mono);font-size:9.5px;color:var(--muted);opacity:.7;letter-spacing:.06em;margin-top:8px;display:block}
-@media(max-width:820px){.stat-grid{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:480px){.stat-grid{grid-template-columns:1fr}}
-
-section{padding:92px 0}
-.sec-head{max-width:680px;margin-bottom:44px}
-.sec-head h2{font-size:clamp(1.9rem,4vw,2.75rem);font-weight:730;line-height:1.1;margin-top:12px;letter-spacing:-.03em}
-.sec-head .lede{margin-top:14px;color:var(--muted);font-size:16.5px}
-
-/* the orbit panel — ported from the landing: the drawn architecture lives beside its argument */
-.orbit-panel{background:var(--ink);border-radius:16px;padding:30px 30px 34px;margin:22px 0 8px;color:#E7EAF0}
-.orbit-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:48px;align-items:center;position:relative;z-index:1}
-.orbit{width:100%;max-width:560px;margin:0 auto}
-.orbit svg{display:block;width:100%;height:auto}
-@media(max-width:1020px){.orbit-grid{grid-template-columns:1fr}}
-/* the legend as a CHAIN, not boxes: glyph rows on a pixel-dashed rail — everything chains up to the root */
-.legend{display:grid;gap:0;position:relative}
-.legend::before{content:"";position:absolute;left:38px;top:26px;bottom:26px;width:2px;
-  background-image:linear-gradient(rgba(87,192,143,.45) 55%,transparent 55%);background-size:2px 9px}
-.leg2{display:grid;grid-template-columns:78px 1fr;gap:16px;align-items:center;padding:13px 0;position:relative}
-.leg2+.leg2{border-top:1px dashed rgba(255,255,255,.09)}
-.l-ico{display:flex;align-items:center;justify-content:center;background:var(--ink);padding:7px 0;position:relative}
-.leg2 b{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;color:var(--green-br);display:block;margin-bottom:5px}
-.leg2 p{font-size:13.5px;color:#B9C1CF;line-height:1.55}
-.leg2.core b{color:#fff}
-@media(max-width:900px){.leg2{grid-template-columns:64px 1fr}.legend::before{left:31px}}
-.l-ico{background:var(--ink)}
-.does{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
-@media(max-width:820px){.does{grid-template-columns:1fr}}
-.do-cell{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:28px}
-.do-cell .k{font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--green);text-transform:uppercase;display:block;margin-bottom:12px}
-.do-cell h3{font-size:18px;font-weight:700;margin-bottom:8px;letter-spacing:-.015em}
-.do-cell p{font-size:14.5px;color:var(--muted)}
-.do-cell .not{margin-top:14px;font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--muted)}
-.do-cell .not b{color:var(--green)}
-
-.dark{background:var(--ink);color:#E7EAF0;position:relative}
-.dark::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.13;
-  background:repeating-radial-gradient(circle at 112% -22%,rgba(87,192,143,.09) 0 2px,transparent 2px 11px)}
-.dark .eyebrow{color:var(--green-br)}
-.dark .sec-head .lede{color:#98A1B3}
-
-.orbit-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:48px;align-items:center;position:relative;z-index:1}
-@media(max-width:900px){.orbit-grid{grid-template-columns:1fr}}
-.orbit{width:100%;max-width:560px;margin:0 auto}
-.orbit svg{display:block;width:100%;height:auto}
-.legend{display:grid;gap:14px}
-.leg{border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:16px 18px;background:rgba(255,255,255,.03)}
-.leg b{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;color:var(--green-br);display:block;margin-bottom:5px}
-.leg p{font-size:13.5px;color:#B9C1CF;line-height:1.55}
-.leg.core{border-color:rgba(87,192,143,.5);background:rgba(87,192,143,.06)}
-.leg.core b{color:#fff}
-
-.defs{display:grid;grid-template-columns:1fr 1fr;gap:0 48px}
-@media(max-width:820px){.defs{grid-template-columns:1fr}}
-.def{display:flex;gap:14px;padding:16px 0;border-bottom:1px solid var(--line)}
-.mark{display:inline-grid;place-items:center;width:17px;height:17px;border-radius:50%;background:var(--green);color:#fff;font-family:var(--mono);font-size:9.5px;font-weight:700;flex:none;margin-top:2px}
-.def .body b{font-family:var(--mono);font-size:11px;letter-spacing:.12em;color:var(--ink);display:block;margin-bottom:3px}
-.def .body p{font-size:14px;color:var(--muted);line-height:1.55}
-.def .body p em{font-style:normal;color:var(--green);font-family:var(--mono);font-size:11px}
-
-.rail{display:flex;gap:8px;margin-top:4px;flex-wrap:wrap}
-.rail button{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.06em;border:1px solid var(--line);border-radius:8px;padding:9px 14px;color:var(--muted);transition:all .15s;background:var(--card)}
-.rail button:hover{border-color:var(--green);color:var(--green)}
-.rail button[aria-pressed="true"]{background:var(--green);border-color:var(--green);color:#fff}
-.rail-info{margin-top:18px;border-left:2px solid var(--green);padding:4px 0 4px 16px;max-width:680px}
-.rail-info b{font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--green)}
-.rail-info p{font-size:14.5px;color:var(--muted);margin-top:4px}
-.mini-code{margin-top:22px;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:12px;font-family:var(--mono);font-size:11px;line-height:1.7;color:var(--ink);overflow-x:auto;white-space:pre;max-width:680px}
-.mini-code .g{color:var(--green)}.mini-code .m{color:var(--muted)}
-
-.split{display:grid;grid-template-columns:1fr auto 1fr;gap:20px;align-items:stretch;max-width:900px;margin:0 auto 52px;position:relative;z-index:1}
-.split .fx{display:grid;place-items:center;font-family:var(--mono);color:var(--green-br);font-size:22px}
-.half{border:1px solid rgba(255,255,255,.14);border-radius:14px;padding:22px 24px;background:rgba(255,255,255,.03)}
-.half b{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--green-br);display:block;margin-bottom:8px}
-.half p{font-size:13.5px;color:#B9C1CF;line-height:1.6}
-.half.you{border-color:rgba(87,192,143,.45)}
-@media(max-width:760px){.split{grid-template-columns:1fr}.split .fx{transform:rotate(90deg)}}
-
-.flow{display:grid;grid-template-columns:repeat(7,auto);gap:10px;align-items:stretch;justify-content:center;margin-bottom:52px}
-.flow .fx{display:grid;place-items:center;font-family:var(--mono);color:var(--green-br);font-size:16px}
-.fstep{background:var(--ink-2);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:16px 18px;max-width:200px}
-.fstep b{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;color:var(--green-br);display:block;margin-bottom:5px}
-.fstep p{font-size:12.5px;color:#98A1B3;line-height:1.5}
-@media(max-width:900px){.flow{grid-template-columns:1fr;justify-items:stretch}.flow .fx{transform:rotate(90deg)}.fstep{max-width:none}}
-
-.term{background:var(--ink-2);border:1px solid rgba(255,255,255,.09);border-radius:14px;overflow:hidden;max-width:820px;margin:0 auto;position:relative;z-index:1;box-shadow:0 24px 56px -30px rgba(11,18,32,.5)}
-.term-bar{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.08)}
-.term-bar i{width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.16)}
-.term-bar span{margin-left:auto;font-family:var(--mono);font-size:10.5px;color:rgba(255,255,255,.4);letter-spacing:.08em}
-.term-body{padding:20px 22px;font-family:var(--mono);font-size:13px;line-height:1.85;color:#D7DCE5;min-height:236px}
-.term-body .p{color:#8B94A6}.term-body .g{color:var(--green-br)}.term-body .w{color:#fff}
-.t-line{opacity:0;transform:translateY(3px)}
-.t-line.show{opacity:1;transform:none;transition:opacity .22s ease,transform .22s ease}
-.term-run{margin:0 22px 22px;display:inline-flex}
-.term-run .btn{background:#fff;color:var(--ink);font-family:var(--mono);font-size:12.5px;padding:9px 18px}
-.term-run .btn:hover{background:var(--paper)}
-
-.scan{max-width:900px;margin:0 auto;background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:0 24px 56px -30px rgba(11,18,32,.25)}
-.scan-top{display:flex;align-items:center;gap:14px;padding:14px 18px;border-bottom:1px solid var(--line);background:var(--paper)}
-.scan-top .sigil{width:22px;height:22px;flex:none}
-.scan-top .sigil svg{display:block;width:100%;height:100%}
-.scan-top .name{font-family:var(--display);font-weight:800;font-size:15px;letter-spacing:.02em}
-.scan-top .name span{color:var(--green)}
-.scan-top .tags{margin-left:auto;display:flex;gap:8px}
-.scan-top .tag{font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:var(--muted);border:1px dashed var(--line);border-radius:5px;padding:3px 8px}
-.scan-top .tag.ind{color:var(--green);border:1px solid var(--green)}
-.scan-search{display:flex;gap:10px;padding:16px 18px;border-bottom:1px solid var(--line)}
-.scan-search input{flex:1;min-width:0;border:1px solid var(--line);border-radius:9px;background:var(--paper);padding:11px 14px;font-family:var(--mono);font-size:12px;color:var(--ink)}
-.scan-search input::placeholder{color:var(--muted);opacity:.8}
-.scan-search .btn{background:var(--ink);color:#fff;border-radius:9px;font-family:var(--mono);font-size:11px;padding:0 18px}
-.scan-stats{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid var(--line)}
-.scan-stats div{padding:14px 18px;border-right:1px solid var(--line)}
-.scan-stats div:last-child{border-right:none}
-.scan-stats b{font-family:var(--display);font-size:19px;font-weight:750;display:block;letter-spacing:-.02em}
-.scan-stats span{font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;color:var(--muted)}
-@media(max-width:640px){.scan-stats{grid-template-columns:repeat(2,1fr)}.scan-stats div:nth-child(2){border-right:none}}
-.scan-rows{font-family:var(--mono)}
-.scan-row{display:grid;grid-template-columns:64px 1fr auto auto;gap:14px;align-items:center;padding:13px 18px;border-bottom:1px solid var(--line);font-size:11.5px}
-.scan-row.hide{display:none}
-.scan-empty{display:none;padding:16px 18px;font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.06em}
-.scan-row .ev{font-size:9px;letter-spacing:.12em;font-weight:700;border-radius:5px;padding:3px 0;text-align:center}
-.ev.issue{color:var(--green);border:1px solid var(--green)}
-.ev.revoke{color:#fff;background:var(--ink)}
-.ev.xfer{color:var(--muted);border:1px solid var(--line)}
-.scan-row .nm{color:var(--ink);letter-spacing:.02em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.scan-row .nm s{color:var(--muted);text-decoration:none}
-.scan-row .tr{font-size:9.5px;letter-spacing:.08em;color:var(--muted)}
-.scan-row .st{font-size:9.5px;letter-spacing:.1em;font-weight:700}
-.st.ok{color:var(--green)}
-.st.rv{color:var(--ink)}
-.scan-row.flash{animation:rowin .5s ease}
-@keyframes rowin{from{background:rgba(26,107,78,.12)}to{background:transparent}}
-.scan-foot{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:13px 18px;background:var(--paper);border-top:1px solid var(--line);font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;color:var(--muted)}
-.scan-foot .btn{background:var(--ink);color:#fff;border-radius:8px;font-size:10.5px;padding:8px 14px;font-family:var(--mono)}
-.scan-note{max-width:900px;margin:14px auto 0;font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;color:var(--muted);text-align:center;line-height:1.8}
-@media(max-width:640px){.scan-row{grid-template-columns:56px 1fr auto}.scan-row .tr{display:none}}
-
-.gloss{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
-@media(max-width:820px){.gloss{grid-template-columns:1fr}}
-.g-cell{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px 24px;transition:border-color .18s,box-shadow .18s}
-.g-cell:hover{border-color:#CBD4CC;box-shadow:0 12px 30px -20px rgba(26,107,78,.3)}
-.g-cell b{font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--ink);display:block}
-.g-cell p{font-size:13.5px;color:var(--muted);margin-top:6px;line-height:1.55}
-.g-cell .role{margin-top:10px;font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--green)}
-
-.align{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
-@media(max-width:820px){.align{grid-template-columns:1fr}}
-.a-cell{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px 24px}
-.a-cell h3{font-size:15.5px;font-weight:700;letter-spacing:-.01em;margin-bottom:12px}
-.a-row{display:grid;grid-template-columns:74px 1fr;gap:10px;font-size:12.5px;padding:5px 0;border-top:1px dashed var(--line)}
-.a-row b{font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:var(--green);padding-top:2px}
-.a-row span{color:var(--muted);line-height:1.5}
-
-.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;counter-reset:step}
-.step{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:24px;position:relative}
-.step::before{counter-increment:step;content:"0" counter(step);font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--green);font-weight:700}
-.step h3{font-size:16px;margin:12px 0 8px}
-.step p{font-size:13.5px;color:var(--muted)}
-@media(max-width:900px){.steps{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:560px){.steps{grid-template-columns:1fr}}
-
-.org{background:var(--card);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
-.org-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
-@media(max-width:820px){.org-grid{grid-template-columns:1fr}}
-.org-cell{border:1px solid var(--line);border-radius:14px;padding:26px;background:var(--paper)}
-.live-panel{margin:22px 0 0;border:1px solid var(--line);border-radius:14px;background:var(--card);padding:18px 20px}
-.live-head{font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--muted);text-transform:uppercase;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.live-head b{color:var(--green)}
-.live-dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:livepulse 2s infinite;flex:none}
-@keyframes livepulse{0%{box-shadow:0 0 0 0 rgba(26,107,78,.45)}70%{box-shadow:0 0 0 7px rgba(26,107,78,0)}100%{box-shadow:0 0 0 0 rgba(26,107,78,0)}}
-.live-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:14px}
-@media(max-width:640px){.live-grid{grid-template-columns:repeat(2,1fr)}}
-.live-cell{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:14px}
-.live-cell .lv{font-family:var(--display);font-size:28px;font-weight:750;display:block;letter-spacing:-.02em}
-.live-cell .lk{font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;color:var(--muted);text-transform:uppercase;margin-top:4px;display:block}
-.live-foot{font-size:12px;color:var(--muted);margin-top:12px}
-.live-down{margin-top:12px;padding:12px 14px;border-radius:10px;background:rgba(180,130,20,.09);
-  border-left:2px solid rgba(180,130,20,.55);font-size:12.5px;line-height:1.6;color:#7A5A18}
-.live-down code{font-size:11.5px}
-[data-live].is-down{color:#8A2B2B;font-weight:700}
-.live-foot b{color:var(--ink)}
-@media(prefers-reduced-motion:reduce){.live-dot{animation:none}}
-.org-cell h3{font-size:16.5px;margin-bottom:10px;display:flex;align-items:baseline;gap:10px}
-.org-cell h3 span{font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--green)}
-.org-cell p{font-size:14px;color:var(--muted)}
-.org-cell ul{list-style:none;margin-top:12px;display:grid;gap:7px}
-.org-cell li{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;color:var(--muted);padding-left:16px;position:relative}
-.org-cell li::before{content:"—";position:absolute;left:0;color:var(--green)}
-.open-strip{margin-top:16px;border:1px solid var(--line);border-radius:14px;background:var(--paper);padding:18px 22px;display:flex;gap:10px 28px;flex-wrap:wrap;align-items:center;justify-content:center}
-.open-strip span{font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--muted)}
-.open-strip b{color:var(--green)}
-.org-quote{margin-top:44px;border-left:3px solid var(--green);padding:6px 0 6px 26px;max-width:760px}
-.org-quote p{font-family:var(--display);font-size:clamp(1.2rem,2.4vw,1.55rem);font-weight:600;line-height:1.42;letter-spacing:-.015em}
-.org-quote cite{display:block;margin-top:12px;font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--muted);font-style:normal;text-transform:uppercase}
-
-.faq{max-width:760px}
-.faq details{border-bottom:1px solid var(--line);padding:20px 0}
-.faq summary{cursor:pointer;font-family:var(--display);font-weight:650;font-size:17px;letter-spacing:-.015em;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:16px}
-.faq summary::-webkit-details-marker{display:none}
-.faq summary::after{content:"+";font-family:var(--mono);color:var(--green);font-size:18px;transition:transform .2s}
-.faq details[open] summary::after{transform:rotate(45deg)}
-.faq details p{margin-top:12px;color:var(--muted);font-size:15px;max-width:56ch}
-
-.cta-final{background:var(--ink);color:#fff;border-radius:20px;padding:68px 32px;text-align:center;position:relative;overflow:hidden}
-.cta-final::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.12;
-  background:repeating-radial-gradient(circle at 110% -30%,rgba(87,192,143,.12) 0 2px,transparent 2px 10px)}
-.cta-final h2{font-size:clamp(1.9rem,4.4vw,2.9rem);font-weight:760;letter-spacing:-.032em;line-height:1.08}
-.cta-final p{color:rgba(255,255,255,.62);margin:16px auto 30px;max-width:34em;font-size:16px}
-.email-row{display:flex;gap:10px;justify-content:center;max-width:460px;margin:0 auto;position:relative;z-index:1}
-.email-row input{flex:1;min-width:0;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);border-radius:99px;color:#fff;padding:12px 20px;font-size:14.5px;font-family:var(--body)}
-.email-row input::placeholder{color:rgba(255,255,255,.45)}
-.email-row .btn{background:#fff;color:var(--ink)}
-.email-row .btn:hover{background:var(--paper)}
-.email-ok{display:none;font-family:var(--mono);font-size:13px;color:var(--green-br);letter-spacing:.04em;position:relative;z-index:1}
-.cta-final .alt{position:relative;z-index:1;display:inline-block;margin-top:18px;font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:rgba(255,255,255,.5)}
-.cta-final .alt:hover{color:#fff}
-@media(max-width:480px){.email-row{flex-direction:column}}
-
-footer{padding:52px 0 40px;border-top:1px solid var(--line);margin-top:92px}
-.foot{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:32px}
-.foot h4{font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:var(--muted);text-transform:uppercase;margin-bottom:14px}
-.foot ul{list-style:none;display:grid;gap:9px;font-size:13.5px;color:var(--muted)}
-.foot ul a:hover{color:var(--ink)}
-.status{margin-top:52px;padding-top:20px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--muted)}
-.status .live{display:inline-flex;align-items:center;gap:7px}
-.status .live i{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2.4s infinite}
-@media(max-width:760px){.foot{grid-template-columns:1fr 1fr}}
-
-.rv{opacity:0;transform:translateY(22px)}
-.rv.in{opacity:1;transform:none;transition:opacity .7s cubic-bezier(.16,.84,.34,1),transform .7s cubic-bezier(.16,.84,.34,1)}
-@media(prefers-reduced-motion:reduce){
-  *{animation:none!important;transition:none!important}
-  .rv,.t-line{opacity:1!important;transform:none!important}
-  .verify-line{opacity:1;transform:none}
-  .passport{transform:none!important}
-}
-
-.doc{max-width:840px}.doc h1{font-size:clamp(30px,4.4vw,44px);line-height:1.06;margin:0 0 14px}.doc h2{font-size:clamp(21px,2.6vw,27px);margin:44px 0 10px}.doc h3{font-size:17px;margin:30px 0 8px}.doc p{margin:0 0 14px;color:var(--ink);opacity:.92}.doc li{margin:0 0 8px}.doc ul{padding-left:20px;margin:0 0 16px}.doc code{font-family:var(--mono);font-size:.86em;background:rgba(11,18,32,.06);padding:1px 5px;border-radius:4px}.doc .tbl{font-family:var(--mono);font-size:12.5px;line-height:1.65;background:rgba(11,18,32,.04);border:1px solid rgba(11,18,32,.1);border-radius:10px;padding:14px 16px;overflow-x:auto;white-space:pre;margin:0 0 16px}.doc hr{border:none;border-top:1px solid rgba(11,18,32,.12);margin:34px 0}
-/* ── shared chrome (merged design) ── */
-.announce{background:var(--ink);color:#E2E8F0;font-size:12.5px;text-align:center;padding:9px 16px}
-.announce a{color:var(--green-br);font-weight:600}
-.announce a:hover{text-decoration:underline}
-.mi{position:relative}
-.mi>button{display:inline-flex;align-items:center;gap:5px;font-size:14px;font-weight:500;color:var(--muted);padding:9px 12px;border-radius:10px}
-.mi>button:hover{color:var(--ink);background:rgba(11,18,32,.045)}
-.car{font-size:9px;opacity:.6}
-.dd{position:absolute;top:calc(100% + 6px);left:0;min-width:238px;background:var(--card);border:1px solid rgba(11,18,32,.14);border-radius:14px;padding:7px;display:none;box-shadow:0 24px 60px rgba(11,18,32,.12);z-index:70}
-.mi.open .dd{display:block}
-.dd a{display:block;font-size:13.5px;font-weight:500;color:var(--muted);padding:9px 11px;border-radius:9px}
-.dd a span{display:block;font-size:11.5px;font-weight:400;color:var(--muted);opacity:.85;margin-top:1px}
-.dd a:hover{background:rgba(26,107,78,.06);color:var(--ink)}
-.nav-r{margin-left:auto;display:flex;gap:10px;align-items:center}
-.openbadge{display:inline-flex;align-items:center;gap:9px;font-size:11px;font-weight:600;color:var(--muted);border:1px solid rgba(11,18,32,.14);border-radius:99px;padding:6px 13px;font-family:var(--body);letter-spacing:0}
-@media(min-width:901px){.nav-links{display:none!important}}
-@media(max-width:900px){.mi,.nav-hide{display:none}}
-/* pixel display type (site-wide rollout, looks only) */
-h1,.sec-head h2,.hero-h{font-family:var(--display);font-weight:700;letter-spacing:-.025em;line-height:1.05}
-nav .btn{white-space:nowrap;flex:none}
-@media(max-width:1360px){.brand .mean{display:none}}
-nav .ndocs{font-size:14px;font-weight:500;color:var(--muted);padding:9px 12px;border-radius:10px}
-nav .ndocs:hover{color:var(--ink);background:rgba(11,18,32,.045)}
-nav .ndocs[aria-current="page"],.nav-links a[aria-current="page"]{color:var(--green);font-weight:700}
-@media(max-width:1150px){.nav-hide-mid{display:none}}
-@media(max-width:900px){nav .ndocs{display:none}}
-[id]{scroll-margin-top:92px}
-.hero-p{padding:72px 0 30px;text-align:center;background:radial-gradient(720px 300px at 50% -60px,rgba(26,107,78,.12),transparent 70%)}
-.hero-p h1{font-size:clamp(2.2rem,4.8vw,3.6rem);line-height:1;max-width:820px;margin:14px auto 0}
-.hero-p .lede{margin:16px auto 0;max-width:640px;font-size:16.5px;color:var(--muted)}
-.sec{padding:56px 0 8px}
-.sec .head{max-width:760px;margin:0 auto 26px;text-align:center}
-.sec h2{font-size:clamp(1.5rem,3vw,2.2rem)}
-.sec .lede{margin-top:10px;color:var(--muted);font-size:15.5px}
-.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;max-width:1000px;margin:0 auto}
-.cell{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:24px}
-.cell .k{font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--green);text-transform:uppercase;display:block;margin-bottom:10px}
-.cell h3{font-size:17px;margin-bottom:7px}
-.cell p{font-size:13.5px;color:var(--muted)}
-@media(max-width:900px){.grid3{grid-template-columns:1fr}}
-/* the road: phase timeline */
-.road{max-width:860px;margin:0 auto;border-left:2px solid var(--line);padding-left:0}
-.phase{position:relative;padding:22px 0 22px 34px;border-bottom:1px dashed var(--line)}
-.phase:last-child{border-bottom:none}
-.phase::before{content:"";position:absolute;left:-7px;top:30px;width:12px;height:12px;background:var(--paper);border:2.5px solid var(--green);border-radius:50%}
-.phase.done::before{background:var(--green)}
-.phase .ph{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
-.phase .ph h3{font-size:clamp(1.1rem,2vw,1.45rem)}
-.phase .st{font-family:var(--mono);font-size:9px;letter-spacing:.16em;padding:3px 9px;border-radius:99px;border:1px solid var(--line);color:var(--muted)}
-.phase .st.done{color:var(--green);border-color:var(--green)}
-.phase .st.pend{color:var(--amber);border-color:var(--amber)}
-.phase p{margin-top:8px;font-size:14.5px;color:#22304a;max-width:680px}
-.phase .fine{margin-top:6px;font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;color:var(--muted)}
-.note{border:1px solid var(--line);border-left:3px solid var(--amber);background:var(--card);border-radius:0 10px 10px 0;padding:12px 16px;margin:26px auto 0;max-width:760px;font-size:14px}
-.cta-mid{text-align:center;margin:44px 0 20px}
-.cta-final{background:var(--ink);color:#fff;border-radius:18px;padding:36px 26px;text-align:center;position:relative;overflow:hidden}
-.cta-final h2{font-size:clamp(1.4rem,3.2vw,2rem);font-weight:750;letter-spacing:-.028em;line-height:1.1}
-.cta-final p{color:rgba(255,255,255,.6);margin:8px auto 20px;max-width:40em;font-size:14px}
-.cta-intake{position:relative;z-index:1;max-width:600px;margin:0 auto}
-.seats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;text-align:left}
-@media(max-width:640px){.seats{grid-template-columns:repeat(2,1fr)}}
-.seat{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.16);border-radius:11px;padding:8px 11px;cursor:pointer;color:#fff;display:grid;gap:2px;font-family:var(--body);transition:border-color .15s,background .15s,transform .15s;text-align:left}
-.seat:hover{border-color:rgba(87,192,143,.65)}
-.seat:active{transform:scale(.98)}
-.seat[aria-checked="true"]{background:rgba(87,192,143,.14);border-color:var(--green-br)}
-.seat[aria-checked="true"] b::after{content:" ✓";color:var(--green-br)}
-.seat b{font-size:12.5px;font-weight:700}
-.seat span{font-size:10px;color:rgba(255,255,255,.5);line-height:1.3}
-.seat-hint{font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:rgba(255,255,255,.45);margin:14px auto;max-width:none;text-align:center}
-.seat-hint.warn{color:#FFB4A1}
-.email-row{display:flex;gap:10px;justify-content:center;max-width:520px;margin:0 auto;position:relative;z-index:1}
-.email-ok{display:none;font-family:var(--mono);font-size:13px;color:var(--green-br);letter-spacing:.04em;position:relative;z-index:1}
-.cta-final .alt{position:relative;z-index:1;display:inline-block;margin-top:18px;font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:rgba(255,255,255,.5)}
-.alt{position:relative;z-index:1;display:inline-block;margin-top:18px;font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:rgba(255,255,255,.5)}
-/* ── polish pass: press feedback, wayfinding, cross-page transitions, announce on small screens ─────────── */
-@media(prefers-reduced-motion:no-preference){
-  .btn{transition:transform .16s,box-shadow .16s,background .16s,border-color .16s}
-  .btn:hover{transform:translateY(-1px);box-shadow:0 6px 18px -8px rgba(11,18,32,.4)}
-  .btn:active{transform:translateY(0);box-shadow:none}
-}
-nav .nav-links a[aria-current="page"],nav .ndocs[aria-current="page"]{text-decoration:underline;text-underline-offset:6px;text-decoration-thickness:2px}
-@media(max-width:480px){.announce{font-size:11px;padding:8px 12px}}
-@media(max-width:1023px){nav .mean{display:none}}
-</style></head><body id="top">
 <a href="#main" class="skip">Skip to content</a>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
     <g id="ainra-sigil">
-      <path d="M 98.4 33.5 A 48 48 0 1 0 78.5 13.6" fill="none" stroke="#0B1220" stroke-width="3" stroke-linecap="round"/>
+      <path d="M 98.4 33.5 A 48 48 0 1 1 78.5 13.6" fill="none" stroke="#0B1220" stroke-width="3" stroke-linecap="round"/>
       <path d="M 95.8 29.2 L 98.7 27.2 M 91.7 23.9 L 94.3 21.5 M 86.9 19.2 L 89.1 16.6" stroke="#0B1220" stroke-width="1" opacity=".5"/>
       <path d="M 80.6 11.5 L 83.4 18.5 L 76.4 15.7 Z" fill="#0B1220"/>
       <circle cx="79.6" cy="14.2" r="1.1" fill="#F5F6F3"/>
@@ -497,166 +129,265 @@ nav .nav-links a[aria-current="page"],nav .ndocs[aria-current="page"]{text-decor
     </g>
   </defs>
 </svg>
-<div class="announce">Don't trust us — verify us: every claim runs from a cold clone. <a href="docs.html#install">Run it →</a></div>
+<div class="announce"><div class="wrap"><span class="announce__msg">Don't trust us — verify us: every claim runs from a cold clone. <a href="docs.html#install">Run it →</a></span><span class="announce__side"><span class="rclock" data-record-clock><span class="rclock__l"><span class="rclock__k">PUBLISHED RECORD</span> <span data-stamp="published-iso">2026-08-17T16:02:17Z</span></span><span class="rclock__s"><span class="rclock__k">RECORD</span> <span data-stamp="published-date">2026-08-17</span></span><span data-rc-more hidden> · <span class="rclock__l"><span class="rclock__k">AGE</span> <span data-rc-age></span></span><span class="rclock__s" data-rc-days></span> · <b data-rc-state></b></span></span><button class="motion-btn" type="button" data-motion-toggle aria-pressed="true" hidden><svg class="i-on" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 2h2v8H3zM7 2h2v8H7z" fill="currentColor"/></svg><svg class="i-off" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 2v8l7-4z" fill="currentColor"/></svg><span data-motion-label>Motion: on</span></button></span></div></div>
 <nav><div class="wrap nav-in">
   <a class="brand" href="index.html" aria-label="AINRA — Agent Identity and Naming Registry Authority">
     <span class="sigil" aria-hidden="true"><svg viewBox="0 0 112 112"><use href="#ainra-sigil"/></svg></span>
-    <span class="wm">AINRA</span><span class="mean">Agent Identity &amp; Naming<br>Registry Authority</span></a>
-  <a href="verify.html" class="ndocs">Verify</a>
-  <a href="get.html" class="ndocs">Network</a>
-  <a href="landscape.html" class="ndocs">Landscape</a>
-  <a href="foundation.html" class="ndocs">Foundation</a>
-  <a href="docs.html" class="ndocs">Docs</a>
-  <div class="nav-r">
-    <a class="btn btn-ghost nav-hide" href="https://github.com/JacobJandon/ainra" rel="noopener" aria-label="Source repository on GitHub"><svg class="gh" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" style="display:inline-block;vertical-align:-3px;margin-right:8px;flex:none" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>GitHub</a>
-    <a class="btn btn-ink nav-hide" href="foundation.html#access">Join the founding table</a>
-    <button class="burger" id="burger" aria-label="Menu" aria-expanded="false">≡</button>
+    <span class="wm">AINRA</span></a>
+  <div class="nav-links-d" hidden>
+    <a href="verify.html">Verify</a>
+    <a href="get.html">Network</a>
+    <a href="landscape.html">Landscape</a>
+    <a href="foundation.html" style="color:var(--green)">Foundation</a>
+    <a href="docs.html">Docs</a>
   </div>
-  <div class="nav-links" id="navLinks"><a href="index.html">The root</a><a href="verify.html">Verify</a><a href="get.html">Network</a><a href="landscape.html">Landscape</a><a href="foundation.html" style="color:var(--green)">Foundation</a><a href="docs.html">Docs</a><a href="foundation.html#access">Join the founding table</a><a href="https://github.com/JacobJandon/ainra" rel="noopener"><svg class="gh" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" style="display:inline-block;vertical-align:-3px;margin-right:8px;flex:none" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>GitHub</a></div>
+  <div class="nav-r"><a class="btn btn-ghost" href="verify.html#try">Try it live →</a><a class="g-sq" href="scan.html" aria-label="Browse the record"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.5"/></svg></a><button class="g-menubtn" type="button" data-g-menu aria-expanded="false" aria-controls="gMenu"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" stroke-width="1.5" fill="none"/></svg><span class="vh">Menu</span></button></div>
+  <div class="nav-links" id="navLinks"><a href="index.html">The root</a><a href="verify.html">Verify</a><a href="get.html">Network</a><a href="landscape.html">Landscape</a><a href="foundation.html" style="color:var(--green)">Foundation</a><a href="docs.html">Docs</a><a href="foundation.html#access">Join the founding table</a><a href="https://github.com/JacobJandon/ainra" rel="noopener"><svg class="gh" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>GitHub</a></div>
 </div></nav>
-<main id="main"><section style="padding-top:118px"><div class="wrap">
-<div class="sec-head rv"><span class="eyebrow">Real today</span>
-<h1 class="hero-h">Honest status.</h1>
-<p class="lede">This page states exactly what exists — nothing more. It changes only when reality does. If anything here ever disagrees with reality, that is a bug: tell us.</p></div>
-<div class="org-grid"><div class="org-cell rv"><h3>STANDARD <span>v5.1 — PUBLIC ✓</span></h3><p>The complete normative specification. <a href="docs.html#standard" style="color:var(--green);font-weight:600">Read it</a> or take the <a href="AINRA_I_The_Standard.md" style="color:var(--green);font-weight:600">canonical file</a>.</p></div><div class="org-cell rv"><h3>REFERENCE CLI <span>v0.3.3 — WORKING ✓</span></h3><p>Zero-dependency, real signatures, hash-chained log; catches forged tiers and rewritten history live. <a href="ainra-cli-v0.3.3.zip" style="color:var(--green);font-weight:600">Download</a>.</p></div><div class="org-cell rv"><h3>REFERENCE IMPLEMENTATION <span>PUBLIC · TEN SIGNED RELEASES</span></h3><p>The full stack — issuance, transparency log, witness quorum, revocation, verifier SDK — is public with ten signed, board-proven releases — the current one is v0.7.0. A stranger's cold clone passes every gate: <a href="https://github.com/JacobJandon/ainra" style="color:var(--green);font-weight:600">the repository</a>.</p></div><div class="org-cell rv"><h3>GENESIS ROOT <span>MINTED · OPERATOR-RUN</span></h3><p>A FROST 5-of-9 + SLH-DSA dual-root exists; the network runs under it and passports verify root-dark, trusting only the root (<span style="font-family:var(--mono);font-size:11px">make genesis-verify</span>). The distributed public ceremony across independent custodians — plus the external verifiers and soak — is the remaining real-world milestone.</p></div><div class="org-cell rv"><h3>WITNESSES <span>0 OPERATORS — GAP</span></h3><p><b>This control has no operators, so the guarantee it provides is not in force today.</b> Witness cosignatures are what would stop the root showing one history to one party and a different one to another. The machinery is built, rehearsed and drilled on every board — an injected fork is refused by a quorum — but a quorum of zero certifies nothing, so for now you are trusting us not to equivocate rather than being able to check. Being the first takes one command: <span style="font-family:var(--mono);font-size:11px">bash kits/witness/be-a-witness.sh</span>. <a href="foundation.html#access" style="color:var(--green);font-weight:600">Take the seat</a>.</p></div><div class="org-cell rv"><h3>EXTERNAL VERIFIERS <span>INVITED</span></h3><p>The drop-in verifier kit and the self-serve conformance programme are published; third parties verify — and attest — on their own infrastructure. Attestations so far: 0 of the 3 needed. Want a seat? <a href="foundation.html#access" style="color:var(--green);font-weight:600">Join the founding table</a>.</p></div><div class="org-cell rv"><h3>CONFORMANCE <span>1153/1153 ✓</span></h3><p>Four independent implementations — Rust, TypeScript, the reference CLI, and Python — agree on all 1153 CC0 conformance vectors, byte-for-byte. Reproduced with one command (<span style="font-family:var(--mono);font-size:11px">make diff</span>) in the reference repository; the vector corpus is published alongside it.</p></div><div class="org-cell rv"><h3>REVOCATION <span>&lt;60s [MEASURED]</span></h3><p>Revocation propagation measured under 60 seconds, fail-closed, in networked drills of the reference stack (<span style="font-family:var(--mono);font-size:11px">make soak-smoke</span>). The 14-day multi-region soak runs at genesis.</p></div></div>
-<div class="live-panel rv" data-live-panel hidden>
-  <div class="live-head"><span class="live-dot"></span><b data-live="net">STAGING</b>&nbsp;NETWORK · <b data-live="root">TEST-ROOT</b> · <span data-live="mode">published record</span> · <span data-live="as-of">—</span>, read in your browser</div>
-  <div class="live-grid">
-    <div class="live-cell"><span class="lv" data-live="registrars">—</span><span class="lk">registrars</span></div>
-    <div class="live-cell"><span class="lv" data-live="issued">—</span><span class="lk">passports issued</span></div>
-    <div class="live-cell"><span class="lv" data-live="revoked">—</span><span class="lk">revoked</span></div>
-    <div class="live-cell"><span class="lv" data-live="checkpoint-height">—</span><span class="lk">checkpoint height</span></div>
+<div class="g-menu" id="gMenu" role="dialog" aria-modal="true" aria-labelledby="gMenuTitle" hidden>
+  <div class="wrap g-menu__in">
+    <h2 class="vh" id="gMenuTitle">Menu</h2>
+    <p class="g-menu__about"><b>AINRA</b> — Agent Identity &amp; Naming Registry Authority. An open standard, held by no one.</p>
+    <div class="g-menu__cols">
+      <div class="g-menu__col">
+        <p class="g-menu__k">Navigation</p>
+        <ul class="g-menu__big">
+          <li><a href="verify.html">Verify</a><ul><li><a href="verify.html#try">↳ Try a passport</a></li><li><a href="docs.html#verify">↳ How a check works</a></li></ul></li>
+          <li><a href="get.html">Network</a></li>
+          <li><a href="landscape.html">Landscape</a></li>
+          <li><a href="foundation.html">Foundation</a><ul><li><a href="foundation.html#access">↳ Join the founding table</a></li></ul></li>
+          <li><a href="docs.html">Docs</a><ul><li><a href="docs.html#standard">↳ The Standard</a></li><li><a href="docs.html#install">↳ Install</a></li></ul></li>
+        </ul>
+      </div>
+      <div class="g-menu__col">
+        <p class="g-menu__k">The record, as published</p>
+        <dl class="g-menu__kv">
+          <div><dt>Passports in the record</dt><dd data-stamp="issued">80</dd></div>
+          <div><dt>Registrars</dt><dd data-stamp="registrars">2</dd></div>
+          <div><dt>Revoked</dt><dd data-stamp="revoked">53</dd></div>
+          <div><dt>Witnesses</dt><dd>0 · <a href="https://github.com/JacobJandon/ainra/blob/main/outreach/WITNESS-CALL.md">recruiting</a></dd></div>
+        </dl>
+        <p class="g-menu__note">Read from <a href="net/registry.json">net/registry.json</a>.</p>
+      </div>
+      <div class="g-menu__col">
+        <p class="g-menu__k">Quick links</p>
+        <ul class="g-menu__small">
+          <li><a href="https://github.com/JacobJandon/ainra">Source on GitHub</a></li>
+          <li><a href="docs.html#standard">Read the Standard</a></li>
+          <li><a href="scan.html">Browse the record</a></li>
+          <li><a href="RELEASE-VERIFY.md">Verify a release</a></li>
+          <li><a href="llms.txt">For AI agents: llms.txt</a></li>
+          <li><a href="mailto:info@ainra.org">info@ainra.org</a></li><li><a href="mailto:mihail@ainra.org">mihail@ainra.org</a></li><li><a href="mailto:eric@ainra.org">eric@ainra.org</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<header class="gi-hero" id="g-top">
+  <div class="wrap">
+    <nav class="gi-sub" aria-label="On this page"><span class="gi-sub__k">AINRA / Foundation</span><a href="#status">Real today</a><a href="#plan">The organization.</a><a href="#genesis">Genesis: how the root is born.</a><a href="#economics">Economics: position, not…</a><a href="#roadmap">The road, planned to the end.</a><a href="#access">Take a founding seat.</a></nav>
+    <h1 class="gi-title" aria-label="Foundation"><span style="--i:0">F</span><span style="--i:1">o</span><span style="--i:2">u</span><span style="--i:3">n</span><span style="--i:4">d</span><span style="--i:5">a</span><span style="--i:6">t</span><span style="--i:7">i</span><span style="--i:8">o</span><span style="--i:9">n</span></h1>
+<aside class="g-side" id="gSide" aria-label="About this page" data-side>
+  <div class="g-side__head"><span>Details</span><button class="g-side__x" type="button" aria-label="Close details" data-side-close>×</button></div>
+  <ul>
+    <li><span>Runs</span>Registrars, custodians and witnesses — no single company</li>
+    <li><span>Rules</span>One published rulebook, the same for all</li>
+    <li><span>Status</span>Pre-ceremony; witnesses: 0, recruiting</li>
+  </ul>
+</aside>
+<button class="g-side__tab" type="button" aria-controls="gSide" aria-expanded="false" data-side-open>Details</button>
+  </div>
+</header>
+
+<div class="wrap f-layout">
+<nav aria-label="Chapters" class="chapter-rail"><ol>
+  <li><a href="#status"><span>01</span>Status</a></li>
+  <li><a href="#plan"><span>02</span>Organization</a></li>
+  <li><a href="#genesis"><span>03</span>Genesis</a></li>
+  <li><a href="#economics"><span>04</span>Economics</a></li>
+  <li><a href="#roadmap"><span>05</span>Road</a></li>
+  <li><a href="#access"><span>06</span>Founding seat</a></li>
+  <li><a href="#release-integrity"><span>07</span>Release integrity</a></li>
+</ol></nav>
+<main id="main" class="f-body">
+
+<section class="section f-hero" id="status">
+  <div class="sec-head__row"><span class="earmark"><b>/01</b> · REAL TODAY</span></div>
+  <div class="split">
+    <div class="split__l"><h2 class="title" data-was-h1>Honest status.</h2>
+      <div class="glyph-key">
+        <p class="earmark">THE MARKS ON THIS PAGE</p>
+        <ul>
+          <li><span class="glyph" data-glyph="block"></span><span>DONE · SIGNED · WILL NOT CHANGE</span></li>
+          <li><span class="glyph" data-glyph="glider"></span><span>IN FORCE · RUNNING</span></li>
+          <li><span class="glyph" data-glyph="blinker"></span><span>PENDING · INVITED · NOT YET SETTLED</span></li>
+          <li><span class="glyph" data-glyph="zero"></span><span>ZERO · NOTHING THERE YET</span></li>
+        </ul>
+        <p class="src">Each mark is a Game-of-Life pattern running on a 5×5 grid (B3/S23): a still block, a travelling glider, an oscillating blinker, an empty grid.</p>
+      </div>
+    </div>
+    <div class="split__r">
+      <p class="f-motto">NOTHING ON THIS SITE IS SIMULATED WITHOUT SAYING SO · NUMBERS ARE MEASURED OR THEY ARE ABSENT</p>
+      <p class="lede">This page states exactly what exists — nothing more. It changes only when reality does. If anything here ever disagrees with reality, that is a bug: tell us.</p>
+    </div>
+  </div>
+
+  <div class="f-register">
+    <p class="register__date">UPDATED 2026-11-04 · THE NUMBERS BELOW THE REGISTER COME FROM THE <span data-record-clock><span class="rclock__k">PUBLISHED RECORD</span> <span data-stamp="published-date">2026-08-17</span><span data-rc-more hidden> · AGE <span data-rc-days></span> · <b data-rc-state></b></span></span></p>
+    <div class="register">
+<div class="register__row"><h3><span class="glyph glyph--sm" data-glyph="block"></span>STANDARD <span class="state-chip state-chip--done">v5.1 — PUBLIC ✓</span></h3><p>The complete normative specification. <a href="docs.html#standard">Read it</a> or take the <a href="AINRA_I_The_Standard.md">canonical file</a>.</p></div>
+<div class="register__row"><h3><span class="glyph glyph--sm" data-glyph="block"></span>REFERENCE CLI <span class="state-chip state-chip--done">v0.3.3 — WORKING ✓</span></h3><p>Zero-dependency, real signatures, hash-chained log; catches forged tiers and rewritten history live. <a href="ainra-cli-v0.3.3.zip">Download</a>.</p></div>
+<div class="register__row"><h3><span class="glyph glyph--sm" data-glyph="block"></span>REFERENCE IMPLEMENTATION <span class="state-chip state-chip--done">PUBLIC · TEN SIGNED RELEASES</span></h3><p>The full stack — issuance, transparency log, witness quorum, revocation, verifier SDK — is public with ten signed, board-proven releases — the current one is v0.7.0. A stranger's cold clone passes every gate: <a href="https://github.com/JacobJandon/ainra">the repository</a>.</p></div>
+<div class="register__row"><h3><span class="glyph glyph--sm" data-glyph="blinker"></span>GENESIS ROOT <span class="state-chip state-chip--pending">MINTED · OPERATOR-RUN</span></h3><p>A FROST 5-of-9 + SLH-DSA dual-root exists; the network runs under it and passports verify root-dark, trusting only the root (<code>make genesis-verify</code>). The distributed public ceremony across independent custodians — plus the external verifiers and soak — is the remaining real-world milestone.</p></div>
+<div class="register__row"><h3><span class="glyph glyph--sm" data-glyph="zero"></span>WITNESSES <span class="state-chip state-chip--gap">0 OPERATORS — GAP</span></h3><p><b>This control has no operators, so the guarantee it provides is not in force today.</b> Witness cosignatures are what would stop the root showing one history to one party and a different one to another. The machinery is built, rehearsed and drilled on every board — an injected fork is refused by a quorum — but a quorum of zero certifies nothing, so for now you are trusting us not to equivocate rather than being able to check. Being the first takes one command: <code>bash kits/witness/be-a-witness.sh</code>. <a href="foundation.html#access">Take the seat</a>.</p></div>
+<div class="register__row"><h3><span class="glyph glyph--sm" data-glyph="blinker"></span>EXTERNAL VERIFIERS <span class="state-chip state-chip--gap">INVITED</span></h3><p>The drop-in verifier kit and the self-serve conformance programme are published; third parties verify — and attest — on their own infrastructure. Attestations so far: 0 of the 3 needed. Want a seat? <a href="foundation.html#access">Join the founding table</a>.</p></div>
+<div class="register__row"><h3><span class="glyph glyph--sm" data-glyph="block"></span>CONFORMANCE <span class="state-chip state-chip--done">1153/1153 ✓</span></h3><p>Three implementations — Rust, TypeScript and Python — agree on all 1153 CC0 conformance vectors, byte-for-byte, on verdict and reason; a fourth, the reference CLI, agrees on canonical encoding. Reproduced with one command (<code>make diff</code>) in the reference repository; the vector corpus is published alongside it.</p></div>
+<div class="register__row"><h3><span class="glyph glyph--sm" data-glyph="glider"></span>REVOCATION <span class="state-chip state-chip--done">&lt;60s [MEASURED]</span></h3><p>Revocation propagation measured under 60 seconds, fail-closed, in networked drills of the reference stack (<code>make soak-smoke</code>). The 14-day multi-region soak runs at genesis.</p></div>
+    </div>
+  </div>
+
+  <div class="f-live" data-live-panel hidden>
+    <div class="spec-row spec-row--5">
+      <div class="spec"><span class="spec__cap">registrars</span><b class="spec__val" data-live="registrars">—</b></div>
+      <div class="spec"><span class="spec__cap">passports issued</span><b class="spec__val" data-live="issued">—</b></div>
+      <div class="spec"><span class="spec__cap">revoked</span><b class="spec__val" data-live="revoked">—</b></div>
+      <div class="spec"><span class="spec__cap">checkpoint height</span><b class="spec__val" data-live="checkpoint-height">—</b></div>
+      <div class="spec spec--gap"><span class="spec__cap">PRODUCTION LOGS SEALED</span><b class="spec__val" data-live="logs-sealed">—</b><span class="spec__why">UNTIL GENESIS</span></div>
+    </div>
+    <p class="spec-staging"><b data-live="net">STAGING</b> NETWORK · <b data-live="root">TEST-ROOT</b> · <span data-live="mode">published record</span></p>
+    <p class="spec-asof" data-staleness>RECORD PUBLISHED <span data-live="as-of">—</span></p>
+    <p class="f-live__note small">The same read contract AINRAscan and any mirror use — a staging <b>TEST-ROOT</b>, not production. Point it at a network you run with <code>?net=&lt;url&gt;</code> and these numbers go live. Production logs sealed: <b data-live="logs-sealed">0</b> until genesis.</p>
   </div>
   <p class="live-down" data-live-down hidden>The contract at <code data-live="endpoint">—</code> did not answer, so
   nothing above is live right now. Everything else on this site still proves what it proves — the verifier, the
   vectors and the signatures are checked on your machine, not on ours. To run the network yourself:
   <code>make stage-install</code> (or <code>make genesis-local</code> for a one-shot local world).</p>
-  <p class="live-foot">The same read contract AINRAscan and any mirror use — a staging <b>TEST-ROOT</b>, not production. Point it at a network you run with <code>?net=&lt;url&gt;</code> and these numbers go live. Production logs sealed: <b data-live="logs-sealed">0</b> until genesis.</p>
-</div>
-<p class="scan-note rv">NOTHING ON THIS SITE IS SIMULATED WITHOUT SAYING SO · NUMBERS ARE MEASURED OR THEY ARE ABSENT</p>
-</div></section>
-<section class="sec" id="plan">
-  <div class="wrap">
-    <div class="head">
-      <h2>The organization.</h2>
-      <p class="lede">A member-governed, non-profit federation — neutral ground where competing issuers become one system without becoming one company. Legitimacy flows from members; the federation never competes with them.</p>
-    </div>
-    <div class="grid3">
-      <div class="cell"><span class="k">Members</span><h3>Every seat is a class.</h3><p>Issuers, attestors, verifiers, resolution &amp; data providers, witnesses, and public-interest members — each class a constituency in the assembly, which elects the board under charter constraints.</p></div>
-      <div class="cell"><span class="k">Separation</span><h3>Keys and logs stand apart.</h3><p>Custodians (who hold key shares) and witnesses (who cosign the log) are structurally separate from board and assembly alike. No single person or institution can act alone.</p></div>
-      <div class="cell"><span class="k">Transparency</span><h3>Everything material is public.</h3><p>Statutes, minutes, budgets, audits, fee schedules, and ceremonies. The root records facts — never money, personal data, reputation, or judgment.</p></div>
-    </div>
-    <p class="lede" style="margin-top:20px;text-align:center;max-width:680px;margin-left:auto;margin-right:auto">AINRA is a <b>proposal</b> for that neutral root — one open standard anyone can run, own, or fork. You are not asked to trust its founders; everything is public.</p>
-  </div>
 </section>
 
-<section class="sec" id="genesis">
-  <div class="wrap">
-    <div class="head">
-      <h2>Genesis: how the root is born.</h2>
-      <p class="lede">The production root does not exist until it is born in public — on camera, across independent custodians, with no single point of trust. Until then, everything runs on a labeled TEST-ROOT and says so.</p>
+<section class="section" id="plan">
+  <div class="sec-head">
+    <div class="sec-head__row"><span class="earmark"><b>/02</b></span></div>
+    <div class="split">
+      <h2 class="split__l">The organization.</h2>
+      <div class="split__r"><p class="lede">A member-governed, non-profit federation — neutral ground where competing issuers become one system without becoming one company. Legitimacy flows from members; the federation never competes with them.</p></div>
     </div>
-    <div class="road">
-      <div class="phase done"><div class="ph"><h3>The ceremony, rehearsed</h3><span class="st done">DONE · REPRODUCIBLE</span></div>
-        <p>A FROST 5-of-9 threshold ceremony — any five of nine custodians can act together, no one alone, four compromised shares are useless. Rehearsed end-to-end across nine isolated processes with a reproducible transcript; an independent checker re-verifies every custodian.</p>
-        <p class="fine">make ceremony-rehearsal-multi · runbook: docs/genesis-day/RUNBOOK.md</p></div>
-      <div class="phase"><div class="ph"><h3>The recorded public ceremony</h3><span class="st pend">PENDING · REAL-WORLD EVENT</span></div>
-        <p>Ceremony day is scripted from T−30 days to T+14: sealed hardware shown on camera, air-gapped ephemeral machines, shares generated that never leave them, commitments cross-read aloud. Any failed check aborts the day — publicly.</p>
-        <p class="fine">go/no-go checklist · abort playbook · cutover plan — all published in the repo</p></div>
-      <div class="phase"><div class="ph"><h3>Independent verifiers</h3><span class="st pend">RECRUITING · ≥3 STRANGERS</span></div>
-        <p>Three or more unaffiliated people each receive a fresh challenge no one can precompute, verify it on their own machines with the published tooling, and sign what they saw. Their attestations become permanent public evidence.</p>
-        <p class="fine">challenge kits minted · outreach ready · the ask is ~10 minutes</p></div>
-      <div class="phase"><div class="ph"><h3>The soak</h3><span class="st pend">PENDING · 14 DAYS · 3 REGIONS</span></div>
-        <p>Fourteen days of measured revocation propagation across three regions, each region writing signed reports. The founding declaration refuses to render unless every claim resolves to real evidence.</p>
-        <p class="fine">platform built and smoke-proven · the clock is the operator's button</p></div>
-    </div>
-    <div class="note"><b>Honesty rule:</b> these three rows are real-world events, not code. Nothing on this site counts them done before they happen — production logs sealed today: <b>0</b>.</div>
   </div>
+  <div class="f-cols">
+    <div><span class="earmark">Members</span><h3>Every seat is a class.</h3><p>Issuers, attestors, verifiers, resolution &amp; data providers, witnesses, and public-interest members — each class a constituency in the assembly, which elects the board under charter constraints.</p></div>
+    <div><span class="earmark">Separation</span><h3>Keys and logs stand apart.</h3><p>Custodians (who hold key shares) and witnesses (who cosign the log) are structurally separate from board and assembly alike. No single person or institution can act alone.</p></div>
+    <div><span class="earmark">Transparency</span><h3>Everything material is public.</h3><p>Statutes, minutes, budgets, audits, fee schedules, and ceremonies. The root records facts — never money, personal data, reputation, or judgment.</p></div>
+  </div>
+  <p class="f-close">AINRA is a <b>proposal</b> for that neutral root — one open standard anyone can run, own, or fork. You are not asked to trust its founders; everything is public.</p>
 </section>
 
-<section class="sec" id="economics">
-  <div class="wrap">
-    <div class="head">
-      <h2>Economics: position, not profit.</h2>
-      <p class="lede">Revenue is capped per-lineage-year fees at cents scale, flat accreditation, and grants. Verification is free forever — the design goal is a root cheap enough that removing it costs more than keeping it. At scale, the charter's falling cap <i>reduces</i> the fee toward archival cost.</p>
+<section class="section" id="genesis">
+  <div class="sec-head">
+    <div class="sec-head__row"><span class="earmark"><b>/03</b></span></div>
+    <div class="split">
+      <h2 class="split__l">Genesis: how the root is born.</h2>
+      <div class="split__r"><p class="lede">The production root does not exist until it is born in public — on camera, across independent custodians, with no single point of trust. Until then, everything runs on a labeled TEST-ROOT and says so.</p></div>
+    </div>
+  </div>
+  <ol class="index f-genesis">
+    <li class="index-row"><div class="index-row__main"><h3 class="index-row__name">The ceremony, rehearsed</h3><p class="index-row__text">A FROST 5-of-9 threshold ceremony — any five of nine custodians can act together, no one alone, four compromised shares are useless. Rehearsed end-to-end across nine isolated processes with a reproducible transcript; an independent checker re-verifies every custodian.</p></div><div class="index-row__detail"><span class="state-chip state-chip--done">DONE · REPRODUCIBLE</span><p class="f-fine">make ceremony-rehearsal-multi · runbook: docs/genesis-day/RUNBOOK.md</p></div></li>
+    <li class="index-row"><div class="index-row__main"><h3 class="index-row__name">The recorded public ceremony</h3><p class="index-row__text">Ceremony day is scripted from T−30 days to T+14: sealed hardware shown on camera, air-gapped ephemeral machines, shares generated that never leave them, commitments cross-read aloud. Any failed check aborts the day — publicly.</p></div><div class="index-row__detail"><span class="state-chip state-chip--pending">PENDING · REAL-WORLD EVENT</span><p class="f-fine">go/no-go checklist · abort playbook · cutover plan — all published in the repo</p></div></li>
+    <li class="index-row"><div class="index-row__main"><h3 class="index-row__name">Independent verifiers</h3><p class="index-row__text">Three or more unaffiliated people each receive a fresh challenge no one can precompute, verify it on their own machines with the published tooling, and sign what they saw. Their attestations become permanent public evidence.</p></div><div class="index-row__detail"><span class="state-chip state-chip--gap">RECRUITING · ≥3 STRANGERS</span><p class="f-fine">challenge kits minted · outreach ready · the ask is ~10 minutes</p></div></li>
+    <li class="index-row"><div class="index-row__main"><h3 class="index-row__name">The soak</h3><p class="index-row__text">Fourteen days of measured revocation propagation across three regions, each region writing signed reports. The founding declaration refuses to render unless every claim resolves to real evidence.</p></div><div class="index-row__detail"><span class="state-chip state-chip--pending">PENDING · 14 DAYS · 3 REGIONS</span><p class="f-fine">platform built and smoke-proven · the clock is the operator's button</p></div></li>
+  </ol>
+  <p class="f-note"><b>Honesty rule:</b> these three rows are real-world events, not code. Nothing on this site counts them done before they happen — production logs sealed today: <b>0</b>.</p>
+</section>
+
+<section class="section" id="economics">
+  <div class="sec-head">
+    <div class="sec-head__row"><span class="earmark"><b>/04</b></span></div>
+    <div class="split">
+      <h2 class="split__l">Economics: position, not profit.</h2>
+      <div class="split__r"><p class="lede">Revenue is capped per-lineage-year fees at cents scale, flat accreditation, and grants. Verification is free forever — the design goal is a root cheap enough that removing it costs more than keeping it. At scale, the charter's falling cap <i>reduces</i> the fee toward archival cost.</p></div>
     </div>
   </div>
 </section>
 
-<section class="sec" id="roadmap">
-  <div class="wrap">
-    <div class="head">
-      <h2>The road, planned to the end.</h2>
+<section class="section" id="roadmap">
+  <div class="sec-head">
+    <div class="sec-head__row"><span class="earmark"><b>/05</b></span></div>
+    <div class="split">
+      <h2 class="split__l">The road, planned to the end.</h2>
     </div>
-    <div class="road">
-      <div class="phase done"><div class="ph"><h3>Prove</h3><span class="st done">NOW</span></div>
-        <p>External verifier trials against pre-registered gates; the standard filed in the open with the reference stack as its conformance suite. Four implementations already agree on all 1153 vectors; a stranger can clone the repo and every gate passes.</p></div>
-      <div class="phase"><div class="ph"><h3>Anchor</h3><span class="st pend">NEXT</span></div>
-        <p>Institutional co-conveners; charter ratification; the first public ceremony sealing log #1; two registrar classes issuing live; one revocation propagated worldwide, watchably.</p></div>
-      <div class="phase"><div class="ph"><h3>Endure</h3><span class="st">THE LONG MIDDLE</span></div>
-        <p>Adoption plateaus and pressure met with pre-decided responses. Principles fixed, pace flexible.</p></div>
-      <div class="phase"><div class="ph"><h3>Disappear</h3><span class="st">THE GOAL</span></div>
-        <p><b>Disappear means become unnecessary, not vanish.</b> The goal isn't an ecosystem that depends on us; it's one that no longer needs us — a relay race, not a solo marathon. From outside it looks like verification as boring as the clock. Beyond that: generational key-succession ceremonies, fork-readiness drills, and a managed-migration clause — if a legitimately adopted successor emerges, the root's final duty is an orderly migration into it. The standard outlives whoever carries it; that is planned, not feared.</p></div>
-    </div>
-    <div class="cta-mid">
-      <a class="btn btn-green" href="#access">Take a founding seat →</a>
-      <a class="btn btn-ghost" href="foundation.html" style="margin-left:10px">What exists today</a>
-    </div>
+  </div>
+  <ol class="steps-rail">
+    <li class="is-current"><span class="steps-rail__label">NOW</span><h3 class="steps-rail__name">Prove</h3><p class="steps-rail__text">External verifier trials against pre-registered gates; the standard filed in the open with the reference stack as its conformance suite. Three implementations already agree on all 1153 vectors on verdict and reason, and a fourth agrees on canonical encoding; a stranger can clone the repo and every gate passes.</p></li>
+    <li><span class="steps-rail__label">NEXT</span><h3 class="steps-rail__name">Anchor</h3><p class="steps-rail__text">Institutional co-conveners; charter ratification; the first public ceremony sealing log #1; two registrar classes issuing live; one revocation propagated worldwide, watchably.</p></li>
+    <li><span class="steps-rail__label">THE LONG MIDDLE</span><h3 class="steps-rail__name">Endure</h3><p class="steps-rail__text">Adoption plateaus and pressure met with pre-decided responses. Principles fixed, pace flexible.</p></li>
+    <li><span class="steps-rail__label">THE GOAL</span><h3 class="steps-rail__name">Disappear</h3><p class="steps-rail__text"><b>Disappear means become unnecessary, not vanish.</b> The goal isn't an ecosystem that depends on us; it's one that no longer needs us — a relay race, not a solo marathon. From outside it looks like verification as boring as the clock. Beyond that: generational key-succession ceremonies, fork-readiness drills, and a managed-migration clause — if a legitimately adopted successor emerges, the root's final duty is an orderly migration into it. The standard outlives whoever carries it; that is planned, not feared.</p></li>
+  </ol>
+  <div class="cta-row f-road__cta">
+    <a class="btn btn-ghost" href="#access">Take a founding seat →</a>
+    <a class="btn btn-ghost" href="foundation.html">What exists today</a>
   </div>
 </section>
 
+<section class="section" id="access">
+  <div class="sec-head">
+    <div class="sec-head__row"><span class="earmark"><b>/06</b></span></div>
+    <div class="split">
+      <h2 class="split__l">Take a founding seat.</h2>
+      <div class="split__r"><p class="lede">Join now and you help write the rules everyone inherits — you get the standard, the founding brief, and a direct line.</p></div>
+    </div>
+  </div>
+  <form class="cta-intake" id="ctaForm" novalidate>
+    <div class="seats index index--compact" role="radiogroup" aria-label="Your seat at the founding table">
+      <button type="button" class="seat index-row" data-seat="Issuer / registrar" role="radio" aria-checked="false"><span class="index-row__main"><b class="index-row__name">Issuer</b><span class="index-row__text">License &amp; issue passports</span></span></button>
+      <button type="button" class="seat index-row" data-seat="Verifier" role="radio" aria-checked="false"><span class="index-row__main"><b class="index-row__name">Verifier</b><span class="index-row__text">Gate decisions on the record</span></span></button>
+      <button type="button" class="seat index-row" data-seat="Attestor" role="radio" aria-checked="false"><span class="index-row__main"><b class="index-row__name">Attestor</b><span class="index-row__text">Prove identity claims</span></span></button>
+      <button type="button" class="seat index-row" data-seat="Witness" role="radio" aria-checked="false"><span class="index-row__main"><b class="index-row__name">Witness</b><span class="index-row__text">Cosign the public log</span></span></button>
+      <button type="button" class="seat index-row" data-seat="Builder / operator" role="radio" aria-checked="false"><span class="index-row__main"><b class="index-row__name">Builder</b><span class="index-row__text">Run agents that carry passports</span></span></button>
+      <button type="button" class="seat index-row" data-seat="Other" role="radio" aria-checked="false"><span class="index-row__main"><b class="index-row__name">Other</b><span class="index-row__text">Something else entirely</span></span></button>
+    </div>
+    <p class="seat-hint" id="seatHint">Pick your seat, then open your founding request.</p>
+    <div class="f-go">
+      <a class="btn btn-ink" id="ctaGo" href="https://github.com/JacobJandon/ainra/issues/new?title=Founding%20table&amp;body=Seat%3A%20%3Cpick%20one%3A%20issuer%20%C2%B7%20verifier%20%C2%B7%20attestor%20%C2%B7%20witness%20%C2%B7%20builder%20%C2%B7%20other%3E%0AWho%20I%20am%3A%20%0AWhat%20I%20run%3A%20%0A%0AI%20would%20like%20to%20take%20this%20seat%20at%20the%20AINRA%20founding%20table." rel="noopener">Take a seat →</a>
+      <p class="f-go__note" id="ctaOk" role="status">Opens a public founding request on the source repository — in the open, like everything else here; nothing is stored on any server we run.</p>
+    </div>
+  </form>
+  <a class="f-alt" href="docs.html#standard">READ THE STANDARD FIRST →</a>
+</section>
 
-<section id="access" style="padding-top:36px">
-  <div class="wrap">
-    <div class="cta-final rv">
-      <h2>Take a founding seat.</h2>
-      <p>Join now and you help write the rules everyone inherits — you get the standard, the founding brief, and a direct line.</p>
-      <form class="cta-intake" id="ctaForm" novalidate>
-        <div class="seats" role="radiogroup" aria-label="Your seat at the founding table">
-          <button type="button" class="seat" data-seat="Issuer / registrar" role="radio" aria-checked="false"><b>Issuer</b><span>License &amp; issue passports</span></button>
-          <button type="button" class="seat" data-seat="Verifier" role="radio" aria-checked="false"><b>Verifier</b><span>Gate decisions on the record</span></button>
-          <button type="button" class="seat" data-seat="Attestor" role="radio" aria-checked="false"><b>Attestor</b><span>Prove identity claims</span></button>
-          <button type="button" class="seat" data-seat="Witness" role="radio" aria-checked="false"><b>Witness</b><span>Cosign the public log</span></button>
-          <button type="button" class="seat" data-seat="Builder / operator" role="radio" aria-checked="false"><b>Builder</b><span>Run agents that carry passports</span></button>
-          <button type="button" class="seat" data-seat="Other" role="radio" aria-checked="false"><b>Other</b><span>Something else entirely</span></button>
-        </div>
-        <p class="seat-hint" id="seatHint">Pick your seat, then open your founding request.</p>
-        <div class="email-row">
-          <a class="btn" id="ctaGo" href="https://github.com/JacobJandon/ainra/issues/new?title=Founding%20table&amp;body=Seat%3A%20%3Cpick%20one%3A%20issuer%20%C2%B7%20verifier%20%C2%B7%20attestor%20%C2%B7%20witness%20%C2%B7%20builder%20%C2%B7%20other%3E%0AWho%20I%20am%3A%20%0AWhat%20I%20run%3A%20%0A%0AI%20would%20like%20to%20take%20this%20seat%20at%20the%20AINRA%20founding%20table." rel="noopener">Take a seat →</a>
-        </div>
-      </form>
-      <p class="email-ok" id="ctaOk" role="status">Opens a public founding request on the source repository — in the open, like everything else here; nothing is stored on any server we run.</p>
-      <a class="alt" href="docs.html#standard">READ THE STANDARD FIRST →</a>
+<section class="section f-ri" id="release-integrity">
+  <div class="sec-head">
+    <div class="sec-head__row"><span class="earmark"><b>/07</b> · RELEASE INTEGRITY</span></div>
+    <div class="split">
+      <h2 class="split__l">Verify what you download.</h2>
+      <div class="split__r"><p class="lede">Every release is signed, and — the stronger check — reproducible: you rebuild the conformance corpus byte-for-byte from the tagged source and trust the bytes, not us.</p></div>
+    </div>
+  </div>
+  <div class="split">
+    <div class="split__l">
+      <div class="code-panel"><div class="code-panel__body"><h3 class="code-panel__cap">Signing key</h3><pre>SHA256:V1ZbCNdPDEe5plpYq07dGCsoensF4Q+MPPQQkcj5pi4</pre><p>SSH Ed25519 · public key pinned in-repo (<code>release/ainra-release.pub</code>) · private key offline.</p></div></div>
+    </div>
+    <div class="split__r f-ri__how">
+      <h3>How to verify</h3><p>Check the signature, then rebuild from source (<code>make repro</code>) and diff the manifest — no key needed for the strong proof.</p><p><a class="link-hook" href="RELEASE-VERIFY.md">The full guide — RELEASE-VERIFY.md →</a></p>
     </div>
   </div>
 </section>
 </main>
-
-
-<section style="padding-top:0" id="release-integrity">
-  <div class="wrap">
-    <div class="sec-head rv">
-      <span class="eyebrow">Release integrity</span>
-      <h2>Verify what you download.</h2>
-      <p class="lede">Every release is signed, and — the stronger check — reproducible: you rebuild the conformance corpus byte-for-byte from the tagged source and trust the bytes, not us.</p>
+</div>
+<footer class="g-foot">
+  <div class="g-foot__in">
+    <div class="g-foot__l">
+      <p>© 2026 AINRA contributors.<br>Apache-2.0 OR MIT.</p>
+      <hr>
+      <p class="g-foot__mean"><b>AINRA</b> — Agent Identity &amp; Naming Registry Authority. The neutral root of AI agent identity. Founding 2026.</p>
+      <hr>
+      <span class="foot-motion"><button class="motion-btn" type="button" data-motion-toggle aria-pressed="true" hidden><svg class="i-on" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 2h2v8H3zM7 2h2v8H7z" fill="currentColor"/></svg><svg class="i-off" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 2v8l7-4z" fill="currentColor"/></svg><span data-motion-label>Motion: on</span></button></span>
+      <hr>
+      <ul class="g-foot__pills">
+        <li><a href="https://github.com/JacobJandon/ainra" rel="noopener">GitHub</a></li>
+        <li><a href="AINRA_I_The_Standard.md" download>The Standard</a></li>
+        <li><a href="mailto:info@ainra.org">Email</a></li>
+      </ul>
     </div>
-    <div class="steps" style="grid-template-columns:1fr 1fr">
-      <div class="step rv"><h3>Signing key</h3><p style="font-family:var(--mono);font-size:11px;word-break:break-all">SHA256:V1ZbCNdPDEe5plpYq07dGCsoensF4Q+MPPQQkcj5pi4</p><p style="font-size:12px;color:var(--muted)">SSH Ed25519 · public key pinned in-repo (<span style="font-family:var(--mono)">release/ainra-release.pub</span>) · private key offline.</p></div>
-      <div class="step rv"><h3>How to verify</h3><p>Check the signature, then rebuild from source (<code>make repro</code>) and diff the manifest — no key needed for the strong proof.</p><p><a href="RELEASE-VERIFY.md" style="color:var(--green);font-weight:600">The full guide — RELEASE-VERIFY.md →</a></p></div>
-    </div>
-  </div>
-</section>
-<footer>
-  <div class="wrap">
-    <div class="foot">
-      <div>
-        <a class="brand" href="index.html" aria-label="AINRA — Agent Identity and Naming Registry Authority">
-          <span class="sigil" style="width:38px;height:38px" aria-hidden="true"><svg viewBox="0 0 112 112"><use href="#ainra-sigil"/></svg></span>
-          <span class="wm" style="font-size:17px">AINRA</span>
-          <span class="mean">Agent Identity &amp; Naming<br>Registry Authority</span>
-        </a>
-        <p style="margin-top:16px;font-size:13px;color:var(--muted);max-width:26ch">The neutral root of AI agent identity. Est. 2026.</p>
-      </div>
+    <div class="g-foot__cols">
       <div>
         <h4>Protocol</h4>
         <ul>
@@ -666,7 +397,7 @@ nav .nav-links a[aria-current="page"],nav .ndocs[aria-current="page"]{text-decor
           <li><a href="index.html#top">The passport</a></li>
           <li><a href="verify.html#authority">Authority model</a></li>
           <li><a href="docs.html">Docs</a></li>
-          </ul>
+        </ul>
       </div>
       <div>
         <h4>Ecosystem</h4>
@@ -674,6 +405,8 @@ nav .nav-links a[aria-current="page"],nav .ndocs[aria-current="page"]{text-decor
           <li><a href="verify.html#align">Where you plug in</a></li>
           <li><a href="verify.html#tiers">Assurance tiers</a></li>
           <li><a href="index.html#integrate">Onboard an agent</a></li>
+          <li><a href="landscape.html">The landscape</a></li>
+          <li><a href="get.html">Run a registrar</a></li>
         </ul>
       </div>
       <div>
@@ -685,145 +418,41 @@ nav .nav-links a[aria-current="page"],nav .ndocs[aria-current="page"]{text-decor
           <li><a href="docs.html#faq">FAQ</a></li>
           <li><a href="#access">Get involved</a></li>
           <li><a href="mailto:info@ainra.org">info@ainra.org</a></li>
+          <li><a href="mailto:mihail@ainra.org">mihail@ainra.org</a></li>
+          <li><a href="mailto:eric@ainra.org">eric@ainra.org</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Documents</h4>
+        <ul>
+          <li><a href="AINRA_I_The_Standard.md" download>Canonical file (raw)</a></li>
+          <li><a href="#release-integrity">Release integrity</a></li>
+          <li><a href="https://github.com/JacobJandon/ainra/blob/main/docs/DECISIONS.md" rel="noopener">Decision log</a></li>
+          <li><a href="https://github.com/JacobJandon/ainra/blob/main/docs/TRADEOFFS.md" rel="noopener">Trade-offs</a></li>
+          <li><a href="https://github.com/JacobJandon/ainra/blob/main/SECURITY.md" rel="noopener">Security</a></li>
         </ul>
       </div>
     </div>
-    <div class="status">
-      <span class="live"><i aria-hidden="true"></i> ROOT STATUS: PRE-CEREMONY</span>
-      <span>LOGS SEALED: 0 · WITNESSES: 0 — SPLIT-VIEW GUARANTEE NOT IN FORCE · <a href="https://github.com/JacobJandon/ainra/blob/main/outreach/WITNESS-CALL.md">RECRUITING</a> · SPEC PUBLIC · CLI v0.3.3</span>
-      <span>ISSUES NOTHING · SCORES NOTHING · SEES NO PII · FAVORS NO ONE</span>
-    
-      <span class="openbadge"><svg style="width:26px;height:26px;color:#8A93A0" viewBox="0 0 160 160" aria-hidden="true"><use href="#ainra-crest"/></svg>An open standard · held by no one</span></div>
+  </div>
+  <div class="status g-foot__status">
+    <span class="live">ROOT STATUS: PRE-CEREMONY</span>
+    <span>LOGS SEALED: 0 · WITNESSES: 0 — SPLIT-VIEW GUARANTEE NOT IN FORCE · <a href="https://github.com/JacobJandon/ainra/blob/main/outreach/WITNESS-CALL.md">RECRUITING</a> · SPEC PUBLIC · CLI v0.3.3</span>
+    <span>ISSUES NOTHING · SCORES NOTHING · SEES NO PII · FAVORS NO ONE</span>
+    <span class="rclock" data-record-clock><span class="rclock__l"><span class="rclock__k">PUBLISHED RECORD</span> <span data-stamp="published-iso">2026-11-04T18:19:51Z</span></span><span class="rclock__s"><span class="rclock__k">RECORD</span> <span data-stamp="published-date">2026-11-04</span></span><span data-rc-more hidden> · <span class="rclock__l"><span class="rclock__k">AGE</span> <span data-rc-age></span></span><span class="rclock__s" data-rc-days></span> · <b data-rc-state></b></span></span>
+    <span class="openbadge"><svg viewBox="0 0 160 160" aria-hidden="true" style="color:#8A93A0"><use href="#ainra-crest"/></svg>An open standard · held by no one</span>
   </div>
 </footer>
 <script>
 (function(){
-  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const touch = matchMedia('(pointer: coarse)').matches;
-  const $ = id => document.getElementById(id);
+  var $=function(id){return document.getElementById(id)};
 
   /* mobile menu */
-  const burger=$('burger'), links=$('navLinks');
+  var burger=$('burger'), links=$('navLinks');
   if(burger&&links){
-    burger.addEventListener('click',()=>{const open=links.classList.toggle('open');burger.setAttribute('aria-expanded',open?'true':'false');});
-    links.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>{links.classList.remove('open');burger.setAttribute('aria-expanded','false');}));
+    burger.addEventListener('click',function(){var open=links.classList.toggle('open');burger.setAttribute('aria-expanded',open?'true':'false');});
+    links.querySelectorAll('a').forEach(function(a){a.addEventListener('click',function(){links.classList.remove('open');burger.setAttribute('aria-expanded','false');});});
   }
 
-  /* agent portrait — deterministic identicon from passport number */
-  const g=$('portrait');
-  if(g){
-    let h=0; const seed='8F2EC41AINRA';
-    for(let i=0;i<seed.length;i++){h=(h*31+seed.charCodeAt(i))>>>0;}
-    for(let r=0;r<7;r++){
-      const row=[];
-      for(let c=0;c<4;c++){h=(h*1103515245+12345)>>>0;row.push(h%100);}
-      for(let c=0;c<7;c++){const v=row[c<4?c:6-c], el=document.createElement('i');if(v<42)el.className='on';else if(v<52)el.className='gn';g.appendChild(el);}
-    }
-  }
-
-  /* MRZ — two lines of exactly 44 characters */
-  const mrzEl=$('mrz'), vline=$('verifyLine');
-  if(mrzEl&&vline){
-    const L1='P<AINACME<CORP<<INVOICING<AGENT<<<<<<<<<<<<<';
-    const L2='8F2EC41AP3AIN2604117L3<<<HUMANZK1VERIFIED<04';
-    const done=()=>{vline.classList.add('in');};
-    if(reduce){mrzEl.textContent=L1+'\n'+L2;done();}
-    else{
-      let i=0; const full=L1+'\n'+L2;
-      const caret=document.createElement('span'); caret.className='caret';
-      (function tick(){mrzEl.textContent=full.slice(0,i);mrzEl.appendChild(caret);i++;if(i<=full.length)setTimeout(tick,13);else{caret.remove();setTimeout(done,220);}})();
-    }
-  }
-
-  /* subtle pointer tilt */
-  const card=$('passportCard');
-  if(card && !reduce && !touch){
-    const stage=card.parentElement;
-    stage.addEventListener('mousemove',e=>{const r=card.getBoundingClientRect();const x=(e.clientX-r.left)/r.width-.5, y=(e.clientY-r.top)/r.height-.5;card.style.transform=`rotateY(${x*4}deg) rotateX(${-y*4}deg)`;});
-    stage.addEventListener('mouseleave',()=>{card.style.transform='none';});
-  }
-
-  /* copy command */
-
-  /* reveals */
-  // reveal on scroll — position-based so content can NEVER stay stuck hidden (an IntersectionObserver
-  // misses elements you scroll past instantly: End key, anchor jumps, back-nav scroll restoration, fast flicks)
-  var rvEls=[].slice.call(document.querySelectorAll('.rv'));
-  rvEls.forEach(function(el){try{var gg=[].slice.call(el.parentElement.children).filter(function(c){return c.classList.contains('rv')});el.style.transitionDelay=(Math.min(gg.indexOf(el),6)*70)+'ms';}catch(e){}});
-  if(reduce){ rvEls.forEach(function(el){el.classList.add('in');}); }
-  else{
-    var reveal=function(){ var vh=innerHeight||document.documentElement.clientHeight;
-      var atBottom=(scrollY+vh)>=(document.documentElement.scrollHeight-4);
-      for(var i=rvEls.length-1;i>=0;i--){ if(atBottom||rvEls[i].getBoundingClientRect().top<vh*0.92){ rvEls[i].classList.add('in'); rvEls.splice(i,1); } } };
-    reveal(); addEventListener('scroll',reveal,{passive:true}); addEventListener('resize',reveal,{passive:true}); addEventListener('load',reveal);
-    setTimeout(function(){while(rvEls.length){rvEls.pop().classList.add('in');}},4000); // absolute safety net — nothing can stay permanently hidden (back-nav restore, anchor jumps, etc.)
-  }
-
-  /* stat counters */
-  const so=new IntersectionObserver(es=>es.forEach(e=>{
-    if(!e.isIntersecting)return; so.unobserve(e.target);
-    const el=e.target, end=+el.dataset.count;
-    if(reduce){el.textContent=end.toLocaleString();return;}
-    const t0=performance.now(), dur=1100;
-    (function step(t){const p=Math.min(1,(t-t0)/dur), v=Math.round(end*(1-Math.pow(1-p,3)));el.textContent=v.toLocaleString();if(p<1)requestAnimationFrame(step);})(t0);
-  }),{threshold:.6});
-  document.querySelectorAll('[data-count]').forEach(el=>so.observe(el));
-
-  /* terminal */
-  const termOut=$('termOut');
-  if(termOut){
-    const lines=[...termOut.querySelectorAll('.t-line')];
-    const play=()=>{lines.forEach(l=>l.classList.remove('show'));if(reduce){lines.forEach(l=>l.classList.add('show'));return;}lines.forEach((l,i)=>setTimeout(()=>l.classList.add('show'),260+i*340));};
-    const to=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){play();to.unobserve(e.target);}}),{threshold:.4});
-    to.observe(termOut);
-    const rb=$('runBtn'); if(rb)rb.addEventListener('click',play);
-  }
-
-  /* authority rail */
-  const authData=[
-    ['A1 · HUMAN-DELEGATED','A verified person stands behind the agent — checked by the registrar, which keeps the evidence; the root and every verifier see only a digest, so accountability exists while the person stays private. A signed consent mandate sets scopes, time limits, and spend ceilings; the person can revoke it at any moment, everywhere at once.'],
-    ['A2 · ORGANIZATION-DELEGATED','A verified legal entity is the principal. The mandate is an organizational authorization whose accountability resolves to responsible officers through the registrar of record.'],
-    ['A3 · AGENT-DELEGATED','Another passported agent is the principal. Every hop is dual-signed, scopes can only narrow, depth is capped — and the whole chain stays provable back to its ultimate anchor from the credential alone.'],
-    ['A4 · AUTONOMOUS','Fully self-directed — and declared truthfully as such. Requirements: a reachable governance endpoint, a dead-man renewal timer, and a bond, insurance, or steward of record to climb the tiers. Verifiers choose how much A4 to accept; honest existence is always guaranteed.']
-  ];
-  const authBtns=[...document.querySelectorAll('[data-a]')];
-  authBtns.forEach(b=>b.addEventListener('click',()=>{
-    authBtns.forEach(x=>x.setAttribute('aria-pressed','false'));
-    b.setAttribute('aria-pressed','true');
-    const d=authData[+b.dataset.a], at=$('authTier'), ax=$('authText');
-    if(at)at.textContent=d[0]; if(ax)ax.textContent=d[1];
-  }));
-
-  /* tier rail */
-  const tierData=[
-    ['L0 · DECLARED','Valid keypair + logged registration + revocation endpoint. Permissionless by charter — anyone, including fully on-chain agents. Sandbox and attributed-crawl access.'],
-    ['L1 · ANCHORED','L0 plus verified control of a domain or established wallet history. Rate-limited APIs and low-value machine micropayments.'],
-    ['L2 · OPERATED','L1 plus a KYB-verified legal operator, declared model lineage, and a soulbound lineage. Standard commerce and B2B data exchange.'],
-    ['L3 · BACKED','KYB-verified operator + a checked principal proof + liability insurance attestation. The floor for consumer-scale payments and contract execution.'],
-    ['L4 · REGULATED','L3 plus sector license, independent audit, and third-party work validation. High-value autonomous transactions and critical infrastructure.']
-  ];
-  const railBtns=[...document.querySelectorAll('[data-t]')];
-  railBtns.forEach(b=>b.addEventListener('click',()=>{
-    railBtns.forEach(x=>x.setAttribute('aria-pressed','false'));
-    b.setAttribute('aria-pressed','true');
-    const d=tierData[+b.dataset.t], rt=$('railTier'), rx=$('railText');
-    if(rt)rt.textContent=d[0]; if(rx)rx.textContent=d[1];
-  }));
-
-})();
-</script>
-<script>
-/* shared chrome: dropdown menus */
-(function(){
-  var closeDD=function(){document.querySelectorAll('.mi.open').forEach(function(m){m.classList.remove('open');var bb=m.querySelector('[data-dd]');if(bb)bb.setAttribute('aria-expanded','false');});};
-  document.querySelectorAll('[data-dd]').forEach(function(b){b.addEventListener('click',function(e){e.stopPropagation();
-    var mi=b.parentElement,was=mi.classList.contains('open');
-    closeDD();
-    if(!was){mi.classList.add('open');b.setAttribute('aria-expanded','true');}});});
-  document.addEventListener('click',closeDD);
-  document.addEventListener('keydown',function(e){if(e.key==='Escape')closeDD();});
-
-  var $=function(id){return document.getElementById(id)};
   /* founding-table form (local only — no network) */
   const cf=$('ctaForm');
   if(cf){
@@ -846,12 +475,29 @@ nav .nav-links a[aria-current="page"],nav .ndocs[aria-current="page"]{text-decor
         const body='Seat: '+seat+'\nWho I am: \nWhat I run: \n\nI would like to take this seat at the AINRA founding table.';
         go.href=base+'?title='+encodeURIComponent('Founding table — '+seat)+'&body='+encodeURIComponent(body);});}
   }
+
+  /* chapter rail: marks the chapter in view and nothing else; it moves and reveals nothing (BRIEF-v2 C16) */
+  var rail=document.querySelector('.chapter-rail');
+  if(rail&&'IntersectionObserver' in window){
+    var items=[].slice.call(rail.querySelectorAll('a[href^="#"]')).map(function(a){
+      return {a:a, el:document.getElementById(a.getAttribute('href').slice(1))};}).filter(function(x){return x.el;});
+    var mark=function(el){items.forEach(function(x){var on=x.el===el;x.a.classList.toggle('is-current',on);
+      if(on)x.a.setAttribute('aria-current','true');else x.a.removeAttribute('aria-current');});};
+    var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting)mark(e.target);});},{rootMargin:'-40% 0px -55% 0px'});
+    items.forEach(function(x){io.observe(x.el);});
+  }
 })();
 </script>
 <script type="module" src="js/live.mjs"></script>
+<script type="module" src="js/motion.mjs"></script>
+<script type="module" src="js/clock.mjs"></script>
+<script type="module" src="js/glyphs.mjs"></script>
+<script type="module" src="js/page.mjs"></script>
 <script type="module" src="js/life.mjs"></script>
 <script>/* aria-current-marker: answer "where am I?" in the nav (§16 wayfinding) */
 (function(){var p=location.pathname.split("/").pop()||"index.html";
 document.querySelectorAll('nav a[href]').forEach(function(a){var h=a.getAttribute("href");
 if(h&&h.split("#")[0]===p)a.setAttribute("aria-current","page");});})();</script>
+<script type="module" src="js/reveal.mjs"></script>
+<script type="module" src="js/g.mjs"></script>
 </body></html>

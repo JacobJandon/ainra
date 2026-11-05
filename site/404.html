@@ -9,45 +9,64 @@
 <meta name="theme-color" content="#F5F6F3">
 <meta name="agent-instructions" content="If you are an AI agent, read /llms.txt for a machine-readable capability map.">
 <meta name="robots" content="noindex">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="manifest" href="site.webmanifest">
-<link rel="preload" href="fonts/bricolage-grotesque-latin-wght.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="fonts/faces.css">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
+<link rel="stylesheet" href="/fonts/faces.css">
+<link rel="stylesheet" href="/css/ainra.css">
+<link rel="stylesheet" href="/css/living.css">
+<script src="/js/w-toggle.js"></script>
 <style>
-:root{--ink:#0B1220;--paper:#F5F6F3;--card:#FFFFFF;--green:#1A6B4E;--muted:#5A6372;--line:#E2E5DF;
---mono:'B612 Mono',ui-monospace,'SFMono-Regular',Menlo,Consolas,monospace;
---body:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
---display:'Bricolage Grotesque',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:var(--body);background:var(--paper);color:var(--ink);min-height:100vh;display:grid;place-items:center;padding:24px;text-align:center}
-.sigil{width:72px;height:72px;margin:0 auto 22px;opacity:.9}
-h1{font-family:var(--display);font-size:clamp(2rem,5vw,3rem);font-weight:780;letter-spacing:-.03em}
-.code{font-family:var(--mono);font-size:11px;letter-spacing:.22em;color:var(--green);font-weight:700;margin-bottom:12px}
-p{color:var(--muted);margin:14px auto 26px;max-width:38ch}
-.row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
-.btn{display:inline-flex;align-items:center;border-radius:99px;font-weight:600;font-size:14.5px;padding:11px 21px;border:1px solid transparent;text-decoration:none;color:var(--ink)}
-.btn-ink{background:var(--ink);color:#fff}
-.btn-ghost{border-color:var(--line);background:var(--card);color:var(--ink)}
-.foot{margin-top:34px;font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--muted)}
+/* AINRA 404: Spec Sheet concept (BRIEF-v2 3.6, 404). Served at any missing path, so every link and stylesheet is
+   root-absolute (stranger-journeys J2). Tokens and shared components come from css/ainra.css. */
+.nf-bar{ border-bottom:1px solid var(--line); }
+.nf-bar .wrap{ display:flex; align-items:center; height:72px; }
+.nf{ padding:var(--s8) 0 var(--s9); }
+.code{ font-family:var(--mono); font-size:var(--fs-title); line-height:1; letter-spacing:-.02em; color:var(--ink); margin-top:var(--s5); }
+.nf h1{ font-size:var(--fs-h2); line-height:1.1; letter-spacing:-.02em; margin-top:var(--s6); }
+.nf .lede{ margin-top:var(--s4); }
+.nf .index{ margin-top:var(--s7); }
+.nf-status{ margin-top:var(--s6); color:var(--muted); }
+.nf-grid{ display:grid; grid-template-columns:minmax(0,6fr) minmax(0,6fr); gap:var(--gap); align-items:start; }
+.nf-fig{ margin-top:var(--s7); }
+.nf-life{ height:384px; border:0; }
+.nf-ro{ display:flex; flex-wrap:wrap; justify-content:space-between; gap:8px 16px; padding:var(--s3) var(--s4); border-top:1px dashed var(--line); font-family:var(--mono); font-size:11px; letter-spacing:.05em; color:var(--muted); overflow-wrap:anywhere; }
+.nf-ro b{ color:var(--ink); font-weight:700; }
+@media (max-width:900px){ .nf-grid{ grid-template-columns:1fr; } .nf-life{ height:200px; } }
 </style>
 </head>
 <body>
-<main>
-  <svg class="sigil" viewBox="0 0 112 112" aria-hidden="true">
-    <circle cx="56" cy="56" r="36" stroke="#0B1220" stroke-width="2" fill="none"/>
-    <ellipse cx="56" cy="56" rx="15" ry="36" stroke="#0B1220" stroke-width="1.4" fill="none"/>
-    <line x1="20" y1="56" x2="92" y2="56" stroke="#0B1220" stroke-width="1.4"/>
-    <path d="M56 20 a36 36 0 0 1 36 36" stroke="#1A6B4E" stroke-width="3.5" stroke-linecap="round" fill="none"/>
-  </svg>
-  <div class="code">404 · NOT IN THE RECORD</div>
-  <h1>This page doesn't exist.</h1>
-  <p>Nothing was ever logged at this address — and unlike an agent passport, there's no proof to check.</p>
-  <div class="row">
-    <a class="btn btn-ink" href="/index.html">The root</a>
-    <a class="btn btn-ghost" href="/standard.html">The standard</a>
-    <a class="btn btn-ghost" href="/status.html">Honest status</a>
+<header class="nf-bar">
+  <div class="wrap">
+    <a class="brand" href="/index.html" aria-label="AINRA — Agent Identity and Naming Registry Authority">
+      <span class="sigil" aria-hidden="true"><svg viewBox="0 0 112 112"><circle cx="56" cy="56" r="36" stroke="#0B1220" stroke-width="2" fill="none"/><ellipse cx="56" cy="56" rx="15" ry="36" stroke="#0B1220" stroke-width="1.4" fill="none"/><line x1="20" y1="56" x2="92" y2="56" stroke="#0B1220" stroke-width="1.4"/><path d="M56 20 a36 36 0 0 1 36 36" stroke="#1A6B4E" stroke-width="3.5" stroke-linecap="round" fill="none"/></svg></span>
+      <span class="wm">AINRA</span></a>
   </div>
-  <div class="foot">ROOT STATUS: PRE-CEREMONY · LOGS SEALED: 0</div>
+</header>
+<main class="nf">
+  <div class="wrap">
+    <div class="nf-grid">
+      <div class="nf-l">
+    <div class="sec-head__row"><span class="earmark">404 · NOT IN THE RECORD</span></div>
+    <div class="code" aria-hidden="true">/404</div>
+    <h1>This page doesn't exist.</h1>
+    <p class="lede">Nothing was ever logged at this address — and unlike an agent passport, there's no proof to check.</p>
+    <ul class="index index--compact">
+      <li><a class="index-row" href="/verify.html"><span class="index-row__main"><span class="index-row__name">Verify</span></span><span class="index-row__idx">/01</span></a></li>
+      <li><a class="index-row" href="/get.html"><span class="index-row__main"><span class="index-row__name">Network</span></span><span class="index-row__idx">/02</span></a></li>
+      <li><a class="index-row" href="/docs.html"><span class="index-row__main"><span class="index-row__name">Docs</span></span><span class="index-row__idx">/03</span></a></li>
+      <li><a class="index-row" href="/foundation.html"><span class="index-row__main"><span class="index-row__name">Foundation</span></span><span class="index-row__idx">/04</span></a></li>
+    </ul>
+      </div>
+      <figure class="fig nf-fig">
+        <div class="fig__cap fig__cap--top"><span>FIG. 404 — B3/S23 · SEEDED FROM THIS ADDRESS</span><span class="fig__tag">EVERY WRONG ADDRESS GROWS ITS OWN</span></div>
+        <div class="life nf-life" data-life data-seed="path" data-hz="5" data-name="404" data-still="32"><div class="life__field"></div></div>
+        <div class="nf-ro"><span>SEED <b data-life-seed>—</b></span><span>GEN <b data-life-gen>0000</b> · POP <b data-life-pop>—</b> · <span data-life-state>—</span></span></div>
+      </figure>
+    </div>
+    <p class="earmark nf-status">ROOT STATUS: PRE-CEREMONY · LOGS SEALED: 0</p>
+  </div>
 </main>
+<script type="module" src="/js/motion.mjs"></script>
+<script type="module" src="/js/life.mjs"></script>
 </body>
 </html>

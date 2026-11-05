@@ -2395,7 +2395,9 @@ now say that the reach of a revocation is per class: under 60 s at F1, 5 minutes
 every class failing closed. Measured and held by `make outage-drill` (`docs/drills/REGISTRAR-DARK.md`).
 
 *Changed:* the Standard §9 (one sentence) and its rendering in `site/docs.html`; the charter's Death rule in
-`site/docs.html`; `apps/landing/index.html`; `site/llms.txt`; `docs/FREEZE.sha256`; `docs/AMENDMENTS.md`.
+`site/docs.html`; `apps/landing/index.html` (two places — the second, its "Revoke" step, found 2026-11-05 after the
+first commit); `site/index.html`'s "The fix" line, which now says the revocation is *published* in under a minute;
+`site/llms.txt`; `docs/FREEZE.sha256`; `docs/AMENDMENTS.md`.
 
 *Status:* ACCEPTED 2026-11-05 by the operator's instruction "do we solve this make sure we fix if not already",
 given with the outside summary. P1–P6 are untouched: revocation still fails closed in every class; only the sentence

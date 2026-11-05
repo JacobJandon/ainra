@@ -655,3 +655,5 @@ nav:not([class]) .brand .wm{font-size:18px;line-height:20px}
   nav:not([class]) .nav-r .g-sq,nav:not([class]) .nav-r .g-menubtn{width:40px;height:40px;min-height:40px}
 }
 nav:not([class]) .nav-r .g-menubtn,nav:not([class]) .nav-r .g-sq{min-width:40px;max-width:40px;padding:0}
+/* on wide screens the header stops at the reference's width (about 1480 px) and sits centred */
+@media (min-width:701px){nav:not([class]) .nav-in,html.nav-float nav:not([class]) .nav-in{max-width:1480px;margin-left:auto;margin-right:auto}}

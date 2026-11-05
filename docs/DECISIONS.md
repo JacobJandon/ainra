@@ -2402,3 +2402,36 @@ first commit); `site/index.html`'s "The fix" line, which now says the revocation
 *Status:* ACCEPTED 2026-11-05 by the operator's instruction "do we solve this make sure we fix if not already",
 given with the outside summary. P1–P6 are untouched: revocation still fails closed in every class; only the sentence
 stating its reach was wrong.
+
+## D-093 — Who certifies the online delegates, and who moves a de-accredited registrar's passports (M52)
+
+*Problem:* PLAN-M52 step 14 found two sentences in the Standard that the code does not do.
+(1) §4 says sub-minute freshness signals are signed by "delegated online keys — **quarterly-certified by the root**
+… so the true root stays offline and any compromise is bounded to one quarter." In the code the delegate
+certificate (≤ 92 days, scoped, `crates/ainra-core/src/checkpoint.rs`) is signed by **each registrar's own log-root
+key**, which the root-signed directory lists per registrar (`crates/ainra-adapter/src/lib.rs`: a fresh head verifies
+to `anchor.log_root_key`). The AINRA root signs only directory epochs; it never certifies a delegate and never signs on
+a schedule. And a compromise is bounded to one certificate window only if the log root is held apart from the daemon
+that uses the delegate — `docs/ICANN-STUDY.md` §8 already says never to claim the quarter bound otherwise.
+(2) §3's enforcement ladder ends with "its passports enter a grace window for **supervised transfer** to other
+registrars." Nothing in the code transfers a passport, supervises a transfer, or has a grace window
+(`crates/ainra-core/src/consts.rs`: "no grace period anywhere"), and P6 forbids the root choosing a gaining registrar.
+
+*Options:* (a) change the code to match the text — have the root certify delegates quarterly, and build a root-run
+transfer; (b) bring the text to the code, and say what is planned.
+
+*Proposed:* (b). (a)'s first half puts the root on a signing schedule, which the design avoids on purpose (one act:
+publish an epoch); its second half would have the root decide where customers go, which P6 forbids.
+
+| Where | Says today | Would say |
+|---|---|---|
+| Standard §4 | "delegated online keys — quarterly-certified by the root … any compromise is bounded to one quarter" | "delegated online keys, certified for at most 92 days by each registrar's own log-root key, which the root-signed directory lists; the root itself signs only directory epochs. A compromised delegate is bounded to its certificate window only while the log root is kept apart from the delegate." |
+| Standard §3 ladder | "its passports enter a grace window for supervised transfer to other registrars" | "its passports stay verifiable until their own expiry or revocation; the holder may move to another accredited registrar of its choosing (holder-driven portability, PLAN-M52 step 12, not built yet). The root never chooses the gaining registrar (P6)." |
+| Site copies of the Standard | — | follow in the same commit (`site/docs.html` § The Standard, `site/standard.md`, `site/AINRA_I_The_Standard.md`) |
+
+By the normative path (an ADR in the MTS, this record, a dated `docs/AMENDMENTS.md` entry before the change,
+`make freeze` in the same commit, `make amendment-check` passing).
+
+*Not changed:* the wire format, the frozen reasons, every corpus, P1–P6.
+
+*Status:* PROPOSED 2026-11-05 — the operator to accept or reject. Until then the Standard is unchanged.

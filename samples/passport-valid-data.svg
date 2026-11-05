@@ -2,7 +2,7 @@
 
   <defs>
     <g id="ainra-sigil">
-      <path d="M 98.4 33.5 A 48 48 0 1 0 78.5 13.6" fill="none" stroke="#0B1220" stroke-width="3" stroke-linecap="round"/>
+      <path d="M 98.4 33.5 A 48 48 0 1 1 78.5 13.6" fill="none" stroke="#0B1220" stroke-width="3" stroke-linecap="round"/>
       <path d="M 95.8 29.2 L 98.7 27.2 M 91.7 23.9 L 94.3 21.5 M 86.9 19.2 L 89.1 16.6" stroke="#0B1220" stroke-width="1" opacity=".5"/>
       <path d="M 80.6 11.5 L 83.4 18.5 L 76.4 15.7 Z" fill="#0B1220"/>
       <circle cx="79.6" cy="14.2" r="1.1" fill="#F5F6F3"/>
@@ -15,7 +15,7 @@
       <circle cx="56" cy="56" r="2.4" fill="#0B1220"/>
     </g>
     <g id="ainra-sigil-lt">
-      <path d="M 98.4 33.5 A 48 48 0 1 0 78.5 13.6" fill="none" stroke="#E7EAF0" stroke-width="3" stroke-linecap="round"/>
+      <path d="M 98.4 33.5 A 48 48 0 1 1 78.5 13.6" fill="none" stroke="#E7EAF0" stroke-width="3" stroke-linecap="round"/>
       <path d="M 95.8 29.2 L 98.7 27.2 M 91.7 23.9 L 94.3 21.5 M 86.9 19.2 L 89.1 16.6" stroke="#E7EAF0" stroke-width="1" opacity=".5"/>
       <path d="M 80.6 11.5 L 83.4 18.5 L 76.4 15.7 Z" fill="#E7EAF0"/>
       <circle cx="79.6" cy="14.2" r="1.1" fill="#0B1220"/>

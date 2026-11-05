@@ -14,7 +14,7 @@
 <link rel="stylesheet" href="/fonts/faces.css">
 <link rel="stylesheet" href="/css/ainra.css">
 <link rel="stylesheet" href="/css/living.css">
-<script src="/js/w-toggle.js"></script>
+<link rel="stylesheet" href="/css/g-shell.css">
 <style>
 /* AINRA 404: Spec Sheet concept (BRIEF-v2 3.6, 404). Served at any missing path, so every link and stylesheet is
    root-absolute (stranger-journeys J2). Tokens and shared components come from css/ainra.css. */
@@ -32,16 +32,105 @@
 .nf-ro{ display:flex; flex-wrap:wrap; justify-content:space-between; gap:8px 16px; padding:var(--s3) var(--s4); border-top:1px dashed var(--line); font-family:var(--mono); font-size:11px; letter-spacing:.05em; color:var(--muted); overflow-wrap:anywhere; }
 .nf-ro b{ color:var(--ink); font-weight:700; }
 @media (max-width:900px){ .nf-grid{ grid-template-columns:1fr; } .nf-life{ height:200px; } }
+main.nf{padding-top:clamp(104px,9vw,140px)}
 </style>
 </head>
 <body>
-<header class="nf-bar">
-  <div class="wrap">
-    <a class="brand" href="/index.html" aria-label="AINRA — Agent Identity and Naming Registry Authority">
-      <span class="sigil" aria-hidden="true"><svg viewBox="0 0 112 112"><circle cx="56" cy="56" r="36" stroke="#0B1220" stroke-width="2" fill="none"/><ellipse cx="56" cy="56" rx="15" ry="36" stroke="#0B1220" stroke-width="1.4" fill="none"/><line x1="20" y1="56" x2="92" y2="56" stroke="#0B1220" stroke-width="1.4"/><path d="M56 20 a36 36 0 0 1 36 36" stroke="#1A6B4E" stroke-width="3.5" stroke-linecap="round" fill="none"/></svg></span>
-      <span class="wm">AINRA</span></a>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <pattern id="stipple" width="4.4" height="4.4" patternUnits="userSpaceOnUse"><circle cx="1.3" cy="1.3" r="1.02" fill="#0B1220"/></pattern>
+    <pattern id="stipple2" width="4.4" height="4.4" patternUnits="userSpaceOnUse" patternTransform="translate(2.2,2.2)"><circle cx="1.3" cy="1.3" r=".62" fill="#0B1220" opacity=".5"/></pattern>
+    <pattern id="pixfill" width="7" height="7" patternUnits="userSpaceOnUse"><rect x="0.8" y="0.8" width="4.4" height="4.4" fill="#0B1220"/></pattern>
+    <pattern id="pixfill2" width="14" height="14" patternUnits="userSpaceOnUse"><rect x="1" y="1" width="4.4" height="4.4" fill="#0B1220" opacity=".35"/></pattern>
+    <g id="ainra-sigil">
+      <path d="M 98.4 33.5 A 48 48 0 1 1 78.5 13.6" fill="none" stroke="#0B1220" stroke-width="3" stroke-linecap="round"/>
+      <path d="M 95.8 29.2 L 98.7 27.2 M 91.7 23.9 L 94.3 21.5 M 86.9 19.2 L 89.1 16.6" stroke="#0B1220" stroke-width="1" opacity=".5"/>
+      <path d="M 80.6 11.5 L 83.4 18.5 L 76.4 15.7 Z" fill="#0B1220"/>
+      <circle cx="79.6" cy="14.2" r="1.1" fill="#F5F6F3"/>
+      <circle cx="56" cy="56" r="36" stroke="#0B1220" stroke-width="1.2" fill="none"/>
+      <circle cx="56" cy="56" r="26" stroke="#0B1220" stroke-width="1.6" fill="none"/>
+      <ellipse cx="56" cy="56" rx="11" ry="26" stroke="#0B1220" stroke-width="1" fill="none"/>
+      <line x1="30" y1="56" x2="82" y2="56" stroke="#0B1220" stroke-width="1.1"/>
+      <path d="M33.5 43 h45 M33.5 69 h45" stroke="#0B1220" stroke-width="0.8" opacity="0.6"/>
+      <path d="M56 30 a26 26 0 0 1 26 26" stroke="#1A6B4E" stroke-width="3" stroke-linecap="round" fill="none"/>
+      <circle cx="56" cy="56" r="2.4" fill="#0B1220"/>
+    </g>
+    <g id="ainra-sigil-lt">
+      <path d="M 98.4 33.5 A 48 48 0 1 1 78.5 13.6" fill="none" stroke="#E7EAF0" stroke-width="3" stroke-linecap="round"/>
+      <path d="M 95.8 29.2 L 98.7 27.2 M 91.7 23.9 L 94.3 21.5 M 86.9 19.2 L 89.1 16.6" stroke="#E7EAF0" stroke-width="1" opacity=".5"/>
+      <path d="M 80.6 11.5 L 83.4 18.5 L 76.4 15.7 Z" fill="#E7EAF0"/>
+      <circle cx="79.6" cy="14.2" r="1.1" fill="#0B1220"/>
+      <circle cx="56" cy="56" r="36" stroke="#E7EAF0" stroke-width="1.2" fill="none"/>
+      <circle cx="56" cy="56" r="26" stroke="#E7EAF0" stroke-width="1.6" fill="none"/>
+      <ellipse cx="56" cy="56" rx="11" ry="26" stroke="#E7EAF0" stroke-width="1" fill="none"/>
+      <line x1="30" y1="56" x2="82" y2="56" stroke="#E7EAF0" stroke-width="1.1"/>
+      <path d="M33.5 43 h45 M33.5 69 h45" stroke="#E7EAF0" stroke-width="0.8" opacity="0.6"/>
+      <path d="M56 30 a26 26 0 0 1 26 26" stroke="#57C08F" stroke-width="3" stroke-linecap="round" fill="none"/>
+      <circle cx="56" cy="56" r="2.4" fill="#E7EAF0"/>
+    </g>
+    <g id="ainra-crest">
+      <circle cx="80" cy="80" r="78" fill="none" stroke="currentColor" stroke-width="2.5"/>
+      <circle cx="80" cy="80" r="70" fill="none" stroke="currentColor" stroke-width="1"/>
+      <circle cx="80" cy="80" r="46" fill="none" stroke="currentColor" stroke-width="1.4"/>
+      <path id="crestpath" d="M 80 22 a 58 58 0 1 1 -0.01 0" fill="none"/>
+      <text font-family="B612 Mono,monospace" font-size="10.5" letter-spacing="3.2" fill="currentColor" font-weight="700"><textPath href="#crestpath" startOffset="0">· AINRA · THE IDENTITY LAYER · EST. GENESIS ·</textPath></text>
+      <circle cx="80" cy="80" r="6" fill="currentColor"/>
+    </g>
+  </defs>
+</svg>
+<nav><div class="wrap nav-in">
+  <a class="brand" href="/index.html" aria-label="AINRA — Agent Identity and Naming Registry Authority">
+    <span class="sigil" aria-hidden="true"><svg viewBox="0 0 112 112"><use href="#ainra-sigil"/></svg></span>
+    <span class="wm">AINRA</span></a>
+  <div class="nav-links-d" hidden>
+    <a href="/verify.html">Verify</a>
+    <a href="/get.html">Network</a>
+    <a href="/landscape.html">Landscape</a>
+    <a href="/foundation.html">Foundation</a>
+    <a href="/docs.html">Docs</a>
   </div>
-</header>
+  <div class="nav-r"><a class="btn btn-ghost" href="/verify.html#try">Try it live →</a><a class="g-sq" href="/get.html#browse" aria-label="Search"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.5"/></svg></a><button class="g-menubtn" type="button" data-g-menu aria-expanded="false" aria-controls="gMenu"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" stroke-width="1.5" fill="none"/></svg><span class="vh">Menu</span></button></div>
+  <div class="nav-links" id="navLinks"><a href="/index.html">The root</a><a href="/verify.html">Verify</a><a href="/get.html">Network</a><a href="/landscape.html">Landscape</a><a href="/foundation.html">Foundation</a><a href="/docs.html">Docs</a><a href="/foundation.html#access">Join the founding table</a><a href="https://github.com/JacobJandon/ainra" rel="noopener"><svg class="gh" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>GitHub</a></div>
+</div></nav>
+<div class="g-menu" id="gMenu" role="dialog" aria-modal="true" aria-labelledby="gMenuTitle" hidden>
+  <div class="wrap g-menu__in">
+    <h2 class="vh" id="gMenuTitle">Menu</h2>
+    <p class="g-menu__about"><b>AINRA</b> — Agent Identity &amp; Naming Registry Authority. An open standard, held by no one.</p>
+    <div class="g-menu__cols">
+      <div class="g-menu__col">
+        <p class="g-menu__k">Navigation</p>
+        <ul class="g-menu__big">
+          <li><a href="/verify.html">Verify</a><ul><li><a href="/verify.html#try">↳ Try a passport</a></li><li><a href="/docs.html#verify">↳ How a check works</a></li></ul></li>
+          <li><a href="/get.html">Network</a></li>
+          <li><a href="/landscape.html">Landscape</a></li>
+          <li><a href="/foundation.html">Foundation</a><ul><li><a href="/foundation.html#access">↳ Join the founding table</a></li></ul></li>
+          <li><a href="/docs.html">Docs</a><ul><li><a href="/docs.html#standard">↳ The Standard</a></li><li><a href="/docs.html#install">↳ Install</a></li></ul></li>
+        </ul>
+      </div>
+      <div class="g-menu__col">
+        <p class="g-menu__k">The record, as published</p>
+        <dl class="g-menu__kv">
+          <div><dt>Passports in the record</dt><dd data-stamp="issued">80</dd></div>
+          <div><dt>Registrars</dt><dd data-stamp="registrars">2</dd></div>
+          <div><dt>Revoked</dt><dd data-stamp="revoked">53</dd></div>
+          <div><dt>Witnesses</dt><dd>0 · <a href="https://github.com/JacobJandon/ainra/blob/main/outreach/WITNESS-CALL.md">recruiting</a></dd></div>
+        </dl>
+        <p class="g-menu__note">Read from <a href="/net/registry.json">net/registry.json</a>.</p>
+      </div>
+      <div class="g-menu__col">
+        <p class="g-menu__k">Quick links</p>
+        <ul class="g-menu__small">
+          <li><a href="https://github.com/JacobJandon/ainra">Source on GitHub</a></li>
+          <li><a href="/docs.html#standard">Read the Standard</a></li>
+          <li><a href="/scan.html">Browse the record</a></li>
+          <li><a href="/RELEASE-VERIFY.md">Verify a release</a></li>
+          <li><a href="/llms.txt">For AI agents: llms.txt</a></li>
+          <li><a href="mailto:info@ainra.org">info@ainra.org</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
 <main class="nf">
   <div class="wrap">
     <div class="nf-grid">
@@ -66,7 +155,78 @@
     <p class="earmark nf-status">ROOT STATUS: PRE-CEREMONY · LOGS SEALED: 0</p>
   </div>
 </main>
+<footer class="g-foot">
+  <div class="g-foot__in">
+    <div class="g-foot__l">
+      <p>© 2026 AINRA contributors.<br>Apache-2.0 OR MIT.</p>
+      <hr>
+      <p class="g-foot__mean"><b>AINRA</b> — Agent Identity &amp; Naming Registry Authority. The neutral root of AI agent identity. Founding 2026.</p>
+      <hr>
+      <span class="foot-motion"><button class="motion-btn" type="button" data-motion-toggle aria-pressed="true" hidden><svg class="i-on" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 2h2v8H3zM7 2h2v8H7z" fill="currentColor"/></svg><svg class="i-off" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 2v8l7-4z" fill="currentColor"/></svg><span data-motion-label>Motion: on</span></button></span>
+      <hr>
+      <ul class="g-foot__pills">
+        <li><a href="https://github.com/JacobJandon/ainra" rel="noopener">GitHub</a></li>
+        <li><a href="/AINRA_I_The_Standard.md" download>The Standard</a></li>
+        <li><a href="mailto:info@ainra.org">Email</a></li>
+      </ul>
+    </div>
+    <div class="g-foot__cols">
+      <div>
+        <h4>Protocol</h4>
+        <ul>
+          <li><a href="/docs.html#standard">The standard</a></li>
+          <li><a href="/ainra-cli-v0.3.3.zip">Reference CLI v0.3.3</a></li>
+          <li><a href="https://github.com/JacobJandon/ainra" rel="noopener">Source — the full reference impl</a></li>
+          <li><a href="/index.html#top">The passport</a></li>
+          <li><a href="/verify.html#authority">Authority model</a></li>
+          <li><a href="/docs.html">Docs</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Ecosystem</h4>
+        <ul>
+          <li><a href="/verify.html#align">Where you plug in</a></li>
+          <li><a href="/verify.html#tiers">Assurance tiers</a></li>
+          <li><a href="/index.html#integrate">Onboard an agent</a></li>
+          <li><a href="/landscape.html">The landscape</a></li>
+          <li><a href="/get.html">Run a registrar</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Root</h4>
+        <ul>
+          <li><a href="/docs.html#one-root">What the root does</a></li>
+          <li><a href="/docs.html#charter">Charter</a></li>
+          <li><a href="/foundation.html#plan">The plan</a></li>
+          <li><a href="/docs.html#faq">FAQ</a></li>
+          <li><a href="/foundation.html#access">Get involved</a></li>
+          <li><a href="mailto:info@ainra.org">info@ainra.org</a></li>
+          <li><a href="mailto:mihail@ainra.org">mihail@ainra.org</a></li>
+          <li><a href="mailto:eric@ainra.org">eric@ainra.org</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Documents</h4>
+        <ul>
+          <li><a href="/AINRA_I_The_Standard.md" download>Canonical file (raw)</a></li>
+          <li><a href="/foundation.html#release-integrity">Release integrity</a></li>
+          <li><a href="https://github.com/JacobJandon/ainra/blob/main/docs/DECISIONS.md" rel="noopener">Decision log</a></li>
+          <li><a href="https://github.com/JacobJandon/ainra/blob/main/docs/TRADEOFFS.md" rel="noopener">Trade-offs</a></li>
+          <li><a href="https://github.com/JacobJandon/ainra/blob/main/SECURITY.md" rel="noopener">Security</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="status g-foot__status">
+    <span class="live">ROOT STATUS: PRE-CEREMONY</span>
+    <span>LOGS SEALED: 0 · WITNESSES: 0 — SPLIT-VIEW GUARANTEE NOT IN FORCE · <a href="https://github.com/JacobJandon/ainra/blob/main/outreach/WITNESS-CALL.md">RECRUITING</a> · SPEC PUBLIC · CLI v0.3.3</span>
+    <span>ISSUES NOTHING · SCORES NOTHING · SEES NO PII · FAVORS NO ONE</span>
+    <span class="rclock" data-record-clock><span class="rclock__l"><span class="rclock__k">PUBLISHED RECORD</span> <span data-stamp="published-iso">2026-11-04T18:19:51Z</span></span><span class="rclock__s"><span class="rclock__k">RECORD</span> <span data-stamp="published-date">2026-11-04</span></span><span data-rc-more hidden> · <span class="rclock__l"><span class="rclock__k">AGE</span> <span data-rc-age></span></span><span class="rclock__s" data-rc-days></span> · <b data-rc-state></b></span></span>
+    <span class="openbadge"><svg viewBox="0 0 160 160" aria-hidden="true" style="color:#8A93A0"><use href="#ainra-crest"/></svg>An open standard · held by no one</span>
+  </div>
+</footer>
 <script type="module" src="/js/motion.mjs"></script>
 <script type="module" src="/js/life.mjs"></script>
+<script type="module" src="/js/g.mjs"></script>
 </body>
 </html>

@@ -189,7 +189,7 @@ if (gi) setTimeout(() => gi.classList.add("is-in"), document.getElementById("gIn
 // behind it, and ink again once the film reaches its light footage or the hero scrolls out from under it
 const heroVid = document.querySelector(".g-hero [data-film]"), heroBoxEl = document.querySelector(".g-hero");
 if (heroVid && heroBoxEl) {
-  const OPENING = 5.0;
+  const OPENING = 4.0;
   const setDark = () => {
     const r = heroBoxEl.getBoundingClientRect(), underNav = r.top < 90 && r.bottom > 90;
     html.classList.toggle("nav-on-dark", underNav && heroVid.currentTime < OPENING);
@@ -198,16 +198,59 @@ if (heroVid && heroBoxEl) {
   addEventListener("scroll", setDark, { passive: true }); setDark();
 }
 
-// the wider argument: the talk loads from its host only when the reader presses play (nothing is requested before)
+// the wider argument (Docs): the talk loads from its host only when the reader presses play — nothing is requested before
 for (const box of document.querySelectorAll("[data-yt]")) box.querySelector("[data-yt-load]")?.addEventListener("click", () => {
   const t = box.querySelector("template"); if (!t) return; box.replaceChildren(t.content.cloneNode(true)); box.querySelector("iframe")?.focus();
 });
 
-// blueprint clips beside "who runs it": load and play only while on screen, and only with motion on
-const bpv = document.querySelectorAll("video[data-bp-video]");
-if (bpv.length && "IntersectionObserver" in window) {
-  const io = new IntersectionObserver((es) => es.forEach(({ target: v, isIntersecting: on }) => {
-    if (on && html.dataset.motion !== "off") { if (!v.getAttribute("src")) v.src = v.dataset.src; v.play().catch(() => {}); } else v.pause();
-  }), { threshold: 0.35 });
-  bpv.forEach((v) => io.observe(v));
+// ── search, the way the reference does it: the header's search button opens a full-screen panel; the field waits
+// mid-screen with popular searches under it; typing lifts it under the header and lists matching parts of the site,
+// read from one static index (search-index.json) — nothing typed ever leaves the browser. Esc or the button closes it.
+const sBtn = document.querySelector("nav .g-sq");
+if (sBtn) {
+  const POPULAR = [["Verify an agent", "verify"], ["Revocation", "revocation"], ["Freshness class", "freshness"], ["Get a passport", "passport"], ["Charter", "charter"]];
+  const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const icon = sBtn.innerHTML, closeIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>';
+  let ov, input, list, clear, idx = null, t = 0;
+  const load = () => idx ? Promise.resolve(idx) : fetch("/search-index.json").then((r) => r.json()).then((d) => (idx = d)).catch(() => (idx = []));
+  const mark = (s, toks) => toks.reduce((h, k) => h.replace(new RegExp(`(${k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "gi"), "<mark>$1</mark>"), esc(s));
+  const render = async () => {
+    const q = input.value.trim().toLowerCase(); ov.classList.toggle("has-q", !!q); clear.hidden = !q;
+    if (!q) { list.innerHTML = ""; return; }
+    const toks = q.split(/\s+/).filter(Boolean), d = await load();
+    const hits = d.map((e) => { const tl = e.t.toLowerCase(), hay = `${tl} ${e.x.toLowerCase()} ${e.p.toLowerCase()}`;
+      if (!toks.every((k) => hay.includes(k))) return null;
+      return { e, s: toks.reduce((n, k) => n + (tl.includes(k) ? 3 : 1), 0) + (tl.startsWith(q) ? 5 : 0) }; })
+      .filter(Boolean).sort((a, b) => b.s - a.s).slice(0, 12);
+    list.innerHTML = hits.length ? hits.map(({ e }) => `<li><a href="/${esc(e.u)}"><span class="g-search__p">${esc(e.p)}</span><span class="g-search__t">${mark(e.t, toks)}</span><span class="g-search__x">${mark(e.x, toks)}</span></a></li>`).join("")
+      : `<li class="g-search__none">No results found</li>`;
+  };
+  const build = () => {
+    ov = document.createElement("div"); ov.className = "g-search"; ov.id = "gSearch"; ov.hidden = true;
+    ov.setAttribute("role", "dialog"); ov.setAttribute("aria-modal", "true"); ov.setAttribute("aria-label", "Search this site");
+    ov.innerHTML = `<div class="g-search__in"><form class="g-search__form" role="search"><label class="vh" for="gSearchQ">Search this site</label><input id="gSearchQ" class="g-search__q" type="search" autocomplete="off" spellcheck="false" placeholder="Start typing to search"><button class="g-search__clear" type="button" hidden>× Clear</button></form>`
+      + `<div class="g-search__pop"><span class="g-search__k">Popular searches</span>${POPULAR.map(([l, q]) => `<button type="button" data-q="${q}">${l}</button>`).join("")}</div>`
+      + `<ol class="g-search__res" aria-live="polite"></ol></div>`;
+    document.body.append(ov);
+    input = ov.querySelector("input"); list = ov.querySelector(".g-search__res"); clear = ov.querySelector(".g-search__clear");
+    input.addEventListener("input", () => { clearTimeout(t); t = setTimeout(render, 70); });
+    clear.addEventListener("click", () => { input.value = ""; render(); input.focus(); });
+    ov.querySelector(".g-search__pop").addEventListener("click", (e) => { const b = e.target.closest("[data-q]"); if (!b) return; input.value = b.dataset.q; render(); input.focus(); });
+    ov.querySelector("form").addEventListener("submit", (e) => { e.preventDefault(); const a = list.querySelector("a"); if (a) location.href = a.href; });
+    ov.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") { e.preventDefault(); close(); return; }
+      if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+      const links = [...list.querySelectorAll("a")]; if (!links.length) return; e.preventDefault();
+      const i = links.indexOf(document.activeElement), n = e.key === "ArrowDown" ? (i + 1) % links.length : i <= 0 ? -1 : i - 1;
+      (n < 0 ? input : links[n]).focus();
+    });
+  };
+  const open = () => { if (!ov) build(); ov.hidden = false; void ov.offsetWidth; html.classList.add("g-search-open");
+    sBtn.setAttribute("aria-expanded", "true"); sBtn.setAttribute("aria-label", "Close search"); sBtn.innerHTML = closeIcon; load(); setTimeout(() => input.focus(), 30); };
+  const close = () => { html.classList.remove("g-search-open"); sBtn.setAttribute("aria-expanded", "false"); sBtn.setAttribute("aria-label", "Search"); sBtn.innerHTML = icon;
+    setTimeout(() => { if (!html.classList.contains("g-search-open")) ov.hidden = true; }, 300); sBtn.focus(); };
+  sBtn.setAttribute("aria-label", "Search"); sBtn.setAttribute("aria-controls", "gSearch"); sBtn.setAttribute("aria-expanded", "false");
+  sBtn.addEventListener("click", (e) => { e.preventDefault(); html.classList.contains("g-search-open") ? close() : open(); });
+  document.querySelector("nav .g-menubtn")?.addEventListener("click", () => { if (html.classList.contains("g-search-open")) close(); }, true);
+  addEventListener("keydown", (e) => { if (e.key === "/" && !/input|textarea|select/i.test(document.activeElement?.tagName || "") && !html.classList.contains("g-search-open")) { e.preventDefault(); open(); } });
 }

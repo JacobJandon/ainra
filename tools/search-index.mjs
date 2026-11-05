@@ -7,7 +7,7 @@ import { join } from "node:path";
 
 const SITE = new URL("../site/", import.meta.url).pathname;
 const PAGES = [["index.html", "Home"], ["verify.html", "Verify"], ["get.html", "Network"], ["landscape.html", "Landscape"],
-  ["foundation.html", "Foundation"], ["docs.html", "Docs"]];
+  ["foundation.html", "Foundation"], ["docs.html", "Docs"], ["request-demo.html", "Demo"]];
 const ent = { amp: "&", lt: "<", gt: ">", quot: '"', "#39": "'", nbsp: " ", mdash: "—", ndash: "–", rsquo: "’", lsquo: "‘", ldquo: "“", rdquo: "”", hellip: "…", middot: "·", rarr: "→", eacute: "é" };
 const text = (h) => h.replace(/<[^>]+>/g, " ").replace(/&(#?\w+);/g, (m, e) => ent[e] ?? (e[0] === "#" ? String.fromCodePoint(e[1] === "x" || e[1] === "X" ? parseInt(e.slice(2), 16) : +e.slice(1)) : m)).replace(/\s+/g, " ").trim();
 

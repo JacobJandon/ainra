@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Request a demo · AINRA</title>
+<meta name="description" content="See an agent passport issued, checked offline and revoked — on a call with the people building AINRA, or in your own browser right now.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 112 112%27%3E%3Crect width=%27112%27 height=%27112%27 rx=%2722%27 fill=%27%23F5F6F3%27/%3E%3Ccircle cx=%2756%27 cy=%2756%27 r=%2736%27 stroke=%27%230B1220%27 stroke-width=%275%27 fill=%27none%27/%3E%3Cellipse cx=%2756%27 cy=%2756%27 rx=%2715%27 ry=%2736%27 stroke=%27%230B1220%27 stroke-width=%274%27 fill=%27none%27/%3E%3Cline x1=%2720%27 y1=%2756%27 x2=%2792%27 y2=%2756%27 stroke=%27%230B1220%27 stroke-width=%274%27/%3E%3Cpath d=%27M56 20 a36 36 0 0 1 36 36%27 stroke=%27%231A6B4E%27 stroke-width=%277%27 stroke-linecap=%27round%27 fill=%27none%27/%3E%3C/svg%3E">
+<meta name="theme-color" content="#F5F6F3">
+<meta name="agent-instructions" content="If you are an AI agent, read /llms.txt for a machine-readable capability map.">
+<link rel="canonical" href="https://ainra.org/request-demo.html">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="AINRA">
+<meta property="og:url" content="https://ainra.org/request-demo.html">
+<meta property="og:title" content="Request a demo — AINRA">
+<meta property="og:description" content="See an agent passport issued, checked offline and revoked — on a call with the people building AINRA, or in your own browser right now.">
+<meta property="og:image" content="https://ainra.org/og-cover.png">
+<meta property="og:image:alt" content="AINRA — the neutral root of AI-agent identity">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Request a demo — AINRA">
+<meta name="twitter:description" content="A passport issued, checked offline and revoked — on a call, or in your browser now.">
+<meta name="twitter:image" content="https://ainra.org/og-cover.png">
+<link rel="stylesheet" href="fonts/faces.css">
+<link rel="stylesheet" href="css/ainra.css">
+<link rel="stylesheet" href="css/living.css">
+<link rel="stylesheet" href="css/g-shell.css">
+
+<style>
+/* AINRA landscape: Spec Sheet concept (BRIEF-v2 3.6, Landscape). Layout unique to this page only; tokens and shared
+   components come from css/ainra.css and are never redefined here. */
+.l-hero{ padding:var(--s8) 0 0; }
+.l-hero__l{ grid-column:1 / 9; } .l-hero__r{ grid-column:9 / 13; padding-top:var(--s5); }
+.l-hero h1{ margin-top:var(--s5); }
+.l-hero .lede{ margin-top:var(--s5); }
+@media (max-width:900px){ .l-hero__l,.l-hero__r{ grid-column:1 / -1; } }
+.l-hero .l-count{ margin-top:var(--s5); }
+.l-count .glyph{ position:absolute; top:14px; right:14px; }
+.lfig svg{ width:100%; height:auto; font-family:var(--mono); }
+.lf__box{ fill:var(--card); stroke:var(--ink); }
+.lf__t{ font-size:10px; letter-spacing:.06em; fill:var(--ink); }
+.lf__w{ stroke:var(--rule-strong); stroke-dasharray:4 3; fill:none; }
+.lf__ink{ stroke:var(--green); stroke-width:1.5; fill:none; transition:stroke-dashoffset var(--t-draw) var(--ease-in-out); }
+.lf__lab{ font-size:10px; fill:var(--muted); letter-spacing:.04em; }
+.lf__bar{ fill:var(--mint); stroke:var(--green); }
+.lf__h{ font-size:11px; font-weight:700; letter-spacing:.06em; fill:var(--green-deep); }
+.l-proof{ font-size:var(--fs-lead); line-height:1.45; color:var(--ink-soft); }
+.l-proof code{ font-size:var(--fs-data); color:var(--ink); background:var(--card); border:1px solid var(--line); border-radius:var(--r-ctl); padding:1px 6px; white-space:nowrap; }
+.l-count{ margin-top:var(--s7); border:1px solid var(--line); background:var(--card); padding:var(--s5); gap:var(--s3); max-width:62rem; }
+.l-count__text{ font-size:var(--fs-lead); line-height:1.45; color:var(--ink); max-width:46ch; }
+.l-count__text b{ font-family:var(--mono); font-weight:700; letter-spacing:.02em; }
+</style>
+<style>
+/* request a demo: two ways in, side by side; the first on ink */
+.rd-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;margin-top:8px}
+.rd-card{display:flex;flex-direction:column;gap:16px;align-items:flex-start;background:var(--card);border:1px solid var(--line);padding:clamp(24px,3vw,44px);clip-path:polygon(0 0,calc(100% - 28px) 0,100% 28px,100% 100%,0 100%)}
+.rd-card--ink{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.rd-card h3{font-size:clamp(26px,2.6vw,40px);line-height:1.08;letter-spacing:-.03em;font-weight:500;margin:0}
+.rd-card p{margin:0;line-height:1.5;max-width:46ch}
+.rd-card--ink h3{color:var(--paper)}
+.rd-card--ink p{color:#C9CED6}
+.rd-k{font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--green-deep)}
+.rd-card--ink .rd-k{color:#8FD9B4}
+.rd-card--ink .btn{background:var(--paper);color:var(--ink);border-color:var(--paper)}
+.rd-mail{font-family:var(--mono);font-size:14px;user-select:all}
+@media (max-width:760px){.rd-grid{grid-template-columns:1fr}}
+</style>
+<script>/* reveal only when motion is on (the same decision as js/motion.mjs), set before first paint */
+try{var m=localStorage.getItem("ainra-motion");if(m!=="off"&&(m==="on"||!matchMedia("(prefers-reduced-motion: reduce)").matches))document.documentElement.classList.add("rv")}catch(e){if(!matchMedia("(prefers-reduced-motion: reduce)").matches)document.documentElement.classList.add("rv")}
+/* fail safe: if js/reveal.mjs never starts, show everything rather than leave the page hidden */
+setTimeout(function(){var h=document.documentElement;if(!h.dataset.rvReady)h.classList.remove("rv")},2500)</script>
+</head>
+<body class="gi-page" id="top">
+<div class="g-intro" id="gIntro" aria-hidden="true"><div class="g-intro__panel"><svg class="g-intro__mark" viewBox="0 0 112 112">
+      <path class="gi-body" pathLength="1" d="M 98.4 33.5 A 48 48 0 1 1 78.5 13.6" fill="none" stroke="#0B1220" stroke-width="3" stroke-linecap="round"/>
+      <path d="M 95.8 29.2 L 98.7 27.2 M 91.7 23.9 L 94.3 21.5 M 86.9 19.2 L 89.1 16.6" stroke="#0B1220" stroke-width="1" opacity=".5"/>
+      <path d="M 80.6 11.5 L 83.4 18.5 L 76.4 15.7 Z" fill="#0B1220"/>
+      <circle cx="79.6" cy="14.2" r="1.1" fill="#F5F6F3"/>
+      <circle cx="56" cy="56" r="36" stroke="#0B1220" stroke-width="1.2" fill="none"/>
+      <circle cx="56" cy="56" r="26" stroke="#0B1220" stroke-width="1.6" fill="none"/>
+      <ellipse cx="56" cy="56" rx="11" ry="26" stroke="#0B1220" stroke-width="1" fill="none"/>
+      <line x1="30" y1="56" x2="82" y2="56" stroke="#0B1220" stroke-width="1.1"/>
+      <path d="M33.5 43 h45 M33.5 69 h45" stroke="#0B1220" stroke-width="0.8" opacity="0.6"/>
+      <path d="M56 30 a26 26 0 0 1 26 26" stroke="#1A6B4E" stroke-width="3" stroke-linecap="round" fill="none"/>
+      <circle cx="56" cy="56" r="2.4" fill="#0B1220"/>
+    </svg></div></div>
+
+<a href="#main" class="skip">Skip to content</a>
+
+<div class="announce"><div class="wrap"><span class="announce__msg">Real issuance + the real record on a <b>TEST-ROOT</b> — every passport here is a labelled specimen with real cryptography, verified on your machine. <a href="foundation.html">Honest status →</a></span><span class="announce__side"><span class="rclock" data-record-clock><span class="rclock__l"><span class="rclock__k">PUBLISHED RECORD</span> <span data-stamp="published-iso">2026-11-04T18:19:51Z</span></span><span class="rclock__s"><span class="rclock__k">RECORD</span> <span data-stamp="published-date">2026-11-04</span></span><span data-rc-more hidden> · <span class="rclock__l"><span class="rclock__k">AGE</span> <span data-rc-age></span></span><span class="rclock__s" data-rc-days></span> · <b data-rc-state></b></span></span><button class="motion-btn" type="button" data-motion-toggle aria-pressed="true" hidden><svg class="i-on" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 2h2v8H3zM7 2h2v8H7z" fill="currentColor"/></svg><svg class="i-off" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 2v8l7-4z" fill="currentColor"/></svg><span data-motion-label>Motion: on</span></button></span></div></div>
+
+<nav><div class="wrap nav-in">
+  <a class="brand" href="index.html" aria-label="AINRA — Agent Identity and Naming Registry Authority">
+    <span class="sigil" aria-hidden="true"><svg viewBox="0 0 112 112"><use href="#ainra-sigil"/></svg></span>
+    <span class="wm">AINRA</span></a>
+  <div class="nav-links-d" hidden>
+    <a href="verify.html">Verify</a>
+    <a href="get.html">Network</a>
+    <a href="landscape.html">Landscape</a>
+    <a href="foundation.html">Foundation</a>
+    <a href="docs.html">Docs</a>
+  </div>
+  <div class="nav-r"><a class="btn btn-ghost" href="request-demo.html">Request a demo →</a><a class="g-sq" href="get.html#browse" aria-label="Search"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.5"/></svg></a><button class="g-menubtn" type="button" data-g-menu aria-expanded="false" aria-controls="gMenu"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" stroke-width="1.5" fill="none"/></svg><span class="vh">Menu</span></button></div>
+  <div class="nav-links" id="navLinks"><a href="index.html">The root</a><a href="verify.html">Verify</a><a href="get.html">Network</a><a href="landscape.html">Landscape</a><a href="foundation.html">Foundation</a><a href="docs.html">Docs</a><a href="foundation.html#access">Join the founding table</a><a href="https://github.com/JacobJandon/ainra" rel="noopener"><svg class="gh" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>GitHub</a></div>
+</div></nav>
+<div class="g-menu" id="gMenu" role="dialog" aria-modal="true" aria-labelledby="gMenuTitle" hidden>
+  <div class="wrap g-menu__in">
+    <h2 class="vh" id="gMenuTitle">Menu</h2>
+    <p class="g-menu__about"><b>AINRA</b> — Agent Identity &amp; Naming Registry Authority. An open standard, held by no one.</p>
+    <div class="g-menu__cols">
+      <div class="g-menu__col">
+        <p class="g-menu__k">Navigation</p>
+        <ul class="g-menu__big">
+          <li><a href="verify.html">Verify</a><ul><li><a href="verify.html#try">↳ Try a passport</a></li><li><a href="docs.html#verify">↳ How a check works</a></li></ul></li>
+          <li><a href="get.html">Network</a></li>
+          <li><a href="landscape.html">Landscape</a></li>
+          <li><a href="foundation.html">Foundation</a><ul><li><a href="foundation.html#access">↳ Join the founding table</a></li></ul></li>
+          <li><a href="docs.html">Docs</a><ul><li><a href="docs.html#standard">↳ The Standard</a></li><li><a href="docs.html#install">↳ Install</a></li></ul></li>
+        </ul>
+      </div>
+      <div class="g-menu__col">
+        <p class="g-menu__k">The record, as published</p>
+        <dl class="g-menu__kv">
+          <div><dt>Passports in the record</dt><dd data-stamp="issued">80</dd></div>
+          <div><dt>Registrars</dt><dd data-stamp="registrars">2</dd></div>
+          <div><dt>Revoked</dt><dd data-stamp="revoked">53</dd></div>
+          <div><dt>Witnesses</dt><dd>0 · <a href="https://github.com/JacobJandon/ainra/blob/main/outreach/WITNESS-CALL.md">recruiting</a></dd></div>
+        </dl>
+        <p class="g-menu__note">Read from <a href="net/registry.json">net/registry.json</a>.</p>
+      </div>
+      <div class="g-menu__col">
+        <p class="g-menu__k">Quick links</p>
+        <ul class="g-menu__small">
+          <li><a href="https://github.com/JacobJandon/ainra">Source on GitHub</a></li>
+          <li><a href="docs.html#standard">Read the Standard</a></li>
+          <li><a href="scan.html">Browse the record</a></li>
+          <li><a href="RELEASE-VERIFY.md">Verify a release</a></li>
+          <li><a href="llms.txt">For AI agents: llms.txt</a></li>
+          <li><a href="mailto:info@ainra.org">info@ainra.org</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<header class="gi-hero" id="g-top">
+  <div class="wrap">
+    <nav class="gi-sub" aria-label="On this page"><span class="gi-sub__k">AINRA / Demo</span><a href="#request">See a passport issued,…</a><a href="#covers">Four steps, on real…</a><a href="#contact">Other ways to reach us.</a></nav>
+    <h1 class="gi-title" aria-label="Demo"><span style="--i:0">D</span><span style="--i:1">e</span><span style="--i:2">m</span><span style="--i:3">o</span></h1>
+<aside class="g-side" id="gSide" aria-label="About this page" data-side>
+  <div class="g-side__head"><span>Details</span><button class="g-side__x" type="button" aria-label="Close details" data-side-close>×</button></div>
+  <ul>
+    <li><a href="mailto:info@ainra.org?subject=Demo%20request"><span>Email</span>info@ainra.org — we answer and set a time</a></li>
+    <li><a href="verify.html#try"><span>Try</span>The live verifier, in this browser</a></li>
+    <li><a href="foundation.html#access"><span>Join</span>A founding seat for registrars and custodians</a></li>
+  </ul>
+</aside>
+<button class="g-side__tab" type="button" aria-controls="gSide" aria-expanded="false" data-side-open>Details</button>
+  </div>
+</header>
+
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><g id="ainra-sigil">
+  <path d="M 98.4 33.5 A 48 48 0 1 1 78.5 13.6" fill="none" stroke="#0B1220" stroke-width="3" stroke-linecap="round"/>
+  <path d="M 80.6 11.5 L 83.4 18.5 L 76.4 15.7 Z" fill="#0B1220"/>
+  <circle cx="56" cy="56" r="36" stroke="#0B1220" stroke-width="1.2" fill="none"/>
+  <circle cx="56" cy="56" r="26" stroke="#0B1220" stroke-width="1.6" fill="none"/>
+  <ellipse cx="56" cy="56" rx="11" ry="26" stroke="#0B1220" stroke-width="1" fill="none"/>
+  <line x1="30" y1="56" x2="82" y2="56" stroke="#0B1220" stroke-width="1.1"/>
+  <path d="M56 30 a26 26 0 0 1 26 26" stroke="#1A6B4E" stroke-width="3" stroke-linecap="round" fill="none"/>
+  <circle cx="56" cy="56" r="2.4" fill="#0B1220"/>
+</g>
+<g id="ainra-crest"><circle cx="80" cy="80" r="76" fill="none" stroke="currentColor" stroke-width="2.6"/><circle cx="80" cy="80" r="58" fill="none" stroke="currentColor" stroke-width="1.1"/><g transform="translate(27.7,27.7) scale(0.935)"><use href="#ainra-sigil"/></g></g>
+</defs></svg>
+
+<main id="main">
+<section class="section" id="request">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="sec-head__row"><span class="earmark"><b>/01</b> · REQUEST A DEMO</span></div>
+      <div class="split">
+        <h2 class="split__l">See a passport issued, checked and revoked.</h2>
+        <div class="split__r"><p class="lede">On a call with the people building AINRA, walking through your own systems — or on your own machine, right now. Nothing to install either way.</p></div>
+      </div>
+    </div>
+    <div class="rd-grid">
+      <article class="rd-card rd-card--ink">
+        <span class="rd-k">Talk to us</span>
+        <h3>Request a demo</h3>
+        <p>Write a few lines: what you are building, and where agents meet your systems — payments, an API, an internal fleet. We answer from info@ainra.org and set a time.</p>
+        <a class="btn" href="mailto:info@ainra.org?subject=Demo%20request">Email info@ainra.org →</a>
+        <p class="rd-mail">info@ainra.org</p>
+      </article>
+      <article class="rd-card">
+        <span class="rd-k">Try it yourself</span>
+        <h3>Verify an agent in this browser</h3>
+        <p>The real verifier, the same code that passes every conformance vector. About twenty seconds; nothing is uploaded, and the root is never contacted.</p>
+        <a class="btn btn-ghost" href="verify.html#try">Try it live →</a>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="covers">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="sec-head__row"><span class="earmark"><b>/02</b> · WHAT A DEMO COVERS</span></div>
+      <div class="split"><h2 class="split__l">Four steps, on real cryptography.</h2></div>
+    </div>
+    <ol class="index index--compact">
+      <li><div class="index-row"><span class="index-row__main"><span class="index-row__name">Issue</span><span class="index-row__text">A registrar issues a passport and writes it to its public log before it is valid.</span></span><span class="index-row__idx">/1</span></div></li>
+      <li><div class="index-row"><span class="index-row__main"><span class="index-row__name">Verify</span><span class="index-row__text">Your stack checks it offline: seven checks, a verdict or a named reason.</span></span><span class="index-row__idx">/2</span></div></li>
+      <li><div class="index-row"><span class="index-row__main"><span class="index-row__name">Revoke</span><span class="index-row__text">One bit in a signed list; each verifier refuses within the freshness class it chose.</span></span><span class="index-row__idx">/3</span></div></li>
+      <li><div class="index-row"><span class="index-row__main"><span class="index-row__name">Gate</span><span class="index-row__text">The middleware turns the verdict into an HTTP decision on your route, fail-closed.</span></span><span class="index-row__idx">/4</span></div></li>
+    </ol>
+  </div>
+</section>
+
+<section class="section" id="contact">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="sec-head__row"><span class="earmark"><b>/03</b> · CONTACT</span></div>
+      <div class="split"><h2 class="split__l">Other ways to reach us.</h2></div>
+    </div>
+    <ol class="index index--compact">
+      <li><a class="index-row" href="mailto:info@ainra.org"><span class="index-row__main"><span class="index-row__name">Email</span><span class="index-row__text">info@ainra.org — demos, partnerships, press, anything else.</span></span><span class="index-row__idx">↗</span></a></li>
+      <li><a class="index-row" href="https://github.com/JacobJandon/ainra/issues"><span class="index-row__main"><span class="index-row__name">Technical questions</span><span class="index-row__text">Open an issue on the public repository.</span></span><span class="index-row__idx">↗</span></a></li>
+      <li><a class="index-row" href="foundation.html#access"><span class="index-row__main"><span class="index-row__name">Founding seats</span><span class="index-row__text">Registrars, custodians and witnesses: take a seat at the founding table.</span></span><span class="index-row__idx">→</span></a></li>
+    </ol>
+  </div>
+</section>
+</main>
+
+<footer class="g-foot">
+  <div class="g-foot__in">
+    <div class="g-foot__l">
+      <p>© 2026 AINRA contributors.<br>Apache-2.0 OR MIT.</p>
+      <hr>
+      <p class="g-foot__mean"><b>AINRA</b> — Agent Identity &amp; Naming Registry Authority. The neutral root of AI agent identity. Founding 2026.</p>
+      <hr>
+      <span class="foot-motion"><button class="motion-btn" type="button" data-motion-toggle aria-pressed="true" hidden><svg class="i-on" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 2h2v8H3zM7 2h2v8H7z" fill="currentColor"/></svg><svg class="i-off" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 2v8l7-4z" fill="currentColor"/></svg><span data-motion-label>Motion: on</span></button></span>
+      <hr>
+      <ul class="g-foot__pills">
+        <li><a href="https://github.com/JacobJandon/ainra" rel="noopener">GitHub</a></li>
+        <li><a href="AINRA_I_The_Standard.md" download>The Standard</a></li>
+        <li><a href="mailto:info@ainra.org">Email</a></li>
+      </ul>
+    </div>
+    <div class="g-foot__cols">
+      <div>
+        <h4>Protocol</h4>
+        <ul>
+          <li><a href="docs.html#standard">The standard</a></li>
+          <li><a href="ainra-cli-v0.3.3.zip">Reference CLI v0.3.3</a></li>
+          <li><a href="https://github.com/JacobJandon/ainra" rel="noopener">Source — the full reference impl</a></li>
+          <li><a href="index.html#top">The passport</a></li>
+          <li><a href="verify.html#authority">Authority model</a></li>
+          <li><a href="docs.html">Docs</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Ecosystem</h4>
+        <ul>
+          <li><a href="verify.html#align">Where you plug in</a></li>
+          <li><a href="verify.html#tiers">Assurance tiers</a></li>
+          <li><a href="index.html#integrate">Onboard an agent</a></li>
+          <li><a href="landscape.html">The landscape</a></li>
+          <li><a href="get.html">Run a registrar</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Root</h4>
+        <ul>
+          <li><a href="docs.html#one-root">What the root does</a></li>
+          <li><a href="docs.html#charter">Charter</a></li>
+          <li><a href="foundation.html#plan">The plan</a></li>
+          <li><a href="docs.html#faq">FAQ</a></li>
+          <li><a href="foundation.html#access">Get involved</a></li>
+          <li><a href="mailto:info@ainra.org">info@ainra.org</a></li>
+          <li><a href="mailto:mihail@ainra.org">mihail@ainra.org</a></li>
+          <li><a href="mailto:eric@ainra.org">eric@ainra.org</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Documents</h4>
+        <ul>
+          <li><a href="AINRA_I_The_Standard.md" download>Canonical file (raw)</a></li>
+          <li><a href="foundation.html#release-integrity">Release integrity</a></li>
+          <li><a href="https://github.com/JacobJandon/ainra/blob/main/docs/DECISIONS.md" rel="noopener">Decision log</a></li>
+          <li><a href="https://github.com/JacobJandon/ainra/blob/main/docs/TRADEOFFS.md" rel="noopener">Trade-offs</a></li>
+          <li><a href="https://github.com/JacobJandon/ainra/blob/main/SECURITY.md" rel="noopener">Security</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="status g-foot__status">
+    <span class="live">ROOT STATUS: PRE-CEREMONY</span>
+    <span>LOGS SEALED: 0 · WITNESSES: 0 — SPLIT-VIEW GUARANTEE NOT IN FORCE · <a href="https://github.com/JacobJandon/ainra/blob/main/outreach/WITNESS-CALL.md">RECRUITING</a> · SPEC PUBLIC · CLI v0.3.3</span>
+    <span>ISSUES NOTHING · SCORES NOTHING · SEES NO PII · FAVORS NO ONE</span>
+    <span class="rclock" data-record-clock><span class="rclock__l"><span class="rclock__k">PUBLISHED RECORD</span> <span data-stamp="published-iso">2026-11-04T18:19:51Z</span></span><span class="rclock__s"><span class="rclock__k">RECORD</span> <span data-stamp="published-date">2026-11-04</span></span><span data-rc-more hidden> · <span class="rclock__l"><span class="rclock__k">AGE</span> <span data-rc-age></span></span><span class="rclock__s" data-rc-days></span> · <b data-rc-state></b></span></span>
+    <span class="openbadge"><svg viewBox="0 0 160 160" aria-hidden="true" style="color:#8A93A0"><use href="#ainra-crest"/></svg>An open standard · held by no one</span>
+  </div>
+</footer>
+
+<script>
+/* shared chrome: dropdown menus + mobile burger (same behavior as the peer content pages) */
+(function(){
+  var closeDD=function(){document.querySelectorAll('.mi.open').forEach(function(m){m.classList.remove('open');var bb=m.querySelector('[data-dd]');if(bb)bb.setAttribute('aria-expanded','false');});};
+  document.querySelectorAll('[data-dd]').forEach(function(b){b.addEventListener('click',function(e){e.stopPropagation();
+    var mi=b.parentElement,was=mi.classList.contains('open');
+    closeDD();
+    if(!was){mi.classList.add('open');b.setAttribute('aria-expanded','true');}});});
+  document.addEventListener('click',closeDD);
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')closeDD();});
+  var burger=document.getElementById('burger'),links=document.getElementById('navLinks');
+  if(burger&&links){
+    burger.addEventListener('click',function(){var open=links.classList.toggle('open');burger.setAttribute('aria-expanded',open?'true':'false');});
+    links.querySelectorAll('a').forEach(function(a){a.addEventListener('click',function(){links.classList.remove('open');burger.setAttribute('aria-expanded','false');});});
+  }
+})();
+</script>
+<script type="module" src="js/motion.mjs"></script>
+<script type="module" src="js/clock.mjs"></script>
+<script type="module" src="js/glyphs.mjs"></script>
+<script type="module" src="js/page.mjs"></script>
+<script type="module" src="js/life.mjs"></script>
+<script>/* aria-current-marker: answer "where am I?" in the nav (§16 wayfinding) */
+(function(){var p=location.pathname.split("/").pop()||"index.html";
+document.querySelectorAll('nav a[href]').forEach(function(a){var h=a.getAttribute("href");
+if(h&&h.split("#")[0]===p)a.setAttribute("aria-current","page");});})();</script>
+<script type="module" src="js/reveal.mjs"></script>
+<script type="module" src="js/g.mjs"></script>
+</body>
+</html>

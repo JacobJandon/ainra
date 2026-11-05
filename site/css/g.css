@@ -640,3 +640,18 @@ html[data-motion="off"] .g-search,html[data-motion="off"] .g-search__form{transi
   body{padding-bottom:70px}
   .g-side{bottom:70px}
 }
+
+/* the header's controls at the reference's exact sizes: a 205 × 40 main button (16 px, square corners), 40 × 40
+   search and menu squares joined, 30 px between them; the mark about 83 × 20 */
+nav:not([class]) .nav-r > .btn:first-child{min-width:205px;height:40px;min-height:40px;padding:0 16px;font-size:16px;border-radius:0;justify-content:center;margin-right:30px}
+nav:not([class]) .nav-r .g-sq,nav:not([class]) .nav-r .g-menubtn{width:40px;height:40px;min-height:40px;border-radius:0}
+nav:not([class]) .brand{gap:8px}
+nav:not([class]) .brand .sigil{width:22px;height:22px}
+nav:not([class]) .brand .wm{font-size:18px;line-height:20px}
+@media (max-width:700px){
+  nav:not([class]) .nav-in,.nav-float nav:not([class]) .nav-in{height:64px;min-height:64px;padding:0 20px}
+  .nav-r{left:20px;right:20px;bottom:calc(20px + env(safe-area-inset-bottom))}
+  nav:not([class]) .nav-r > .btn:first-child{min-width:0;height:40px;min-height:40px;margin:0 0 0 auto;padding:0 12px;font-size:16px}
+  nav:not([class]) .nav-r .g-sq,nav:not([class]) .nav-r .g-menubtn{width:40px;height:40px;min-height:40px}
+}
+nav:not([class]) .nav-r .g-menubtn,nav:not([class]) .nav-r .g-sq{min-width:40px;max-width:40px;padding:0}

@@ -2376,3 +2376,27 @@ by D-090's ledger: the per-registrar fetch row must change, or the change did no
 all". Built the same day: `tools/publish-static.mjs` writes `network-status.json` (named in `heads.json` by digest);
 `services/verify/test/publish.test.mjs` holds it to the served bytes; `make leak-ledger` records that a per-registrar
 fetch names the registrar and the network file names none, and its `--negative` undoes D-091 and is caught.
+
+## D-092 — Revocation reaches each verifier within its own freshness class (M52)
+
+*Problem:* the Standard §9 promised "a **global SLO of <60 seconds** issue-to-rejection", the charter's Death rule
+said every revocation is "honored everywhere in under a minute", and the landing page and `site/llms.txt` repeated it.
+The code does not do that by default: the SDK's verifier defaults to freshness class F2 (300 s), so a verifier on
+defaults can accept a revoked passport for up to five minutes after the revocation is published. Under a minute holds
+only for verifiers at F1 (30 s). Found while checking an outside summary of AINRA's trade-offs against the code
+(`docs/TRADEOFFS.md`).
+
+*Options:* (a) make F1 the SDK default, so the text becomes true; (b) bring the texts to the code.
+
+*Decision:* (b). F1 requires a fresh head no older than 30 s, so as a default it would make every agent refresh its
+status every 30 s and turn a registrar outage into a 30-second stop for every default verifier — the overhead and
+fragility an outside reader already counts against the design. The verifier chooses its class per action; the texts
+now say that the reach of a revocation is per class: under 60 s at F1, 5 minutes at F2 (the default), a day at F3,
+every class failing closed. Measured and held by `make outage-drill` (`docs/drills/REGISTRAR-DARK.md`).
+
+*Changed:* the Standard §9 (one sentence) and its rendering in `site/docs.html`; the charter's Death rule in
+`site/docs.html`; `apps/landing/index.html`; `site/llms.txt`; `docs/FREEZE.sha256`; `docs/AMENDMENTS.md`.
+
+*Status:* ACCEPTED 2026-11-05 by the operator's instruction "do we solve this make sure we fix if not already",
+given with the outside summary. P1–P6 are untouched: revocation still fails closed in every class; only the sentence
+stating its reach was wrong.

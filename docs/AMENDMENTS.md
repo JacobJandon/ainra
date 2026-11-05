@@ -66,3 +66,17 @@ touched. The public diff is the commit itself; the entry names it once it exists
   texts are brought to the code, not the other way round. Enforcing a depth cap, or adding real selective disclosure,
   would each be their own decision with a corpus. P1–P6 are untouched: P4 holds, and only the sentence describing its
   mechanism was wrong.
+
+## 2026-11-05 — The Standard §9: a revocation reaches each verifier within its freshness class (D-092)
+
+- **Era:** operator-run
+- **Approved by:** the operator, with this public record. The operator's instruction, given with an outside summary
+  of AINRA's trade-offs: "do we solve this make sure we fix if not already".
+- **Files touched:** `docs/AINRA_I_The_Standard.md` §9 (one sentence); its rendering and the charter's Death rule in
+  `site/docs.html`; `apps/landing/index.html`; `site/llms.txt`; `docs/FREEZE.sha256`. Decision record: `D-092` in
+  `docs/DECISIONS.md`. Evidence: `docs/drills/REGISTRAR-DARK.md` (`make outage-drill`).
+- **Rationale:** the sentence promised "a global SLO of <60 seconds issue-to-rejection". The SDK's verifier defaults
+  to freshness class F2 (300 s), so a default verifier can accept a revoked passport for up to five minutes; under a
+  minute holds at F1. Making F1 the default would make every agent refresh every 30 s and every registrar outage a
+  30-second stop, so the text is brought to the code: each verifier refuses within its own class — under 60 s at F1,
+  5 minutes at F2, a day at F3 — every class failing closed. P1–P6 are untouched.

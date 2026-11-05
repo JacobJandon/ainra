@@ -33,7 +33,7 @@ Public reference implementation (ten signed, board-proven releases; current: v0.
 
 - Names: one canonical, resolvable name per agent — `ainra:registrar:operator:lineage@version`.
 - Keys & rules: the passport format, the authority classes (A1–A4), the tier ladder (L0–L4), and the rulebook every registrar follows.
-- Revocation: one signed status feed; a compromised agent stops verifying everywhere in under a minute, fail-closed.
+- Revocation: one signed status feed; a compromised agent is refused by every verifier within its freshness window (30 s strict, 5 min default, a day offline), fail-closed.
 - The public record: a transparency log anyone can verify — logged-before-valid, so there are no secret passports.
 
 ## Verify (local, offline, ~5 lines)

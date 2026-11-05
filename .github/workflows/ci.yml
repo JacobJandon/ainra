@@ -183,6 +183,8 @@ jobs:
           done
       - name: the leak ledger — what each party learns from a verification, measured and held (D-090)
         run: node tools/leak-ledger.mjs && node tools/leak-ledger.mjs --negative
+      - name: the outage drill — a registrar goes dark; agents verify until each freshness window, then fail closed
+        run: node tools/outage-drill.mjs && node tools/outage-drill.mjs --negative
       # These two ran in `make preflight` but not here, so a public claim could be wrong on main with CI green: the
       # M37 commit overstated how many implementations share the request-signature layer (it is three), and only a local
       # preflight caught it (D-068). Both are node-only and need nothing built.

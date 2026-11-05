@@ -57,6 +57,7 @@ echo "  the download CLI == apps/cli-node (canonical); the Standard == docs/AINR
 # same renderer the browser uses), so every number reads with JavaScript off. Before the include sync, so the synced
 # nav/footer carry the stamped values.
 node tools/record-stamp.mjs
+node tools/search-index.mjs   # the search box reads this one static file
 
 # M17: keep the content pages' shared header/footer in sync from site/_includes/ (one source of truth, no drift).
 node tools/site-includes.mjs

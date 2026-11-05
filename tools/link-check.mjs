@@ -32,7 +32,7 @@ for (const p of pages) {
   for (const m of s.matchAll(/href="([^"#][^"]*?)(?:#([^"]+))?"/g)) {
     const [, file, anchor] = m;
     if (/^(https?:|mailto:|data:|tel:)/.test(file)) continue;
-    const rel = file.replace(/^\.\//, "");
+    const rel = file.replace(/^\.\//, "").replace(/^\//, "");   // root-absolute links (the 404 page, served at any depth) resolve from the site root
     if (!existsSync(join(SITE, rel))) { bad(`${p}: broken link → ${file}`); continue; }
     if (anchor && rel.endsWith(".html") && !ids[rel]?.has(anchor)) bad(`${p}: missing anchor ${rel}#${anchor}`);
   }

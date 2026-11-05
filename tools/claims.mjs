@@ -91,7 +91,7 @@ const CLAIMS = [
             "tools/conformance/CONTRACT.md", "tools/preflight.sh", "tools/outreach-check.mjs",
             "site/index.html", "site/docs.html", "site/foundation.html", "site/verify.html",
             "campaign/SPONSORS.md", "campaign/TEMPLATES.md", "campaign/FREE-INFRASTRUCTURE.md",
-            "site/llms.txt", "packages/sdk-py/ainra/verify.py", "tools/corpus-check.mjs",
+            "site/llms.txt", "site/search-index.json", "packages/sdk-py/ainra/verify.py", "tools/corpus-check.mjs",
             "docs/AINRA_Master_Technical_Specification_v1.md",
             // M30: the parity harness and its doc both cite the corpus size when explaining what the differential
             // does and does not cover. Registered rather than exempted — if the corpus grows, that explanation

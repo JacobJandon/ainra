@@ -106,7 +106,7 @@ if (html.classList.contains("rv") && "IntersectionObserver" in window) {
           for (const x of list) { mark(x, Math.min(k++, 8) * 40); io.observe(x); }
         }
       }
-      if (sec.id === "root") {
+      if (sec.id === "root" && sec.querySelector(".orbit svg")) {   // the G home draws its own rings figure
         const svg = sec.querySelector(".orbit svg");
         $$(".oring", svg).forEach((c, i) => c.style.setProperty("--d", `${i * 80}ms`));
         $$(".ochip, .otxt, .otag", svg).forEach((c) => { const y = +(c.getAttribute("y") || 320), x = +(c.getAttribute("x") || 320); c.style.setProperty("--d", `${150 + Math.hypot(x - 320, y - 320) * 1.2}ms`); });

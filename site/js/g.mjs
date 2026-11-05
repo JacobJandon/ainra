@@ -50,13 +50,13 @@ if (ann) {
 }
 
 // the feature carousel, as the reference moves it: a strip of cards that slides by one card; the selected chip fills
-// grey over 8 s and then the strip slides on; each card has its own previous / next arrows that rise in on hover or
+// grey over the card's own clip and then the strip slides on; each card has its own previous / next arrows that rise in on hover or
 // focus; three copies of the strip let it loop without a jump. Only the card in view plays its scene. Pointing at
 // it pauses the advance; choosing a chip or an arrow stops it; with motion off nothing moves by itself.
 const tabs = document.querySelector("[data-tabs]");
 if (tabs) {
   const chips = [...tabs.querySelectorAll("[role=tab]")], data = [...tabs.querySelectorAll("[data-tab-data] li")].map((li) => ({ ...li.dataset }));
-  const track = tabs.querySelector("[data-car-track]"), N = data.length, DWELL = 8000, GAP = 20;
+  const track = tabs.querySelector("[data-car-track]"), N = data.length, DWELL = 10000, GAP = 20;
   const arrow = (dir) => `<button type="button" class="g-car__arr g-car__arr--${dir}" data-car-step="${dir === "prev" ? -1 : 1}" aria-label="${dir === "prev" ? "Previous" : "Next"}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="${dir === "prev" ? "M19 12H5m6-6-6 6 6 6" : "M5 12h14m-6-6 6 6-6 6"}" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></button>`;
   for (let copy = 0; copy < 3; copy++) for (let i = 0; i < N; i++) {
     const d = data[i], el = document.createElement("div");
@@ -71,16 +71,23 @@ if (tabs) {
   const width = () => track.parentElement.getBoundingClientRect().width;
   const place = (animate) => { track.style.transition = animate && motion() ? "transform .5s cubic-bezier(.65,0,.35,1)" : "none"; track.style.transform = `translateX(${-pos * (width() + GAP)}px)`; };
   const playOnly = () => cards.forEach((c, k) => { const v = c.querySelector("video");
-    if (k === pos && onScreen) { if (!v.getAttribute("src")) v.src = v.dataset.src; if (motion()) v.play().catch(() => {}); } else v.pause(); });
+    if (k === pos && onScreen) { if (!v.getAttribute("src")) v.src = v.dataset.src; if (v.paused && !v.dataset.keep) v.currentTime = 0; if (motion()) v.play().catch(() => {}); } else v.pause(); });
   const sync = () => { const i = ((pos % N) + N) % N; chips.forEach((c, j) => { c.setAttribute("aria-selected", String(j === i)); c.tabIndex = j === i ? 0 : -1; }); playOnly(); run(); };
   const go = (to, animate = true) => { pos = to; place(animate); sync(); };
   // after a slide ends in a copy, jump back to the same card in the middle copy, without a transition
-  track.addEventListener("transitionend", () => { if (pos < N || pos >= 2 * N) { pos = ((pos % N) + N) % N + N; place(false); playOnly(); } });
+  track.addEventListener("transitionend", () => { if (pos < N || pos >= 2 * N) {
+    const was = cards[pos].querySelector("video"), t = was.currentTime;   // the same card in the middle copy carries on from here
+    pos = ((pos % N) + N) % N + N; place(false); const now = cards[pos].querySelector("video");
+    if (!now.getAttribute("src")) now.src = now.dataset.src; now.currentTime = t; now.dataset.keep = "1"; playOnly(); delete now.dataset.keep; } });
   const run = () => {
     clearTimeout(timer); tabs.classList.remove("is-running");
     if (chosen || hold || !onScreen || !motion()) return;
-    void tabs.offsetWidth; tabs.style.setProperty("--dwell", `${DWELL}ms`); tabs.classList.add("is-running");
-    timer = setTimeout(() => go(pos + 1), DWELL);
+    // each card stays for its own clip (scene, then its blueprint drawing in); the chip fills over the same time
+    const v = cards[pos]?.querySelector("video");
+    if (v && !(v.duration > 1) && !v.dataset.waiting) { v.dataset.waiting = "1"; v.addEventListener("loadedmetadata", () => { delete v.dataset.waiting; run(); }, { once: true }); }
+    const ms = v && v.duration > 1 && isFinite(v.duration) ? Math.round(v.duration * 1000) : DWELL;
+    void tabs.offsetWidth; tabs.style.setProperty("--dwell", `${ms}ms`); tabs.classList.add("is-running");
+    timer = setTimeout(() => go(pos + 1), ms);
   };
   chips.forEach((c, i) => c.addEventListener("click", () => { chosen = true; const cur = ((pos % N) + N) % N; go(pos + ((i - cur + N) % N)); }));
   track.addEventListener("click", (e) => { const b = e.target.closest("[data-car-step]"); if (b) { chosen = true; go(pos + Number(b.dataset.carStep)); } });
@@ -189,4 +196,18 @@ if (heroVid && heroBoxEl) {
   };
   heroVid.addEventListener("timeupdate", setDark); heroVid.addEventListener("seeked", setDark);
   addEventListener("scroll", setDark, { passive: true }); setDark();
+}
+
+// the wider argument: the talk loads from its host only when the reader presses play (nothing is requested before)
+for (const box of document.querySelectorAll("[data-yt]")) box.querySelector("[data-yt-load]")?.addEventListener("click", () => {
+  const t = box.querySelector("template"); if (!t) return; box.replaceChildren(t.content.cloneNode(true)); box.querySelector("iframe")?.focus();
+});
+
+// blueprint clips beside "who runs it": load and play only while on screen, and only with motion on
+const bpv = document.querySelectorAll("video[data-bp-video]");
+if (bpv.length && "IntersectionObserver" in window) {
+  const io = new IntersectionObserver((es) => es.forEach(({ target: v, isIntersecting: on }) => {
+    if (on && html.dataset.motion !== "off") { if (!v.getAttribute("src")) v.src = v.dataset.src; v.play().catch(() => {}); } else v.pause();
+  }), { threshold: 0.35 });
+  bpv.forEach((v) => io.observe(v));
 }

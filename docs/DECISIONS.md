@@ -2824,3 +2824,49 @@ list. The claims and corpus gates hold every count in prose. The Python reason t
 browser SDK is refreshed with the next `make site-demo`; no page uses a gate policy.
 
 *Status:* ACCEPTED 2026-11-06, the owner's yes to PLAN-M53 steps 5 and 6, with the offline condition above.
+
+## D-101 — The remote emergency ceremony: offline custodians, an untrusted relay, frames only (M53)
+
+*Problem:* the root's emergency stop is an emergency epoch (D-098). Five custodians must sign it, and the custodians
+are in five jurisdictions. D-094 item 4 decided that scheduled ceremonies are held in person and emergencies may be
+remote. Two things were missing: a way for the FROST rounds to cross between offline machines, and a time anyone had
+measured. D-094 item 3 states the emergency target "only once a remote-protocol drill has measured it".
+
+*Decision:* `kits/ceremony/remote.mjs`.
+
+- **Frames.** A ceremony round file becomes one or more text frames in the QR alphanumeric alphabet (base45, RFC
+  9285), each at most 1,800 characters. A frame names the session, the file's SHA-256, its place in the sequence,
+  and the file's path, with an explicit length because `/` is a base45 character.
+- **`pack` refuses anything outside `sign/` and `group/`.** Only public ceremony material crosses: nonces and key
+  shares never leave a custodian's home.
+- **`unpack` checks every file before writing any of them.** It refuses a frame from another session, a file whose
+  bytes do not hash to the digest its frames name, a path outside the public files, and the same file arriving with
+  two different contents.
+- **The relay needs no trust.** It is anyone who moves frames. A swapped commitment is caught by FROST, which
+  refuses the aggregate. Custodians who signed different messages are caught when the relay merges their signing
+  packages.
+
+The procedure is the RUNBOOK's new appendix.
+
+*WITNESS:* `make remote-ceremony-drill` (a preflight row). It builds a TEST-ROOT 5-of-9 group in a DKG that stands in
+for the in-person ceremony and is not timed. Then five custodians, each in its own process with no network
+interface (`unshare --net`), sign an emergency epoch digest. Only frames pass through the relay. The drill requires:
+- a connection attempt from inside a custodian fails;
+- the aggregate verifies;
+- packing a custodian's nonces is refused;
+- one character changed in a frame is refused, and nothing is written;
+- a frame from another session is refused;
+- a swapped commitment gets no signature;
+- a custodian who signed another message is caught at the merge.
+
+Where unprivileged network namespaces are blocked, as on many CI runners, every other witness still runs, and the
+drill says that isolation was not proven on that machine.
+
+*Measured* on this machine: about 1–2 seconds of machine time for five custodians end to end, 20 frames, 6,910
+bytes, the longest frame 887 characters (one QR code each). The time people need, to scan 20 codes, carry media and
+read a digest aloud, is not measured. The emergency target is therefore not yet stated. The next step is a
+rehearsal with people, which waits on the custodians (D-094 item 9).
+
+*Not changed:* the FROST rounds and the custodian binary; every format.
+
+*Status:* ACCEPTED 2026-11-06, building D-094 item 4.

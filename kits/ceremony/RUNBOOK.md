@@ -163,3 +163,28 @@ dkg-participant aggregate <postbox> <message-hex>
 This changes **no DoD row**: the real recorded ceremony with independent custodians + live entropy remains the pending
 real-world event (§ 5). The rehearsal is TEST-ROOT — a fresh run seed each time, labelled — and proves the *machinery*
 is distributable, not that the ceremony has been held.
+
+## Appendix — the remote emergency round (`make remote-ceremony-drill`, D-101)
+
+Scheduled ceremonies are held in person (D-094 item 4). An emergency epoch, such as a REVOKE-DELEGATE or a
+DISTRUST-FROM-LEAF on proof (D-098), may be signed remotely, with every signing machine still offline.
+
+1. Each custodian fetches the frozen proposal from two mirrors, re-derives its digest on the offline machine, and
+   reads it aloud on the call (R4–R6, unchanged).
+2. **Round 1.** On the offline machine: `dkg-participant commit <id> <postbox> <home> <entropy>`, then
+   `node kits/ceremony/remote.mjs pack <postbox> <SESSION> r1.frames sign/commit-<id>.bin`. The frames leave as QR
+   codes on the screen, or as `r1.frames` on removable media. The nonce stays in `<home>` and never leaves.
+3. **The relay** (anyone; it is not trusted) runs `unpack` on every custodian's frames into its own postbox, then
+   `pack`s all the commitments into one file and sends it back.
+4. **Round 2.** On each offline machine: `unpack` the relay's frames, `dkg-participant sign <id> <postbox> <home>
+   <digest>` with the custodian's OWN digest, then `pack sign/share-<id>.bin sign/pkg.bin`.
+5. **The relay** `unpack`s the shares and runs `dkg-participant aggregate`, which verifies the signature. The SLH-DSA
+   holder signs the same digest, and the epoch is assembled and published as usual (R7).
+
+**What the relay cannot do.** It cannot read a secret: `pack` only takes `sign/…` and `group/…`. It cannot alter a
+frame unnoticed: every frame names the file's SHA-256. It cannot mix sessions. It cannot swap a commitment: FROST
+refuses the aggregate. It cannot merge shares made over two different messages: the signing packages disagree.
+
+**Measured:** about 1–2 s of machine time for five custodians and 20 frames, the longest 887 characters, one QR code
+each. The time people need to scan, carry and read aloud is not measured yet; that is the next rehearsal, with people.
+

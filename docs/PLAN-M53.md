@@ -60,7 +60,7 @@ drafts folder.
 **3. The control room shows the epoch log** *Built 2026-11-06: an "Epoch log" panel on `/control.html` recomputes the head in the browser, holds the served head to it and verifies each witness cosignature with the browser's own Ed25519 (a browser without it says so and counts none); `make control-page-drill` shows a lying head and a forged cosignature red, an honest cosignature green.* (D-097's open item): head, size, and witnesses on the head, on
 `/control.html`, held to the same drill as the rest of the page.
 
-**4. The remote emergency ceremony.** FROST rounds carried by QR code or removable media between each custodian's
+**4. The remote emergency ceremony.** *Built 2026-11-06 (D-101): `kits/ceremony/remote.mjs` (base45 frames, QR- or USB-ready, relay untrusted) and `make remote-ceremony-drill` (five network-less custodians, a real 5-of-9 signature, timed: ~1–2 s of machine time). The human time is the next rehearsal, with the custodians.* FROST rounds carried by QR code or removable media between each custodian's
 offline machine and an untrusted relay (PLAN-M52 "Emergencies"), rehearsed and timed. The emergency time target in
 D-094 item 3 is then stated from the measurement. WITNESS: a timed rehearsal with five custodian processes that
 never share a network.

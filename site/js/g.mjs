@@ -63,6 +63,9 @@ if (tabs) {
     el.className = "g-car__card"; el.dataset.i = i; if (copy !== 1) el.setAttribute("aria-hidden", "true");
     el.innerHTML = `<video muted playsinline loop preload="none" data-src="${d.src}"></video><a class="g-tabs__label" href="${d.href}"${copy !== 1 ? ' tabindex="-1"' : ""}><span class="g-tabs__k">${d.k}</span><b>${d.t} ↗</b></a>${arrow("prev")}${arrow("next")}`;
     if (copy !== 1) el.querySelectorAll("button").forEach((x) => (x.tabIndex = -1));
+    // each clip ends on a blueprint with its own title in the top-left corner: from data-bp seconds on, the caption
+    // steps aside (the chip still names the clip) and comes back when the clip starts again
+    if (d.bp) { const v = el.querySelector("video"); v.addEventListener("timeupdate", () => el.classList.toggle("is-bp", v.currentTime >= +d.bp)); }
     track.append(el);
   }
   const cards = [...track.children];
@@ -72,7 +75,11 @@ if (tabs) {
   const place = (animate) => { track.style.transition = animate && motion() ? "transform .5s cubic-bezier(.65,0,.35,1)" : "none"; track.style.transform = `translateX(${-pos * (width() + GAP)}px)`; };
   const playOnly = () => cards.forEach((c, k) => { const v = c.querySelector("video");
     if (k === pos && onScreen) { if (!v.getAttribute("src")) v.src = v.dataset.src; if (v.paused && !v.dataset.keep) v.currentTime = 0; if (motion()) v.play().catch(() => {}); } else v.pause(); });
-  const sync = () => { const i = ((pos % N) + N) % N; chips.forEach((c, j) => { c.setAttribute("aria-selected", String(j === i)); c.tabIndex = j === i ? 0 : -1; }); playOnly(); run(); };
+  // on a phone the chips are one swipeable row: keep the current one in view (horizontally only — never moves the page)
+  const reveal = (c) => { const bar = c.parentElement; if (bar.scrollWidth <= bar.clientWidth + 2) return;
+    const left = c.getBoundingClientRect().left - bar.getBoundingClientRect().left + bar.scrollLeft, want = Math.max(0, left - (bar.clientWidth - c.offsetWidth) / 2);
+    try { bar.scrollTo({ left: want, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }); } catch { bar.scrollLeft = want; } };
+  const sync = () => { const i = ((pos % N) + N) % N; chips.forEach((c, j) => { c.setAttribute("aria-selected", String(j === i)); c.tabIndex = j === i ? 0 : -1; }); reveal(chips[i]); playOnly(); run(); };
   const go = (to, animate = true) => { pos = to; place(animate); sync(); };
   // after a slide ends in a copy, jump back to the same card in the middle copy, without a transition
   track.addEventListener("transitionend", () => { if (pos < N || pos >= 2 * N) {

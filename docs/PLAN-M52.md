@@ -164,7 +164,7 @@ witness cosigning two roots at one size, mirrors disagreeing, and a fresh head o
 `make ctl-drill` raises each alarm; deleting the memory file makes the log-shrink alarm disappear, proving the memory
 is load-bearing.
 
-**3. The control-room page.** *Built 2026-11-04 (`site/control.html`, not yet linked from the menu or exported); `make control-page-drill` loads it in a real browser against planted copies of the record.* `/control.html` reads the public contract in the visitor's browser with the WASM
+**3. The control-room page.** *Built 2026-11-04 (`site/control.html`; live, and linked from the menu and footer of every page since 2026-11-06, the owner's choice); `make control-page-drill` loads it in a real browser against planted copies of the record.* `/control.html` reads the public contract in the visitor's browser with the WASM
 verifier, shows the pinned fingerprints, keeps only a last-seen memory, and shows a TEST-ROOT banner while it reads
 staging. WITNESS (headless): a flipped directory byte, a swapped roots file, an older epoch and a shrunken log each
 render red. The claim is limited to swapped data under an honest page.

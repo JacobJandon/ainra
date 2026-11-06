@@ -508,7 +508,8 @@ async function check() {
   if (fixed) row(R, "warn", "This page is reading at a fixed clock (<code>?now=</code>), not today's: a drill, or a link that wants you to see an old state as current.");
   const age = Math.max(0, nowS - (dir.issued_at || 0)), CADENCE = 92 * 86400;   // the published quarterly cadence (D-094)
   row(R, "info", `Epoch <b>${esc(dir.epoch)}</b> · ${dir.entries?.length ?? 0} registrar(s) · ${(dir.revoked_delegates || []).length} revoked delegate(s) · digest <code>${digest.slice(0, 16)}</code>`);
-  if (age > CADENCE) { A(`stale directory: issued ${Math.floor(age / 86400)} day(s) ago, the published quarterly cadence allows 92 — a host may be withholding a newer epoch`); row(R, "alarm", `Issued ${Math.floor(age / 86400)} day(s) ago — older than the published quarterly cadence (92 days). A host may be withholding a newer epoch.`); }
+  if (age > CADENCE && net !== "PRODUCTION") row(R, "warn", `Issued ${Math.floor(age / 86400)} day(s) ago — older than the published quarterly cadence (92 days). This is a TEST-ROOT copy, held still on purpose; the cadence binds the production root. <code>ainra ctl status</code> still alarms on it.`);
+  else if (age > CADENCE) { A(`stale directory: issued ${Math.floor(age / 86400)} day(s) ago, the published quarterly cadence allows 92 — a host may be withholding a newer epoch`); row(R, "alarm", `Issued ${Math.floor(age / 86400)} day(s) ago — older than the published quarterly cadence (92 days). A host may be withholding a newer epoch.`); }
   else row(R, "ok", `Issued ${Math.floor(age / 86400)} day(s) ago, within the published quarterly cadence (92 days).`);
 
   // the epoch history

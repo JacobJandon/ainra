@@ -138,7 +138,9 @@ await expect("a registrar's log shrinks, after a larger one was seen", profile, 
 
 // WITNESS (D-094): the same honest contract, read 93 days after its latest epoch, is red — the published cadence alone
 QS = `?now=${d3.issued_at + 93 * 86400}`;
-await expect("an honest contract read 93 days after its epoch shows the stale directory", await browser.newContext(), honest, "red", "stale directory");
+const prod = contract([d1, d2, d3], { mutate: edit("index.json", (v) => { v.network = "production"; v.root = "production"; }) });
+await expect("a production contract read 93 days after its epoch shows the stale directory", await browser.newContext(), prod, "red", "stale directory");
+await expect("a TEST-ROOT copy read 93 days after its epoch: a labelled warning, not an alarm (ctl still alarms)", await browser.newContext(), honest, "green");
 QS = `?now=${d3.issued_at + 86400}`;
 
 await browser.close(); server.close();

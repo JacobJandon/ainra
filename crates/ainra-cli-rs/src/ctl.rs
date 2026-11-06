@@ -6,7 +6,8 @@
 //!
 //!   ainra directory digest  <directory.json>                       which directory is this (epoch, signed-bytes hash)
 //!   ainra directory archive <directory.json> --roots <r> --into <d> keep it: epochs/<N>.json + epochs.json, append-only
-//!   ainra ctl status --net <url|dir> [--roots <pinned.json>] [--mirror <url|dir>]… [--state <file>] [--max-age <s>]
+//!   ainra ctl status --net <url|dir> [--roots <pinned.json>] [--mirror <url|dir>]… [--state <file>] [--max-age <s>] [--now <unix s>]
+//!   (--max-age defaults to the published quarterly cadence, D-094)
 //!   ainra ctl diff <N> <M> --net <url|dir>                         what changed between two epochs
 //!   ainra ctl watch --net <url|dir> [--interval <s>] …             status, again and again
 //!
@@ -267,6 +268,10 @@ fn state_path(args: &[String]) -> PathBuf {
     Path::new(&home).join(".ainra-ctl").join("seen.json")
 }
 
+/// The ceremony cadence AINRA publishes (D-094 item 3: quarterly). A directory older than this is a stale directory:
+/// a host may be withholding a newer epoch (the freeze attack, D-094 item 7).
+const PUBLISHED_CADENCE_SECS: u64 = 92 * 86_400;
+
 fn now(args: &[String]) -> u64 {
     opt(args, "now")
         .and_then(|s| s.parse().ok())
@@ -374,10 +379,20 @@ fn status(args: &[String]) -> i32 {
     // 3 · freshness of the directory itself: the freeze attack (a host that keeps serving an old epoch).
     let t = now(args);
     let age = t.saturating_sub(issued_at);
-    match opt(args, "max-age").and_then(|s| s.parse::<u64>().ok()) {
-        Some(max) if age > max => r.alarm(format!("stale directory: issued {age}s ago, the cadence allows {max}s — a host may be withholding a newer epoch")),
-        Some(max) => r.ok(&format!("directory issued {age}s ago, within the {max}s cadence")),
-        None => r.warn(&format!("directory issued {} day(s) ago; no ceremony cadence is published yet, so withholding a newer epoch cannot be told from there being none (pass --max-age once one is)", age / 86_400)),
+    // The published cadence is quarterly (D-094 items 3 and 7), pinned here in the signed release so a host cannot
+    // relax it; --max-age overrides it for a drill or a different policy.
+    let (max, whose) = match opt(args, "max-age").and_then(|s| s.parse::<u64>().ok()) {
+        Some(m) => (m, "the --max-age"),
+        None => (PUBLISHED_CADENCE_SECS, "the published quarterly"),
+    };
+    if age > max {
+        r.alarm(format!("stale directory: issued {} day(s) ago, {whose} cadence allows {} — a host may be withholding a newer epoch", age / 86_400, max / 86_400));
+    } else {
+        r.ok(&format!(
+            "directory issued {} day(s) ago, within {whose} cadence of {} day(s)",
+            age / 86_400,
+            max / 86_400
+        ));
     }
 
     // 4 · the epoch history.

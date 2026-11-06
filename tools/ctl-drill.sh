@@ -109,6 +109,12 @@ node -e 'const fs=require("fs");const r=JSON.parse(fs.readFileSync(process.argv[
 expect "a contract whose roots are not the pinned ones"                   1 "roots"     --net "$W/honest" --roots "$W/other-roots.json" --state "$W/s6.json"
 out=$("$A" ctl status --net "$W/honest" --roots "$W/roots.json" --state "$W/s7.json" --max-age 60 2>&1); rc=$?
 [ "$rc" = 1 ] && grep -q "ALARM.*stale directory" <<<"$out" && pass "a directory older than the published cadence" || bad "a directory older than the published cadence (exit $rc)"
+# WITNESS (D-094): with no --max-age, the published quarterly cadence applies — a directory 93 days old alarms, 91 does not
+ISS=$(node -e 'console.log(JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")).issued_at)' "$W/honest/directory.json")
+out=$("$A" ctl status --net "$W/honest" --roots "$W/roots.json" --state "$W/s10.json" --now $((ISS + 93*86400)) 2>&1); rc=$?
+[ "$rc" = 1 ] && grep -q "ALARM.*stale directory.*published quarterly cadence" <<<"$out" && pass "93 days after an epoch, the published cadence alarms by itself" || { bad "no default cadence alarm at 93 days (exit $rc)"; echo "$out" | sed 's/^/        /' | head -8; }
+out=$("$A" ctl status --net "$W/honest" --roots "$W/roots.json" --state "$W/s11.json" --now $((ISS + 91*86400)) 2>&1); rc=$?
+[ "$rc" = 0 ] && ! grep -q "stale directory" <<<"$out" && pass "91 days after an epoch, within the published cadence, no alarm" || { bad "a directory inside the cadence alarmed (exit $rc)"; echo "$out" | sed 's/^/        /' | head -8; }
 cp -r "$W/honest" "$W/forged"; edit "$W/forged/directory.json" 'v=>{v.issued_at+=1}'
 expect "a directory whose bytes no longer match its signatures"           1 "does not verify" --net "$W/forged" --roots "$W/roots.json" --state "$W/s8.json"
 

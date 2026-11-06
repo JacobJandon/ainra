@@ -96,12 +96,13 @@ const url = `http://127.0.0.1:${server.address().port}/control.html`;
 
 const browser = await driver.chromium.launch({ executablePath: exe, headless: true });
 let failed = 0;
+let QS = "";
 async function look(ctx) {
   const page = await ctx.newPage();
   const errors = []; page.on("pageerror", (e) => errors.push(e.message));
   // a 404 for an optional file (fresh-head.json is not planted) is the browser reporting a fetch, not a page error
   page.on("console", (m) => { if (m.type() === "error" && !/Failed to load resource/.test(m.text())) errors.push(m.text()); });
-  await page.goto(url);
+  await page.goto(url + QS);
   try {
     await page.waitForFunction(() => !/CHECKING/.test(document.getElementById("verdict").textContent), null, { timeout: 30000 });
   } catch { errors.push("the page never finished checking"); }
@@ -121,6 +122,8 @@ async function expect(label, ctx, files, want, text) {
 console.log("control-page-drill · site/control.html in a real browser, against planted copies of the record");
 const profile = await browser.newContext();
 const honest = contract([d1, d2, d3]);
+// read at a fixed clock a day after the latest epoch (the vectors' issued_at is fixed); the page shows that it is fixed
+QS = `?now=${d3.issued_at + 86400}`;
 await expect("an honest contract shows NO ALARM", profile, honest, "green");
 await expect("a directory whose bytes no longer match its signatures", await browser.newContext(), contract([d1, d2, d3], { mutate: edit("directory.json", (v) => { v.issued_at += 1; }) }), "red", "does not verify");
 const otherRoots = { ...roots, root_slh: roots.root_slh.slice(0, -4) + "AAAA" };
@@ -132,6 +135,11 @@ await expect("WITNESS: the same old contract in a fresh browser passes", await b
 await expect("the honest contract again: still no alarm", profile, honest, "green");
 const reg = d3.entries[0].registrar;
 await expect("a registrar's log shrinks, after a larger one was seen", profile, contract([d1, d2, d3], { mutate: edit(`registrars/${reg}/export.json`, (v) => { v.records = [{ record: { checkpoint_size: 9, checkpoint_root: "rootA" }, verdict: { verdict: "valid" } }]; }) }), "red", "shrank");
+
+// WITNESS (D-094): the same honest contract, read 93 days after its latest epoch, is red — the published cadence alone
+QS = `?now=${d3.issued_at + 93 * 86400}`;
+await expect("an honest contract read 93 days after its epoch shows the stale directory", await browser.newContext(), honest, "red", "stale directory");
+QS = `?now=${d3.issued_at + 86400}`;
 
 await browser.close(); server.close();
 if (failed) { console.error(`CONTROL-PAGE-DRILL FAILED — ${failed} case(s)`); process.exit(1); }

@@ -372,7 +372,7 @@ setTimeout(function(){var h=document.documentElement;if(!h.dataset.rvReady)h.cla
       <p><b>What this page cannot do.</b></p>
       <ul>
         <li>A page served by a host that has been replaced can show anything, including green. The fingerprint above is for comparing out of band, and <code>ainra ctl status</code> from the signed release is the authority; this page is a convenience.</li>
-        <li>Directories do not expire. A host that keeps serving an old epoch cannot be told from there being no newer one until a ceremony cadence is published; this page says so rather than guess.</li>
+        <li>Directories do not expire. The ceremony cadence is published (quarterly, D-094), so a directory older than 92 days is shown red: a host may be withholding a newer epoch.</li>
         <li>WITNESSES: 0 — SPLIT-VIEW GUARANTEE NOT IN FORCE · RECRUITING. With no independent witness, a log could show different histories to different readers, and nothing here would see it.</li>
         <li>What it remembers (the newest epoch and each log's size) stays in this browser, and nothing is sent anywhere.</li>
       </ul>
@@ -503,9 +503,13 @@ async function check() {
   row(R, "info", `Root fingerprint <code>${fp}</code> — compare it with the one in the release notes and on another channel; <code>ainra ctl status</code> prints the same number.`);
   if (authentic(dir, roots)) row(R, "ok", "The directory verifies under both roots (FROST Ed25519 and SLH-DSA)."); else { A("directory.json does not verify under both roots"); row(R, "alarm", "The directory does NOT verify under both roots."); }
   const digest = await digestOf(dir);
-  const age = Math.max(0, Math.floor(Date.now() / 1000) - (dir.issued_at || 0));
+  // the clock: today's, unless the URL fixes one (?now=<unix seconds>) for a drill — and then the page says so
+  const fixed = new URLSearchParams(location.search).get("now"), nowS = fixed && /^\d+$/.test(fixed) ? +fixed : Math.floor(Date.now() / 1000);
+  if (fixed) row(R, "warn", "This page is reading at a fixed clock (<code>?now=</code>), not today's: a drill, or a link that wants you to see an old state as current.");
+  const age = Math.max(0, nowS - (dir.issued_at || 0)), CADENCE = 92 * 86400;   // the published quarterly cadence (D-094)
   row(R, "info", `Epoch <b>${esc(dir.epoch)}</b> · ${dir.entries?.length ?? 0} registrar(s) · ${(dir.revoked_delegates || []).length} revoked delegate(s) · digest <code>${digest.slice(0, 16)}</code>`);
-  row(R, "warn", `Issued ${Math.floor(age / 86400)} day(s) ago. No ceremony cadence is published yet, so a host withholding a newer epoch cannot be told apart from there being none.`);
+  if (age > CADENCE) { A(`stale directory: issued ${Math.floor(age / 86400)} day(s) ago, the published quarterly cadence allows 92 — a host may be withholding a newer epoch`); row(R, "alarm", `Issued ${Math.floor(age / 86400)} day(s) ago — older than the published quarterly cadence (92 days). A host may be withholding a newer epoch.`); }
+  else row(R, "ok", `Issued ${Math.floor(age / 86400)} day(s) ago, within the published quarterly cadence (92 days).`);
 
   // the epoch history
   const history = [];
@@ -539,7 +543,7 @@ async function check() {
       // an export lists {record, verdict}; the checkpoint a record was logged under is in record
       for (const e of x.records || []) { const r = e.record ?? e; if ((r.checkpoint_size || 0) >= size) { size = r.checkpoint_size || 0; root = r.checkpoint_root || ""; } }
       let fresh = "no fresh head published";
-      try { const h = await getJson(`registrars/${id}/fresh-head.json`); fresh = `fresh head ${Math.floor((Date.now() / 1000 - h.ts) / 86400)} day(s) old`; } catch { /* optional */ }
+      try { const h = await getJson(`registrars/${id}/fresh-head.json`); fresh = `fresh head ${Math.floor((nowS - h.ts) / 86400)} day(s) old`; } catch { /* optional */ }
       heads[id] = { log_size: size, log_root: root, status_seq: x.status_seq || 0 };
       row(RG, "info", `<b>${esc(id)}</b> · log size ${size} · status sequence ${esc(x.status_seq ?? 0)} · ${fresh}`);
     } catch { row(RG, "warn", `<b>${esc(id)}</b> · no export in this copy of the record`); }

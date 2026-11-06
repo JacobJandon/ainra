@@ -156,7 +156,9 @@ cp "$W/roots.json" "$C/roots.json"; echo '{"registrars":[]}' > "$C/registry.json
 "$A" directory archive "$W/d1.json" --roots "$W/roots.json" --into "$C" >>"$LOG" 2>&1 || die "archive epoch 1"
 cp "$W/d1.json" "$C/directory.json"
 pass "epoch 1: two ACCREDIT requests → proposal → 5 of 9 shares + SLH → assembled → archived"
-accepted "ctl status reads epoch 1 with no alarm (memory written)" "$A" ctl status --net "$C" --roots "$W/roots.json" --state "$W/seen.json"
+# the rehearsal signs the epoch vectors, whose issued_at is fixed; read them at that clock, not today's (D-094 cadence)
+NOW_D1=$(node -e 'console.log(JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")).issued_at)' "$W/d1.json")
+accepted "ctl status reads epoch 1 with no alarm (memory written)" "$A" ctl status --net "$C" --roots "$W/roots.json" --state "$W/seen.json" --now "$NOW_D1"
 
 # ── 3. step 5: each refusal by name, against epoch 1 ────────────────────────────────────────────────────────────────
 D1=(--directory "$C/directory.json" --roots "$W/roots.json")
@@ -269,7 +271,8 @@ refused "WITNESS: publish with a transcript that fails its published SHA-256" pu
 [ "$(node -e 'console.log(JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")).epochs.length)' "$C/epochs.json")" = 1 ] \
   && pass "after every refusal the archive still holds epoch 1 only" || bad "a refused publish changed the archive"
 accepted "publish epoch 2: both roots, the approved digest, a transcript naming it" "$A" directory publish "$W/d2.json" "${PUB[@]}" --proposal "$W/p2.json" --transcript "$W/transcript.json" --transcript-sha256 "$W/transcript.sha256"
-out=$("$A" ctl status --net "$C" --roots "$W/roots.json" --state "$W/seen.json" 2>&1); rc=$?
+NOW_D2=$(node -e 'console.log(JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")).issued_at)' "$W/d2.json")
+out=$("$A" ctl status --net "$C" --roots "$W/roots.json" --state "$W/seen.json" --now "$NOW_D2" 2>&1); rc=$?
 [ "$rc" = 0 ] && grep -q "epoch history: 2 epoch(s)" <<<"$out" && grep -q "CTL OK" <<<"$out" \
   && pass "ainra ctl status: a two-epoch history, no alarm, memory moved forward from epoch 1" || { bad "ctl status after publish (exit $rc)"; echo "$out" | sed 's/^/        /' | head -20; }
 out=$("$A" ctl diff 1 2 --net "$C" 2>&1)

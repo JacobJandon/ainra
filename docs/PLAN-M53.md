@@ -39,7 +39,7 @@ which the fork begins. R3 already allows emergency changes that only close thing
 publication. WITNESS: an honest pair of checkpoints is refused as evidence; a forged signature is refused; a real
 fork is accepted with no notice, cure or grace; the same request without the proof is refused by the ladder.
 
-**2. The steward's desk.** A local page (`ainra desk`, loopback only) that reads everything the steward needs, one screen:
+**2. The steward's desk.** *Built 2026-11-06 (D-099): `kits/steward/desk.mjs`, `make desk`, `make desk-drill`.* A local page (`ainra desk`, loopback only) that reads everything the steward needs, one screen:
 - `ctl` status;
 - the epoch log and its witnesses;
 - open requests and proposals with their ages against D-094's targets;

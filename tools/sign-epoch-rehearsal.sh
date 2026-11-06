@@ -331,6 +331,11 @@ refused "a signing-bytes digest that does not match"    proposal-digest         
 refused "an endpoint moved in a self-consistent directory" proposal-rederive         "$A" directory check-proposal "$(variant swap 'v=>{v.directory.entries[0].status_uri="status://elsewhere/1"}' reseal)" "${B2[@]}"
 refused "sign-request on a proposal whose digest lies"  proposal-digest           "$A" directory sign-request "$W/p3-digest.json"
 
+# AINRA_REHEARSAL_KEEP=<dir>: keep what the steward's desk drill needs (the published contract, the roots, the two
+# copies of registrar-11's forked log) — everything here is TEST-ROOT and made in this run
+if [ -n "${AINRA_REHEARSAL_KEEP:-}" ]; then
+  mkdir -p "$AINRA_REHEARSAL_KEEP" && cp -r "$C" "$AINRA_REHEARSAL_KEEP/contract" && cp "$W/roots.json" "$W/fork/a.json" "$W/fork/b.json" "$AINRA_REHEARSAL_KEEP/"
+fi
 echo
 if [ "$fail" = 0 ]; then
   echo "SIGN-EPOCH-REHEARSAL OK — TEST-ROOT. A change went request → check → proposal → 5-of-9 + SLH signature → publish,"

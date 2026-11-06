@@ -2715,3 +2715,51 @@ given twice is refused (`adverse-proof`).
 *Not changed:* the directory and passport formats, every corpus, P1–P6.
 
 *Status:* ACCEPTED 2026-11-06, under R3 of D-088 and the owner's request for an emergency stop.
+
+## D-099 — The steward's desk: one screen, every emergency drafted, no key (M53)
+
+*Problem:* the owner asked for "the entire AINRA control with a scram". The control system (PLAN-M52) is three
+separate tools, and the steward had to run each by hand:
+- a control room that reads;
+- a workbench that proposes;
+- a ceremony that signs.
+
+In an emergency, the steward also had to know which request to write, against which check, and which incident class
+applied. An admin panel that acts is ruled out (D-034). A screen that only reads and drafts is not.
+
+*Decision:* `kits/steward/desk.mjs` (`make desk`).
+
+- **Loopback only.** It binds 127.0.0.1 and refuses any other address. It answers only requests whose `Host` is
+  that address, so a web page cannot reach it by DNS rebinding. Playbooks run only from its own origin, as JSON,
+  under 64 KB.
+- **What it reads:**
+  - `ainra ctl status`, with the desk's memory;
+  - the epoch log and its cosignatures;
+  - the incident log against the runbook's deadlines (parsed from the runbook itself);
+  - compliance ladders;
+  - change requests, each checked now and aged against D-094's 90 days;
+  - the latest monthly report.
+- **Four playbooks:** a registrar's log forked, which builds the D-098 fork proof, writes the emergency request and
+  runs the real checker; a registrar delegate compromised; a root share lost; the site defaced.
+- **What a playbook may do:** write an incident draft and a checklist into `drafts/`. Its last step is always a
+  command that someone with a key runs. The desk holds no key and has no route that publishes, signs or writes
+  outside its own folder.
+
+*WITNESS:* `make desk-drill` (a preflight row) runs the epoch rehearsal with `AINRA_REHEARSAL_KEEP`, which leaves a
+signed TEST-ROOT contract and two divergent copies of registrar-11's log. The drill requires:
+
+- the screen reads the control room, the epoch log and the incident log;
+- the fork playbook's request is accepted by the real checker, and the same copy given twice is refused by
+  `adverse-proof`;
+- the other three playbooks draft their incidents;
+- every draft lands in the desk's folder;
+- a filed request is checked and aged on the screen;
+- another `Host` gets 421, another origin gets 403, an unknown route gets 404, and binding 0.0.0.0 is refused;
+- the contract the desk reads is byte-identical afterwards.
+
+*Not built:* playbooks for a registrar's issuer key stolen and for a root key roll. Each comes with its own step
+(PLAN-M53 steps 9 and 16).
+
+*Not changed:* every format; the desk is a local tool.
+
+*Status:* ACCEPTED 2026-11-06, the owner's request for the whole control "with a scram", within D-034.

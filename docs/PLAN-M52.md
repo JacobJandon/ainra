@@ -207,7 +207,7 @@ WITNESS: refused — one root's signature, an older epoch, an authentic N+1 that
 authentic N+1 that no transcript names — and `ctl` alarms on the same epoch reaching mirrors without going through
 publish.
 
-**9. Root custody and the root-key roll.** A recovery split for the SLH root held by a group separate from the FROST
+**9. Root custody and the root-key roll.** *Answered 2026-11-06, one question of it: the FROST library (frost-ed25519 3.0.0) refreshes shares and keeps the group key, by a DKG among the custodians who take part. Built: `ThresholdRoot::refresh` (`crates/ainra-ceremony/src/frost.rs`). WITNESS `share_refresh_keeps_the_root_key_and_retires_old_shares`: after a refresh the root key is unchanged and every share differs; five refreshed shares sign and plain Ed25519 accepts it; four cannot; old and new shares never combine; a custodian left out of the refresh is removed and its old share no longer counts; a refresh below the threshold is refused. So a suspected share compromise, or a custodian leaving, is answered by a refresh, not a root roll. The rest of this step waits on items 8–9 and 13.* A recovery split for the SLH root held by a group separate from the FROST
 signers; a yearly proof-of-possession inventory; whether the FROST library supports share refresh that keeps the
 group key (drill it, or document a root roll as the remedy); custodian eligibility, terms and absence rules. The
 ROOT-KEY-ROLL track: a successor announcement signed by both current roots with a published hold-down, a REVOKE

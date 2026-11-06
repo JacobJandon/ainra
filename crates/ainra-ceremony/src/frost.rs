@@ -115,6 +115,89 @@ impl ThresholdRoot {
         out
     }
 
+    /// Refresh the custodians' shares without changing the group key (PLAN-M52 step 9): a DKG among the custodians
+    /// in `keep` (1-based numbers) that adds a sharing of zero to each share. Every refreshed share differs from the
+    /// old one; the group verifying key — the root public key in the directory — stays the same, and the threshold
+    /// stays `min_signers`. A custodian left out of `keep` is removed: its old share no longer combines with the new
+    /// ones. Old and new shares never mix into a valid signature. Run it on the same footing as the original DKG: no
+    /// one ever holds the group secret.
+    pub fn refresh(&self, keep: &[u16], rng: &mut impl CryptoRngCore) -> Result<Self, FrostError> {
+        if keep.len() < self.min_signers as usize {
+            return Err(FrostError(format!(
+                "refresh needs at least {} custodians, got {}",
+                self.min_signers,
+                keep.len()
+            )));
+        }
+        let ids: Vec<Identifier> = keep
+            .iter()
+            .map(|&i| {
+                Identifier::try_from(i).map_err(|_| FrostError(format!("invalid custodian {i}")))
+            })
+            .collect::<Result<_, _>>()?;
+        for id in &ids {
+            if !self.key_packages.contains_key(id) {
+                return Err(FrostError(
+                    "refresh names a custodian who holds no share".into(),
+                ));
+            }
+        }
+        let max = ids.len() as u16;
+        let (mut r1_secret, mut r1_pkg) = (BTreeMap::new(), BTreeMap::new());
+        for id in &ids {
+            let (secret, package) = fe(frost::keys::refresh::refresh_dkg_part1(
+                *id,
+                max,
+                self.min_signers,
+                &mut *rng,
+            ))?;
+            r1_secret.insert(*id, secret);
+            r1_pkg.insert(*id, package);
+        }
+        let (mut r2_secret, mut r2_pkg_by_sender) = (BTreeMap::new(), BTreeMap::new());
+        for id in &ids {
+            let others: BTreeMap<Identifier, _> = r1_pkg
+                .iter()
+                .filter(|(k, _)| *k != id)
+                .map(|(k, v)| (*k, v.clone()))
+                .collect();
+            let (secret, packages) = fe(frost::keys::refresh::refresh_dkg_part2(
+                r1_secret.remove(id).expect("r1 secret"),
+                &others,
+            ))?;
+            r2_secret.insert(*id, secret);
+            r2_pkg_by_sender.insert(*id, packages);
+        }
+        let (mut key_packages, mut pubkey_package) = (BTreeMap::new(), None);
+        for id in &ids {
+            let r1_for_me: BTreeMap<Identifier, _> = r1_pkg
+                .iter()
+                .filter(|(k, _)| *k != id)
+                .map(|(k, v)| (*k, v.clone()))
+                .collect();
+            let r2_for_me: BTreeMap<Identifier, _> = r2_pkg_by_sender
+                .iter()
+                .filter(|(sender, _)| *sender != id)
+                .map(|(sender, pkgs)| (*sender, pkgs.get(id).expect("r2 package for me").clone()))
+                .collect();
+            let (kp, pkp) = fe(frost::keys::refresh::refresh_dkg_shares(
+                r2_secret.get(id).expect("r2 secret"),
+                &r1_for_me,
+                &r2_for_me,
+                self.pubkey_package.clone(),
+                self.key_packages.get(id).expect("old key package").clone(),
+            ))?;
+            key_packages.insert(*id, kp);
+            pubkey_package = Some(pkp);
+        }
+        Ok(Self {
+            max_signers: max,
+            min_signers: self.min_signers,
+            key_packages,
+            pubkey_package: pubkey_package.expect("refresh produced a public key package"),
+        })
+    }
+
     /// Threshold-sign `msg` with a quorum of exactly `signers.len()` custodians (must be ≥ `min_signers`). Returns a
     /// standard 64-byte RFC 8032 Ed25519 signature. `signers` are 1-based custodian numbers.
     pub fn threshold_sign(
@@ -198,6 +281,117 @@ mod tests {
 
         // Tampered message → reject.
         assert!(!ainra_core::crypto::ed25519_verify(&pk, b"tampered", &sig));
+    }
+
+    /// PLAN-M52 step 9 WITNESS: the FROST library refreshes shares and keeps the group key. A refresh drill, not a
+    /// claim: the published root key survives a refresh; refreshed shares sign; the threshold holds; old and new
+    /// shares never mix; a removed custodian's old share no longer counts.
+    #[test]
+    fn share_refresh_keeps_the_root_key_and_retires_old_shares() {
+        let mut rng = ChaCha20Rng::seed_from_u64(0x5EF2_E5A1);
+        let old = ThresholdRoot::dkg(9, 5, &mut rng).expect("dkg");
+        let pk = old.group_public();
+        let msg = b"AINRA directory epoch 2";
+
+        let new = old
+            .refresh(&[1, 2, 3, 4, 5, 6, 7, 8, 9], &mut rng)
+            .expect("refresh all nine");
+        assert_eq!(
+            new.group_public(),
+            pk,
+            "a refresh must keep the published root key"
+        );
+        for id in 1..=9u16 {
+            let i = Identifier::try_from(id).unwrap();
+            assert_ne!(
+                old.key_packages[&i].signing_share(),
+                new.key_packages[&i].signing_share(),
+                "custodian {id}'s share must change"
+            );
+        }
+        let sig = new
+            .threshold_sign(msg, &[2, 4, 6, 8, 9], &mut rng)
+            .expect("refreshed quorum signs");
+        assert!(
+            ainra_core::crypto::ed25519_verify(&pk, msg, &sig),
+            "refreshed shares sign for the same root key"
+        );
+        assert!(
+            new.threshold_sign(msg, &[1, 2, 3, 4], &mut rng).is_err(),
+            "the threshold stays 5"
+        );
+
+        // old and new shares mixed into one quorum never give a valid signature
+        let mixed = ThresholdRoot {
+            max_signers: 9,
+            min_signers: 5,
+            pubkey_package: new.pubkey_package.clone(),
+            key_packages: [1u16, 2, 3, 4, 5]
+                .iter()
+                .map(|&n| {
+                    let i = Identifier::try_from(n).unwrap();
+                    (
+                        i,
+                        if n <= 2 {
+                            old.key_packages[&i].clone()
+                        } else {
+                            new.key_packages[&i].clone()
+                        },
+                    )
+                })
+                .collect(),
+        };
+        match mixed.threshold_sign(msg, &[1, 2, 3, 4, 5], &mut rng) {
+            Err(_) => {}
+            Ok(sig) => assert!(
+                !ainra_core::crypto::ed25519_verify(&pk, msg, &sig),
+                "old and new shares must not combine"
+            ),
+        }
+
+        // removing custodian 9: refresh among the other eight; 9's old share is retired
+        let eight = old
+            .refresh(&[1, 2, 3, 4, 5, 6, 7, 8], &mut rng)
+            .expect("refresh without 9");
+        assert_eq!(
+            eight.group_public(),
+            pk,
+            "removing a custodian keeps the root key"
+        );
+        let sig8 = eight
+            .threshold_sign(msg, &[1, 3, 5, 7, 8], &mut rng)
+            .expect("5 of the remaining 8 sign");
+        assert!(ainra_core::crypto::ed25519_verify(&pk, msg, &sig8));
+        let with_nine = ThresholdRoot {
+            max_signers: 9,
+            min_signers: 5,
+            pubkey_package: eight.pubkey_package.clone(),
+            key_packages: [1u16, 2, 3, 4, 9]
+                .iter()
+                .map(|&n| {
+                    let i = Identifier::try_from(n).unwrap();
+                    (
+                        i,
+                        if n == 9 {
+                            old.key_packages[&i].clone()
+                        } else {
+                            eight.key_packages[&i].clone()
+                        },
+                    )
+                })
+                .collect(),
+        };
+        match with_nine.threshold_sign(msg, &[1, 2, 3, 4, 9], &mut rng) {
+            Err(_) => {}
+            Ok(sig) => assert!(
+                !ainra_core::crypto::ed25519_verify(&pk, msg, &sig),
+                "a removed custodian's old share must not count"
+            ),
+        }
+        assert!(
+            old.refresh(&[1, 2, 3, 4], &mut rng).is_err(),
+            "a refresh below the threshold is refused"
+        );
     }
 
     #[test]

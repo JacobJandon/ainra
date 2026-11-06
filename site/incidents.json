@@ -1,0 +1,96 @@
+{
+  "format": "ainra-incident-log/1",
+  "policy": "deploy/runbooks/root-incident.md",
+  "effective": "2026-11-06",
+  "fields": {
+    "opened": "the earliest date the record shows we knew of it",
+    "disclosed": "the first public record that names it (a pushed commit, advisory or post-mortem)",
+    "fixed": "the date the fix landed on main",
+    "released": "the first published release that carries the fix on the affected surface, or null when the defect was never in a release",
+    "record": "the post-mortem or advisory, by file and heading"
+  },
+  "entries": [
+    {
+      "id": "INC-2026-001",
+      "class": "MEDIUM",
+      "surface": "signing side (registrar issuance, ceremony delegates, CLI)",
+      "title": "RUSTSEC-2025-0144: timing side-channel in ml-dsa while signing",
+      "opened": "2026-08-06",
+      "disclosed": "2026-08-06",
+      "fixed": "2026-08-06",
+      "released": { "version": "0.3.1", "date": "2026-08-06" },
+      "record": { "file": "SECURITY.md", "heading": "Post-mortem: RUSTSEC-2025-0144" }
+    },
+    {
+      "id": "INC-2026-002",
+      "class": "MEDIUM",
+      "surface": "Rust gate path (@ainra/edge, CLI verify-request) on main",
+      "title": "D-072: the Rust gate path believed any status list it was handed",
+      "opened": "2026-10-01",
+      "disclosed": "2026-10-01",
+      "fixed": "2026-10-01",
+      "released": null,
+      "record": { "file": "SECURITY.md", "heading": "Post-mortem: the Rust gate path believed any status it was handed" }
+    },
+    {
+      "id": "INC-2026-003",
+      "class": "HIGH",
+      "surface": "published: npm @ainra/mcp 0.4.1 (ainra_verify)",
+      "title": "D-074: the published MCP tool believed the bundle it was asked to verify",
+      "opened": "2026-10-01",
+      "disclosed": "2026-10-01",
+      "fixed": "2026-10-01",
+      "released": { "version": "0.5.0", "date": "2026-11-01" },
+      "record": { "file": "SECURITY.md", "heading": "Post-mortem: the published MCP tool believed the bundle" }
+    },
+    {
+      "id": "INC-2026-004",
+      "class": "HIGH",
+      "surface": "published: PyPI ainra 0.4.x (plain Verifier constructor)",
+      "title": "D-075: the Python package's plain constructor skipped status authentication",
+      "opened": "2026-10-01",
+      "disclosed": "2026-10-01",
+      "fixed": "2026-10-01",
+      "released": { "version": "0.5.0", "date": "2026-10-31" },
+      "record": { "file": "SECURITY.md", "heading": "Post-mortem: the published MCP tool believed the bundle" }
+    },
+    {
+      "id": "INC-2026-005",
+      "class": "MEDIUM",
+      "surface": "registrar daemon on main (never in a release)",
+      "title": "D-080: a revocation the registrar daemon forgot on restart",
+      "opened": "2026-10-27",
+      "disclosed": "2026-10-27",
+      "fixed": "2026-10-27",
+      "released": null,
+      "record": { "file": "SECURITY.md", "heading": "Post-mortem: a revocation the registrar daemon forgot on restart" }
+    },
+    {
+      "id": "INC-2026-006",
+      "class": "MEDIUM",
+      "surface": "signing side, in tags v0.3.3 to v0.4.1 (TEST-ROOT keys only)",
+      "title": "RUSTSEC-2026-0385: non-constant-time masks in ctutils",
+      "opened": "2026-10-28",
+      "disclosed": "2026-10-28",
+      "fixed": "2026-10-28",
+      "released": { "version": "0.5.0", "date": "2026-10-31" },
+      "record": { "file": "SECURITY.md", "heading": "Advisory: RUSTSEC-2026-0385" }
+    },
+    {
+      "id": "INC-2026-007",
+      "class": "LOW",
+      "surface": "dependency on main, caught by the audit gate (never in a release)",
+      "title": "RUSTSEC-2026-0387: crypto-bigint 0.5.5 through k256 0.13, and a push made before the audit",
+      "opened": "2026-10-31",
+      "disclosed": "2026-10-31",
+      "fixed": "2026-10-31",
+      "released": null,
+      "record": { "file": "SECURITY-ADVISORIES.md", "heading": "RUSTSEC-2026-0387" }
+    }
+  ],
+  "not_incidents": [
+    { "record": { "file": "SECURITY-ADVISORIES.md", "heading": "RUSTSEC-2023-0089" }, "reason": "an unmaintained notice, not a vulnerability; one narrowly scoped ignore with a revisit condition" },
+    { "record": { "file": "SECURITY-ADVISORIES.md", "heading": "RUSTSEC-2025-0144" }, "reason": "the same defect as INC-2026-001; this is its advisory scoping" },
+    { "record": { "file": "SECURITY-ADVISORIES.md", "heading": "RUSTSEC-2026-0385" }, "reason": "the same defect as INC-2026-006; this is its advisory scoping" }
+  ]
+}

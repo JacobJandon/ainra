@@ -2475,3 +2475,63 @@ the owner has — an account, a person, a jurisdiction — the record says so in
 *Status:* ACCEPTED 2026-11-06 as a whole, with D-077, by the owner's choice "Accept all" (after "i approve all").
 The facts the table names as the owner's — the second host, the SLH recovery holders, the custodians, the incident
 deputy, the jurisdiction — are not yet given; each line that needs one is built up to that fact and no further.
+
+*Amended 2026-11-06 (item 17, a fact given in part):* the owner says the legal entity will probably be a
+non-profit (an NGO). The form is noted, not decided, and the country is still open. Nothing built depends on either
+yet; terms that will depend on them (the accreditation agreement, the custodian agreements, the fee's legal home)
+stay drafts until both are given.
+
+## D-095 — Incidents: classes, deadlines, a public log and tabletops (M52)
+
+*Problem:* PLAN-M52 step 13 left three things unbuilt: a root-incident runbook with a named role and deputy, a public
+incident log, and tabletop drills. D-094 item 16 answered the role (the owner leads until a second person exists) and
+kept the rule that a root is never announced by message. Without deadlines, "we do not sit on confirmed findings"
+(SECURITY.md) cannot be checked. Without a log, a post-mortem can exist and still be hard to find.
+
+*Decision:*
+
+- `deploy/runbooks/root-incident.md` defines HIGH, MEDIUM and LOW. Each class has a deadline for the public log
+  entry, the published fix and the post-mortem:
+  - HIGH: 3 / 14 / 30 days;
+  - MEDIUM: 7 / 30 / 30 days;
+  - LOW: 14 / 30 days, with no separate post-mortem.
+
+  The runbook names the incident lead (the owner) and states that there is no deputy yet. It sets four rules:
+  - no one overrides a witness refusal;
+  - a root is never announced by message;
+  - TEST-ROOT incidents are labelled as such;
+  - nothing is fixed quietly.
+- `site/incidents.json` (served at `/incidents.json`) is the public log. It is seeded with the seven incidents
+  already written up in `SECURITY.md` and `SECURITY-ADVISORIES.md`, dated from the commits and the release records.
+  It also lists the three advisory headings that are not separate incidents, each with its reason.
+- `make incident-check` (a preflight row) reads the deadlines from the runbook's own table, so no second copy
+  exists. It refuses:
+  - a post-mortem or advisory with no entry;
+  - dates out of order;
+  - a release that is not in `CHANGELOG.md`;
+  - an entry opened on or after 2026-11-06 that missed a deadline without a published reason;
+  - an open incident that has become late. This makes the gate turn red on the day an incident goes overdue.
+- Entries from before the runbook are measured but not judged. The gate prints what the new rule would say about
+  each: the published fixes for D-074 and D-075 took 31 and 30 days, beyond today's 14-day limit for a HIGH.
+- Two tabletops are written: `tabletop/steward-compromise.md` and `tabletop/custodian-no-show.md`. In each, every
+  step names the drill or test that shows what the machinery does at that point. The gate refuses a step that names
+  a `make` target or test that does not exist.
+- The monthly report reads two figures from the log. It now judges registrar requests against the 90-day target
+  of D-094 item 3. It refuses to build once `/net/proposals/` is published, so "none is overdue" is never typed in.
+
+*WITNESS:* `make incident-check` runs `--drill`. The drill plants six faults, one at a time:
+- a post-mortem with no entry;
+- a HIGH entry disclosed after 5 days with no reason;
+- an open HIGH that is 20 days old;
+- a fix dated before the incident was opened;
+- a release that is not in `CHANGELOG.md`;
+- a tabletop that names `make no-such-drill`.
+
+It also removes the witness rule from the runbook. Each must be refused by name. A late entry with a published
+reason must pass. Before this commit, the gate itself refused a tabletop that named `make incident-check` while that
+target did not exist yet.
+
+*Not changed:* the wire format, every corpus, P1–P6.
+
+*Status:* ACCEPTED 2026-11-06. It builds D-094 item 16 as accepted. The deputy stays unnamed until the owner names
+one.

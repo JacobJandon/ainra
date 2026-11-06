@@ -70,6 +70,13 @@ async function j1() {
     }
   }
   notes.push(`${PAGES.length} pages walked, ${seen.size} distinct internal links followed`);
+  // SECURITY.md promises the incident log is served at /incidents.json (D-095). A promise only a local file keeps is
+  // not kept: read the served one.
+  try {
+    const log = await get("incidents.json", { json: true });
+    if (log.format !== "ainra-incident-log/1" || !Array.isArray(log.entries)) siteFail("land-and-navigate", "/incidents.json is served but is not an incident log");
+    else notes.push(`/incidents.json: ${log.entries.length} entries, ${log.entries.filter((e) => e.fixed === null).length} unfixed`);
+  } catch (e) { siteFail("land-and-navigate", `GET /incidents.json → ${e.message}`); }
 }
 
 // ── J2 · the 404's own escape routes ─────────────────────────────────────────────────────────────────────────

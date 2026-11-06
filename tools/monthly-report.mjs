@@ -5,8 +5,8 @@
 // Every figure names the file it comes from, the field it reads, and that file's SHA-256, so anyone can re-derive the
 // report from the same record. A figure that does not come from an artifact is refused, not printed: the report is
 // the record read aloud, never a place to type a number. Its age is stated by the same rule the site uses (D-058),
-// so a report nobody refreshes says so by itself. Open requests are listed with their dates; whether one is overdue
-// needs a target, which is the owner's to set (PLAN-M52, left to the owner, item 3) — until then the report says so.
+// so a report nobody refreshes says so by itself. Open requests are listed with their dates and judged against the
+// published target: at most 90 days from a request passing R2 to its publication (D-094 item 3).
 //
 //   node tools/monthly-report.mjs            → reports/monthly/<YYYY-MM>.md for the published record's month
 //   node tools/monthly-report.mjs --check    → re-derive and compare with the committed file (drift fails)
@@ -41,9 +41,12 @@ const FIGURES = [
     { label: `${id} · status sequence`, source: `site/net/registrars/${id}/fresh-head.json`, field: "seq", get: (f) => f.seq })),
   { label: "Conformance vectors (passport corpus)", source: "vectors/v1", field: "count of *.json except manifest.json", dir: true, get: (names) => names.filter((n) => n.endsWith(".json") && n !== "manifest.json").length },
   { label: "Current release", source: "packages/sdk-ts/package.json", field: "version", get: (f) => `v${f.version}` },
+  { label: "Incidents on the public log", source: "site/incidents.json", field: "entries.length", get: (f) => f.entries.length },
+  { label: "Incidents with no fix yet", source: "site/incidents.json", field: "entries[fixed=null].length", get: (f) => f.entries.filter((e) => e.fixed === null).length },
 ];
 
 // open requests: decision records still PROPOSED, with the date their status line gives (if any)
+const TARGET_DAYS = 90; // D-094 item 3: the longest time from a request passing R2 to its publication
 const openDecisions = () => {
   const src = "docs/DECISIONS.md", text = read(src).toString("utf8"), out = [];
   let head = "";
@@ -67,6 +70,9 @@ export function build(figures = FIGURES, nowMs = null) {
   const pub = json("site/net/published.json"), stamp = pub.published_at_iso, month = stamp.slice(0, 7);
   const age = staleness(stamp, nowMs ?? Date.parse(stamp));
   const open = openDecisions();
+  // the report says "no registrar request is on record" only while none can be: once /net/proposals/ is published,
+  // that sentence would be a typed-in figure, so the build stops until the report reads the requests themselves
+  if (existsSync(join(ROOT, "site/net/proposals"))) throw new Error("refused: site/net/proposals/ is published — the report must read and age those requests before it can say none is overdue");
   const md = [
     `# AINRA operator report — ${month}`,
     "",
@@ -87,9 +93,8 @@ export function build(figures = FIGURES, nowMs = null) {
     "",
     "Change requests from registrars: none on record (`/net/proposals/` is not published yet — PLAN-M52 step 6).",
     "",
-    "**Overdue:** not judged. A request is overdue only against a published target — the longest time from request to",
-    "publication — and that target is the owner's to set (PLAN-M52, left to the owner, item 3). Until it is set, this",
-    "report lists ages and calls nothing overdue.",
+    `**Overdue:** a registrar request is overdue ${TARGET_DAYS} days after it passes R2 without being published (D-094 item 3).`,
+    "No registrar request is on record, so none is overdue.",
     "",
   ].join("\n");
   return { month, md, age };

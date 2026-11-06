@@ -70,6 +70,10 @@ Every fixed security bug in this project has received the same treatment, and yo
 2. **A public post-mortem.** The finding, the root cause, and the fix are written into `docs/DECISIONS.md` as a
    numbered decision, and into `CHANGELOG.md` under the release that fixed it — by name, in the open.
 3. **No quiet patches.** We publicly own fixed security bugs; hiding them would be the opposite of a trust root.
+4. **An entry in the public incident log.** [`site/incidents.json`](site/incidents.json), served at
+   `/incidents.json`, lists every incident with its class and dates, under the deadlines in
+   [`deploy/runbooks/root-incident.md`](deploy/runbooks/root-incident.md). `make incident-check` refuses a
+   post-mortem in this file that has no entry there.
 
 The historical examples in "Our posture" above are exactly that record: each one is a vector in the corpus and a
 decision in the log. That is the standard your report will be held to — and the reason a good report here is

@@ -31,7 +31,7 @@ allowlist it.
 
 **Do not mark the probe.** No reserved operator name, no header, no account flag, no cache exemption. A registrar that
 can tell the probe from a customer will eventually treat it differently, and then the measurement is worth nothing. The
-report publishes only the SHA-256 of the subject for the same reason: a named probe subject is a marked probe.
+report publishes the subject only as a salted commitment, SHA-256(salt ‖ subject), for the same reason: a named probe subject is a marked probe, and so is a plain hash of its name, which the registrar finds by hashing every name in its own log. The salt is written beside the report as `probe-subject.secret.json` (owner-only) and is revealed when the probe identity retires; `node commitment.mjs --drill` shows both halves.
 
 **Run it unannounced.** A known schedule is an audit date, and the point of this kit is that audit dates were never
 where the failures were found.
@@ -49,3 +49,18 @@ real behaviours, not synthetic errors — the sharpest is `suppress-revocation`,
 serves was signed by the real registrar, it just keeps serving a genuine pre-revocation snapshot forever.
 
 A probe that has never been shown failing is decoration. This is how we know it isn't.
+
+## The ladder: from reports to notices (D-096)
+
+```bash
+node probe.mjs … --vantage vp-a --network net-1 --out a     # each vantage point says where it stood
+node probe.mjs … --vantage vp-b --network net-2 --out b
+node notice.mjs step --state ladder/registrar-11.json --now $(date +%s) --registrar registrar-11 a/probe-report.json b/probe-report.json
+node notice.mjs evidence --state ladder/registrar-11.json --for DISTRUST_FROM_LEAF --now $(date +%s) --out evidence.json
+```
+
+A failure becomes a notice only when the same check fails from two vantage points on distinct networks. The ladder
+waits its days (D-094: a 30-day cure, notices 14 days apart, 90 days of grace before WITHDRAW), and `evidence`
+refuses, by name, until the ladder allows it. Its output is the `evidence` an adverse request carries, and
+`ainra directory check-request` holds it to the same numbers. `node notice.mjs --drill` shows every rung waiting.
+

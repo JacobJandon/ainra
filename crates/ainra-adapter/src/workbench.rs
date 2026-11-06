@@ -58,6 +58,13 @@ pub struct Check {
     pub rule: &'static str,
 }
 
+/// The compliance ladder's numbers (D-094 item 11, built D-096): the cure window runs at least 30 days from notice 1,
+/// notices are at least 14 days apart, and holders get at least 90 days from the public breach record (notice 3 or
+/// later) before an adverse WITHDRAW, to move to another registrar.
+pub const CURE_MIN_SECS: u64 = 30 * 86_400;
+pub const NOTICE_GAP_MIN_SECS: u64 = 14 * 86_400;
+pub const HOLDER_GRACE_SECS: u64 = 90 * 86_400;
+
 /// Every check, in the order each command runs them. The generated document is this list and nothing else.
 pub const CHECKS: &[Check] = &[
     // ── change requests: `ainra directory check-request` (R0–R2) ──
@@ -80,9 +87,11 @@ pub const CHECKS: &[Check] = &[
     Check { id: "self-signature", stage: "check-request", built: true,
         rule: "A request a registrar files about its own entry (REVOKE_DELEGATE, its own DISTRUST_FROM_LEAF or WITHDRAW) carries a hybrid signature (Ed25519 and ML-DSA-65) over the request message by the registrar's CURRENT issuer key, as the current directory lists it." },
     Check { id: "adverse-notice-chain", stage: "check-request", built: true,
-        rule: "An adverse request (DISTRUST_FROM_LEAF or WITHDRAW filed against another registrar) carries a compliance record: notices numbered 1, 2, … in time order, each named by its SHA-256, and a cure window that ends after the first notice and before the request was filed." },
+        rule: "An adverse request (DISTRUST_FROM_LEAF or WITHDRAW filed against another registrar) carries a compliance record: at least two notices, numbered 1, 2, … in time order and at least 14 days apart, each named by its SHA-256, and a cure window that ends at least 30 days after notice 1 and before the request was filed (D-094 item 11)." },
     Check { id: "adverse-vantage", stage: "check-request", built: true,
         rule: "The compliance record reproduces the failure after the cure window ended, no later than the filing, from at least two vantage points on distinct networks, each report named by its SHA-256." },
+    Check { id: "adverse-grace", stage: "check-request", built: true,
+        rule: "An adverse WITHDRAW comes only after distrust: the registrar already carries a distrust cutoff in epoch N, the record names a public breach record (notice 3 or later), and the request is filed at least 90 days after it, so holders have had time to move (D-094 item 11)." },
     Check { id: "entry-shape", stage: "check-request", built: true,
         rule: "An ACCREDIT entry is for the request's registrar, decodes every key at its exact size (Ed25519 32 B, ML-DSA-65 1952 B, SLH-DSA 32 B), carries status keys and a status URI, and sets no distrust cutoff." },
     Check { id: "proof-of-possession", stage: "check-request", built: true,
@@ -841,10 +850,13 @@ pub fn check_request(
                     ),
                 );
             };
-            if c.notices.is_empty() {
+            if c.notices.len() < 2 {
                 return refuse(
                     "adverse-notice-chain",
-                    "the compliance record lists no notice",
+                    format!(
+                        "the compliance record lists {} notice(s); the ladder sends notice 1 and notice 2 before any adverse request",
+                        c.notices.len()
+                    ),
                 );
             }
             let mut last = 0u64;
@@ -859,7 +871,27 @@ pub fn check_request(
                         ),
                     );
                 }
+                if i > 0 && n.at - last < NOTICE_GAP_MIN_SECS {
+                    return refuse(
+                        "adverse-notice-chain",
+                        format!(
+                            "notice {} came {} day(s) after notice {}; notices are at least 14 days apart",
+                            i + 1,
+                            (n.at - last) / 86_400,
+                            i
+                        ),
+                    );
+                }
                 last = n.at;
+            }
+            if c.cure_window_ends < c.notices[0].at + CURE_MIN_SECS {
+                return refuse(
+                    "adverse-notice-chain",
+                    format!(
+                        "the cure window ends {} day(s) after notice 1; it runs at least 30 days",
+                        c.cure_window_ends.saturating_sub(c.notices[0].at) / 86_400
+                    ),
+                );
             }
             if c.cure_window_ends <= c.notices[0].at || c.cure_window_ends >= r.filed_at {
                 return refuse(
@@ -902,6 +934,34 @@ pub fn check_request(
                 );
             }
             passed.push("adverse-vantage");
+            if t == "WITHDRAW" {
+                let breach = c.notices.iter().rev().find(|n| n.n >= 3);
+                if cur.distrust_from_leaf.is_none() {
+                    return refuse(
+                        "adverse-grace",
+                        format!(
+                            "an adverse WITHDRAW of {} comes after distrust, and epoch {epoch} carries no distrust cutoff for it",
+                            r.registrar
+                        ),
+                    );
+                }
+                let Some(b) = breach else {
+                    return refuse(
+                        "adverse-grace",
+                        "an adverse WITHDRAW names the public breach record (notice 3 or later), and this record has none",
+                    );
+                };
+                if r.filed_at < b.at + HOLDER_GRACE_SECS {
+                    return refuse(
+                        "adverse-grace",
+                        format!(
+                            "filed {} day(s) after the breach record; holders get at least 90 days to move first",
+                            (r.filed_at - b.at) / 86_400
+                        ),
+                    );
+                }
+                passed.push("adverse-grace");
+            }
         }
     }
     Ok(Accepted {
@@ -1851,32 +1911,38 @@ mod tests {
         self_signed(r, &w.a)
     }
 
+    // the ladder at D-094's numbers: notice 1, notice 2 fifteen days later, the cure window closing 31 days after
+    // notice 1, then two reproductions from distinct networks; the adverse request is filed at ADV_FILED
+    const DAY: u64 = 86_400;
+    const ADV_FILED: u64 = 20_000_000;
+    const N1: u64 = ADV_FILED - 70 * DAY;
+
     fn compliance() -> Compliance {
         Compliance {
             notices: vec![
                 Notice {
                     n: 1,
-                    at: 1_600_000,
+                    at: N1,
                     sha256: "01".repeat(32),
                 },
                 Notice {
                     n: 2,
-                    at: 1_700_000,
+                    at: N1 + 15 * DAY,
                     sha256: "02".repeat(32),
                 },
             ],
-            cure_window_ends: 1_800_000,
+            cure_window_ends: N1 + 31 * DAY,
             reproductions: vec![
                 Reproduction {
                     vantage: "vp-a".into(),
                     network: "net-1".into(),
-                    at: 1_900_000,
+                    at: N1 + 32 * DAY,
                     report_sha256: "03".repeat(32),
                 },
                 Reproduction {
                     vantage: "vp-b".into(),
                     network: "net-2".into(),
-                    at: 1_900_100,
+                    at: N1 + 32 * DAY + 100,
                     report_sha256: "04".repeat(32),
                 },
             ],
@@ -1887,7 +1953,24 @@ mod tests {
         let _ = w;
         let mut r = base_request("DISTRUST_FROM_LEAF", "registrar-11", "monitor-01");
         r.change.leaf = Some(30);
+        r.filed_at = ADV_FILED;
         r.evidence.compliance = Some(compliance());
+        r
+    }
+
+    // an adverse WITHDRAW of registrar-11 (distrusted from leaf 40 in the base epoch): the breach record (notice 3)
+    // 91 days before the filing
+    fn adverse_withdraw(w: &World) -> ChangeRequest {
+        let _ = w;
+        let mut r = base_request("WITHDRAW", "registrar-11", "monitor-01");
+        r.filed_at = ADV_FILED + 120 * DAY;
+        let mut c = compliance();
+        c.notices.push(Notice {
+            n: 3,
+            at: r.filed_at - 91 * DAY,
+            sha256: "05".repeat(32),
+        });
+        r.evidence.compliance = Some(c);
         r
     }
 
@@ -2046,8 +2129,34 @@ mod tests {
             r.evidence.compliance.as_mut().unwrap().reproductions[1].network = "net-1".into();
             refused_by(check(&r), "adverse-vantage");
             let mut r = adverse(w);
-            r.evidence.compliance.as_mut().unwrap().reproductions[0].at = 1_700_500;
+            r.evidence.compliance.as_mut().unwrap().reproductions[0].at = N1 + 20 * DAY;
             refused_by(check(&r), "adverse-vantage");
+            // D-094 item 11's numbers: one notice; notices 10 days apart; a 20-day cure window
+            let mut r = adverse(w);
+            r.evidence.compliance.as_mut().unwrap().notices.pop();
+            refused_by(check(&r), "adverse-notice-chain");
+            let mut r = adverse(w);
+            r.evidence.compliance.as_mut().unwrap().notices[1].at = N1 + 10 * DAY;
+            refused_by(check(&r), "adverse-notice-chain");
+            let mut r = adverse(w);
+            r.evidence.compliance.as_mut().unwrap().cure_window_ends = N1 + 20 * DAY;
+            refused_by(check(&r), "adverse-notice-chain");
+            // adverse-grace: an adverse WITHDRAW 91 days after the breach record of a distrusted registrar passes;
+            // 60 days after it, with no breach record, or of a registrar never distrusted, it is refused
+            assert!(
+                check(&adverse_withdraw(w)).is_ok(),
+                "{:?}",
+                check(&adverse_withdraw(w)).err().map(|e| e.to_string())
+            );
+            let mut r = adverse_withdraw(w);
+            r.evidence.compliance.as_mut().unwrap().notices[2].at = r.filed_at - 60 * DAY;
+            refused_by(check(&r), "adverse-grace");
+            let mut r = adverse_withdraw(w);
+            r.evidence.compliance.as_mut().unwrap().notices.pop();
+            refused_by(check(&r), "adverse-grace");
+            let mut r = adverse_withdraw(w);
+            r.registrar = "registrar-07".into();
+            refused_by(check(&r), "adverse-grace");
             // entry-shape: a cutoff set on a new entry
             let mut r = w.accredit_new.clone();
             r.change.entry.as_mut().unwrap().distrust_from_leaf = Some(1);

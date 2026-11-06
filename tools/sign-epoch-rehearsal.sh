@@ -186,18 +186,35 @@ refused "a self-WITHDRAW signed by a key that is not the current one" self-signa
 refused "a REVOKE_DELEGATE of a delegate the registrar's log root never signed" delegate-owned "$A" directory check-request "$W/req/rd-imp.json" "${D1[@]}"
 "$A" directory request DISTRUST_FROM_LEAF --subject registrar-11 --filer monitor-01 --leaf 5 --filed-at "$T_FILE2" --out "$W/req/adv-none.json" >>"$LOG" 2>&1
 refused "an adverse request with no compliance record" adverse-notice-chain "$A" directory check-request "$W/req/adv-none.json" "${D1[@]}"
-mkrecord() {  # mkrecord <out> <networks…> — notices, a cure window, one reproduction per network given
+mkrecord() {  # mkrecord <out> <networks…> — the ladder at D-094 item 11's numbers: notice 1, notice 2 fifteen days
+  # later, a cure window closing 31 days after notice 1, then one reproduction per network given
   node -e '
-    const [out,now,...nets]=process.argv.slice(1),t=Number(now),h=(i)=>String(i).repeat(64).slice(0,64);
+    const [out,now,...nets]=process.argv.slice(1),t=Number(now),d=86400,h=(i)=>String(i).repeat(64).slice(0,64),n1=t-70*d;
     const reps=nets.map((n,i)=>({vantage:"vp-"+i,network:n,at:t-60000+i,report_sha256:h(i+3)}));
-    require("fs").writeFileSync(out,JSON.stringify({compliance:{notices:[{n:1,at:t-90000,sha256:h(1)},{n:2,at:t-80000,sha256:h(2)}],
-      cure_window_ends:t-70000,reproductions:reps}}))' "$@"
+    require("fs").writeFileSync(out,JSON.stringify({compliance:{notices:[{n:1,at:n1,sha256:h(1)},{n:2,at:n1+15*d,sha256:h(2)}],
+      cure_window_ends:n1+31*d,reproductions:reps}}))' "$@"
 }
 mkrecord "$W/req/one.json" "$NOW" net-a;         mkrecord "$W/req/same.json" "$NOW" net-a net-a;  mkrecord "$W/req/two.json" "$NOW" net-a net-b
 for e in one same two; do "$A" directory request DISTRUST_FROM_LEAF --subject registrar-11 --filer monitor-01 --leaf 5 --filed-at "$T_FILE2" --evidence "$W/req/$e.json" --out "$W/req/adv-$e.json" >>"$LOG" 2>&1; done
 refused "an adverse request reproduced from one vantage point" adverse-vantage "$A" directory check-request "$W/req/adv-one.json" "${D1[@]}"
 refused "an adverse request reproduced twice from one network" adverse-vantage "$A" directory check-request "$W/req/adv-same.json" "${D1[@]}"
 accepted "an adverse request with a full compliance record (two vantage points, distinct networks)" "$A" directory check-request "$W/req/adv-two.json" "${D1[@]}"
+# D-096: the record a monitor really files is the one kits/probe/notice.mjs writes from probe reports. Run its ladder
+# over three cycles of reports from two networks (notice 1, notice 2 fifteen days later, the breach record after the
+# 30-day cure window) and hand the evidence it writes to the checker; and a record whose cure window is 20 days long.
+node --input-type=module -e '
+  const [, , mod, nowArg, outOk, outEarly] = process.argv; const { step, evidence, fresh, DAY } = await import(mod); const now = Number(nowArg), T0 = now - 50 * DAY;
+  const rep = (id, net, at) => { const report = { registrar_id: "registrar-11", vantage: { id, network: net }, ran_at: new Date(at * 1000).toISOString(),
+    verdict: "NON-COMPLIANT", checks: [{ id: "P3", pass: false }] }; return { report, sha256: String(at % 10) .repeat(64).slice(0, 63) + id.slice(-1) }; };
+  let L = fresh("registrar-11"); for (const d of [0, 15, 32]) L = step(L, [rep("vp-a", "net-1", T0 + d * DAY), rep("vp-b", "net-2", T0 + d * DAY + 60)], T0 + d * DAY).state;
+  if (L.stage !== "breach") { console.error("the ladder did not reach the breach record: " + L.stage); process.exit(1); }
+  const fs = await import("node:fs"); fs.writeFileSync(outOk, JSON.stringify(evidence(L, "DISTRUST_FROM_LEAF", now)));
+  const early = evidence(L, "DISTRUST_FROM_LEAF", now); early.compliance.cure_window_ends = early.compliance.notices[0].at + 20 * DAY;
+  fs.writeFileSync(outEarly, JSON.stringify(early));
+' rehearsal "$PWD/kits/probe/notice.mjs" "$NOW" "$W/req/ladder.json" "$W/req/ladder-early.json"
+for e in ladder ladder-early; do "$A" directory request DISTRUST_FROM_LEAF --subject registrar-11 --filer monitor-01 --leaf 5 --filed-at "$T_FILE2" --evidence "$W/req/$e.json" --out "$W/req/adv-$e.json" >>"$LOG" 2>&1; done
+accepted "a DISTRUST_FROM_LEAF whose evidence is the record kits/probe/notice.mjs wrote from three cycles of probe reports" "$A" directory check-request "$W/req/adv-ladder.json" "${D1[@]}"
+refused "the same record with a 20-day cure window (D-094: at least 30)" adverse-notice-chain "$A" directory check-request "$W/req/adv-ladder-early.json" "${D1[@]}"
 
 # ── 4. epoch 2: two self-requests, proposed, re-derived, signed by custodians from their own copies, published ──────
 "$A" directory request REVOKE_DELEGATE --registrar "$W/reg/registrar-07" --filed-at "$T_FILE2" --out "$W/req/rd-07.json" >>"$LOG" 2>&1 || die "request REVOKE_DELEGATE"

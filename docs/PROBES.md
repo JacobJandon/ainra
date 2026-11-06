@@ -114,7 +114,7 @@ prove they always hold, and it cannot: a registrar that identified the probe cou
 indistinguishability is a term and not an implementation detail. The value is in the **schedule** and in **P0** — not
 in any single green report.
 
-The subject's name is not published in the report (only its SHA-256). A named probe subject is a marked probe.
+The subject's name is not published in the report, and neither is its plain SHA-256: the registrar knows every name it issued, hashes them all once, and finds the probe (true of every report up to 2026-11-06). The report carries SHA-256(salt ‖ subject) with a fresh 32-byte salt that stays with the prober and is revealed when the probe identity retires, so the report can be re-checked later and never re-labelled (D-096, `kits/probe/commitment.mjs`). A named probe subject is a marked probe.
 
 **Renewal is probed through a public door** (P6, since PLAN-M50 step 4). [D-055](DECISIONS.md) makes it a registrar
 requirement that revoking a lineage flips every unexpired generation's status index, because ADR-017 renewal

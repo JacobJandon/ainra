@@ -6,7 +6,7 @@
     "opened": "the earliest date the record shows we knew of it",
     "disclosed": "the first public record that names it (a pushed commit, advisory or post-mortem)",
     "fixed": "the date the fix landed on main",
-    "released": "the first published release that carries the fix on the affected surface, or null when the defect was never in a release",
+    "released": "the first published release that carries the fix on the affected surface; null while no release carries it yet, or when the defect was never in a release (the surface says which)",
     "record": "the post-mortem or advisory, by file and heading"
   },
   "entries": [
@@ -18,8 +18,14 @@
       "opened": "2026-08-06",
       "disclosed": "2026-08-06",
       "fixed": "2026-08-06",
-      "released": { "version": "0.3.1", "date": "2026-08-06" },
-      "record": { "file": "SECURITY.md", "heading": "Post-mortem: RUSTSEC-2025-0144" }
+      "released": {
+        "version": "0.3.1",
+        "date": "2026-08-06"
+      },
+      "record": {
+        "file": "SECURITY.md",
+        "heading": "Post-mortem: RUSTSEC-2025-0144"
+      }
     },
     {
       "id": "INC-2026-002",
@@ -30,7 +36,10 @@
       "disclosed": "2026-10-01",
       "fixed": "2026-10-01",
       "released": null,
-      "record": { "file": "SECURITY.md", "heading": "Post-mortem: the Rust gate path believed any status it was handed" }
+      "record": {
+        "file": "SECURITY.md",
+        "heading": "Post-mortem: the Rust gate path believed any status it was handed"
+      }
     },
     {
       "id": "INC-2026-003",
@@ -40,8 +49,14 @@
       "opened": "2026-10-01",
       "disclosed": "2026-10-01",
       "fixed": "2026-10-01",
-      "released": { "version": "0.5.0", "date": "2026-11-01" },
-      "record": { "file": "SECURITY.md", "heading": "Post-mortem: the published MCP tool believed the bundle" }
+      "released": {
+        "version": "0.5.0",
+        "date": "2026-11-01"
+      },
+      "record": {
+        "file": "SECURITY.md",
+        "heading": "Post-mortem: the published MCP tool believed the bundle"
+      }
     },
     {
       "id": "INC-2026-004",
@@ -51,8 +66,14 @@
       "opened": "2026-10-01",
       "disclosed": "2026-10-01",
       "fixed": "2026-10-01",
-      "released": { "version": "0.5.0", "date": "2026-10-31" },
-      "record": { "file": "SECURITY.md", "heading": "Post-mortem: the published MCP tool believed the bundle" }
+      "released": {
+        "version": "0.5.0",
+        "date": "2026-10-31"
+      },
+      "record": {
+        "file": "SECURITY.md",
+        "heading": "Post-mortem: the published MCP tool believed the bundle"
+      }
     },
     {
       "id": "INC-2026-005",
@@ -63,7 +84,10 @@
       "disclosed": "2026-10-27",
       "fixed": "2026-10-27",
       "released": null,
-      "record": { "file": "SECURITY.md", "heading": "Post-mortem: a revocation the registrar daemon forgot on restart" }
+      "record": {
+        "file": "SECURITY.md",
+        "heading": "Post-mortem: a revocation the registrar daemon forgot on restart"
+      }
     },
     {
       "id": "INC-2026-006",
@@ -73,8 +97,14 @@
       "opened": "2026-10-28",
       "disclosed": "2026-10-28",
       "fixed": "2026-10-28",
-      "released": { "version": "0.5.0", "date": "2026-10-31" },
-      "record": { "file": "SECURITY.md", "heading": "Advisory: RUSTSEC-2026-0385" }
+      "released": {
+        "version": "0.5.0",
+        "date": "2026-10-31"
+      },
+      "record": {
+        "file": "SECURITY.md",
+        "heading": "Advisory: RUSTSEC-2026-0385"
+      }
     },
     {
       "id": "INC-2026-007",
@@ -85,12 +115,44 @@
       "disclosed": "2026-10-31",
       "fixed": "2026-10-31",
       "released": null,
-      "record": { "file": "SECURITY-ADVISORIES.md", "heading": "RUSTSEC-2026-0387" }
+      "record": {
+        "file": "SECURITY-ADVISORIES.md",
+        "heading": "RUSTSEC-2026-0387"
+      }
+    },
+    {
+      "id": "INC-2026-008",
+      "class": "LOW",
+      "surface": "compliance probe kit (kits/probe), in tagged releases since v0.4.0; the fix is on main and ships in the next release",
+      "title": "D-096: probe reports named the probe's subject — its plain hash, and the name itself in check P1's detail",
+      "opened": "2026-11-06",
+      "disclosed": "2026-11-06",
+      "fixed": "2026-11-06",
+      "released": null,
+      "record": null
     }
   ],
   "not_incidents": [
-    { "record": { "file": "SECURITY-ADVISORIES.md", "heading": "RUSTSEC-2023-0089" }, "reason": "an unmaintained notice, not a vulnerability; one narrowly scoped ignore with a revisit condition" },
-    { "record": { "file": "SECURITY-ADVISORIES.md", "heading": "RUSTSEC-2025-0144" }, "reason": "the same defect as INC-2026-001; this is its advisory scoping" },
-    { "record": { "file": "SECURITY-ADVISORIES.md", "heading": "RUSTSEC-2026-0385" }, "reason": "the same defect as INC-2026-006; this is its advisory scoping" }
+    {
+      "record": {
+        "file": "SECURITY-ADVISORIES.md",
+        "heading": "RUSTSEC-2023-0089"
+      },
+      "reason": "an unmaintained notice, not a vulnerability; one narrowly scoped ignore with a revisit condition"
+    },
+    {
+      "record": {
+        "file": "SECURITY-ADVISORIES.md",
+        "heading": "RUSTSEC-2025-0144"
+      },
+      "reason": "the same defect as INC-2026-001; this is its advisory scoping"
+    },
+    {
+      "record": {
+        "file": "SECURITY-ADVISORIES.md",
+        "heading": "RUSTSEC-2026-0385"
+      },
+      "reason": "the same defect as INC-2026-006; this is its advisory scoping"
+    }
   ]
 }

@@ -222,7 +222,7 @@ directory, appended to an RFC 6962 log (origin `ainra-directory`) and cosigned b
 rules. WITNESS: two different epoch-N digests shown to one witness are refused and `ctl` alarms; a leaf whose
 directory does not verify under both roots is refused.
 
-**11. Compliance: scheduled probes, notices, the ladder.** Probes and soaks on an unannounced schedule from at least
+**11. Compliance: scheduled probes, notices, the ladder.** *Built 2026-11-06 (D-096): the probe subject is a salted commitment and no report names a lineage (both found leaking — the plain hash, and the name itself in P1's detail); `kits/probe/notice.mjs` confirms a failure only from two vantage points on distinct networks and keeps the ladder at D-094's days (30-day cure, 14 days between notices, breach record after the cure, 90-day grace before WITHDRAW); the checker enforces the same numbers (`adverse-notice-chain`, new `adverse-grace`), and the rehearsal feeds it the ladder's own evidence. Not built: the unannounced schedule from two real networks (needs a second vantage host) and publishing reports and notices.* Probes and soaks on an unannounced schedule from at least
 two vantage points on different networks, every report published, the probe subject published as a salted
 commitment (SHA-256 of salt‖name, salt revealed when the identity retires) so a registrar cannot find the probe in its
 own log. `kits/probe/notice.mjs` writes fact notices and tracks the ladder: notice 1 (starts the cure window), notice

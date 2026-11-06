@@ -84,6 +84,16 @@ for (const need of ["P0","P1","P2a","P2b","P2c","P2d","P3","P4","P5","P6a","P6b"
 // The tree was grown on purpose above, so nothing may be skipped here. A skip in this run means the driver stopped
 // exercising the strong control and the board would go green on a thinner test than it claims to run.
 if (r.skipped.length) { console.error("FAIL: skipped " + r.skipped.map(s => s.id).join(",") + " — the log was supposed to be multi-leaf"); process.exit(1); }
+// D-096: the report names its subject only by a salted commitment, which the kept salt reopens; never the name or its plain hash
+const fs = require("fs"), path = require("path"), crypto = require("crypto");
+const sec = path.join(path.dirname(process.argv[1]), "probe-subject.secret.json");
+const { subject, salt, also_minted } = JSON.parse(fs.readFileSync(sec, "utf8")), text = JSON.stringify(r);
+const plain = crypto.createHash("sha256").update(subject).digest("hex");
+for (const n of [subject, plain, ...(also_minted || [])]) if (text.includes(n)) { console.error("FAIL: the published report contains " + (n === plain ? "the plain hash of the subject" : "a lineage the probe minted: " + n)); process.exit(1); }
+if ("subject_sha256" in r) { console.error("FAIL: the report still carries subject_sha256"); process.exit(1); }
+if (crypto.createHash("sha256").update(Buffer.concat([Buffer.from(salt, "hex"), Buffer.from(subject)])).digest("hex") !== r.subject_commitment) { console.error("FAIL: the kept salt does not reopen the published commitment"); process.exit(1); }
+if ((fs.statSync(sec).mode & 0o077) !== 0) { console.error("FAIL: the subject salt is readable by others"); process.exit(1); }
+console.log("  ✓ subject published as a salted commitment; the kept salt (0600) reopens it");
 console.log("  ✓ all " + ids.length + " checks passed · revocation visible in " + (r.measured.revocation_visible_ms/1000).toFixed(3) + "s · seq " + r.measured.status_seq.start + " → " + r.measured.status_seq.end);
 ' "$WORK/honest/probe-report.json"
 

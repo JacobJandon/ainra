@@ -2535,3 +2535,69 @@ target did not exist yet.
 
 *Status:* ACCEPTED 2026-11-06. It builds D-094 item 16 as accepted. The deputy stays unnamed until the owner names
 one.
+
+## D-096 — Compliance: a probe the registrar cannot find, and a ladder that waits its days (M52)
+
+*Problem:* PLAN-M52 step 11 asks for probes that a registrar cannot single out, notices that confirm a failure
+before acting on it, and a ladder (notice 1, notice 2, a breach record, distrust, a grace window, withdrawal) at
+the numbers D-094 item 11 accepted. Two defects were found while building it.
+
+**Defect 1: the subject's plain hash.** Every probe report up to 2026-11-06 named its subject by `SHA-256(subject)`,
+documented as "the lineage is not published". A registrar knows every name it issued, so it hashes each name in its
+own log once and finds the probe.
+
+**Defect 2: the subject's name.** It was in the published report outright: check P1's detail line read
+`POST /demo/issue → HTTP 200 · <subject>`. P6a's failure detail printed every renewed generation.
+
+Every published probe report carried both.
+
+*Decision:*
+
+- **The subject is a salted commitment.** The report carries `subject_commitment = SHA-256(salt ‖ subject)`, made
+  with a fresh 32-byte salt (`kits/probe/commitment.mjs`). Salt and subject go to `probe-subject.secret.json`
+  beside the report (mode 0600, gitignored), together with every other lineage the run minted. They are revealed
+  when the probe identity retires, so a report can be re-checked later and never re-labelled.
+- **No check detail names a lineage.** Neither P1 nor P6a prints a subject or a generation.
+- **The request checker enforces D-094 item 11's numbers**
+  (`crates/ainra-adapter/src/workbench.rs`; regenerated into `docs/ACCREDITATION-CHECKS.md`):
+  - `adverse-notice-chain` now requires at least two notices, at least 14 days apart, and a cure window of at
+    least 30 days from notice 1;
+  - the new check `adverse-grace` allows an adverse WITHDRAW only of a registrar already distrusted in epoch N,
+    with a public breach record (notice 3 or later), filed at least 90 days after it.
+- **`kits/probe/notice.mjs` keeps the ladder.**
+  - A failure counts only when the same check fails from at least two vantage points on distinct networks in one
+    cycle. Probe reports now record `vantage {id, network}`.
+  - It writes numbered fact notices, each named by its SHA-256, and opens the 30-day cure window.
+  - Notice 2 comes at least 14 days later. The breach record comes only after the cure window, on a new
+    confirmation from two networks.
+  - It writes the evidence a DISTRUST_FROM_LEAF request carries. It writes WITHDRAW evidence only 90 days after
+    the breach record.
+  - A cycle read COMPLIANT from two networks closes the ladder.
+- **An abrupt registrar loss gets no ladder.** Its credentials fail closed at each verifier's freshness window, as
+  before.
+
+*WITNESS:*
+
+- `make probe-ladder` (a preflight row) runs two drills:
+  - commitment: hashing a 2,000-name log finds the old plain hash and not the commitment; the reveal reopens it;
+  - ladder: one vantage point, or two on one network, produces no notice; each rung is refused before its days;
+    the evidence has the checker's numbers; a compliant cycle cures the ladder.
+- `make probe-drill` (a live registrar) fails if the published report contains the subject, its plain hash, or
+  any lineage the run minted, or if the kept salt does not reopen the commitment. On its first run with this check
+  it caught defect 2.
+- `make sign-epoch-rehearsal` hands the real checker two records:
+  - the evidence `notice.mjs` wrote from three cycles of probe reports, which is accepted;
+  - the same record with a 20-day cure window, which is refused by `adverse-notice-chain`.
+- The adapter tests refuse one notice, notices 10 days apart and a 20-day cure. For `adverse-grace` they accept a
+  WITHDRAW at 91 days and refuse one at 60 days, one with no breach record, and one of a registrar never
+  distrusted.
+
+*Not built:*
+
+- running probes on an unannounced schedule from two real networks (needs a second vantage host, an owner fact
+  with the second static host);
+- publishing reports and notices under the read contract.
+
+*Not changed:* the wire format, every corpus, P1–P6.
+
+*Status:* ACCEPTED 2026-11-06, under D-094 item 11 as accepted and the owner's choice of this step.

@@ -7,6 +7,7 @@
 //
 //   node probe.mjs --registrar <url> --directory <dir.json> --roots <roots.json> --now <unix>
 //                  [--slo-revocation-sec 60] [--poll-ms 200] [--timeout-sec 240] [--out <dir>]
+//                  [--vantage <id> --network <name>]   (where the run stood; kits/probe/notice.mjs needs both)
 //
 // The two properties that make it a probe and not a health check:
 //
@@ -25,10 +26,11 @@
 // It does not prove they always hold. That is why the value is in the schedule, not in any single run.
 
 import { writeFileSync, mkdirSync, readFileSync } from "node:fs";
-import { createHash, randomBytes } from "node:crypto";
+import { randomBytes } from "node:crypto";
 import { createRequire } from "node:module";
 import { pathToFileURL } from "node:url";
 import { Verifier, canonicalize, mintInstanceCredential, proveInstancePossession } from "@ainra/sdk";
+import { commit, SCHEME } from "./commitment.mjs";
 
 // The holder key P6 brings is signed with the SDK's own copies of the libraries — the versions its verifier checks with.
 const sdkRequire = createRequire(import.meta.resolve("@ainra/sdk/package.json"));
@@ -40,6 +42,8 @@ const A = (n, d) => { const i = process.argv.indexOf(`--${n}`); return i >= 0 &&
 const registrar = (A("registrar") || "").replace(/\/$/, "");
 const now = Number(A("now"));
 const outDir = A("out", "out");
+// where this run stood: notice.mjs confirms a failure only when vantage points on distinct networks agree (D-096)
+const vantage = A("vantage", null), network = A("network", null);
 const sloSec = Number(A("slo-revocation-sec", "60"));
 const pollMs = Number(A("poll-ms", "200"));
 const timeoutSec = Number(A("timeout-sec", "240"));
@@ -89,7 +93,6 @@ async function post(path, body) {
 }
 const presentOf = (sub) => get(`/present?sub=${encodeURIComponent(sub)}&now=${now}`);
 const verdictOf = (bundle) => verifier.verify(bundle, now);
-const sha256hex = (s) => createHash("sha256").update(s).digest("hex");
 
 console.log(`probe: ${registrar} · root-dark verifier (F1, currency ON) · SLO revocation < ${sloSec}s\n`);
 
@@ -112,13 +115,14 @@ if (!strangerOk && writeDoor.status === 200) {
 
 // ── P1 · mint through the public door ────────────────────────────────────────────────────────────────────────────
 let sub = null, preBundle = null;
+const MINTED = []; // every lineage this run mints: none may appear in the published report (D-096)
 if (!aborted) {
   // An ordinary-looking name. No "probe", no "monitor", nothing a grep on the registrar's side could special-case.
   const tag = Date.now().toString(36).slice(-5);
   const mint = await post("/demo/issue", { operator: "meadowlark", lineage: `ledger-sync-${tag}` });
-  sub = mint.json?.sub ?? null;
+  sub = mint.json?.sub ?? null; if (sub) MINTED.push(sub);
   check("P1", "an unmarked lineage can be minted through the public door", mint.status === 200 && !!sub,
-    `POST /demo/issue → HTTP ${mint.status}${sub ? ` · ${sub}` : ` · ${mint.text.slice(0, 120)}`}`,
+    `POST /demo/issue → HTTP ${mint.status}${sub ? " · minted (named in this report only by its commitment)" : ` · ${mint.text.slice(0, 120)}`}`,
     "the retail path is open to a party the registrar has no relationship with");
   if (!sub) aborted = aborted ?? "could not mint through the public door — the probe has nothing to measure. On a real registrar this is the accreditation term being unmet, not a probe failure.";
 }
@@ -241,6 +245,7 @@ if (!aborted) {
   const r2 = g1 ? await post("/demo/renew", { sub: g1, new_version: "1.1.0", now }) : null;
   const g2 = r2?.json?.sub ?? null;
   const g3 = g2 ? (await post("/demo/renew", { sub: g2, new_version: "1.2.0", now })).json?.sub ?? null : null;
+  MINTED.push(...[g1, g2, g3].filter(Boolean));
 
   if (g1 && r2 && (r2.status === 404 || r2.status === 405)) {
     skip("P6", "revoking a renewed lineage revokes every generation and the running copies under them",
@@ -248,7 +253,7 @@ if (!aborted) {
       "a renewal journey needs a door the probe can use without a credential");
   } else if (!(g1 && g2 && g3)) {
     check("P6a", "a lineage can be renewed twice through the public door", false,
-      `generations: ${[g1, g2, g3].map((g) => g ?? "—").join(" → ")}${r2 && !g2 ? ` · renew → HTTP ${r2.status} ${r2.text.slice(0, 100)}` : ""}`,
+      `generations minted: ${[g1, g2, g3].filter(Boolean).length} of 3${r2 && !g2 ? ` · renew → HTTP ${r2.status} ${r2.text.slice(0, 100)}` : ""}`,
       "the renewal journey is open to a party the registrar has no relationship with");
   } else {
     // A running copy under the OLDEST generation, minted with the probe's own key — the credential a newest-only
@@ -312,14 +317,20 @@ if (!aborted) {
 // ── report ───────────────────────────────────────────────────────────────────────────────────────────────────────
 const failed = checks.filter((c) => c.pass === false);
 const skipped = checks.filter((c) => c.pass === null);
+// the subject is published only as a salted commitment (D-096): a plain hash of the name is found by the registrar in
+// one pass over its own log. The salt is written beside the report, owner-only, and is revealed when the identity retires.
+const subj = sub ? commit(sub) : null;
+if (subj) writeFileSync(`${outDir}/probe-subject.secret.json`, JSON.stringify({ subject: sub, salt: subj.salt, scheme: SCHEME, also_minted: MINTED.filter((m) => m !== sub), note: "do not publish until this probe identity retires" }, null, 2) + "\n", { mode: 0o600 });
 const report = {
   kind: "ainra/compliance-probe/v1",
   registrar_url: registrar,
   registrar_id: sub?.split(":")[1] ?? null, // from the signed name the verifier accepted, not from /health
+  vantage: vantage ? { id: vantage, network: network ?? "unstated" } : null,
   ran_at: new Date().toISOString(),
   verifier_now: now,
   policy: { freshness: "F1", currency: true, slo_revocation_sec: sloSec, timeout_sec: timeoutSec },
-  subject_sha256: sub ? sha256hex(sub) : null, // the lineage is not published: a named probe subject is a marked probe
+  subject_commitment: subj ? subj.commitment : null, // never the name, never its plain hash: see commitment.mjs
+  subject_commitment_scheme: SCHEME,
   aborted,
   measured: {
     revocation_visible_ms: latencyMs === null ? null : Number(latencyMs.toFixed(1)),

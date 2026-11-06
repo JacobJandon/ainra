@@ -4,7 +4,8 @@
 The conformance vectors' recorded ``expect`` is the Rust core's verdict; this
 test asserts the independent Python verifier reproduces it byte-for-byte on every
 passport, delta, and directory vector — the same property the differential
-harness enforces — and that all 20 frozen reasons are exercised.
+harness enforces — and that all 21 frozen reasons are exercised: the 20 the verify returns by the passport corpus,
+and the gate's own ``denied_by_policy`` (D-100) by the gate corpus, the only place a verdict can carry it.
 """
 
 from __future__ import annotations
@@ -49,9 +50,13 @@ class TestCorpusAgreement(unittest.TestCase):
                 seen_reasons.add(got["reason"])
             count += 1
         self.assertGreater(count, 700)
-        # Every frozen reason except the delta/directory-only ones is reachable
-        # from the passport corpus.
+        # Every reason the verify returns is reachable from the passport corpus. The gate's own reason is not, by
+        # design — the verify never returns it — and the gate corpus must exercise it instead.
         for r in reasons.ALL:
+            if r == reasons.DENIED_BY_POLICY:
+                gate = [v for v in _load(ROOT / "vectors" / "v1-gate") if v.get("expect", {}).get("reason") == r]
+                self.assertTrue(gate, msg="denied_by_policy not exercised by vectors/v1-gate")
+                continue
             self.assertIn(r, seen_reasons, msg=f"reason not exercised: {r}")
 
     def test_delta_corpus(self):

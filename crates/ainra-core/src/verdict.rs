@@ -92,12 +92,18 @@ pub enum Reason {
     /// The proof-of-possession failed: wrong audience, a timestamp outside tolerance, or a signature that does
     /// not verify under the credential's instance key.
     InstancePopInvalid,
+
+    // ── D-100: the gate's own policy. Not returned by the nine-step verify: only a gate that carries a local policy
+    // returns it, and only IN PLACE OF `valid` — a passport that already fails keeps its own, more useful reason.
+    /// The passport verified, and the gate's own policy refused it: a local deny entry names its registrar, its
+    /// lineage or its exact name, or the signed directory is older than the gate's maximum directory age.
+    DeniedByPolicy,
 }
 
 impl Reason {
     /// Every reason, in declaration order. The match in [`Reason::as_str`] is exhaustive, so a new variant fails to
     /// compile there; this list is held to it by the `all_is_every_reason` test.
-    pub const ALL: [Reason; 20] = [
+    pub const ALL: [Reason; 21] = [
         Reason::RegistrarDistrusted,
         Reason::SigInvalid,
         Reason::AlgDowngrade,
@@ -118,6 +124,7 @@ impl Reason {
         Reason::InstanceScopeExceeds,
         Reason::InstanceSigInvalid,
         Reason::InstancePopInvalid,
+        Reason::DeniedByPolicy,
     ];
 
     /// The reason a frozen wire string names, if any.
@@ -148,6 +155,7 @@ impl Reason {
             Reason::InstanceScopeExceeds => "instance_scope_exceeds",
             Reason::InstanceSigInvalid => "instance_sig_invalid",
             Reason::InstancePopInvalid => "instance_pop_invalid",
+            Reason::DeniedByPolicy => "denied_by_policy",
         }
     }
 }
@@ -162,8 +170,9 @@ impl core::fmt::Display for Reason {
 mod tests {
     use super::*;
 
-    // The 20 frozen strings, in enum order. If this list changes, vectors break — that is the point.
-    const ALL: [(Reason, &str); 20] = [
+    // The 21 frozen strings, in enum order (the 20 verify reasons and the gate's own, D-100). If this list changes,
+    // vectors break — that is the point.
+    const ALL: [(Reason, &str); 21] = [
         (Reason::RegistrarDistrusted, "registrar_distrusted"),
         (Reason::SigInvalid, "sig_invalid"),
         (Reason::AlgDowngrade, "alg_downgrade"),
@@ -184,6 +193,7 @@ mod tests {
         (Reason::InstanceScopeExceeds, "instance_scope_exceeds"),
         (Reason::InstanceSigInvalid, "instance_sig_invalid"),
         (Reason::InstancePopInvalid, "instance_pop_invalid"),
+        (Reason::DeniedByPolicy, "denied_by_policy"),
     ];
 
     #[test]

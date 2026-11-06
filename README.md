@@ -162,7 +162,7 @@ repository, which the host deploys to https://ainra.org/. Pushing this repositor
 ```
                       the STANDARD + CC0 conformance vectors (vectors/)  ── anyone builds against these
                                           │
-  crates/ainra-core  ── the pure verify/issue library (N7: no I/O, no clock) ── the 10-step verify, 20 reasons
+  crates/ainra-core  ── the pure verify/issue library (N7: no I/O, no clock) ── the 10-step verify, 21 reasons
         │  hybrid Ed25519 + ML-DSA-65 (both-or-invalid) · RFC 6962 Merkle · Token Status List
         ▼
   crates/ainra-adapter ── the ONE place external bytes become core verify types, and the canonical verdict event.

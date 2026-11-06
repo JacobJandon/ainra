@@ -574,6 +574,64 @@ pub fn verify_gate(
     )
 }
 
+/// D-100 — a gate's own policy, applied after its verdict. It can only turn `valid` into `denied_by_policy`; a
+/// passport that already fails keeps its own reason. Nothing here is published or asked of anyone: it is the fastest
+/// stop there is, and it needs nobody's permission (PLAN-M53 step 6). `max_directory_age_s` is the freeze defence a
+/// gate may opt into (step 5): off by default, so an offline gate keeps working on the directory it holds.
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct GatePolicy {
+    /// Each entry is a registrar id (`registrar-07`), a lineage (`ainra:registrar-07:acme:alpha`, every version), or
+    /// an exact name (`ainra:registrar-07:acme:alpha@1.0.0`).
+    #[serde(default)]
+    pub deny: Vec<String>,
+    /// Refuse when the signed directory's `issued_at` is more than this many seconds before the gate's clock.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_directory_age_s: Option<u64>,
+}
+
+/// Does deny entry `e` name the passport `sub`? A bare id is a registrar; `@` makes it an exact name; otherwise it
+/// is a lineage and matches every version of it.
+pub fn deny_matches(e: &str, sub: &str) -> bool {
+    if !e.contains(':') {
+        sub.split(':').nth(1) == Some(e)
+    } else if e.contains('@') {
+        sub == e
+    } else {
+        sub.strip_prefix(e)
+            .is_some_and(|rest| rest.starts_with('@'))
+    }
+}
+
+/// Apply a gate's [`GatePolicy`] to the verdict it already reached. `claims` is the bundle's claims as presented
+/// (base64url canonical JSON); it is read only after a `valid` verdict, when it has been verified.
+pub fn apply_gate_policy(
+    v: Verdict,
+    claims: &str,
+    directory_issued_at: u64,
+    now: u64,
+    policy: &GatePolicy,
+) -> Verdict {
+    if !matches!(v, Verdict::Valid) {
+        return v;
+    }
+    if policy
+        .max_directory_age_s
+        .is_some_and(|m| now > directory_issued_at.saturating_add(m))
+    {
+        return Verdict::invalid(Reason::DeniedByPolicy);
+    }
+    let sub = b64::decode(claims)
+        .ok()
+        .and_then(|b| serde_json::from_slice::<serde_json::Value>(&b).ok())
+        .and_then(|c| c["sub"].as_str().map(String::from))
+        .unwrap_or_default();
+    if policy.deny.iter().any(|e| deny_matches(e, &sub)) {
+        return Verdict::invalid(Reason::DeniedByPolicy);
+    }
+    v
+}
+
 /// What a currency gate remembers between requests (D-021, PLAN-M51): per status URI, the highest fresh-head `seq` it
 /// has accepted. Held by the caller — a gate is long-lived, this library is not.
 pub type SeqSeen = BTreeMap<String, u64>;
@@ -1560,7 +1618,23 @@ pub fn gate_vector_result(v: &serde_json::Value) -> serde_json::Value {
     let Ok(p) = serde_json::from_value::<WirePresentation>(v["bundle"].clone()) else {
         return invalid("schema_violation");
     };
-    match verify_gate(&p, &trust, now, audience, f) {
+    // D-100: an optional policy; a vector without one is a gate without one
+    let policy = if v["policy"].is_null() {
+        GatePolicy::default()
+    } else {
+        match serde_json::from_value::<GatePolicy>(v["policy"].clone()) {
+            Ok(p) => p,
+            Err(_) => return invalid("schema_violation"),
+        }
+    };
+    let issued_at = v["directory"]["issued_at"].as_u64().unwrap_or(0);
+    match apply_gate_policy(
+        verify_gate(&p, &trust, now, audience, f),
+        &p.claims,
+        issued_at,
+        now,
+        &policy,
+    ) {
         Verdict::Valid => json!({ "verdict": "valid" }),
         Verdict::Invalid { reason } => invalid(&reason_str(reason)),
     }

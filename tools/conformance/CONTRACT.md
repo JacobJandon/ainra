@@ -49,7 +49,7 @@ presenter's status passes every one of them. That is the hole of D-072, D-074 an
 Each vector carries what it means in `description` and the exact answer in `expect`; the per-kind specifications are
 `docs/PRESENTATION.md`, `docs/DECISIONS.md` (D-073, D-078, D-079, D-081, D-083) and `docs/LINKS.md`.
 
-`<reason>` is one of the 20 frozen reason strings (`docs/reasons.json`). This is the SAME shape every AINRA surface
+`<reason>` is one of the 21 frozen reason strings (`docs/reasons.json`: the 20 the verify returns, and `denied_by_policy`, which only a gate with its own policy returns, D-100). This is the SAME shape every AINRA surface
 already emits (`docs/PRESENTATION.md`; `ainra._vector_runner` prints exactly `<name>\t<result-json>`), so an existing
 verifier needs only a thin wrapper — see `tools/conformance/adapters/`.
 

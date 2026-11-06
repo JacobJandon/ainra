@@ -8,7 +8,7 @@
 // than those runners — so a new export cannot silently stay internal.
 
 export {
-  canonicalize, contentDigest, coveredComponents, createDecisionLog, createDirectoryHolder, DECISION_V,
+  applyGatePolicy, canonicalize, contentDigest, coveredComponents, createDecisionLog, createDirectoryHolder, DECISION_V, denyMatches,
   decisionRequestDigest, decisionSigningBytes, decodeInstance, HEAD_V, headHash, headSigningBytes,
   INSTANCE_CRED_DEFAULT_SECS, instanceCredDigest, instanceSigningBytes, isPresentationRef, joinPresentation,
   jwkThumbprintEd25519, jwkThumbprintEs256k, linkFromIndex, linkPopSigningBytes, MAX_AGE_SECS, MAX_CAPABILITIES,
@@ -25,7 +25,7 @@ export {
 export type {
   AccreditedSet, ChainAnchor, ChainProblem, ChainResult, CheckpointSig, DecisionInput, DecisionLog, DecisionRecord,
   DelegateCert, DirectoryAcceptance, DirectoryEpochResult, DirectoryHolder, DirectoryRefusal, FreshHead,
-  FreshnessClass, HeadChainResult, HeadStatement, HeadVerdict, HopLogProof, HybridSigner, InstanceCredential,
+  FreshnessClass, GatePolicy, HeadChainResult, HeadStatement, HeadVerdict, HopLogProof, HybridSigner, InstanceCredential,
   InstancePop, LinkAttribution, LinkIndex, LinkVerdict, MandateInclusion, Presentation, PresentationBundle,
   PresentationCheck, PresentationReason, PresentedBundle, Reason, RegistrarInfo, SignableRequest, SigParams,
   StatusDelta, StatusPublication, TrustAnchors, Verdict, VerdictEvent, WireDeltaVector, WireDirectory,

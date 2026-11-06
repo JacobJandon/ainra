@@ -54,7 +54,8 @@ test("D-073: the gate corpus — answered by the WASM build, and by the gate its
   for (const f of files) {
     const v = JSON.parse(readFileSync(new URL(f, dir), "utf8"));
     assert.equal(st(runGateVector(v)), st(v.expect), `${v.name}: the engine`);
-    const build = () => createAinraEdgeGate({ directory: v.directory, roots: v.roots, audience: v.audience || "https://unused.example", freshness: v.freshness, now: () => v.now });
+    const policy = v.policy ? { deny: v.policy.deny, maxDirectoryAgeS: v.policy.max_directory_age_s } : {};
+    const build = () => createAinraEdgeGate({ directory: v.directory, roots: v.roots, audience: v.audience || "https://unused.example", freshness: v.freshness, now: () => v.now, policy });
     if (v.expect.verdict === "no_gate") { await assert.rejects(build(), /does not verify/, v.name); continue; }
     const g = await (await build())(present(v.bundle));
     assert.equal(g.event.status, v.expect.verdict, `${v.name}: the gate's verdict`);

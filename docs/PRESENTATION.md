@@ -68,7 +68,7 @@ Every surface emits the same event when it reports a verdict. Fields, in this fi
 | Field | Type | Meaning |
 |---|---|---|
 | `status` | `"valid"` \| `"invalid"` | the verdict |
-| `reason` | named reason \| `null` | one of the 20 frozen reasons (see [`reasons.json`](reasons.json)); `null` when valid |
+| `reason` | named reason \| `null` | one of the 21 frozen reasons (see [`reasons.json`](reasons.json); `denied_by_policy` only from a gate with its own policy, D-100); `null` when valid |
 | `instance_iid` | string \| `null` | ADR-019 — the running copy's opaque instance id; `null` when a passport was presented directly |
 | `instance_exp` | number \| `null` | ADR-019 — when that copy's credential expires. An operator watching these sees short numbers; a long one is a finding |
 | `name` | string \| `null` | the full **versioned credential** name (`…@version`) |

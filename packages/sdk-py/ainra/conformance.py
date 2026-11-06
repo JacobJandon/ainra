@@ -29,7 +29,7 @@ def run_vector(v: dict) -> dict:
 def run_gate_vector(v: dict) -> dict:
     """A gate vector (D-073): the directory against both roots, then the GA Verifier at the gate's own policy."""
     gate = Verifier.from_directory(v["directory"], v["roots"]["root_ed25519"], v["roots"]["root_slh"],
-                                   audience=v["audience"], freshness=v["freshness"])
+                                   audience=v["audience"], freshness=v["freshness"], policy=v.get("policy"))
     if gate is None:
         return {"verdict": "no_gate"}
     verdict = gate.verify(v["bundle"], v["now"])

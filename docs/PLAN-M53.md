@@ -65,12 +65,12 @@ offline machine and an untrusted relay (PLAN-M52 "Emergencies"), rehearsed and t
 D-094 item 3 is then stated from the measurement. WITNESS: a timed rehearsal with five custodian processes that
 never share a network.
 
-**5. The freeze attack.** Directories never expire, so a host that withholds a newer epoch hides an emergency stop
+**5. The freeze attack.** *Built 2026-11-06 (D-100), without a wire change: a gate may set `max_directory_age_s` against the directory's signed `issued_at`; off unless set, so offline gates keep working (the owner's condition).* Directories never expire, so a host that withholds a newer epoch hides an emergency stop
 from passive verifiers (D-094 item 7 accepted this as a stated limit). Proposed: an optional `valid_until` that
 verifiers with a policy honour, at the published quarterly cadence. This is a wire change. It needs its own record
 and the owner's ruling before it is built.
 
-**6. A local deny entry in every gate.** One line of configuration refuses a registrar, a lineage or a name, with a
+**6. A local deny entry in every gate.** *Built 2026-11-06 (D-100): `deny` and the 21st frozen reason `denied_by_policy` in every implementation, held to gate vectors g31–g37.* One line of configuration refuses a registrar, a lineage or a name, with a
 named reason, in all four implementations and the edge gate. This is the fastest stop that needs nobody's permission.
 
 ### Phase B — keep the Standard's promises

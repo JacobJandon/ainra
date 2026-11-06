@@ -28,10 +28,29 @@ revoked: {"verdict":"invalid","reason":"revoked"}
 ```
 
 - `Verifier.fromDirectoryB64` returns `null` if the directory isn't anchored by the given roots (fail closed).
-- `verify()` never throws — any malformed input is `{verdict:"invalid", reason:…}` (one of the 20 in [`reasons.json`](../reasons.json)).
+- `verify()` never throws — any malformed input is `{verdict:"invalid", reason:…}` (one of the 21 in [`reasons.json`](../reasons.json)).
 - Build the [verdict event](../PRESENTATION.md) with `verdictEvent(bundle, verdict, now)` when you need `{name, number, tier, freshness_age_s}`.
 
 Next: gate a whole request path with [the middleware](middleware.md).
+
+## Your own policy: refuse someone, at once, by yourself (D-100)
+
+A gate can refuse a registrar, a lineage or one exact passport, the moment it decides to, with nobody's permission.
+It can also refuse a directory that has grown older than it allows (the defence against a host that withholds a
+newer one). Both are off unless you set them, so a gate that works offline keeps working on the directory it holds.
+
+```ts
+const gate = Verifier.fromDirectoryB64(directory, roots.root_ed25519, roots.root_slh, "F2", false, "", {
+  deny: ["registrar-07", "ainra:registrar-11:acme:invoicing", "ainra:registrar-11:globex:travel@2.0.0"],
+  maxDirectoryAgeS: 92 * 86400, // optional: the published quarterly cadence
+});
+```
+
+A deny entry is a registrar id, a lineage (every version), or an exact name with its version. The policy only ever
+turns `valid` into `denied_by_policy`: a passport that already fails keeps its own reason, so a revocation is never
+hidden behind yours. The same option exists in the Python package, in `@ainra/edge` (`policy`), in the MCP tool
+`ainra_verify` (`policy`) and in `ainra verify-request` (`--deny`, `--max-directory-age`), all held to the same gate
+vectors (`vectors/v1-gate`, g31–g37).
 
 ## A running copy, not the agent itself (ADR-019)
 

@@ -640,7 +640,7 @@ privacy claims can drift from the code without any gate going red.
 - **Rule for later.** Any future privacy proposal, ZK included, must name the ledger rows it changes and ship the new
   expected file. A proposal that moves no row is not a privacy change.
 
-*Not changed:* the wire format, the 20 frozen reasons, every corpus. P1–P6 are untouched. P4 holds; only the sentence
+*Not changed:* the wire format, the frozen reasons, every corpus. P1–P6 are untouched. P4 holds; only the sentence
 describing its mechanism is corrected.
 
 *Cost:* one tool, one expected file, one make target, one doctrine rule, plus text edits and one amendment record.

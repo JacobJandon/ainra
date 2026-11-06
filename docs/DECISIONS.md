@@ -2763,3 +2763,64 @@ signed TEST-ROOT contract and two divergent copies of registrar-11's log. The dr
 *Not changed:* every format; the desk is a local tool.
 
 *Status:* ACCEPTED 2026-11-06, the owner's request for the whole control "with a scram", within D-034.
+
+## D-100 — A gate's own policy: refuse at once, by yourself; and the freeze defence, opt-in (M53)
+
+*Problem:* PLAN-M53 had two open items.
+
+- **Step 5, the freeze attack.** Directories never expire, so a host that withholds a newer epoch hides an
+  emergency stop from verifiers that read only what they are given. D-094 item 7 accepted this as a stated limit.
+- **Step 6, the fastest stop.** A service had no way to refuse a registrar or an agent locally, at once, without
+  anyone's permission.
+
+The owner said yes to both, with one condition: "it should work fully online or offline, as crypto is". A signed
+`valid_until` field in the directory would have broken both halves of that condition:
+- every deployed verifier refuses unknown fields, so a new field breaks the 0.7.0 releases;
+- a verifier holding a directory offline would start refusing on the clock alone.
+
+*Decision:*
+
+- **No wire change.** Every directory already carries a signed `issued_at`.
+- **Each gate may carry its own policy:**
+  - `deny`: a list of entries. A bare id (`registrar-07`) names a registrar. A name with `@` names one exact
+    passport. Anything else names a lineage, which matches every version.
+  - `max_directory_age_s`: refuse when the signed directory's `issued_at` is older than this. It is off unless set,
+    so an offline gate keeps working on the directory it holds. An operator who wants the freeze defence sets it,
+    for example to the published quarterly cadence of 92 days.
+- **One new frozen reason,** `denied_by_policy`, the 21st. The nine-step verify never returns it.
+- **The policy only judges a credential that is already valid.** It only ever turns `valid` into
+  `denied_by_policy`; a passport that already fails keeps its own reason, so a revocation is never hidden behind a
+  local refusal. It judges the credential, whatever then happens to the request it arrived on.
+- **The subject is read from the verified claims,** never from anything else the presenter sends.
+- **The same rules everywhere:**
+  - `ainra-adapter` (`GatePolicy`, `deny_matches`, `apply_gate_policy`);
+  - `@ainra/sdk` (`Verifier.fromDirectory*(…, policy)`, `applyGatePolicy`, `denyMatches`);
+  - the Python package (`Verifier.from_directory(…, policy=…)`);
+  - `@ainra/edge` (`policy`);
+  - the MCP tool `ainra_verify` (`policy`);
+  - `ainra verify-request` (`--deny`, `--max-directory-age`).
+
+  `@ainra/middleware` and the Python middleware take a `Verifier` and inherit its policy.
+- **Published as** `docs/reasons.json` and the copy the MCP server ships. The conformance contract and the
+  quickstarts say how to use it.
+
+*WITNESS:* seven new gate vectors, g31–g37, generated through the core and refused if the core disagrees:
+- a registrar denied;
+- a lineage denied;
+- another version of the lineage denied, so this one passes;
+- another registrar denied, so this one passes;
+- a directory past the maximum age;
+- a directory within it;
+- a revoked passport whose registrar is also denied, which is still refused as `revoked`.
+
+Every implementation is held to them: the Rust gate, `@ainra/sdk`, the Python package, the edge gate's engine and
+its runtime gate, and the MCP tool. The earlier 30 gate vectors regenerate byte-identical.
+
+`make reasons-check` holds the 21 reasons identical across the core, both SDKs and both copies of the published
+list. The claims and corpus gates hold every count in prose. The Python reason test requires
+`denied_by_policy` to be exercised by the gate corpus, the only place a verdict can carry it.
+
+*Not changed:* the directory and passport formats; the 20 reasons the verify returns; P1–P6. The site's bundled
+browser SDK is refreshed with the next `make site-demo`; no page uses a gate policy.
+
+*Status:* ACCEPTED 2026-11-06, the owner's yes to PLAN-M53 steps 5 and 6, with the offline condition above.

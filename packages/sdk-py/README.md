@@ -94,7 +94,7 @@ streaming-safe.
 
 ## What it verifies
 
-The frozen nine-step verify, first-failure-wins, mapping to the 20 frozen reasons
+The frozen nine-step verify, first-failure-wins, mapping to the 20 verify reasons (21 frozen in all: a gate with its own policy adds `denied_by_policy`)
 (`docs/reasons.json`): AINRA name grammar; canonical JSON (sorted keys, no spaces,
 rejecting floats / non-ASCII keys / integers beyond 2⁵³); the strict base64url
 decode gateway (D-029 — every external decode is a canonical round-trip, fail

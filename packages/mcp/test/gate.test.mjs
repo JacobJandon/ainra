@@ -29,7 +29,7 @@ test("the gate corpus: ainra_verify decides every vectors/v1-gate entry as ainra
   assert.ok(files.length >= 27);
   for (const f of files) {
     const v = JSON.parse(readFileSync(`${dir}/${f}`, "utf8"));
-    const call = () => verify({ presentation: v.bundle, directory: v.directory, roots: v.roots, audience: v.audience, freshness: v.freshness, now: v.now });
+    const call = () => verify({ presentation: v.bundle, directory: v.directory, roots: v.roots, audience: v.audience, freshness: v.freshness, now: v.now, ...(v.policy ? { policy: v.policy } : {}) });
     if (v.expect.verdict === "no_gate") { await assert.rejects(call(), /does not verify against the roots/, v.name); continue; }
     const r = await call();
     assert.equal(r.mode, "gate", v.name);

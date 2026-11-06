@@ -820,6 +820,8 @@ REGISTRAR LIFECYCLE (operate on a local data dir)
 
 GATE (D-062 / D-068)
   verify-request --bundle B --directory D --roots R --request Q --audience A [--now T] [--freshness F2] [--currency]
+        [--deny E]… [--max-directory-age S]   the gate's own policy (D-100): refuse a registrar, lineage or name, or a
+        directory older than S seconds — only ever turns ALLOW into DENY denied_by_policy
         why did a gate refuse this request? The same check @ainra/edge makes: the directory must verify
         against both roots; the credential under the GATE's policy; then the RFC 9421 request signature.
         Q is {{method, authority, path, headers: [[name, value], …], body_b64u}}. Prints ALLOW or the reason.
@@ -1176,7 +1178,7 @@ fn cmd_verify_decisions(a: &[String]) -> i32 {
 /// `--currency` checks it as a currency gate would (D-021): the fresh head is required, verified and bound to the
 /// list. Seq replay cannot be judged from one request either — the gate's memory starts empty here.
 fn cmd_verify_request(a: &[String]) -> i32 {
-    let usage = "usage: ainra verify-request --bundle B --directory D --roots R --request Q --audience A [--now T] [--freshness F2] [--currency]";
+    let usage = "usage: ainra verify-request --bundle B --directory D --roots R --request Q --audience A [--now T] [--freshness F2] [--currency] [--deny E]… [--max-directory-age S]";
     let (Some(b), Some(d), Some(r), Some(q), Some(aud)) = (
         opt(a, "bundle"),
         opt(a, "directory"),
@@ -1235,7 +1237,37 @@ fn cmd_verify_request(a: &[String]) -> i32 {
     } else {
         ainra_adapter::gate_json(&bundle, &trust, &request, now, aud, freshness)
     };
-    let out: serde_json::Value = serde_json::from_str(&decided).unwrap_or_default();
+    let mut out: serde_json::Value = serde_json::from_str(&decided).unwrap_or_default();
+    // D-100: the gate's own policy judges the credential, whatever then happens to the request it came on
+    let policy = ainra_adapter::GatePolicy {
+        deny: a
+            .windows(2)
+            .filter(|w| w[0] == "--deny")
+            .map(|w| w[1].clone())
+            .collect(),
+        max_directory_age_s: opt(a, "max-directory-age").and_then(|s| s.parse().ok()),
+    };
+    let issued_at = serde_json::from_str::<serde_json::Value>(&directory)
+        .ok()
+        .and_then(|d| d["issued_at"].as_u64())
+        .unwrap_or(0);
+    if out["event"]["status"] == serde_json::json!("valid") {
+        let sub = out["event"]["name"].as_str().unwrap_or("");
+        let age = policy
+            .max_directory_age_s
+            .is_some_and(|m| now > issued_at.saturating_add(m));
+        if age
+            || policy
+                .deny
+                .iter()
+                .any(|e| ainra_adapter::deny_matches(e, sub))
+        {
+            out["allow"] = serde_json::json!(false);
+            out["reason"] = serde_json::json!("denied_by_policy");
+            out["event"]["status"] = serde_json::json!("invalid");
+            out["event"]["reason"] = serde_json::json!("denied_by_policy");
+        }
+    }
     let name = out["event"]["name"].as_str().unwrap_or("?");
     if out["allow"] == serde_json::json!(true) {
         println!(

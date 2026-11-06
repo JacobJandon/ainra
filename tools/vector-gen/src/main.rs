@@ -4155,6 +4155,46 @@ fn gate_vectors() -> Vec<Value> {
         v["expect"] = got;
         out.push(v);
     }
+
+    // ── the gate's own policy (D-100, PLAN-M53 steps 5–6) ───────────────────────────────────────────────────────
+    // The same honest bundle and directory, decided by a gate that carries a local policy. A policy can only turn
+    // `valid` into `denied_by_policy`; the last case shows it never hides a revocation behind its own reason.
+    let sub: String =
+        serde_json::from_slice::<Value>(&b64::decode(&good.claims).expect("claims b64"))
+            .expect("claims json")["sub"]
+            .as_str()
+            .expect("sub")
+            .to_string();
+    let lineage = sub.split('@').next().expect("lineage").to_string();
+    let reg = sub.split(':').nth(1).expect("registrar").to_string();
+    let issued_at = directory["issued_at"].as_u64().expect("issued_at");
+    let other_version = format!("{lineage}@9.9.9");
+    let policy_cases: Vec<(&str, &str, Value, Value, &str)> = vec![
+        ("g31-policy-denies-the-registrar", "a deny entry names the passport's registrar", val(&good), json!({ "deny": [reg] }), "denied_by_policy"),
+        ("g32-policy-denies-the-lineage", "a deny entry names the passport's lineage, every version of it", val(&good), json!({ "deny": [lineage] }), "denied_by_policy"),
+        ("g33-policy-denies-another-version", "a deny entry names another version of the lineage: this one is not denied", val(&good), json!({ "deny": [other_version] }), "valid"),
+        ("g34-policy-denies-another-registrar", "a deny entry names a registrar that did not issue this passport", val(&good), json!({ "deny": ["registrar-99"] }), "valid"),
+        ("g35-policy-directory-too-old", "the gate allows a directory at most one hour old, and this one is older", val(&good), json!({ "max_directory_age_s": now.saturating_sub(issued_at).saturating_sub(1) }), "denied_by_policy"),
+        ("g36-policy-directory-within-age", "the same limit with the directory inside it: offline or online, the gate decides as before", val(&good), json!({ "max_directory_age_s": now.saturating_sub(issued_at) + 3600 }), "valid"),
+        ("g37-policy-never-hides-a-revocation", "a revoked passport whose registrar is also denied: it is refused as revoked", val(&bad), json!({ "deny": [reg] }), "revoked"),
+    ];
+    for (name, what, bundle, policy, want) in policy_cases {
+        let mut v = json!({
+            "name": name, "description": what, "directory": directory, "roots": roots, "bundle": bundle,
+            "now": now, "audience": "", "freshness": "F2", "policy": policy,
+        });
+        let got = ainra_adapter::gate_vector_result(&v);
+        let ok = match want {
+            "valid" => got["verdict"] == json!("valid"),
+            reason => got["reason"] == json!(reason),
+        };
+        if !ok {
+            eprintln!("GATE VECTOR {name} exists to test `{want}` but the core says {got}");
+            std::process::exit(1);
+        }
+        v["expect"] = got;
+        out.push(v);
+    }
     out
 }
 

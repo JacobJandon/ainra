@@ -21,7 +21,7 @@ test(`ainra_verify ≡ @ainra/sdk's gate over all ${files.length} gate vectors (
   for (const f of files) {
     const v = JSON.parse(readFileSync(`${GDIR}/${f}`, "utf8"));
     const sdk = runGateVector(v);
-    const call = () => verify({ presentation: v.bundle, directory: v.directory, roots: v.roots, now: v.now, freshness: v.freshness, audience: v.audience });
+    const call = () => verify({ presentation: v.bundle, directory: v.directory, roots: v.roots, now: v.now, freshness: v.freshness, audience: v.audience, ...(v.policy ? { policy: v.policy } : {}) });
     if (v.expect.verdict === "no_gate") { await assert.rejects(call(), /does not verify/, f); checked++; continue; }
     const mcp = await call();
     assert.equal(mcp.mode, "gate");

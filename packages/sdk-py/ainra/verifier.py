@@ -137,6 +137,32 @@ def _authenticate_currency(anchors: dict, pres: dict, now: int, seq_seen: dict, 
     return None
 
 
+def deny_matches(e: str, sub: str) -> bool:
+    """D-100: a bare id is a registrar; ``@`` makes it an exact name; otherwise it is a lineage (every version)."""
+    if ":" not in e:
+        parts = sub.split(":")
+        return len(parts) > 1 and parts[1] == e
+    if "@" in e:
+        return sub == e
+    return sub.startswith(e) and sub[len(e):].startswith("@")
+
+
+def apply_gate_policy(verdict: Verdict, claims, directory_issued_at: int, now: int, policy: dict) -> Verdict:
+    """D-100: apply a gate's own policy to the verdict it reached. Only ever turns ``valid`` into ``denied_by_policy``."""
+    if not verdict.valid:
+        return verdict
+    max_age = policy.get("max_directory_age_s")
+    if max_age is not None and now > directory_issued_at + int(max_age):
+        return invalid(R.DENIED_BY_POLICY)
+    try:
+        sub = json.loads(b64d(claims)).get("sub", "") if isinstance(claims, str) else ""
+    except Exception:  # noqa: BLE001 — a verdict was already reached on these claims; an unreadable sub matches nothing
+        sub = ""
+    if any(deny_matches(str(e), sub) for e in policy.get("deny") or []):
+        return invalid(R.DENIED_BY_POLICY)
+    return verdict
+
+
 class Verifier:
     def __init__(
         self,
@@ -147,6 +173,7 @@ class Verifier:
         *,
         unauthenticated_status: bool = False,
         currency: bool = False,
+        policy: dict | None = None,
     ) -> None:
         self._anchors = dict(anchors or {})
         self._revoked = list(revoked_delegates or [])
@@ -174,6 +201,11 @@ class Verifier:
         #: lower ``seq`` than this verifier has seen per status URI. Off by default, as in the TS SDK.
         self._currency = bool(currency)
         self._seq_seen: dict = {}
+        #: D-100 — this gate's own policy: ``{"deny": [...], "max_directory_age_s": n}``, both optional. It can only
+        #: turn ``valid`` into ``denied_by_policy``. ``max_directory_age_s`` is off unless set, so an offline gate keeps
+        #: working on the directory it holds.
+        self._policy = dict(policy or {})
+        self._directory_issued_at = 0
 
     @classmethod
     def from_directory(
@@ -184,6 +216,7 @@ class Verifier:
         audience: str = "",
         freshness: str = "F2",
         currency: bool = False,
+        policy: dict | None = None,
     ) -> "Verifier | None":
         """Build a verifier from a directory, only if it is authentically signed.
 
@@ -215,8 +248,9 @@ class Verifier:
                 "status_mldsa65": e.get("status_mldsa65"),
                 "status_uri": e.get("status_uri"),
             }
-        v = cls(anchors, directory.get("revoked_delegates", []), audience, freshness, currency=currency)
+        v = cls(anchors, directory.get("revoked_delegates", []), audience, freshness, currency=currency, policy=policy)
         v._anchors_authenticated = True
+        v._directory_issued_at = int(directory.get("issued_at") or 0)
         return v
 
     def verify_head_receipt(self, receipt: dict, gate_key: bytes, now: int) -> dict:
@@ -260,7 +294,8 @@ class Verifier:
             bad = _authenticate_currency(self._anchors, pres, now, self._seq_seen, self._revoked)
         if bad is not None:
             return invalid(bad)
-        return _verify(self._anchors, pres, now)
+        return apply_gate_policy(_verify(self._anchors, pres, now), pres.get("claims"), self._directory_issued_at, now,
+                                 self._policy)
 
     def verify_link(self, link: dict, presented_key: bytes, now: int, capability: str | None = None) -> dict:
         """AINRA Link (D-078): who stands behind ``presented_key``, the 32-byte Ed25519 key this gate has ALREADY

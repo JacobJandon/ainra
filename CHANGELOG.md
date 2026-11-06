@@ -10,6 +10,19 @@ We **publicly own fixed security bugs** — hiding them would be the opposite of
 
 ## [Unreleased]
 
+### Added — the fastest stop: a gate's own policy (D-100)
+
+- **`denied_by_policy`**, the 21st frozen reason, and a gate policy in every implementation: `deny` (a registrar, a
+  lineage, or an exact name) and `max_directory_age_s` (refuse a directory older than you allow — the freeze defence,
+  off unless set so offline gates keep working). The policy only ever turns `valid` into `denied_by_policy`; a passport
+  that already fails keeps its own reason. In `@ainra/sdk` (`Verifier.fromDirectory*(…, policy)`), the Python package
+  (`Verifier.from_directory(…, policy=…)`), `@ainra/edge` (`policy`), the MCP tool `ainra_verify` (`policy`) and
+  `ainra verify-request` (`--deny`, `--max-directory-age`). Seven new gate vectors (g31–g37) hold all of them to one answer.
+- **Distrust on proof** (D-098): an adverse DISTRUST_FROM_LEAF carrying two signed checkpoints of one registrar log at
+  one size with two roots skips the compliance ladder — the root's emergency stop against a forked log.
+- **The steward's desk** (D-099, `make desk`): one local screen, emergency playbooks drafted in one action, no key.
+- **A witnessed log of directory epochs** (D-097): `ainra directory witness`, `ainra directory log`, and `ctl` checks.
+
 ### Fixed — the published record told two stories, and the texts claimed privacy the code does not have
 
 - **The record on ainra.org disagreed with itself**: `registry.json` and registrar-07's own `status/current.json` marked

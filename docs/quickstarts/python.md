@@ -58,7 +58,7 @@ forged status -> stale_status
 - **The verifier owns the clock, the freshness class and the status.** `now` is *your* argument, and the status list
   counts only if the registrar signed it: the last two lines above are the same bundle an hour later, and a revoked
   passport carrying a list of its own.
-- `.verify()` **never raises** — any malformed bundle is a `Verdict(valid=False, reason=…)`, one of the 20 in
+- `.verify()` **never raises** — any malformed bundle is a `Verdict(valid=False, reason=…)`, one of the 21 in
   [`reasons.json`](../reasons.json).
 - `verdict.event()` is the M16 verdict event ([`PRESENTATION.md`](../PRESENTATION.md)): `status`, `reason`, `name`,
   `number` (the permanent version-less AINRA Number), `tier`, `freshness_age_s`.
@@ -90,6 +90,18 @@ OpenSSL `libcrypto` via `ctypes` for SLH-DSA-SHA2-128s, stdlib for SHA-256), **i
 differential exercises the logic, not the primitives. Proven by `make diff` + the `packages/sdk-py` tests.
 
 Next: prove your own implementation with the [conformance runner](conformance.md).
+
+## Your own policy: refuse someone, at once, by yourself (D-100)
+
+```python
+gate = Verifier.from_directory(directory, roots["root_ed25519"], roots["root_slh"], policy={
+    "deny": ["registrar-07", "ainra:registrar-11:acme:invoicing"],
+    "max_directory_age_s": 92 * 86400,   # optional: off unless set, so offline use keeps working
+})
+```
+
+A deny entry is a registrar id, a lineage (every version) or an exact name with its version. The policy only ever turns
+`valid` into `denied_by_policy`; a passport that already fails keeps its own reason.
 
 ## A running copy (ADR-019)
 

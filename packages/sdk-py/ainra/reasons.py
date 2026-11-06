@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0 OR MIT
-"""The 20 frozen INVALID reasons (decision D-004), in verify-precedence order.
+"""The 21 frozen INVALID reasons (decision D-004): the 20 the verify returns, in verify-precedence order, and the
+gate's own ``denied_by_policy`` (D-100), which only a gate with a local policy returns, in place of ``valid``.
 
 These machine strings are frozen: they are the exact tokens the CC0 conformance
 vectors reference, and they must byte-match the Rust core, the TS SDK, and the JS
@@ -33,6 +34,8 @@ INSTANCE_EXPIRED = "instance_expired"
 INSTANCE_SCOPE_EXCEEDS = "instance_scope_exceeds"
 INSTANCE_SIG_INVALID = "instance_sig_invalid"
 INSTANCE_POP_INVALID = "instance_pop_invalid"
+#: D-100 — the gate's own policy refused a passport that verified (a local deny entry, or a directory too old).
+DENIED_BY_POLICY = "denied_by_policy"
 
 # The closed set, in verify order (mirrors docs/reasons.json).
 ALL = (
@@ -56,4 +59,5 @@ ALL = (
     INSTANCE_SCOPE_EXCEEDS,
     INSTANCE_SIG_INVALID,
     INSTANCE_POP_INVALID,
+    DENIED_BY_POLICY,
 )

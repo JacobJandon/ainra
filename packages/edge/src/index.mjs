@@ -116,10 +116,14 @@ function accreditAtLeast(directoryJson, rootsJson, minEpoch) {
  * status list, and a head older than one this gate has seen is refused — so a genuine pre-revocation snapshot stops
  * working the moment the gate sees the revocation. The gate keeps that memory itself. A bundle primed once carries the
  * head it was primed with, so under currency it is usable only while that head is F1-fresh (30 s).
+ *
+ * `policy` (D-100): this gate's own `{ deny, maxDirectoryAgeS }`. `deny` lists registrar ids, lineages or exact names
+ * refused even when genuine; `maxDirectoryAgeS` refuses once the signed directory is older than that (off unless set,
+ * so an offline gate keeps working on the directory it holds). Either only turns an accept into `denied_by_policy`.
  */
 export async function createAinraEdgeGate({ directory, roots, audience, freshness = "F2",
   now = () => Math.floor(Date.now() / 1000), store = createStore(), nonces = createNonceCache(),
-  primePath = PRIME_PATH, maxPrimeBytes = 256 * 1024, decisions = null, minEpoch = 0, currency = false } = {}) {
+  primePath = PRIME_PATH, maxPrimeBytes = 256 * 1024, decisions = null, minEpoch = 0, currency = false, policy = {} } = {}) {
   if (typeof audience !== "string" || !audience) throw new Error("createAinraEdgeGate: `audience` is required — the gate must know who it is (ADR-019)");
   if (!["F1", "F2", "F3"].includes(freshness)) throw new Error(`createAinraEdgeGate: freshness must be F1, F2 or F3, not ${freshness}`);
   if (!engineReady()) throw new Error("@ainra/edge: call initAinra(wasm) before creating a gate");
@@ -130,6 +134,14 @@ export async function createAinraEdgeGate({ directory, roots, audience, freshnes
     ? `createAinraEdgeGate: directory epoch ${acc.epoch} is older than ${acc.floor} — a rollback; refusing to start`
     : "createAinraEdgeGate: the directory does not verify against the roots — refusing to start");
   const trust = JSON.stringify(acc.trust);
+  // D-100: the gate's own policy, the same rules as @ainra/sdk and ainra-core (held to vectors/v1-gate g31–g37)
+  if (policy.deny !== undefined && !(Array.isArray(policy.deny) && policy.deny.every((e) => typeof e === "string"))) throw new Error("createAinraEdgeGate: policy.deny must be a list of registrar ids, lineages or names");
+  if (policy.maxDirectoryAgeS !== undefined && !(Number.isInteger(policy.maxDirectoryAgeS) && policy.maxDirectoryAgeS >= 0)) throw new Error("createAinraEdgeGate: policy.maxDirectoryAgeS must be a whole number of seconds");
+  const directoryIssuedAt = Number(JSON.parse(str(directory)).issued_at) || 0;
+  const denyMatches = (e, sub) => (!e.includes(":") ? sub.split(":")[1] === e : e.includes("@") ? sub === e : sub.startsWith(e) && sub.slice(e.length).startsWith("@"));
+  const refusedByPolicy = (sub, t) => (policy.maxDirectoryAgeS !== undefined && t > directoryIssuedAt + policy.maxDirectoryAgeS)
+    || (typeof sub === "string" && (policy.deny ?? []).some((e) => denyMatches(e, sub)));
+  const byPolicy = (event) => ({ ...event, status: "invalid", reason: "denied_by_policy" });
   let seen = "{}"; // currency mode's memory: status uri → the highest fresh-head seq this gate has accepted
 
   // D-079: with `decisions` (a log from `createDecisionLog` in @ainra/sdk), every decision about a named passport is
@@ -184,6 +196,7 @@ export async function createAinraEdgeGate({ directory, roots, audience, freshnes
         event = JSON.parse(core.credential(bundleJson, trust, t, audience, freshness));
       }
       if (event.status !== "valid") return deny(403, event.reason ?? "schema_violation", event);
+      if (refusedByPolicy(event.name, t)) return deny(403, "denied_by_policy", byPolicy(event));
       const ref = core.presentation_ref(bundleJson);
       if (!ref) return deny(403, "schema_violation", event);
       const stable = bundle.instance ? { ...bundle, instance: { ...bundle.instance } } : { ...bundle };
@@ -217,6 +230,8 @@ export async function createAinraEdgeGate({ directory, roots, audience, freshnes
       ? JSON.parse(core.gate_currency(JSON.stringify(bundle), trust, JSON.stringify(req), t, audience, freshness, seen))
       : JSON.parse(core.gate(JSON.stringify(bundle), trust, JSON.stringify(req), t, audience, freshness));
     if (currency && r.seen && typeof r.seen === "object") seen = JSON.stringify(r.seen);
+    // the gate's own policy judges the CREDENTIAL, whatever then happens to the request it came on
+    if (r.event?.status === "valid" && refusedByPolicy(r.event.name, t)) return record(request, url, bundle, deny(403, "denied_by_policy", byPolicy(r.event)), t);
     if (!r.allow) return record(request, url, bundle, deny(403, r.reason ?? "schema_violation", r.event), t);
     // Last, and only now that the signature holds: a nonce check before it would let anyone fill this cache.
     if (nonces.seen(r.nonce, t)) return record(request, url, bundle, deny(403, "presentation_replayed", r.event), t);

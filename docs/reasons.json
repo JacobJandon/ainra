@@ -1,5 +1,5 @@
 {
-  "_note": "The 20 frozen INVALID reasons, in verify order, each in plain words. Single source for the CLI/SDK/MCP/console legends and docs. The strings themselves are frozen (they match crates/ainra-core/src/verify.rs and packages/sdk-ts Reason); only these glosses are editorial. tools/reasons-check.mjs fails the build if this list and ainra-core's Reason::ALL ever diverge.",
+  "_note": "The 21 frozen INVALID reasons: the 20 the nine-step verify returns, in verify order, then denied_by_policy, which only a gate with its own policy returns (D-100) — each in plain words. Single source for the CLI/SDK/MCP/console legends and docs. The strings themselves are frozen (they match crates/ainra-core/src/verify.rs and packages/sdk-ts Reason); only these glosses are editorial. tools/reasons-check.mjs fails the build if this list and ainra-core's Reason::ALL ever diverge.",
   "valid": "All nine checks passed — genuine, in-window, in-scope, logged, and not revoked.",
   "schema_violation": "Not a well-formed passport, or it carries a forbidden (identity/score/money) field.",
   "name_malformed": "The subject or issuer name doesn't fit the AINRA name grammar.",
@@ -20,5 +20,6 @@
   "instance_expired": "The running copy's instance credential is outside its window, or its lifetime exceeds the one-hour ADR-019 ceiling. The passport is fine — the copy needs a fresh credential.",
   "instance_scope_exceeds": "The instance credential asks for a capability its passport does not hold. A running copy may only narrow, never widen (ADR-019).",
   "instance_sig_invalid": "The instance credential was not minted by this passport's control key, or is not bound to this passport (wrong subject or wrong logged leaf).",
-  "instance_pop_invalid": "The presenter did not prove it holds the instance key: wrong audience, a timestamp outside tolerance, or a bad proof-of-possession signature."
+  "instance_pop_invalid": "The presenter did not prove it holds the instance key: wrong audience, a timestamp outside tolerance, or a bad proof-of-possession signature.",
+  "denied_by_policy": "Genuine, but this gate's own policy refuses it: a local deny entry names its registrar, lineage or name, or the signed directory is older than the gate allows."
 }

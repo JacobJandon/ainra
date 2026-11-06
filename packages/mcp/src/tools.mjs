@@ -110,6 +110,11 @@ export const TOOLS = [
         roots: { type: "object", description: "The two ceremony root keys, { root_ed25519, root_slh } (roots.json). Obtain them out of band — never from the presenter." },
         audience: { type: "string", description: "YOUR audience (ADR-019), e.g. https://api.example. Required to accept an instance credential; a presenter can never supply it. Omit for plain passport bundles." },
         freshness: { type: "string", enum: ["F1", "F2", "F3"], description: "How old a status publication you accept: F1 30 s, F2 5 min (default), F3 24 h. Yours, never the bundle's." },
+        policy: {
+          type: "object", additionalProperties: false,
+          description: "YOUR own policy (D-100), optional. `deny`: registrar ids, lineages or exact names you refuse even when genuine. `max_directory_age_s`: refuse when the signed directory is older than this (off unless set, so offline use keeps working). It only ever turns accept into refuse, with the reason denied_by_policy.",
+          properties: { deny: { type: "array", items: { type: "string" } }, max_directory_age_s: { type: "integer", minimum: 0 } },
+        },
         now: { type: "integer", description: "Your clock, unix seconds. Defaults to this server's clock. Never read from the bundle." },
       },
       required: ["presentation"],
@@ -157,7 +162,10 @@ export const TOOLS = [
       const freshness = input.freshness ?? "F2";
       if (!["F1", "F2", "F3"].includes(freshness)) throw new Error("freshness must be F1, F2 or F3. Nothing was verified.");
       const audience = input.audience ?? "";
-      const verifier = Verifier.fromDirectoryB64(directory, roots.root_ed25519, roots.root_slh, freshness, false, audience);
+      const pol = input.policy ?? {};
+      if (pol.deny !== undefined && !(Array.isArray(pol.deny) && pol.deny.every((e) => typeof e === "string"))) throw new Error("policy.deny must be a list of registrar ids, lineages or names. Nothing was verified.");
+      if (pol.max_directory_age_s !== undefined && !(Number.isInteger(pol.max_directory_age_s) && pol.max_directory_age_s >= 0)) throw new Error("policy.max_directory_age_s must be a whole number of seconds. Nothing was verified.");
+      const verifier = Verifier.fromDirectoryB64(directory, roots.root_ed25519, roots.root_slh, freshness, false, audience, { deny: pol.deny, maxDirectoryAgeS: pol.max_directory_age_s });
       if (!verifier)
         throw new Error("the directory does not verify against the roots — nothing in it can be trusted, so nothing was verified.");
       const now = Number.isInteger(input.now) ? input.now : Math.floor(Date.now() / 1000);

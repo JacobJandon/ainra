@@ -56,7 +56,7 @@ A stranger clones, runs `make test && make vectors && make diff`, all green in <
 | `directory` | **M4: dual-root-signed registrar directory** — `accredit` (FROST-Ed25519 + SLH-DSA, both-or-invalid, sorted/unique) → `TrustAnchors` + revoked-delegate set | MTS §13, D-019 |
 | `chain` | delegation ∩-narrowing + dual-signed hop verify + hop leaf | MTS §17, D-012 |
 | `mandate` | subtree revocation (static path; dynamic/AP2 still M-later, fail-closed rejected) | MTS §18, D-009/D-013 |
-| `verify` | the 9-step orchestrator → `Verdict`; fixed order, all 20 frozen reasons reachable + **M4: delegate-revocation input** | MTS §8, D-019 |
+| `verify` | the 9-step orchestrator → `Verdict`; fixed order, all 20 verify reasons reachable (the 21st, `denied_by_policy`, only from a gate with its own policy, D-100) + **M4: delegate-revocation input** | MTS §8, D-019 |
 
 **`services/ainra-services`** — thin over `ainra-core`, no novel security logic:
 * **`logd`** (M2) persistent append-only log, delegate-signed checkpoints, inclusion + consistency proofs;
@@ -78,7 +78,7 @@ revocations) and self-checks all 12 records against the core verifier; `reverify
 URL-state, the visualized narrowing delegation chain, the 9-step verification trace (each step honestly labelled
 `re-checked` live vs `core-verified` crypto), a revoke workflow (live daemon or over loaded state), verify-at-time.
 
-**Conformance corpora** — `vectors/v1/` **1153** passport vectors (every one of the 20 reasons) + `vectors/v1-delta/`
+**Conformance corpora** — `vectors/v1/` **1153** passport vectors (every one of the 20 verify reasons) + `vectors/v1-delta/`
 **17** delta/fresh-head vectors (every accept/reject reason of the delta codec, incl. seq-0 wrap, descending idx,
 future-dated head). Both replay-gated (`--check` / `--check-delta`) locally AND in hosted CI.
 
@@ -303,7 +303,7 @@ DECISIONS D-027/D-028, MTS ADR-017.
 ## Known limitations honestly stated
 
 - 1153 passport + 17 delta + 9 directory vectors, plus 46 request-signature vectors (`vectors/v1-presentation`,
-  D-067, D-070), 30 gate vectors (`vectors/v1-gate`, D-073, PLAN-M50, PLAN-M51), 43 link vectors (`vectors/v1-link`, D-078, D-082), 32 decision vectors (`vectors/v1-decision`, D-079, D-081), 9 directory-epoch vectors (D-083) and 18 currency vectors (`vectors/v1-currency`, D-086) — not the 10 k GA target; broad but not the full combinatorial cross-product.
+  D-067, D-070), 37 gate vectors (`vectors/v1-gate`, D-073, PLAN-M50, PLAN-M51, D-100), 43 link vectors (`vectors/v1-link`, D-078, D-082), 32 decision vectors (`vectors/v1-decision`, D-079, D-081), 9 directory-epoch vectors (D-083) and 18 currency vectors (`vectors/v1-currency`, D-086) — not the 10 k GA target; broad but not the full combinatorial cross-product.
 - Services persist to local files, bind 127.0.0.1, single-key signers — a working reference, not the hardened
   multi-region deployment (M4–M8). The CLI's `registrar.secret` is a TEST-labeled dev keystore, not an HSM.
 - Proof of possession, rung by rung. At **issuance**, the registrar certifies only a key the agent proves it holds

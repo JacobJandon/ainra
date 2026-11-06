@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 // AINRA verify-only SDK — a faithful mirror of ainra-core (independent implementation #2 for the diff-harness).
-// The nine verify steps, their fixed order, and the 20 frozen reason strings match crates/ainra-core/src/verify.rs.
+// The nine verify steps, their fixed order, and the 21 frozen reason strings match crates/ainra-core/src/verify.rs.
 //
 // Validity (ADR-017): the IDENTITY (lineage + AINRA Number) is permanent; the CREDENTIAL defaults to 366 days and
 // renews invisibly (T−30 d reissue, overlap issuance, a logged `prev_leaf` continuity chain). The window check is
@@ -45,7 +45,7 @@ export {
   WIT_HEADER, WIT_TYP, WIMSE_TAG, WIT_MAX_SECS, WIMSE_SIG_MAX_SECS,
 } from "./wimse.js";
 
-// ── Verdicts + the 20 frozen reasons ───────────────────────────────────────────────────────────────────────────
+// ── Verdicts + the 21 frozen reasons (the 20 the verify returns, and the gate's own, D-100) ───────────────────────────────────────────────────────────────────────────
 export type Reason =
   | "sig_invalid"
   | "alg_downgrade"
@@ -68,7 +68,10 @@ export type Reason =
   | "instance_expired"
   | "instance_scope_exceeds"
   | "instance_sig_invalid"
-  | "instance_pop_invalid";
+  | "instance_pop_invalid"
+  // D-100 — the gate's own policy. The nine-step verify never returns it: a gate with a local policy returns it only
+  // in place of `valid`, so a passport that already fails keeps its own, more useful reason.
+  | "denied_by_policy";
 
 export type Verdict = { verdict: "valid" } | { verdict: "invalid"; reason: Reason };
 
@@ -1201,6 +1204,27 @@ function authenticateCurrency(
  * **monotonic head sequence** — so once this verifier has observed a newer head (from any presentation, or an
  * out-of-band poll), a replayed superseded snapshot is rejected. It is stateful (keeps a per-uri max seq).
  */
+/** D-100 — a gate's own policy, applied after its verdict. `deny` entries are a registrar id (`registrar-07`), a
+ *  lineage (`ainra:registrar-07:acme:alpha`, every version) or an exact name (`…@1.0.0`). `maxDirectoryAgeS` refuses
+ *  when the signed directory's `issued_at` is older than that (the freeze defence, PLAN-M53 step 5) — off by default,
+ *  so an offline gate keeps working on the directory it holds. Nothing is published or asked of anyone. */
+export type GatePolicy = { deny?: string[]; maxDirectoryAgeS?: number };
+
+/** Does deny entry `e` name passport `sub`? A bare id is a registrar; `@` makes it an exact name; otherwise a lineage. */
+export function denyMatches(e: string, sub: string): boolean {
+  if (!e.includes(":")) return sub.split(":")[1] === e;
+  if (e.includes("@")) return sub === e;
+  return sub.startsWith(e) && sub.slice(e.length).startsWith("@");
+}
+
+/** Apply a {@link GatePolicy} to the verdict a gate already reached: it can only turn `valid` into `denied_by_policy`. */
+export function applyGatePolicy(v: Verdict, sub: string, directoryIssuedAt: number, now: number, policy: GatePolicy): Verdict {
+  if (v.verdict !== "valid") return v;
+  if (policy.maxDirectoryAgeS !== undefined && now > directoryIssuedAt + policy.maxDirectoryAgeS) return invalid("denied_by_policy");
+  if ((policy.deny ?? []).some((e) => denyMatches(e, sub))) return invalid("denied_by_policy");
+  return v;
+}
+
 export class Verifier {
   readonly anchors: TrustAnchors;
   readonly revokedDelegates: Set<string>;
@@ -1213,15 +1237,21 @@ export class Verifier {
    *  = this verifier accepts no instance credentials, which is the fail-closed default: a service that has not
    *  said who it is cannot be the intended recipient of anything. */
   readonly audience: string;
+  /** This gate's own policy (D-100): local deny entries and an optional maximum directory age. Empty by default. */
+  readonly policy: GatePolicy;
+  /** The signed directory's `issued_at`, which `policy.maxDirectoryAgeS` is measured from. */
+  readonly directoryIssuedAt: number;
   /** Per-uri highest fresh-head `seq` this verifier has observed (currency mode). A lower seq is a replay. */
   private readonly seqSeen: Map<string, number> = new Map();
-  private constructor(acc: AccreditedSet, freshness: FreshnessClass, currency: boolean, audience: string) {
+  private constructor(acc: AccreditedSet, freshness: FreshnessClass, currency: boolean, audience: string, policy: GatePolicy = {}, directoryIssuedAt = 0) {
     this.anchors = acc.anchors;
     this.revokedDelegates = acc.revokedDelegates;
     this.epoch = acc.epoch;
     this.freshness = freshness;
     this.currency = currency;
     this.audience = audience;
+    this.policy = policy;
+    this.directoryIssuedAt = directoryIssuedAt;
   }
   /** Verify the dual-root-signed directory and build a Verifier; `null` if the directory is not authentic.
    *  `freshness` sets the verifier's own status-freshness policy (default `"F2"` = 5 min). `currency` (default
@@ -1233,9 +1263,10 @@ export class Verifier {
     freshness: FreshnessClass = "F2",
     currency = false,
     audience = "",
+    policy: GatePolicy = {},
   ): Verifier | null {
     const acc = verifyDirectory(d, rootEd25519, rootSlh);
-    return acc === null ? null : new Verifier(acc, freshness, currency, audience);
+    return acc === null ? null : new Verifier(acc, freshness, currency, audience, policy, Number(d.issued_at) || 0);
   }
   /** Convenience: build from a directory + the ceremony's base64url root keys (as published in `roots.json`). */
   static fromDirectoryB64(
@@ -1245,6 +1276,7 @@ export class Verifier {
     freshness: FreshnessClass = "F2",
     currency = false,
     audience = "",
+    policy: GatePolicy = {},
   ): Verifier | null {
     let ed: Uint8Array, slh: Uint8Array;
     try {
@@ -1253,7 +1285,7 @@ export class Verifier {
     } catch {
       return null;
     }
-    return Verifier.fromDirectory(d, ed, slh, freshness, currency, audience);
+    return Verifier.fromDirectory(d, ed, slh, freshness, currency, audience, policy);
   }
   /** Verify one presentation at the verifier's own `now` (unix seconds). The verifier supplies the clock, the
    * directory's revoked-delegate set, its own freshness policy, and an EMPTY mandate-revocation set; and it
@@ -1297,7 +1329,7 @@ export class Verifier {
       //    could set it to match a stolen credential's `aud` and audience binding would stop nothing. It was first
       //    fixed by overriding the field after decode — but an override is a line a future edit can drop, so the
       //    decoder no longer reads the field at all. A field nobody reads cannot be forgotten.
-      return verify(pres, this.anchors);
+      return applyGatePolicy(verify(pres, this.anchors), p.sub, this.directoryIssuedAt, now, this.policy);
     } catch (e) {
       if (e instanceof Reject) return invalid(e.reason);
       // A structurally-broken bundle (missing field, bad base64) fails closed, never a crash or a wrong valid.
@@ -2033,8 +2065,10 @@ export function runGateVector(v: {
   now: number;
   audience: string;
   freshness: FreshnessClass;
+  policy?: { deny?: string[]; max_directory_age_s?: number };
 }): { verdict: "valid" } | { verdict: "invalid"; reason: string } | { verdict: "no_gate" } {
-  const gate = Verifier.fromDirectoryB64(v.directory, v.roots.root_ed25519, v.roots.root_slh, v.freshness, false, v.audience);
+  const policy: GatePolicy = { deny: v.policy?.deny, maxDirectoryAgeS: v.policy?.max_directory_age_s };
+  const gate = Verifier.fromDirectoryB64(v.directory, v.roots.root_ed25519, v.roots.root_slh, v.freshness, false, v.audience, policy);
   if (!gate) return { verdict: "no_gate" };
   const r = gate.verify(v.bundle, v.now);
   return r.verdict === "valid" ? { verdict: "valid" } : { verdict: "invalid", reason: r.reason };
@@ -2105,7 +2139,7 @@ const FROZEN_REASONS: ReadonlySet<string> = new Set([
   "registrar_distrusted", "sig_invalid", "alg_downgrade", "expired", "not_yet_valid", "revoked", "mandate_revoked",
   "chain_widening", "chain_expired", "not_logged", "checkpoint_invalid", "stale_status", "name_malformed",
   "ceiling_exceeded", "unknown_registrar", "schema_violation", "instance_expired", "instance_scope_exceeds",
-  "instance_sig_invalid", "instance_pop_invalid",
+  "instance_sig_invalid", "instance_pop_invalid", "denied_by_policy",
 ]);
 
 // The request-signature refusals (D-062): a good credential on a request it did not sign is a decision too.

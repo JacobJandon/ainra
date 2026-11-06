@@ -142,6 +142,10 @@
 .pn .t{margin-top:var(--s2);font-size:var(--fs-h4);font-weight:500}
 .pn .next{text-align:right}
 @media (max-width:600px){.pn{grid-template-columns:1fr} .pn a + a{border-left:0;border-top:1px solid var(--line)} .pn .next{text-align:left}}
+/* "How AINRA works", the 3-minute explainer (2026-11-06) */
+.docs-film{margin:28px 0 22px}
+.docs-film video{display:block;width:100%;height:auto;aspect-ratio:16/9;background:#F4F4F1;border:1px solid #D8DAD4}
+.docs-film figcaption{margin-top:10px;font-size:14px;line-height:1.5;color:#4A5260}
 </style><script>/* reveal only when motion is on (the same decision as js/motion.mjs), set before first paint */
 try{var m=localStorage.getItem("ainra-motion");if(m!=="off"&&(m==="on"||!matchMedia("(prefers-reduced-motion: reduce)").matches))document.documentElement.classList.add("rv")}catch(e){if(!matchMedia("(prefers-reduced-motion: reduce)").matches)document.documentElement.classList.add("rv")}
 /* fail safe: if js/reveal.mjs never starts, show everything rather than leave the page hidden */
@@ -302,6 +306,12 @@ setTimeout(function(){var h=document.documentElement;if(!h.dataset.rvReady)h.cla
       <div class="sec-head"><div class="sec-head__row"><span class="earmark"><b>/01</b> · DOCS / GET STARTED</span><a href="#introduction">↳ #introduction</a></div>
         <div class="split"><h2 class="split__full title" id="introduction" data-was-h1>Every check runs on your machine.</h2></div></div>
     <p class="lede">AINRA gives every AI agent a passport it can prove: who it is, who stands behind it, what it may do, and whether it is still trusted — verifiable offline, fail-closed, with the root switched off. These docs take you from zero to a verified passport in about a minute per page.</p>
+    <figure class="docs-film" id="how-it-works">
+      <video controls playsinline preload="none" poster="media/ainra-explainer-poster.jpg" width="1920" height="1080" aria-describedby="how-it-works-cap">
+        <source src="media/ainra-explainer.mp4?v=1" type="video/mp4">
+      </video>
+      <figcaption id="how-it-works-cap"><b>How AINRA works</b>, in three minutes and eleven short chapters: the passport, registrars and the public log, the root that issues nothing, the check at the gate, running copies, revocation, offline checks, peer to peer, and how anyone keeps the root honest. No sound; every picture is drawn from the project's own sources. Today it runs as a test network.</figcaption>
+    </figure>
     <div class="note">Everything below is real cryptography against a <b>local testbed</b> or the <b>staging TEST-ROOT</b>. The production root is born only at a recorded public ceremony — a pending, honestly-labeled milestone.</div>
     </div>
   </section>

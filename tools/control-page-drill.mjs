@@ -17,7 +17,7 @@ import { createServer } from "node:http";
 import { readFileSync, existsSync, statSync, readdirSync } from "node:fs";
 import { join, extname, dirname } from "node:path";
 import { createRequire } from "node:module";
-import { createHash } from "node:crypto";
+import { createHash, generateKeyPairSync, sign } from "node:crypto";
 import { fileURLToPath } from "node:url";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
@@ -63,7 +63,14 @@ const e01 = JSON.parse(readFileSync(join(V, "e01-newer-each-time.json"), "utf8")
 const roots = { root_ed25519: e01.root_ed25519, root_slh: e01.root_slh };
 const [d1, d2, d3] = e01.directories;
 const digest = (d) => createHash("sha256").update(sdk.canonicalize({ entries: d.entries, epoch: d.epoch, issued_at: d.issued_at, revoked_delegates: d.revoked_delegates ?? [] })).digest("hex");
-function contract(dirs, { rootsOverride, mutate } = {}) {
+// the epoch log head (D-097), computed here independently of the Rust that writes it: RFC 6962 over the epoch leaves
+const H = (...parts) => createHash("sha256").update(Buffer.concat(parts.map((x) => Buffer.from(x)))).digest();
+const mthOf = (l) => { if (l.length === 1) return l[0]; let k = 1; while (k * 2 < l.length) k *= 2; return H([1], mthOf(l.slice(0, k)), mthOf(l.slice(k))); };
+const elogRoot = (dirs) => mthOf(dirs.map((d) => H([0], `ainra-directory/v1\n${d.epoch}\n${digest(d)}\n`))).toString("base64url");
+const { publicKey: wPub, privateKey: wKey } = generateKeyPairSync("ed25519");
+const cosig = (dirs) => { const root = elogRoot(dirs), n = dirs.length;
+  return { origin: "ainra-directory", size: n, root, witness_key: wPub.export({ format: "jwk" }).x, sig: sign(null, Buffer.from(`ainra-directory\n${n}\n${root}\n`), wKey).toString("base64url") }; };
+function contract(dirs, { rootsOverride, mutate, cosigned } = {}) {
   const files = new Map();
   const put = (p, v) => files.set(p, typeof v === "string" ? v : JSON.stringify(v));
   const current = dirs[dirs.length - 1];
@@ -72,6 +79,8 @@ function contract(dirs, { rootsOverride, mutate } = {}) {
   put("index.json", { network: "drill", root: "test-root" });
   put("epochs.json", { version: 1, epochs: dirs.map((d) => ({ epoch: d.epoch, digest: digest(d), issued_at: d.issued_at, path: `epochs/${d.epoch}.json` })) });
   for (const d of dirs) put(`epochs/${d.epoch}.json`, d);
+  if (dirs.every((d, i) => d.epoch === i + 1)) put("epoch-log.json", { origin: "ainra-directory", size: dirs.length, root: elogRoot(dirs) });
+  if (cosigned) put("epoch-log-cosignatures.json", { origin: "ainra-directory", cosignatures: [cosig(dirs)] });
   for (const e of current.entries) put(`registrars/${e.registrar}/export.json`, { status_seq: 5, records: [{ record: { checkpoint_size: 12, checkpoint_root: "rootB" }, verdict: { verdict: "valid" } }] });
   mutate?.(files);
   return files;
@@ -134,6 +143,9 @@ await expect("rollback to epoch 2, after epoch 3 was seen in this browser", prof
 await expect("WITNESS: the same old contract in a fresh browser passes", await browser.newContext(), contract([d1, d2]), "green");
 await expect("the honest contract again: still no alarm", profile, honest, "green");
 const reg = d3.entries[0].registrar;
+await expect("an epoch log head the epochs do not make", await browser.newContext(), contract([d1, d2, d3], { mutate: edit("epoch-log.json", (v) => { v.root = "A".repeat(43); }) }), "red", "epoch-log.json says");
+await expect("a witness cosignature over this history: still no alarm", await browser.newContext(), contract([d1, d2, d3], { cosigned: true }), "green");
+await expect("a forged witness cosignature", await browser.newContext(), contract([d1, d2, d3], { cosigned: true, mutate: edit("epoch-log-cosignatures.json", (v) => { const s = v.cosignatures[0].sig; v.cosignatures[0].sig = (s[0] === "A" ? "B" : "A") + s.slice(1); }) }), "red", "cosignature");
 await expect("a registrar's log shrinks, after a larger one was seen", profile, contract([d1, d2, d3], { mutate: edit(`registrars/${reg}/export.json`, (v) => { v.records = [{ record: { checkpoint_size: 9, checkpoint_root: "rootA" }, verdict: { verdict: "valid" } }]; }) }), "red", "shrank");
 
 // WITNESS (D-094): the same honest contract, read 93 days after its latest epoch, is red — the published cadence alone

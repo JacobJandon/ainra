@@ -57,7 +57,7 @@ It holds no key and cannot publish. Each playbook ends in the command a custodia
 playbook's draft passes `check-request` on a rehearsal directory, and the desk has no route that writes outside its
 drafts folder.
 
-**3. The control room shows the epoch log** (D-097's open item): head, size, and witnesses on the head, on
+**3. The control room shows the epoch log** *Built 2026-11-06: an "Epoch log" panel on `/control.html` recomputes the head in the browser, holds the served head to it and verifies each witness cosignature with the browser's own Ed25519 (a browser without it says so and counts none); `make control-page-drill` shows a lying head and a forged cosignature red, an honest cosignature green.* (D-097's open item): head, size, and witnesses on the head, on
 `/control.html`, held to the same drill as the rest of the page.
 
 **4. The remote emergency ceremony.** FROST rounds carried by QR code or removable media between each custodian's

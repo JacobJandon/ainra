@@ -324,7 +324,7 @@ setTimeout(function(){var h=document.documentElement;if(!h.dataset.rvReady)h.cla
 
 <header class="gi-hero" id="g-top">
   <div class="wrap">
-    <nav class="gi-sub" aria-label="On this page"><span class="gi-sub__k">AINRA / Control</span><a href="#g-root-and-directory">Root and directory</a><a href="#g-alarms">Alarms</a><a href="#g-epoch-history">Epoch history</a><a href="#g-registrars">Registrars</a></nav>
+    <nav class="gi-sub" aria-label="On this page"><span class="gi-sub__k">AINRA / Control</span><a href="#g-root-and-directory">Root and directory</a><a href="#g-alarms">Alarms</a><a href="#g-epoch-history">Epoch history</a><a href="#g-epoch-log">Epoch log</a><a href="#g-registrars">Registrars</a></nav>
     <h1 class="gi-title" aria-label="Control"><span style="--i:0">C</span><span style="--i:1">o</span><span style="--i:2">n</span><span style="--i:3">t</span><span style="--i:4">r</span><span style="--i:5">o</span><span style="--i:6">l</span></h1>
 <aside class="g-side" id="gSide" aria-label="About this page" data-side>
   <div class="g-side__head"><span>Details</span><button class="g-side__x" type="button" aria-label="Close details" data-side-close>×</button></div>
@@ -366,6 +366,7 @@ setTimeout(function(){var h=document.documentElement;if(!h.dataset.rvReady)h.cla
       <section id="g-root-and-directory" class="panel" aria-labelledby="h-root"><h2 id="h-root">Root and directory</h2><ul class="rows" id="rows-root"></ul></section>
       <section id="g-alarms" class="panel" aria-labelledby="h-alarms"><h2 id="h-alarms">Alarms</h2><ul class="rows" id="rows-alarms"><li><span class="tag info">·</span><span>none yet</span></li></ul></section>
       <section id="g-epoch-history" class="panel" aria-labelledby="h-epochs" style="grid-column:1/-1"><h2 id="h-epochs">Epoch history</h2><div id="epochs" style="overflow-x:auto"></div></section>
+      <section id="g-epoch-log" class="panel" aria-labelledby="h-elog" style="grid-column:1/-1"><h2 id="h-elog">Epoch log</h2><ul class="rows" id="rows-elog"></ul></section>
       <section id="g-registrars" class="panel" aria-labelledby="h-reg" style="grid-column:1/-1"><h2 id="h-reg">Registrars</h2><ul class="rows" id="rows-reg"></ul></section>
     </div>
     <div class="actions"><button type="button" id="recheck">Check again</button><button type="button" id="forget">Forget what this browser has seen</button></div>
@@ -535,6 +536,44 @@ async function check() {
     if (last && (last.epoch !== dir.epoch || last.digest !== digest)) A(`the current directory (epoch ${dir.epoch}) is not the newest epoch the history lists`);
     $("epochs").innerHTML = html + "</tbody></table>";
   } catch { $("epochs").innerHTML = `<p class="mono">This copy of the record publishes no epoch history (epochs.json), so earlier epochs cannot be checked or compared.</p>`; }
+
+  // the epoch log (D-097): recompute its head from the epochs above, hold the served head to it, verify cosignatures
+  const EL = $("rows-elog"), u8 = (s) => new TextEncoder().encode(s);
+  const H = async (...parts) => { const all = new Uint8Array(parts.reduce((n, x) => n + x.length, 0)); let o = 0; for (const x of parts) { all.set(x, o); o += x.length; } return new Uint8Array(await crypto.subtle.digest("SHA-256", all)); };
+  const mth = async (l) => { if (l.length === 1) return l[0]; let k = 1; while (k * 2 < l.length) k *= 2; return H(new Uint8Array([1]), await mth(l.slice(0, k)), await mth(l.slice(k))); };
+  const b64u = (b) => btoa(String.fromCharCode(...b)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  const rootAt = async (n) => b64u(await mth(await Promise.all(history.slice(0, n).map(([e, d]) => H(new Uint8Array([0]), u8(`ainra-directory/v1\n${e}\n${d}\n`))))));
+  try {
+    const head = await getJson("epoch-log.json");
+    if (!history.length || !history.every(([e, d], i) => e === i + 1 && d)) row(EL, "warn", "The epoch history above is not complete from epoch 1, so the log head cannot be recomputed here.");
+    else {
+      const root = await rootAt(history.length);
+      if (head.size === history.length && head.root === root) row(EL, "ok", `Head: size <b>${history.length}</b> · root <code>${root.slice(0, 16)}…</code> — recomputed here from the epochs above, and it matches what is served.`);
+      else { A(`epoch-log.json says size ${head.size} root ${String(head.root).slice(0, 16)}, but the epochs served make size ${history.length} root ${root.slice(0, 16)}`); row(EL, "alarm", "The served log head is NOT the head these epochs make."); }
+      let cos = [];
+      try { cos = (await getJson("epoch-log-cosignatures.json")).cosignatures || []; } catch { /* none served */ }
+      if (!cos.length) row(EL, "info", "No witness has cosigned this log yet. Anyone can: <code>ainra directory witness</code> (kits/witness).");
+      else {
+        let ed = null; try { ed = await crypto.subtle.importKey("raw", new Uint8Array(32), { name: "Ed25519" }, false, ["verify"]); } catch { ed = null; }
+        if (!ed) row(EL, "warn", `${cos.length} cosignature(s) served; this browser cannot check Ed25519 signatures, so they are not counted here — <code>ainra ctl status</code> checks them.`);
+        else {
+          let good = 0, onHead = 0;
+          for (const c of cos) {
+            let okSig = false;
+            try {
+              const n = c.size, r = n >= 1 && n <= history.length ? await rootAt(n) : null;
+              if (c.origin === "ainra-directory" && r && r === c.root) {
+                const k = await crypto.subtle.importKey("raw", strictB64u(c.witness_key), { name: "Ed25519" }, false, ["verify"]);
+                okSig = await crypto.subtle.verify({ name: "Ed25519" }, k, strictB64u(c.sig), u8(`ainra-directory\n${n}\n${r}\n`));
+              }
+            } catch { okSig = false; }
+            if (okSig) { good++; if (c.size === history.length) onHead++; } else A(`an epoch-log cosignature by ${esc(String(c.witness_key).slice(0, 12))}… does not verify over this history`);
+          }
+          row(EL, good === cos.length ? "ok" : "alarm", `${good} of ${cos.length} cosignature(s) verify; ${onHead} witness(es) on the current head.`);
+        }
+      }
+    }
+  } catch { row(EL, "info", "This copy of the record publishes no epoch log head (epoch-log.json, D-097)."); }
 
   // registrars
   const heads = {}, RG = $("rows-reg");

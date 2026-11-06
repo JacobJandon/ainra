@@ -215,6 +215,22 @@ node --input-type=module -e '
 for e in ladder ladder-early; do "$A" directory request DISTRUST_FROM_LEAF --subject registrar-11 --filer monitor-01 --leaf 5 --filed-at "$T_FILE2" --evidence "$W/req/$e.json" --out "$W/req/adv-$e.json" >>"$LOG" 2>&1; done
 accepted "a DISTRUST_FROM_LEAF whose evidence is the record kits/probe/notice.mjs wrote from three cycles of probe reports" "$A" directory check-request "$W/req/adv-ladder.json" "${D1[@]}"
 refused "the same record with a 20-day cure window (D-094: at least 30)" adverse-notice-chain "$A" directory check-request "$W/req/adv-ladder-early.json" "${D1[@]}"
+# D-098: the root's emergency stop. Two homes made from registrar-11's own seed, each issued a different passport, are
+# a registrar running two divergent copies of its log: one key, two histories at one size. Their signed checkpoints
+# are the proof; the request carrying it skips the ladder. The same checkpoint twice is not a fork.
+mkdir -p "$W/fork"
+for x in a b; do "$A" init "$W/fork/$x" registrar-11 --seed 711 >>"$LOG" 2>&1 || die "init fork-$x"; done
+"$A" issue "$W/fork/a" --operator acme --lineage alpha --version 1.0.0 >>"$LOG" 2>&1 && "$A" issue "$W/fork/b" --operator globex --lineage beta --version 1.0.0 >>"$LOG" 2>&1 || die "issue into the two copies"
+for x in a b; do sub=$("$A" list "$W/fork/$x" 2>/dev/null | grep -o 'ainra:registrar-11:[^ ]*' | head -1); "$A" present "$W/fork/$x" "$sub" > "$W/fork/$x.json" 2>>"$LOG" || die "present fork-$x"; done
+node -e '
+  const fs = require("fs"), [a, b, out, same] = process.argv.slice(1);
+  const cp = (f) => { const r = JSON.parse(fs.readFileSync(f, "utf8")); return { checkpoint: { origin: r.log_origin, size: r.checkpoint_size, root: r.checkpoint_root }, checkpoint_sig: r.checkpoint_sig }; };
+  fs.writeFileSync(out, JSON.stringify({ compliance: { fork_proof: { a: cp(a), b: cp(b) } } }));
+  fs.writeFileSync(same, JSON.stringify({ compliance: { fork_proof: { a: cp(a), b: cp(a) } } }));
+' "$W/fork/a.json" "$W/fork/b.json" "$W/req/fork.json" "$W/req/fork-same.json"
+for e in fork fork-same; do "$A" directory request DISTRUST_FROM_LEAF --subject registrar-11 --filer monitor-01 --leaf 1 --filed-at "$T_FILE2" --evidence "$W/req/$e.json" --out "$W/req/adv-$e.json" >>"$LOG" 2>&1; done
+accepted "an emergency DISTRUST_FROM_LEAF carrying a real fork of registrar-11's log (no notice, no cure, no reproductions)" "$A" directory check-request "$W/req/adv-fork.json" "${D1[@]}"
+refused "the same request with one checkpoint twice (not a fork)" adverse-proof "$A" directory check-request "$W/req/adv-fork-same.json" "${D1[@]}"
 
 # ── 4. epoch 2: two self-requests, proposed, re-derived, signed by custodians from their own copies, published ──────
 "$A" directory request REVOKE_DELEGATE --registrar "$W/reg/registrar-07" --filed-at "$T_FILE2" --out "$W/req/rd-07.json" >>"$LOG" 2>&1 || die "request REVOKE_DELEGATE"

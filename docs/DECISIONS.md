@@ -2707,6 +2707,11 @@ reproduction. The proof is refused, by `adverse-proof`, in each of these cases:
 
 The same request without the proof is refused by `adverse-notice-chain`.
 
+End to end, `make sign-epoch-rehearsal` builds a genuine fork: two homes made from registrar-11's own seed, each
+issued a different passport, which is one log key with two histories at one size. Through the real CLI, the
+emergency request carrying their signed checkpoints is accepted against the rehearsal's epoch 1. The same checkpoint
+given twice is refused (`adverse-proof`).
+
 *Not changed:* the directory and passport formats, every corpus, P1–P6.
 
 *Status:* ACCEPTED 2026-11-06, under R3 of D-088 and the owner's request for an emergency stop.

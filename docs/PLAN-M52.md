@@ -238,7 +238,7 @@ registrars, in sorted order, and never chooses a gaining one. WITNESS: a transfe
 contested by the operator, is refused; a credential issued after the cutoff at a distrusted registrar is refused
 while the transferred credential verifies.
 
-**13. The operator loop.** `tools/monthly-report.mjs` builds every figure from artifacts and lists overdue requests;
+**13. The operator loop.** *Built 2026-11-06 in part: `tools/monthly-report.mjs` writes `reports/monthly/<YYYY-MM>.md` from the published record — each figure names its file, field and hash; `make monthly-report-check` re-derives it byte for byte and drills that a hand-typed figure and a missing source are refused and that an old report labels itself stale (D-058); `make site-net` regenerates it. Open requests are listed with their dates, and nothing is called overdue until the owner sets the target (item 3). Not built: the incident runbook's named role and deputy (item 16), the public incident log, the tabletop drills.* `tools/monthly-report.mjs` builds every figure from artifacts and lists overdue requests;
 `deploy/runbooks/root-incident.md` with HIGH / MEDIUM / LOW classes, deadlines, a named role and deputy, and the rule
 that no one overrides a witness refusal; a public incident log; tabletop drills for steward compromise and a custodian
 no-show. WITNESS: a figure that does not come from an artifact is refused; the staleness drill (D-058) labels a stale

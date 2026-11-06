@@ -2,7 +2,7 @@
 # and everything is green in under 10 minutes on a laptop.
 
 .PHONY: link-parity link-e2e tsl-check online-verifier-check pilot-e2e
-.PHONY: outage-drill sign-epoch-rehearsal accreditation-checks leak-ledger control-page-drill ctl-drill negative-controls replay-imports witness-feed-drill release-state-check wimse-check wimse-e2e live-drills gate-parity py-test sign-diff python-agent-e2e signature-agent-check signature-agent-e2e edge-build edge-test edge-e2e edge-runtimes personhood-test personhood-live live-up live-down live-status identity-e2e root-dark-drill mirror-sufficiency legibility-drill cli-deps succession-drill staleness-drill amendment-check amendment-check-negative doctrine doctrine-negative number-syntax engine-parity one-decode-path bench-gate all test vectors vectors-check diff cli-check suite-migration-drill ceremony-rehearsal-multi witness-check push-advisory-check changelog-board-check fmt clippy fuzz-smoke bench sdk-build sdk-test ci clean status console samples drill explorer demo scale ceremony testbed wedge-build wedge-test repro mirror verify-mirror check-freeze freeze genesis-local verifier-kit-smoke ceremony-dry-run soak-smoke drill-networked preflight s7 license gitleaks audit verify-as-external verifier-triple-drill soak-verify genesis-status verify-transcript genesis-board-demo release doctor verifier-operator-drill site site-up site-down site-check stage-all stage-all-down explorer-up explorer-down ainrascan stage-up stage-down stage-status stage-smoke demo-walkthrough three-clients genesis-verify config-diff declaration genesis-rehearsal site-demo verify issue-first registrar-console mcp-test skills-replay presentation-diff conformance campaign-status campaign-init campaign-gates campaign-check publish-preflight stage-install stage-uninstall stage-health stranger probe-drill miri reasons-check corpus-check instance-gate claims-check claims claims-live policy-parity deploy-current site-net site-net-check lockfile-sync soak-ingest outreach-check names-check interop interop-negative
+.PHONY: monthly-report monthly-report-check outage-drill sign-epoch-rehearsal accreditation-checks leak-ledger control-page-drill ctl-drill negative-controls replay-imports witness-feed-drill release-state-check wimse-check wimse-e2e live-drills gate-parity py-test sign-diff python-agent-e2e signature-agent-check signature-agent-e2e edge-build edge-test edge-e2e edge-runtimes personhood-test personhood-live live-up live-down live-status identity-e2e root-dark-drill mirror-sufficiency legibility-drill cli-deps succession-drill staleness-drill amendment-check amendment-check-negative doctrine doctrine-negative number-syntax engine-parity one-decode-path bench-gate all test vectors vectors-check diff cli-check suite-migration-drill ceremony-rehearsal-multi witness-check push-advisory-check changelog-board-check fmt clippy fuzz-smoke bench sdk-build sdk-test ci clean status console samples drill explorer demo scale ceremony testbed wedge-build wedge-test repro mirror verify-mirror check-freeze freeze genesis-local verifier-kit-smoke ceremony-dry-run soak-smoke drill-networked preflight s7 license gitleaks audit verify-as-external verifier-triple-drill soak-verify genesis-status verify-transcript genesis-board-demo release doctor verifier-operator-drill site site-up site-down site-check stage-all stage-all-down explorer-up explorer-down ainrascan stage-up stage-down stage-status stage-smoke demo-walkthrough three-clients genesis-verify config-diff declaration genesis-rehearsal site-demo verify issue-first registrar-console mcp-test skills-replay presentation-diff conformance campaign-status campaign-init campaign-gates campaign-check publish-preflight stage-install stage-uninstall stage-health stranger probe-drill miri reasons-check corpus-check instance-gate claims-check claims claims-live policy-parity deploy-current site-net site-net-check lockfile-sync soak-ingest outreach-check names-check interop interop-negative
 
 all: fmt clippy test vectors diff
 
@@ -699,6 +699,7 @@ deploy-current:  ## production must serve exactly what this repo builds (byte-fo
 
 site-net:        ## publish the running network's read contract into site/net/ and stamp when
 	bash tools/site-net.sh publish
+	@node tools/monthly-report.mjs   # the operator report re-reads the record it was just given
 
 site-net-check:  ## is the committed site/net/ still byte-identical to what the network serves?
 	bash tools/site-net.sh check
@@ -721,3 +722,11 @@ live-status:     ## is a checkpoint issued NOW verifiable NOW?
 	@bash tools/live.sh status
 identity-e2e: sdk-build wedge-build live-up  ## a stranger's agent, end to end, at the real clock
 	@AINRA_REGISTRAR=http://127.0.0.1:4970 node tools/identity-e2e.mjs
+
+# PLAN-M52 step 13 — the operator's monthly report, read only from published artifacts (each figure names its file,
+# field and hash); a figure without an artifact is refused, and the report states its own age (D-058).
+monthly-report:
+	@node tools/monthly-report.mjs
+monthly-report-check:
+	@node tools/monthly-report.mjs --check
+	@node tools/monthly-report.mjs --drill

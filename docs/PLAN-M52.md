@@ -257,6 +257,8 @@ D-088 being accepted. Steps 9–13 follow the decisions below. Step 14's second 
 
 ## Left to the owner
 
+*Answered 2026-11-06 by D-094 (accepted with D-077). Still open: the facts it names — the second host, the SLH recovery holders, the custodians, the incident deputy, the jurisdiction.*
+
 1. D-088: accepted or rejected, with the reason.
 2. Hosting: the provider or providers, regions and public names; whether `/control.html` ships before the network is
    hosted, reading the labelled staging copy.

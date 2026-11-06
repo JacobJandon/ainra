@@ -1889,7 +1889,7 @@ WIMSE verifier must then be able to ask AINRA the two questions WIMSE leaves ope
 
 *Status:* NEW. Ships in 0.5.0.
 
-## D-077 — How the root is paid for: a capped per-lineage fee, or flat dues only (PROPOSED)
+## D-077 — How the root is paid for: a capped per-lineage fee, or flat dues only
 
 *Problem:* Two positions are on the record, and they disagree.
 
@@ -1915,8 +1915,9 @@ domain-year, raised from 0.18 on 1 July 2025 (its registrar billing FAQ, October
 - Nothing here charges anyone today. No fee schedule exists until the root does, and the first signed schedule is a
   genesis-day artefact.
 
-*Status:* PROPOSED. The maintainer decides. Nothing implements or changes either model until this record says
-ACCEPTED or REJECTED, with the reason.
+*Status:* ACCEPTED 2026-11-06, as proposed (keep the Standard's capped, never-rising per-lineage fee), by the owner's
+choice "Accept all" on D-094 item 15. Nothing charges anyone until a root exists; the first signed fee schedule is a
+genesis-day artefact.
 
 ## D-078 — AINRA Link: status and attribution for credentials agents already have (M47)
 
@@ -2471,4 +2472,6 @@ the owner has — an account, a person, a jurisdiction — the record says so in
 
 *Not changed by this record:* P1–P6, the wire format, every corpus. Each built step still gets its own record.
 
-*Status:* PROPOSED 2026-11-06 — the owner to accept as a whole, or amend line by line.
+*Status:* ACCEPTED 2026-11-06 as a whole, with D-077, by the owner's choice "Accept all" (after "i approve all").
+The facts the table names as the owner's — the second host, the SLH recovery holders, the custodians, the incident
+deputy, the jurisdiction — are not yet given; each line that needs one is built up to that fact and no further.

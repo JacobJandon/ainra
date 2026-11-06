@@ -36,6 +36,7 @@ const FIGURES = [
   { label: "Witness entries in the record", source: "site/net/registry.json", field: "witnesses.length", get: (f) => f.witnesses.length },
   { label: "Independent witnesses", source: "site/net/registry.json", field: "witnesses[self_declared=false].length", get: (f) => f.witnesses.filter((w) => w.self_declared === false).length },
   { label: "Directory epochs published", source: "site/net/epochs.json", field: "epochs.length", get: (f) => f.epochs.length },
+  { label: "Epoch log head (D-097)", source: "site/net/epoch-log.json", field: "size · root", get: (f) => `${f.size} · ${f.root.slice(0, 16)}…` },
   { label: "Latest directory epoch", source: "site/net/epochs.json", field: "max(epochs[].epoch) · issued_at", get: (f) => { const e = f.epochs.reduce((a, b) => (b.epoch > a.epoch ? b : a)); return `${e.epoch} · ${new Date(e.issued_at * 1000).toISOString().slice(0, 10)}`; } },
   ...readdirSync(join(ROOT, "site/net/registrars")).sort().map((id) => (
     { label: `${id} · status sequence`, source: `site/net/registrars/${id}/fresh-head.json`, field: "seq", get: (f) => f.seq })),

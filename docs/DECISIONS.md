@@ -2601,3 +2601,59 @@ Every published probe report carried both.
 *Not changed:* the wire format, every corpus, P1–P6.
 
 *Status:* ACCEPTED 2026-11-06, under D-094 item 11 as accepted and the owner's choice of this step.
+
+## D-097 — A witnessed log of directory epochs (M52)
+
+*Problem:* `ctl` remembers the epochs it has seen, so one observer notices a rewritten epoch. A host could still
+serve one history to some observers and another to the rest, and no observer would know. PLAN-M52 step 10 proposed
+a witnessed epoch log, and D-094 item 5 adopted it.
+
+*Decision:*
+
+- **The log.** Every archived epoch is a leaf of an RFC 6962 tree with origin `ainra-directory`.
+  - The leaf data is `"ainra-directory/v1\n" || epoch || "\n" || digest || "\n"`, where the digest is the
+    directory's signed-bytes digest. It is hashed with the 0x00 prefix.
+  - Leaves are in epoch order 1, 2, 3, …
+  - The head is the text `ainra-directory\n<size>\n<root>\n`.
+- **No operator key.** Each leaf is a directory signed by both roots, so anyone recomputes the head from the
+  epochs a contract already serves.
+- **The archive writes the head** (`epoch-log.json`) on every append and every re-run. When an archive's epochs do
+  not run from 1 without a gap, it writes no head and removes a stale one; `ctl` alarms on the gap.
+- **`ainra directory witness`** is a witness that needs no daemon:
+  - it verifies every leaf under the pinned roots;
+  - it keeps a memory under D-087's rules: a random key made only when the key file is missing (0600), and state
+    that is saved and fsynced before it signs; a state file it cannot read stops it;
+  - it refuses a different digest for an epoch it has seen, a log that shrank, and a head inconsistent with what
+    it cosigned;
+  - otherwise it signs the head with Ed25519.
+- **`ainra directory log --write <dir> --add-cosig <f>`** keeps a contract's `epoch-log-cosignatures.json`. It takes
+  a cosignature only if it verifies over that contract's own epochs.
+- **`ainra ctl status`:**
+  - recomputes the head and alarms if the served `epoch-log.json` disagrees;
+  - verifies every served cosignature and alarms on one that does not verify;
+  - reports how many witnesses are on the current head, and how many of those pinned with `--epoch-witness`.
+
+*WITNESS:* `make epoch-log-drill` (a preflight row) builds contracts from `vectors/v1-directory-epoch`.
+
+- **Witness refusals.** A witness cosigns a log of 1 epoch and its growth to 3. Shown a different epoch 3, it
+  refuses a split view, and `ctl` alarms "equivocation". It refuses a log that shrank. `log` and the witness both
+  refuse a leaf whose directory does not verify.
+- **Cosignatures and heads.** A forged cosignature is refused at the door. Served anyway, it makes `ctl` alarm, and
+  so does a served head the epochs do not make.
+- **Counting.** Two witnesses with their own keys are counted, and a pinned witness that did not sign is named.
+- **The memory is load-bearing.** With its memory deleted, the witness cosigns the other epoch 3. Its two
+  cosignatures then name two roots for size 3 under one key, which is evidence against it.
+
+The unit tests hold the head to the reference RFC 6962 implementation at every size from 1 to 33, and show that a
+cosignature does not verify over another history. `make ctl-drill`, `make sign-epoch-rehearsal` and
+`make control-page-drill` pass unchanged.
+
+*Not built:*
+- outside witnesses: none exist yet, the same zero as the registrar logs;
+- showing the head on `/control.html`.
+
+The published head is the TEST-ROOT staging record's (size 1).
+
+*Not changed:* the directory format, the wire format, every corpus, P1–P6.
+
+*Status:* ACCEPTED 2026-11-06, as D-094 item 5 adopted it.

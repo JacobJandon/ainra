@@ -121,6 +121,7 @@ run "leak ledger"        "what each party learns, held"   make -s leak-ledger
 run "operator report"    "every figure from an artifact"  make -s monthly-report-check
 run "incident log"       "every post-mortem logged, on time" make -s incident-check
 run "compliance ladder"  "probe unfindable, rungs wait"    make -s probe-ladder
+run "epoch log"          "witness refuses a split view"    make -s epoch-log-drill
 run "outage drill"       "registrar dark, held to F1/F2/F3" make -s outage-drill
 run "doc freeze"         "normative docs unchanged"     make check-freeze
 run "MCP fidelity"       "ainra_verify ≡ SDK on vectors" make mcp-test

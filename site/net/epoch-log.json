@@ -1,0 +1,13 @@
+{
+  "checkpoint": "ainra-directory\n1\nx9ynBlBkyVeMH7v5jbwaxuTSq_-vH6TbmlV8Nq7aWKA\n",
+  "leaf": "SHA-256(0x00 || \"ainra-directory/v1\\n\" || epoch || \"\\n\" || digest || \"\\n\") (RFC 6962)",
+  "leaves": [
+    {
+      "digest": "549a8f6ccb1c72ce64a1b46213159be5e16ba9b7868db4fb36fd465e0519ff7d",
+      "epoch": 1
+    }
+  ],
+  "origin": "ainra-directory",
+  "root": "x9ynBlBkyVeMH7v5jbwaxuTSq_-vH6TbmlV8Nq7aWKA",
+  "size": 1
+}

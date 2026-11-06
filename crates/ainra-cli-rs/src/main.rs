@@ -7,6 +7,7 @@
 //! Run `ainra help` for the command list.
 
 mod ctl;
+mod epochlog;
 mod seed;
 mod workbench;
 

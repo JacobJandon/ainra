@@ -217,7 +217,7 @@ the share formats (ICANN lost a year when a hardware vendor left the business). 
 threshold fails and at the threshold reproduces the same public key; a holder missing from the inventory is listed as
 unproven, never present; a successor signed by one root is refused.
 
-**10. A witnessed epoch log (optional; owner decision plus a D-0xx).** Each leaf is the digest of a dual-signed
+**10. A witnessed epoch log (optional; owner decision plus a D-0xx).** *Built 2026-11-06 (D-097): each archived epoch is an RFC 6962 leaf under origin `ainra-directory`, the archive writes the head (`epoch-log.json`), `ainra directory witness` verifies every leaf, remembers each epoch's digest and refuses a split view, a shrink or a forged leaf, `ainra directory log --add-cosig` keeps the cosignatures, and `ctl status` recomputes the head and verifies them (`make epoch-log-drill`). No operator key: the leaves are root-signed. Not built: outside witnesses (none yet) and showing the head on `/control.html`.* Each leaf is the digest of a dual-signed
 directory, appended to an RFC 6962 log (origin `ainra-directory`) and cosigned by witnesses under the D-087 memory
 rules. WITNESS: two different epoch-N digests shown to one witness are refused and `ctl` alarms; a leaf whose
 directory does not verify under both roots is refused.

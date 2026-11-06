@@ -55,6 +55,33 @@ What a witness a stranger runs needs, and what the daemon now does about each:
   the log's checkpoints, collects the cosignatures over the wire, assembles a `QuorumCertificate`, and checks
   `certified(checkpoint, roster, k)`.
 
+## Witness the root's own history too: the epoch log (D-097)
+
+A registrar's log is not the only thing that can be shown differently to different people. The root's one act is a
+directory epoch, and a host could serve one epoch 3 to some observers and another to the rest. The epoch log puts
+every archived epoch into an RFC 6962 tree (origin `ainra-directory`); your cosignature on its head says "this is
+the one history I was shown". It needs no daemon and no operator key: each leaf is a directory signed by both roots,
+and the witness checks every one itself.
+
+```bash
+ainra directory witness --net https://ainra.org/net --roots pinned-roots.json \
+      --key ~/.ainra-witness/epoch.key --state ~/.ainra-witness/epoch-state.json --out epoch-cosig.json
+```
+
+- The first run makes a random key (0600) in `--key`. Keep it: it is your identity.
+- `--state` remembers each epoch's digest and the last head. It is saved before you sign.
+- You refuse by name:
+  - a different digest for an epoch you have seen (a split view);
+  - a log that shrank;
+  - an epoch that does not verify under both pinned roots.
+- Send `epoch-cosig.json` to the steward. The steward adds it with
+  `ainra directory log --write <net> --add-cosig epoch-cosig.json`, which refuses one that does not verify.
+- `ainra ctl status` verifies every served cosignature and counts the ones you pin with `--epoch-witness <key>`.
+- Run it on a schedule, for example daily from cron. Each run either extends what you have signed or refuses.
+
+`make epoch-log-drill` shows each refusal and each alarm. It also shows that a witness whose memory is deleted
+signs two different histories under one key, which is evidence anyone can check against it.
+
 ## Choosing your quorum k (worked examples)
 `k` is **your** risk tolerance, not the network's. With `N` witnesses on the roster, a checkpoint is certified once
 `k` distinct ones cosign. Two failure modes pull `k` in opposite directions — **safety** (can a fork be certified?)

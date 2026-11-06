@@ -9,6 +9,7 @@
 //!   ainra ctl status --net <url|dir> [--roots <pinned.json>] [--mirror <url|dir>]… [--state <file>] [--max-age <s>] [--now <unix s>]
 //!   (--max-age defaults to the published quarterly cadence, D-094)
 //!   ainra ctl diff <N> <M> --net <url|dir>                         what changed between two epochs
+//!   (status also recomputes the epoch log head and verifies its cosignatures — `--epoch-witness <key>` pins one; D-097)
 //!   ainra ctl watch --net <url|dir> [--interval <s>] …             status, again and again
 //!
 //! The workbench commands that follow an epoch's life before it is archived — `request`, `check-request`, `propose`,
@@ -40,7 +41,7 @@ const CORE_FILES: [&str; 4] = [
     "epochs.json",
 ];
 
-fn fetch(base: &str, path: &str) -> Result<Vec<u8>, String> {
+pub(crate) fn fetch(base: &str, path: &str) -> Result<Vec<u8>, String> {
     if base.starts_with("http://") || base.starts_with("https://") {
         let url = format!("{}/{}", base.trim_end_matches('/'), path);
         let out = Command::new("curl")
@@ -60,7 +61,7 @@ fn fetch(base: &str, path: &str) -> Result<Vec<u8>, String> {
     }
 }
 
-fn fetch_json(base: &str, path: &str) -> Result<Value, String> {
+pub(crate) fn fetch_json(base: &str, path: &str) -> Result<Value, String> {
     let b = fetch(base, path)?;
     serde_json::from_slice(&b).map_err(|e| format!("{path}: not JSON ({e})"))
 }
@@ -74,7 +75,7 @@ pub(crate) fn sha256_hex(b: &[u8]) -> String {
 }
 
 /// The identity of a directory (epoch, issue time, signed-bytes digest), through the one decode path.
-fn identity(directory: &[u8]) -> Option<Value> {
+pub(crate) fn identity(directory: &[u8]) -> Option<Value> {
     let v: Value = serde_json::from_str(&ainra_adapter::directory_identity_json(
         &String::from_utf8_lossy(directory),
     ))
@@ -83,7 +84,7 @@ fn identity(directory: &[u8]) -> Option<Value> {
 }
 
 /// Does this directory verify against these roots (both signatures)? Through the one decode path.
-fn authentic(directory: &[u8], roots: &[u8]) -> bool {
+pub(crate) fn authentic(directory: &[u8], roots: &[u8]) -> bool {
     let out = ainra_adapter::accredit_json(
         &String::from_utf8_lossy(directory),
         &String::from_utf8_lossy(roots),
@@ -118,6 +119,8 @@ pub fn cmd_directory(args: &[String]) -> i32 {
             }
         }
         Some("archive") => archive(&args[1..]),
+        Some("log") => crate::epochlog::log(&args[1..]),
+        Some("witness") => crate::epochlog::witness(&args[1..]),
         Some(
             cmd @ ("check-request" | "request" | "propose" | "check-proposal" | "sign-request"
             | "assemble" | "publish"),
@@ -183,6 +186,18 @@ pub(crate) fn archive_last(into: &Path) -> Option<(u64, String)> {
         .max_by_key(|(n, _)| *n)
 }
 
+/// The epoch log head for an archive (D-097) — or, when its epochs do not run 1, 2, 3, … (an archive may start late or
+/// carry a gap; `ctl` alarms on the gap), no head at all: a stale `epoch-log.json` is removed rather than left wrong.
+fn head_or_note(into: &Path, roots: &[u8]) -> String {
+    match crate::epochlog::write_head(into, roots) {
+        Ok(h) => h,
+        Err(e) => {
+            let _ = std::fs::remove_file(into.join("epoch-log.json"));
+            format!("no epoch log head: {}", e.trim_start_matches("REFUSED: "))
+        }
+    }
+}
+
 /// Append a verified directory to `<into>/epochs/<N>.json` and the index, recording the proposal and ceremony it came
 /// from (`null` when it did not come through `publish`). `Ok` carries the line to print; `Err` the exit code and why.
 pub(crate) fn archive_into(
@@ -207,8 +222,9 @@ pub(crate) fn archive_into(
     let list = index["epochs"].as_array().cloned().unwrap_or_default();
     if let Some(same) = list.iter().find(|e| e["epoch"].as_u64() == Some(epoch)) {
         if same["digest"].as_str() == Some(&digest) {
+            let head = head_or_note(into, roots);
             return Ok(format!(
-                "epoch {epoch} is already archived with this digest — nothing to do"
+                "epoch {epoch} is already archived with this digest — nothing to do ({head})"
             ));
         }
         return Err((1, format!("REFUSED: equivocation — epoch {epoch} is archived with digest {} and this directory's is {digest}", same["digest"].as_str().unwrap_or("?"))));
@@ -232,8 +248,9 @@ pub(crate) fn archive_into(
     let text = serde_json::to_string_pretty(&index).unwrap() + "\n";
     std::fs::write(&index_path, text)
         .map_err(|_| (2, format!("cannot write {}", index_path.display())))?;
+    let head = head_or_note(into, roots);
     Ok(format!(
-        "archived epoch {epoch} → {} (digest {digest})",
+        "archived epoch {epoch} → {} (digest {digest}); {head}",
         path.display()
     ))
 }
@@ -453,6 +470,62 @@ fn status(args: &[String]) -> i32 {
                 }
             }
         },
+    }
+
+    // 4b · the epoch log (D-097): the head these epochs make, the head the contract serves, and who cosigned it.
+    if !history.is_empty()
+        && history
+            .iter()
+            .enumerate()
+            .all(|(i, (n, _))| *n == i as u64 + 1)
+    {
+        let size = history.len();
+        let root = ainra_core::b64::encode(&crate::epochlog::root_at(&history, size));
+        match fetch_json(net, "epoch-log.json") {
+            Err(_) => r.info(&format!(
+                "no epoch-log.json served (D-097); the epochs make head size {size} · root {}",
+                &root[..16]
+            )),
+            Ok(head) => {
+                if head["size"].as_u64() == Some(size as u64)
+                    && head["root"].as_str() == Some(root.as_str())
+                {
+                    r.ok(&format!("epoch log head: size {size} · root {}… — recomputed from the epochs, as served", &root[..16]));
+                } else {
+                    r.alarm(format!("epoch-log.json says size {} root {}, but the epochs served make size {size} root {}", head["size"], head["root"], root));
+                }
+            }
+        }
+        let pinned = opt_all(args, "epoch-witness");
+        match fetch_json(net, "epoch-log-cosignatures.json") {
+            Err(_) if pinned.is_empty() => r.info("no epoch-log cosignatures served"),
+            Err(_) => r.warn(&format!("no epoch-log cosignatures served: none of the {} pinned epoch witness(es) can be counted", pinned.len())),
+            Ok(v) => {
+                let mut on_head = std::collections::BTreeSet::new();
+                let mut valid = 0;
+                for c in v["cosignatures"].as_array().into_iter().flatten() {
+                    let who = c["witness_key"].as_str().unwrap_or("?");
+                    match crate::epochlog::cosig_verifies(c, &history) {
+                        Ok(sz) => {
+                            valid += 1;
+                            if sz == size as u64 {
+                                on_head.insert(who.to_string());
+                            }
+                        }
+                        Err(e) => r.alarm(format!("epoch-log cosignature by {}…: {e}", &who[..who.len().min(12)])),
+                    }
+                }
+                r.ok(&format!("epoch log: {valid} cosignature(s) verify over this history; {} witness(es) on the current head", on_head.len()));
+                if !pinned.is_empty() {
+                    let n = pinned.iter().filter(|k| on_head.contains(*k)).count();
+                    if n < pinned.len() {
+                        r.warn(&format!("{n} of {} pinned epoch witness(es) cosigned the current head", pinned.len()));
+                    } else {
+                        r.ok(&format!("all {} pinned epoch witness(es) cosigned the current head", pinned.len()));
+                    }
+                }
+            }
+        }
     }
 
     // 5 · registrars: log heads and status sequence, as published.

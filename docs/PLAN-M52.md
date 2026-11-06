@@ -248,7 +248,7 @@ report.
 while the board has 12 rows; it now says 12/12, and `tools/status-consistency.mjs` reads the total from the board.
 Open: Standard §4 says online delegates are "quarterly-certified by the root" and §3 speaks of "supervised transfer",
 but in the code delegates chain to each registrar's own log root and the root never chooses a gaining registrar.
-Proposed as D-093 (2026-11-05): bring both sentences to the code; applied by the normative path once accepted.
+Done: D-093 accepted 2026-11-06 and applied — both sentences now say what the code does.
 
 ## Order
 

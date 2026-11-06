@@ -2426,7 +2426,7 @@ publish an epoch); its second half would have the root decide where customers go
 | Where | Says today | Would say |
 |---|---|---|
 | Standard §4 | "delegated online keys — quarterly-certified by the root … any compromise is bounded to one quarter" | "delegated online keys, certified for at most 92 days by each registrar's own log-root key, which the root-signed directory lists; the root itself signs only directory epochs. A compromised delegate is bounded to its certificate window only while the log root is kept apart from the delegate." |
-| Standard §3 ladder | "its passports enter a grace window for supervised transfer to other registrars" | "its passports stay verifiable until their own expiry or revocation; the holder may move to another accredited registrar of its choosing (holder-driven portability, PLAN-M52 step 12, not built yet). The root never chooses the gaining registrar (P6)." |
+| Standard §3 ladder | "its passports enter a grace window for supervised transfer to other registrars" | "the registrar is distrusted from a log position onward — passports logged before the cutoff keep verifying, later ones are refused (D-044) — or withdrawn; its holders may move to another accredited registrar of their own choosing, by holder-driven portability, not built yet; the root never chooses the gaining registrar (P6)" |
 | Site copies of the Standard | — | follow in the same commit (`site/docs.html` § The Standard, `site/standard.md`, `site/AINRA_I_The_Standard.md`) |
 
 By the normative path (an ADR in the MTS, this record, a dated `docs/AMENDMENTS.md` entry before the change,
@@ -2434,4 +2434,8 @@ By the normative path (an ADR in the MTS, this record, a dated `docs/AMENDMENTS.
 
 *Not changed:* the wire format, the frozen reasons, every corpus, P1–P6.
 
-*Status:* PROPOSED 2026-11-05 — the operator to accept or reject. Until then the Standard is unchanged.
+*Status:* ACCEPTED 2026-11-06 by the operator's instruction "i accept and fully continue all i approve all"
+(recorded in `docs/AMENDMENTS.md`). Applied the same day: the Standard §3 and §4 and their renderings, a dated note
+under MTS ADR-002, `docs/FREEZE.sha256`. One correction on applying: the proposed §3 wording said a de-accredited
+registrar's passports "stay verifiable until their own expiry", which is untrue if the registrar is withdrawn; the
+applied text says what the code does — distrust from a log position (D-044) or withdrawal.

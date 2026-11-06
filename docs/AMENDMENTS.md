@@ -80,3 +80,20 @@ touched. The public diff is the commit itself; the entry names it once it exists
   minute holds at F1. Making F1 the default would make every agent refresh every 30 s and every registrar outage a
   30-second stop, so the text is brought to the code: each verifier refuses within its own class — under 60 s at F1,
   5 minutes at F2, a day at F3 — every class failing closed. P1–P6 are untouched.
+
+## 2026-11-06 — The Standard §3 and §4: who certifies the online delegates; what de-accreditation does (D-093)
+
+- **Era:** operator-run
+- **Approved by:** the operator, with this public record. The operator's instruction, given after D-093 was proposed
+  with its table of changes: "i accept and fully continue all i approve all".
+- **Files touched:** `docs/AINRA_I_The_Standard.md` §3 (the enforcement ladder's last step) and §4 (the delegated
+  online keys); `docs/AINRA_Master_Technical_Specification_v1.md` — a dated amendment note under ADR-002; the
+  Standard's renderings in `site/docs.html`, `site/standard.md`, `site/AINRA_I_The_Standard.md`;
+  `docs/FREEZE.sha256`. Decision record: `D-093` in `docs/DECISIONS.md`. Found by PLAN-M52 step 14.
+- **Rationale:** §4 said delegates are "quarterly-certified by the root" and a compromise "bounded to one quarter".
+  In the code each registrar's own log-root key certifies its delegate (≤ 92 days) and the root signs only directory
+  epochs; the bound holds only while the log root is kept apart from the delegate. §3 said a de-accredited
+  registrar's passports "enter a grace window for supervised transfer"; nothing transfers, supervises or grants grace,
+  P6 forbids the root choosing a gaining registrar, and what the code does is distrust from a log position (D-044) or
+  withdrawal. The texts are brought to the code; holder-driven portability is named as planned (PLAN-M52 step 12).
+  P1–P6 are untouched.

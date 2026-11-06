@@ -2439,3 +2439,36 @@ By the normative path (an ADR in the MTS, this record, a dated `docs/AMENDMENTS.
 under MTS ADR-002, `docs/FREEZE.sha256`. One correction on applying: the proposed §3 wording said a de-accredited
 registrar's passports "stay verifiable until their own expiry", which is untrue if the registrar is withdrawn; the
 applied text says what the code does — distrust from a log position (D-044) or withdrawal.
+
+## D-094 — Recommended answers to the owner's open items in PLAN-M52 (M52)
+
+*Problem:* PLAN-M52 lists seventeen items "left to the owner"; steps 4 and 9–13 wait on them. The owner asked for
+the work to continue ("i approve all"). A blanket approval cannot answer an item that has no proposed answer, so this
+record proposes one for each, in one place, to be accepted or amended as a whole. Where an answer needs a fact only
+the owner has — an account, a person, a jurisdiction — the record says so instead of inventing it.
+
+*Proposed:*
+
+| # | Item | Recommended answer | Needs from the owner |
+|---|---|---|---|
+| 1 | D-088 | Accepted 2026-11-04. | — |
+| 2 | Hosting | The read contract on two independent static hosts: ainra.org (today's host) and a second provider in another region (the inert `pages.yml` already builds one). `/control.html` ships now, reading the labelled staging copy. | the second provider and its public name |
+| 3 | Cadence and targets | Scheduled ceremonies quarterly; at most 90 days from a request passing R2 to publication; the packet published 14 days ahead (R6). The emergency target is stated only once a remote-protocol drill has measured it. | — |
+| 4 | Remote air-gapped protocol | Emergencies only; scheduled ceremonies are held in person. | — |
+| 5 | Witnessed epoch log | Adopt (step 10), with its own D-0xx when built. | — |
+| 6 | Pre-signed contingency epochs | None. | — |
+| 7 | The freeze attack | Accept it as a stated limit now; `ctl` alarms when `issued_at` is older than the quarterly cadence. Directory expiry is a wire change, left to its own record. | — |
+| 8 | SLH-DSA custody | A 3-of-5 recovery split, held by a group separate from the FROST custodians. | the five holders |
+| 9 | Custodian rules | ≥ 5 jurisdictions and ≥ 3 institution types (Standard §4); no two custodians from one organisation; 3-year staggered terms; a custodian who misses two scheduled ceremonies is replaced from a standby pool of 3 by a share refresh (now drilled, step 9); published: key, jurisdiction and institution type — names only with consent. | the people |
+| 10 | Compliance monitor | Until an independent monitor exists, a no-charge L0/L1 probe term in the accreditation agreement (keeps P3 and P4). | — |
+| 11 | Compliance numbers | Cure window 30 days; notices 14 days apart; holders' grace window to move 90 days; two vantage points on different networks (R0). | — |
+| 12 | Lifting a distrust cutoff | Never lifted or moved later; it may only move earlier. A registrar returns through a new ACCREDIT. | — |
+| 13 | Registrar key roll | The two-key overlap in the entry (normative), and a declared offline approver set of 2-of-3, disjoint from the online keys. | — |
+| 14 | Adverse requests | Anyone may file, with the R0 citations. Interim appeal: a reproduction filed within 30 days, decided publicly by the policy author. | — |
+| 15 | Fees | D-077 as proposed: the Standard's capped per-lineage fee that may only stay flat or fall (F8), plus flat accreditation; non-payment never affects a verdict. | accept or reject D-077 |
+| 16 | Incident role | The owner is the incident lead until a second person exists; the numbers in `docs/genesis-day/ROLLBACK.md` stand; a root is never announced by message. | the deputy |
+| 17 | Roles kept and jurisdiction | Until the institution exists the owner keeps every role (as the role table already says). | the legal entity's jurisdiction |
+
+*Not changed by this record:* P1–P6, the wire format, every corpus. Each built step still gets its own record.
+
+*Status:* PROPOSED 2026-11-06 — the owner to accept as a whole, or amend line by line.

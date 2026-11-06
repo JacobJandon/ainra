@@ -86,6 +86,8 @@ pub const CHECKS: &[Check] = &[
         rule: "DISTRUST_FROM_LEAF never lifts a cutoff or moves one later; an existing cutoff can only move earlier (until the owner rules otherwise, PLAN-M52 item 12)." },
     Check { id: "self-signature", stage: "check-request", built: true,
         rule: "A request a registrar files about its own entry (REVOKE_DELEGATE, its own DISTRUST_FROM_LEAF or WITHDRAW) carries a hybrid signature (Ed25519 and ML-DSA-65) over the request message by the registrar's CURRENT issuer key, as the current directory lists it." },
+    Check { id: "adverse-proof", stage: "check-request", built: true,
+        rule: "An adverse DISTRUST_FROM_LEAF may instead carry a fork proof: two checkpoints of the registrar's own log (origin `ainra-log/<registrar>`), each signed under the log root epoch N lists for it (directly, or by a delegate it certified that epoch N has not revoked), at one size with different roots. It then skips the notice chain, cure window and reproductions (R3: an emergency that only closes things skips the wait, not the publication), and its cutoff is at or below that size. A pair that agrees, a signature that does not verify, or another log's origin is refused (D-098)." },
     Check { id: "adverse-notice-chain", stage: "check-request", built: true,
         rule: "An adverse request (DISTRUST_FROM_LEAF or WITHDRAW filed against another registrar) carries a compliance record: at least two notices, numbered 1, 2, … in time order and at least 14 days apart, each named by its SHA-256, and a cure window that ends at least 30 days after notice 1 and before the request was filed (D-094 item 11)." },
     Check { id: "adverse-vantage", stage: "check-request", built: true,
@@ -288,9 +290,36 @@ pub struct Artifact {
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Compliance {
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub notices: Vec<Notice>,
+    #[serde(default, skip_serializing_if = "is_zero")]
     pub cure_window_ends: u64,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub reproductions: Vec<Reproduction>,
+    /// PLAN-M53 step 1 (D-098): self-verifying evidence that the registrar's log forked — two checkpoints of its log,
+    /// signed under the key the directory lists, at one size with different roots. With it, an adverse
+    /// DISTRUST_FROM_LEAF skips the compliance ladder: there is nothing to cure in a forked log.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fork_proof: Option<ForkProof>,
+}
+
+fn is_zero(n: &u64) -> bool {
+    *n == 0
+}
+
+/// Two signed checkpoints of one registrar log that cannot both be true.
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ForkProof {
+    pub a: SignedCheckpoint,
+    pub b: SignedCheckpoint,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SignedCheckpoint {
+    pub checkpoint: crate::WireCheckpoint,
+    pub checkpoint_sig: crate::WireCheckpointSig,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -850,6 +879,95 @@ pub fn check_request(
                     ),
                 );
             };
+            if let Some(fp) = c.fork_proof.as_ref() {
+                if t != "DISTRUST_FROM_LEAF" {
+                    return refuse(
+                        "adverse-proof",
+                        format!("a fork proof stops issuance (DISTRUST_FROM_LEAF); a {t} still waits for the ladder and the holders' grace"),
+                    );
+                }
+                let origin = format!("ainra-log/{}", r.registrar);
+                let log_root = b64::decode(&cur.log_root_slh).unwrap_or_default();
+                let revoked = |w: &crate::WireCheckpointSig| {
+                    w.cert.as_ref().is_some_and(|c| {
+                        base.is_some_and(|d| {
+                            b64::decode(&c.delegate_ed25519).is_ok_and(|pk| {
+                                let cert = ainra_core::checkpoint::DelegateCert {
+                                    delegate_ed25519: pk.as_slice().try_into().unwrap_or([0; 32]),
+                                    scopes: c.scopes.clone(),
+                                    nbf: c.nbf,
+                                    exp: c.exp,
+                                    sig_slh: b64::decode(&c.sig_slh).unwrap_or_default(),
+                                };
+                                d.revoked_delegates
+                                    .contains(&b64::encode(&cert.fingerprint()))
+                            })
+                        })
+                    })
+                };
+                let mut parsed = Vec::new();
+                for (label, sc) in [("a", &fp.a), ("b", &fp.b)] {
+                    let cp = &sc.checkpoint;
+                    if cp.origin != origin {
+                        return refuse(
+                            "adverse-proof",
+                            format!("checkpoint {label} is of log {:?}, not {origin}", cp.origin),
+                        );
+                    }
+                    let Ok(root) = crate::decode32(&cp.root) else {
+                        return refuse(
+                            "adverse-proof",
+                            format!("checkpoint {label} has no 32-byte root"),
+                        );
+                    };
+                    let Ok(sig) = crate::decode_cp_sig(&sc.checkpoint_sig) else {
+                        return refuse(
+                            "adverse-proof",
+                            format!("checkpoint {label}'s signature is not in a known mode"),
+                        );
+                    };
+                    if revoked(&sc.checkpoint_sig) {
+                        return refuse("adverse-proof", format!("checkpoint {label} is signed by a delegate epoch {epoch} already revoked — the registrar disowned that key"));
+                    }
+                    // a delegate signature is judged inside its own certificate's window; a root signature has none
+                    let at = sc.checkpoint_sig.cert.as_ref().map(|c| c.nbf).unwrap_or(0);
+                    let c = ainra_core::checkpoint::Checkpoint {
+                        origin: cp.origin.clone(),
+                        tree_size: cp.size,
+                        root,
+                    };
+                    if c.verify_sig_mode(&log_root, &sig, at).is_err() {
+                        return refuse("adverse-proof", format!("checkpoint {label} does not verify under {}'s log root as epoch {epoch} lists it", r.registrar));
+                    }
+                    parsed.push(c);
+                }
+                if parsed[0].tree_size != parsed[1].tree_size || parsed[0].root == parsed[1].root {
+                    return refuse(
+                        "adverse-proof",
+                        format!(
+                            "the two checkpoints (sizes {} and {}) are not a fork: a fork is one size with two roots",
+                            parsed[0].tree_size, parsed[1].tree_size
+                        ),
+                    );
+                }
+                let n = parsed[0].tree_size;
+                if r.change.leaf.is_none_or(|l| l > n) {
+                    return refuse(
+                        "adverse-proof",
+                        format!(
+                            "the cutoff must be at or below the fork's size {n} (asked: {:?})",
+                            r.change.leaf
+                        ),
+                    );
+                }
+                passed.push("adverse-proof");
+                return Ok(Accepted {
+                    digest,
+                    change_type: t.to_string(),
+                    registrar: r.registrar.clone(),
+                    passed,
+                });
+            }
             if c.notices.len() < 2 {
                 return refuse(
                     "adverse-notice-chain",
@@ -1946,7 +2064,52 @@ mod tests {
                     report_sha256: "04".repeat(32),
                 },
             ],
+            fork_proof: None,
         }
+    }
+
+    // D-098: a checkpoint of `origin` at `size` with `root`, signed directly by a registrar's log root
+    fn signed_cp(
+        log: &crypto::TestRootSlh,
+        origin: &str,
+        size: u64,
+        root: [u8; 32],
+    ) -> SignedCheckpoint {
+        let c = ainra_core::checkpoint::Checkpoint {
+            origin: origin.into(),
+            tree_size: size,
+            root,
+        };
+        SignedCheckpoint {
+            checkpoint: crate::WireCheckpoint {
+                origin: origin.into(),
+                size,
+                root: b64::encode(&root),
+            },
+            checkpoint_sig: crate::WireCheckpointSig {
+                mode: "root".into(),
+                slh: Some(b64::encode(&c.sign_test_root(log).unwrap())),
+                cert: None,
+                sig_ed25519: None,
+            },
+        }
+    }
+
+    // an adverse DISTRUST of registrar-11 carrying only a fork proof: its own log at size 25, two roots
+    fn forked(w: &World) -> ChangeRequest {
+        let mut r = base_request("DISTRUST_FROM_LEAF", "registrar-11", "monitor-01");
+        r.change.leaf = Some(20);
+        let o = "ainra-log/registrar-11";
+        r.evidence.compliance = Some(Compliance {
+            notices: vec![],
+            cure_window_ends: 0,
+            reproductions: vec![],
+            fork_proof: Some(ForkProof {
+                a: signed_cp(&w.b.log, o, 25, [1; 32]),
+                b: signed_cp(&w.b.log, o, 25, [2; 32]),
+            }),
+        });
+        r
     }
 
     fn adverse(w: &World) -> ChangeRequest {
@@ -2131,7 +2294,55 @@ mod tests {
             let mut r = adverse(w);
             r.evidence.compliance.as_mut().unwrap().reproductions[0].at = N1 + 20 * DAY;
             refused_by(check(&r), "adverse-vantage");
-            // D-094 item 11's numbers: one notice; notices 10 days apart; a 20-day cure window
+            // D-098 adverse-proof: a real fork is accepted with no notice, cure or reproduction; each way a
+            // proof can fail is refused by name; without the proof the ladder still applies
+            assert!(
+                check(&forked(w)).is_ok(),
+                "{:?}",
+                check(&forked(w)).err().map(|e| e.to_string())
+            );
+            let proof = |r: &mut ChangeRequest| {
+                r.evidence
+                    .compliance
+                    .as_mut()
+                    .unwrap()
+                    .fork_proof
+                    .as_mut()
+                    .unwrap()
+                    .clone()
+            };
+            let o = "ainra-log/registrar-11";
+            let mut r = forked(w);
+            let mut fp = proof(&mut r);
+            fp.b = signed_cp(&w.b.log, o, 25, [1; 32]);
+            r.evidence.compliance.as_mut().unwrap().fork_proof = Some(fp);
+            refused_by(check(&r), "adverse-proof"); // the two agree: not a fork
+            let mut r = forked(w);
+            let mut fp = proof(&mut r);
+            fp.b = signed_cp(&w.b.log, o, 26, [2; 32]);
+            r.evidence.compliance.as_mut().unwrap().fork_proof = Some(fp);
+            refused_by(check(&r), "adverse-proof"); // two sizes: not self-evident
+            let mut r = forked(w);
+            let mut fp = proof(&mut r);
+            fp.b = signed_cp(&w.a.log, o, 25, [2; 32]);
+            r.evidence.compliance.as_mut().unwrap().fork_proof = Some(fp);
+            refused_by(check(&r), "adverse-proof"); // signed by another registrar's log root
+            let mut r = forked(w);
+            let mut fp = proof(&mut r);
+            fp.a = signed_cp(&w.b.log, "ainra-log/registrar-07", 25, [1; 32]);
+            r.evidence.compliance.as_mut().unwrap().fork_proof = Some(fp);
+            refused_by(check(&r), "adverse-proof"); // another log's origin
+            let mut r = forked(w);
+            r.change.leaf = Some(30);
+            refused_by(check(&r), "adverse-proof"); // a cutoff above the fork
+            let mut r = forked(w);
+            r.change_type = "WITHDRAW".into();
+            r.change.leaf = None;
+            refused_by(check(&r), "adverse-proof"); // a fork proof never skips the holders' grace
+            let mut r = forked(w);
+            r.evidence.compliance.as_mut().unwrap().fork_proof = None;
+            refused_by(check(&r), "adverse-notice-chain"); // no proof: the ladder
+                                                           // D-094 item 11's numbers: one notice; notices 10 days apart; a 20-day cure window
             let mut r = adverse(w);
             r.evidence.compliance.as_mut().unwrap().notices.pop();
             refused_by(check(&r), "adverse-notice-chain");

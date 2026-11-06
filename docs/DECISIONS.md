@@ -2657,3 +2657,56 @@ The published head is the TEST-ROOT staging record's (size 1).
 *Not changed:* the directory format, the wire format, every corpus, P1–P6.
 
 *Status:* ACCEPTED 2026-11-06, as D-094 item 5 adopted it.
+
+## D-098 — The root's emergency stop: distrust on proof of a forked log (M53)
+
+*Problem:* the owner asked for the whole AINRA control "with a scram". There is no admin button, and there must not
+be one (D-034): a button that can change the root is the first target for an attacker or a coercer.
+
+The root's real emergency lever is an emergency epoch, and R3 already lets an emergency that only closes things skip
+the notice wait. The checker did not allow it for the case that most needs it. Since D-096, every adverse
+DISTRUST_FROM_LEAF had to climb the compliance ladder: two notices, a 30-day cure window, reproductions from two
+networks. That is right for a registrar that falls short. It is wrong for one whose log forked, where two signed
+checkpoints prove at once that its log tells different histories to different readers. There is nothing to cure in
+a forked log, and every day of waiting is a day of passports that two verifiers may judge differently.
+
+*Decision:*
+
+- The compliance record may carry a `fork_proof` instead of the ladder: two checkpoints of the registrar's own log.
+  Each checkpoint must:
+  - have origin `ainra-log/<registrar>`;
+  - be signed under the log root that epoch N lists for that registrar, either directly or by a delegate that log
+    root certified (judged within its certificate) and that epoch N has not revoked.
+
+  The two checkpoints must be at one size with different roots.
+- A check `adverse-proof` (generated into `docs/ACCREDITATION-CHECKS.md`) verifies the proof itself; nothing is
+  taken on trust. A valid proof lets the DISTRUST_FROM_LEAF skip the notice chain, the cure window and the
+  reproductions. The cutoff must be at or below the fork's size.
+- A fork proof never shortcuts WITHDRAW. Holders keep their 90 days to move.
+- Two checkpoints at different sizes are not accepted as a proof: without the leaves, a disagreement across sizes
+  is not self-evident. That case stays on the ladder.
+- The compliance record's ladder fields become optional on the wire. A record that has them serializes exactly as
+  before, so every existing request digest is unchanged.
+
+*Why this is the SCRAM, and the rest of it:* PLAN-M53 sets out the three levels.
+- **A gate:** a local deny entry (step 6).
+- **A registrar:** its own revocations and self-requests (built).
+- **The root:** an emergency epoch signed by five custodians and the SLH holder. With this record, that epoch can
+  also stop a registrar caught forking, the same day.
+
+The remote emergency ceremony that makes "the same day" true is PLAN-M53 step 4.
+
+*WITNESS:* the adapter tests (`make test`). A real fork of registrar-11's log is accepted with no notice, cure or
+reproduction. The proof is refused, by `adverse-proof`, in each of these cases:
+- the two checkpoints agree;
+- they are at two sizes;
+- one is signed by another registrar's log root;
+- one names another log's origin;
+- the cutoff is above the fork;
+- the request is a WITHDRAW.
+
+The same request without the proof is refused by `adverse-notice-chain`.
+
+*Not changed:* the directory and passport formats, every corpus, P1–P6.
+
+*Status:* ACCEPTED 2026-11-06, under R3 of D-088 and the owner's request for an emergency stop.

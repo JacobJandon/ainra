@@ -2870,3 +2870,111 @@ rehearsal with people, which waits on the custodians (D-094 item 9).
 *Not changed:* the FROST rounds and the custodian binary; every format.
 
 *Status:* ACCEPTED 2026-11-06, building D-094 item 4.
+
+## D-102 — The transfer door: the operator moves a lineage, the window is public, the root takes no part (M53)
+
+*Problem:* the Standard promises that lineages move between registrars with their history intact (0.5(iii)), and
+that a de-accredited registrar's holders may move to a registrar of their own choosing (§3). Nothing moved anything.
+A registrar could keep its customers by doing nothing, and a distrusted or dead registrar stranded them. PLAN-M53
+step 7 names the rules: the operator signs, an agent key alone is refused, a public contest window, a lock, the
+history kept, and no part for the root.
+
+*Decision:* `services/ainra-services/src/registrar_transfer.rs`, a child module of the registrar, and doors on the
+registrar daemon. The rules:
+
+1. **The operator moves a lineage, not the agent.** A request is signed by the passport's own key and must gain the
+   operator's signature before it completes, either in the request or during the window (`transfer-consent`). The
+   operator's key is one the losing registrar LOGGED beside the lineage, with the operator's proof of possession, so
+   the gaining registrar checks it against the losing registrar's log offline (`OperatorKeyReceipt`). A key logged
+   after a distrust cutoff is refused.
+2. **The move opens in public, logged at the gaining registrar, for five days.** The operator may stop it at any time
+   in the window. The losing registrar may stop it too, with a reason from a closed list (`operator_key_compromised`,
+   `fraud_evidence`, `legal_order`), only while it has no distrust cutoff: a distrusted registrar's contest is
+   recorded and does not count. A contest whose signature does not verify is refused and leaves no record.
+3. **The gaining registrar issues under its own name and policy.** The new passport's signed, logged
+   `transfer_history` names the old passport, its log, its leaf and checkpoint, the move's id and its time. An L3+
+   tier needs the gaining registrar's own audit evidence; an A1 class its own principal check. A renewal keeps the
+   history.
+4. **A lineage that moved is locked for sixty days**, read from the passport's own `transfer_history`, so any
+   registrar enforces it without asking another.
+5. **The losing registrar revokes the old passport when shown the new one** (`transfer-out`): the new passport must
+   verify under the gaining registrar with its status list authenticated, and its last history entry must name one of
+   the losing registrar's passports at its own log position.
+
+Everything is checked before anything is logged. The old passport must verify, with its registrar's status list
+authenticated under the directory's status key first (the D-072 lesson), when the move opens and again when it
+completes, so a revocation during the window stops it.
+
+**The doors** (`registrar-box`): `GET /transfers` (the public record), `GET|POST /operator-key`, `POST /transfer-in`,
+`/transfer-consent`, `/transfer-contest`, `/transfer-complete`, `/transfer-out`. Opening, consenting, contesting and
+transfer-out are public, rate-limited and decided by signatures. Logging an operator key and completing a move are the
+registrar's own acts and need its write authorization. The doors read a signed directory the caller sends, accepted
+only if it verifies under the roots pinned in `AINRA_ROOTS_FILE` and is no older than the newest epoch the registrar
+has seen. That epoch is kept on disk, so rolling back to a directory from before a cutoff is refused after a restart
+too. Without pinned roots the doors refuse. Every write is persisted before it is answered (D-080).
+
+*WITNESS:* `services/ainra-services/tests/transfer_door.rs` (three registrars in-process) and `transfer_http.rs` (two
+real daemons and a TEST-ROOT directory). They require:
+- a move asked for with a stolen agent key alone, contested by the operator, is refused;
+- the same move, never signed by the operator, is refused when its window closes, and nothing is issued;
+- a passport issued after the cutoff at a distrusted registrar is `registrar_distrusted`, while the passport moved out
+  of it verifies;
+- no completion before the window closes; after it, the history names the old leaf, which is still provable in the
+  old log;
+- the old passport verifies until `transfer-out`, then is `revoked`;
+- the losing registrar's contest counts in good standing, is refused with a reason off the list, and is recorded but
+  not counted once it is distrusted;
+- a forged contest is refused and leaves no record;
+- the lock refuses a second move at ten days and allows it at sixty;
+- each other rule is refused by name (another registrar, too old, wrong passport key, wrong operator key, an operator
+  key after the cutoff, two open moves, a revoked passport);
+- over HTTP: a directory signed by other roots, and an older epoch (also after a restart), are refused, a daemon with
+  no pinned roots keeps the doors closed, and the record of a move survives a restart.
+
+**An adversarial pass over the door** (asked for by the owner before commit) found six holes in the first version,
+each now fixed and each with an attack test (`attacks_on_the_door_are_refused`, and
+`the_registrars_own_clock_decides_not_the_caller` against two daemons keeping real time). Two of the fixes were
+checked by undoing them: the tests fail.
+1. **Caller-chosen time.** The public doors took `now` from the request body, so a stale status list from before a
+   revocation could be backdated into freshness, and a five-day window closed at once. The registrar's own clock now
+   decides every time in a move; only a hermetic drill (`AINRA_CLOCK=pinned`) may name it.
+2. **Revoked delegates ignored.** A checkpoint signed by a delegate certificate the directory revoked was accepted, for
+   the old passport and for the operator-key receipt, so a stolen delegate key could forge a receipt. Both checks now
+   honour the directory's revoked set (`verify_record_offline_with`).
+3. **`transfer-out` trusted any accredited registrar.** A hostile one could issue a passport naming a competitor's
+   customer in its history and have the losing registrar revoke the real one. The losing registrar now requires the
+   signed request itself, and checks it against its own records: signed by the old passport's key and by the operator
+   key it logged, naming the gaining registrar and the new passport's key, with the id the history records.
+4. **Two lineages merged.** If the gaining registrar already had `operator:lineage` for someone else, a move joined
+   both under one head and one revocation bit. Refused when the move opens and again when it completes.
+5. **The lock shed by a fresh version.** `issue` of a new version dropped `transfer_history`, and with it the lock
+   and the trail. Every new version of a lineage now carries its moves, as renewal already did.
+6. **An unsigned status index.** The status check read the record's unsigned `status_idx`. It now reads the index from
+   the signed claims; the full verification already caught an edited one, and now both checks agree.
+
+**Three new passport vectors** (`vectors/v1`): a moved passport verifies in every implementation, and the denylist
+finds a forbidden key inside `transfer_history`, in lower case (`fee`) and in another case (`Wallet`). Building them
+found a divergence, fixed here: **the Python verifier's denylist held 10 of the 39 forbidden keys, and matched
+case-sensitively.** A passport carrying `fee`, `wallet` or `karma`, or a forbidden key in any case but lower, verified
+in Python and was refused by Rust and TypeScript. Python now matches Rust: the same 39 keys, ASCII case-insensitive.
+TypeScript lowercased with Unicode rules; canonical input refuses non-ASCII keys, so no signed passport reached the
+difference, and it now lowercases ASCII only, as Rust does.
+
+*Honest limits:*
+- Until `transfer-out` both passports verify; the overlap is short only if the losing registrar acts.
+- Two moves of one lineage to two different gaining registrars, both signed by the operator, could both complete. The
+  operator would have to sign both. The losing registrar can see both pending records and contest the second.
+- A public door that opens a move appends one line to the gaining registrar's log. It needs a valid passport key's
+  signature and is rate-limited; a stolen agent key can still make noise, one open move per lineage at a time.
+- Changing a logged operator key is not built.
+- The losing registrar's veto in good standing is real. It is bounded by the closed reason list and by being public:
+  every contest is on the record, and abuse is a finding on the enforcement ladder.
+
+*Not changed:* the passport format: `transfer_history` was already a field, and a passport that never moved carries
+none, so every earlier passport's bytes are unchanged. The verifier, the reasons and every other corpus are unchanged.
+The root still never chooses a gaining registrar (P6).
+
+*Standard text:* §3 still says holder-driven portability is "not built yet". Changing it is an amendment, which needs
+the operator's approval of the new sentence (`GOVERNANCE-AMENDMENT.md`). It is proposed in this record and not made.
+
+*Status:* ACCEPTED 2026-11-07, building PLAN-M53 step 7 (PLAN-M52 step 12).

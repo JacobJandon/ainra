@@ -10,6 +10,21 @@ We **publicly own fixed security bugs** — hiding them would be the opposite of
 
 ## [Unreleased]
 
+### Added — a lineage can move to another registrar (D-102)
+
+- **The transfer door** at the reference registrar: `POST /transfer-in`, `/transfer-consent`, `/transfer-contest`,
+  `/transfer-complete`, `/transfer-out`, `GET /transfers`, `GET|POST /operator-key`. The operator signs a move with a
+  key its registrar logged beside the lineage, and an agent key alone never moves one. A move is public and open to
+  contest for five days, and a moved lineage is locked for sixty. The new passport's signed `transfer_history` names
+  the old passport's log position. A distrusted registrar cannot keep its customers. The doors read only a directory
+  that verifies under the pinned roots (`AINRA_ROOTS_FILE`) and refuse an older epoch.
+
+### Fixed — the Python verifier disagreed with Rust about forbidden keys
+
+- **The Python verifier refused only 10 of the 39 forbidden keys**, and only in lower case: a passport carrying `fee`,
+  `wallet` or `karma` verified in Python and was refused everywhere else. It now matches Rust: the same 39 keys, ASCII
+  case-insensitive. Three new passport vectors hold all three implementations to it.
+
 ### Added — the fastest stop: a gate's own policy (D-100)
 
 - **`denied_by_policy`**, the 21st frozen reason, and a gate policy in every implementation: `deny` (a registrar, a

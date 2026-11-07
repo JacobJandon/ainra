@@ -7,7 +7,7 @@
 // Node Buffer, no filesystem), so the same file runs in a Worker, in Deno, and in Node's fetch server.
 //
 // WHAT ANSWERS. Not a re-implementation: `ainra-core` itself, compiled to WebAssembly — the Rust verify path that
-// generates the conformance corpus, held to all 1153 passport vectors in the browser (`make wasm-diff`) and to the
+// generates the conformance corpus, held to all 1156 passport vectors in the browser (`make wasm-diff`) and to the
 // request-signature corpus here. The only JavaScript is what must be stateful, which the core cannot be (N7):
 //   * the send-once store (D-065) — bundles sent to PRIME_PATH, verified in full, named by digest;
 //   * the nonce cache — single use, checked only AFTER the signature holds (D-062).

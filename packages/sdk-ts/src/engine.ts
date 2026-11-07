@@ -162,7 +162,9 @@ function scanForbidden(v: unknown): void {
     for (const it of v) scanForbidden(it);
   } else if (v !== null && typeof v === "object") {
     for (const [k, child] of Object.entries(v as object)) {
-      if (FORBIDDEN_KEYS.has(k.toLowerCase())) throw new Reject("schema_violation");
+      // ASCII case-insensitive, exactly as Rust's to_ascii_lowercase (toLowerCase() is Unicode and maps U+212A to "k").
+      // Canonical input refuses non-ASCII keys, so no signed passport reaches the difference; the rule is mirrored anyway.
+      if (FORBIDDEN_KEYS.has(k.replace(/[A-Z]/g, (c) => c.toLowerCase()))) throw new Reject("schema_violation");
       scanForbidden(child);
     }
   }

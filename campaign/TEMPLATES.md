@@ -127,7 +127,7 @@ governance problem this project has in code.
 > first, the institution second.
 >
 > **Where it stands.** Four independent implementations of the verify path exist; the three written in Rust,
-> TypeScript and Python agree on all 1153 conformance vectors, on the verdict *and* the named reason, and the
+> TypeScript and Python agree on all 1156 conformance vectors, on the verdict *and* the named reason, and the
 > fourth — a Node reference CLI — agrees byte-for-byte on canonical encoding. Every artifact rebuilds
 > byte-for-byte from tagged source; a stranger's cold clone passes the full board. What has *not* happened is
 > stated just as plainly on the roadmap — no ceremony yet, no independent verifiers yet.

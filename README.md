@@ -184,7 +184,7 @@ repository, which the host deploys to https://ainra.org/. Pushing this repositor
 
 The verify path is **RFCs + FIPS + OSI-licensed deps only** — no vendor, no bespoke crypto. Four independent
 implementations exist: `ainra-core`, the TypeScript SDK and the Python SDK give the same verdict and the same named
-reason on every one of the **1153** passport vectors (`make diff`), the Node CLI (P0) matches their canonical encoding
+reason on every one of the **1156** passport vectors (`make diff`), the Node CLI (P0) matches their canonical encoding
 byte for byte, and the same core compiled to WebAssembly agrees again in a browser.
 
 **Validity (ADR-017):** the *identity* — the lineage and its AINRA Number — is permanent; the *credential* defaults

@@ -36,6 +36,9 @@ pub mod heads;
 pub mod link;
 #[path = "registrar_principal.rs"]
 pub mod principal;
+/// Holder-driven portability (D-102): moving a lineage between registrars, history intact.
+#[path = "registrar_transfer.rs"]
+pub mod transfer;
 pub use link::{LinkRecord, LinkRevocation, LinkSpec, RevocationKind};
 
 /// Operational delegate-cert lifetime: 90 days, inside the ADR-002 ≤ 92-day cap. The cap itself lives in
@@ -376,6 +379,10 @@ pub struct RegistrarBox {
     links: BTreeMap<String, LinkRecord>,
     /// D-081 logged decision heads, per gate (its key's thumbprint), in the order they were logged.
     decision_heads: BTreeMap<String, Vec<heads::LoggedHead>>,
+    /// D-102 operator keys logged beside lineages (`operator:lineage`), the key a move must be signed with.
+    operator_keys: BTreeMap<String, transfer::OperatorKeyEntry>,
+    /// D-102 moves into this registrar, open and closed, in the order they were opened: the public record.
+    transfers: Vec<transfer::PendingTransfer>,
     next_status_idx: usize,
     status_capacity: usize,
     dir: PathBuf,
@@ -424,6 +431,8 @@ pub enum IssueError {
     /// PLAN-M51 step 3: an A1 request without a principal proof this registrar's checker accepted. Refused, never
     /// downgraded to another class.
     PrincipalRefused(String),
+    /// D-102: a move between registrars refused, with the rule it broke.
+    Transfer(String),
 }
 
 impl core::fmt::Display for IssueError {
@@ -440,6 +449,7 @@ impl core::fmt::Display for IssueError {
             IssueError::AuditRequired(s) => write!(f, "audit required: {s}"),
             IssueError::AuditStale(s) => write!(f, "audit stale: {s}"),
             IssueError::PrincipalRefused(s) => write!(f, "principal proof refused: {s}"),
+            IssueError::Transfer(s) => write!(f, "transfer refused: {s}"),
         }
     }
 }
@@ -484,6 +494,8 @@ impl RegistrarBox {
             lineage_heads: BTreeMap::new(),
             links: BTreeMap::new(),
             decision_heads: BTreeMap::new(),
+            operator_keys: BTreeMap::new(),
+            transfers: Vec::new(),
             next_status_idx: 0,
             status_capacity,
             dir: dir.to_path_buf(),
@@ -608,6 +620,23 @@ impl RegistrarBox {
                 let e: heads::LoggedHead = serde_json::from_value(h.clone())
                     .map_err(|e| IssueError::Malformed(format!("decision head: {e}")))?;
                 me.decision_heads.entry(e.gate.clone()).or_default().push(e);
+            }
+        }
+        // D-102 operator keys and moves. Absent in snapshots written before transfers existed: then there are none.
+        if let Some(keys) = snap["operator_keys"].as_array() {
+            for k in keys {
+                let e: transfer::OperatorKeyEntry = serde_json::from_value(k.clone())
+                    .map_err(|e| IssueError::Malformed(format!("operator key: {e}")))?;
+                me.operator_keys
+                    .insert(format!("{}:{}", e.operator, e.lineage), e);
+            }
+        }
+        if let Some(moves) = snap["transfers"].as_array() {
+            for t in moves {
+                me.transfers.push(
+                    serde_json::from_value(t.clone())
+                        .map_err(|e| IssueError::Malformed(format!("transfer: {e}")))?,
+                );
             }
         }
         me.next_status_idx = snap["next_status_idx"].as_u64().unwrap_or(0) as usize;
@@ -797,7 +826,20 @@ impl RegistrarBox {
             &checked
         };
         let (nbf, exp) = (self.nbf, self.exp);
-        self.issue_with(spec, sub, (nbf, exp), None, chain_party_keys, rng)
+        // D-102: a new version of a lineage that moved here keeps its moves, so neither the trail nor the lock can be
+        // shed by issuing a fresh version instead of renewing.
+        let history = self.lineage_history(&spec.operator, &spec.lineage);
+        self.issue_with(spec, sub, (nbf, exp), None, &history, chain_party_keys, rng)
+    }
+
+    /// The signed `transfer_history` of a lineage's current head here (empty if it never moved, or is not here).
+    pub(crate) fn lineage_history(&self, operator: &str, lineage: &str) -> Vec<serde_json::Value> {
+        self.lineage_heads
+            .get(&format!("{operator}:{lineage}"))
+            .and_then(|(sub, _)| self.records.get(sub))
+            .and_then(|r| serde_json::from_str::<serde_json::Value>(&r.claims).ok())
+            .and_then(|c| c["transfer_history"].as_array().cloned())
+            .unwrap_or_default()
     }
 
     /// How this registrar treats A1 requests from now on (PLAN-M51 step 3). The daemon and the CLI install
@@ -810,12 +852,14 @@ impl RegistrarBox {
     /// `[nbf, exp]` (per-credential — ADR-017 renewal mints fresh windows), and `prev_leaf` (base64url, 32 B) marks
     /// a REISSUE by committing the predecessor's leaf into the SIGNED AND LOGGED claim body. On success the new
     /// credential becomes its lineage's continuity head. Callers do the policy checks (duplicate/continuity/audit).
+    #[allow(clippy::too_many_arguments)]
     fn issue_with(
         &mut self,
         spec: &IssueSpec,
         sub: String,
         window: (u64, u64),
         prev_leaf: Option<&str>,
+        transfer_history: &[serde_json::Value],
         chain_party_keys: &[crypto::HybridKeypair],
         rng: &mut impl CryptoRngCore,
     ) -> Result<IssuedRecord, IssueError> {
@@ -943,6 +987,12 @@ impl RegistrarBox {
         // what the log commits, so renewals walk back through the log as one unbroken chain).
         if let Some(pl) = prev_leaf {
             body["prev_leaf"] = json!(pl);
+        }
+        // D-102: a lineage that moved here carries its moves, signed and logged like the rest of the body, so the
+        // trail runs back through each earlier registrar's log. Absent (not empty) on every other passport, so the
+        // bytes of every passport issued before transfers existed are unchanged.
+        if !transfer_history.is_empty() {
+            body["transfer_history"] = json!(transfer_history);
         }
         let body_bytes = canon::canonicalize(&body)
             .map_err(|e| IssueError::Malformed(format!("canon body: {e:?}")))?
@@ -1171,8 +1221,21 @@ impl RegistrarBox {
             holder_pop: None,
             principal_evidence: None,
         };
-        let new_rec =
-            self.issue_with(&spec, new_sub.clone(), window, Some(&head_leaf), &[], rng)?;
+        // D-102: a renewal keeps the lineage's moves, so the trail and the lock survive it.
+        let history: Vec<serde_json::Value> =
+            serde_json::from_str::<serde_json::Value>(&old.claims)
+                .ok()
+                .and_then(|c| c["transfer_history"].as_array().cloned())
+                .unwrap_or_default();
+        let new_rec = self.issue_with(
+            &spec,
+            new_sub.clone(),
+            window,
+            Some(&head_leaf),
+            &history,
+            &[],
+            rng,
+        )?;
         // Same-sub renewal displaced the old record from the map (`issue_with` inserted the new one under the
         // same key); keep the old generation verifiable + revocable until its own exp. A bumped version leaves
         // the old record in place under its own sub — same overlap, different key.
@@ -1476,6 +1539,8 @@ impl RegistrarBox {
             }).collect::<serde_json::Map<_, _>>(),
             "links": self.links.values().collect::<Vec<_>>(),
             "decision_heads": self.decision_heads.values().flatten().collect::<Vec<_>>(),
+            "operator_keys": self.operator_keys.values().collect::<Vec<_>>(),
+            "transfers": self.transfers,
         });
         let path = self.dir.join("registrar.json");
         std::fs::write(
@@ -1541,6 +1606,28 @@ pub fn verify_record_offline(
     now: u64,
     freshness: status::Freshness,
 ) -> Verdict {
+    verify_record_offline_with(
+        rec,
+        anchors,
+        &Default::default(),
+        status_list,
+        status_issued_at,
+        now,
+        freshness,
+    )
+}
+
+/// [`verify_record_offline`], honouring the directory's revoked delegate certificates (ADR-002): a checkpoint signed
+/// by a revoked delegate is `checkpoint_invalid`. Every caller that holds a signed directory passes its set.
+pub fn verify_record_offline_with(
+    rec: &IssuedRecord,
+    anchors: &TrustAnchors,
+    revoked_delegates: &std::collections::BTreeSet<[u8; 32]>,
+    status_list: status::StatusList,
+    status_issued_at: u64,
+    now: u64,
+    freshness: status::Freshness,
+) -> Verdict {
     match reconstruct_presentation(rec) {
         Ok(parts) => {
             let pres = Presentation {
@@ -1559,7 +1646,7 @@ pub fn verify_record_offline(
                 mandate_path: Vec::new(),
                 mandate_proofs: Vec::new(),
                 mandate_revocations: mandate::RevocationSet::default(),
-                revoked_delegates: Default::default(),
+                revoked_delegates: revoked_delegates.clone(),
                 instance: None,
                 audience: Default::default(),
             };

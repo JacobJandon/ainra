@@ -636,7 +636,7 @@ $ ainra verify ./reg ainra:registrar-07:acme:invoicing@1.0.0
 <script type="module">
 // try-it-live. The engine is ainra-core itself — the Rust verify path compiled to WebAssembly (L5) — so "the same
 // code that passes every conformance vector" is literal here rather than a family resemblance. A harness runs the
-// whole corpus through this exact artifact in a headless browser and requires 1153/1153 agreement with the core.
+// whole corpus through this exact artifact in a headless browser and requires 1156/1156 agreement with the core.
 // If WebAssembly cannot load, the page falls back to the JavaScript mirror and SAYS SO in the provenance line;
 // it never quietly answers with a different implementation than the one it claims.
 let ENGINE = null;
@@ -690,7 +690,7 @@ async function loadEngine(){
   try{
     const s = await import("./vendor/ainra-sdk.js");
     return { kind:"js", label:"@ainra/sdk · JavaScript mirror",
-      note:"WebAssembly did not load here, so this ran the independent JavaScript implementation instead. The differential holds both to the same answers on all 1153 vectors — but the Rust core did not run in this tab, and we would rather say that than let you assume it did.",
+      note:"WebAssembly did not load here, so this ran the independent JavaScript implementation instead. The differential holds both to the same answers on all 1156 vectors — but the Rust core did not run in this tab, and we would rather say that than let you assume it did.",
       // The audience is written onto the presentation because `conformance.runVector` reads it from there and nowhere else.
       // Both engines therefore verify for the SAME audience — this page used to hand the WASM engine nothing and
       // the JS engine whatever the pasted bundle claimed, so the two disagreed the moment an instance credential

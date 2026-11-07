@@ -47,20 +47,20 @@ CHECKPOINT_SCOPE = "checkpoint-daily"
 # always refused a longer one; this package did not, and no vector had one (found in PLAN-M51 step 1).
 DELEGATE_CERT_MAX_SECS = 92 * 24 * 60 * 60
 
+# Mirrors ainra-core's FORBIDDEN_KEYS (passport.rs) exactly. This list held ten of the thirty-nine until D-102's
+# vectors found it: a passport carrying `fee`, `wallet` or `karma` verified here and was refused by Rust and TS.
 _FORBIDDEN_KEYS = frozenset(
     (
-        "score",
-        "price",
-        "email",
-        "phone",
-        "ssn",
-        "dob",
-        "address",
-        "full_name",
-        "given_name",
-        "family_name",
+        # personal data
+        "email", "phone", "name", "full_name", "given_name", "family_name", "surname", "address", "street",
+        "city", "postcode", "zip", "ssn", "national_id", "dob", "birthdate", "gender", "photo", "ip", "geolocation",
+        # reputation / scoring
+        "score", "trust_score", "reputation", "rating", "ranking", "karma", "credit_score",
+        # money / pricing
+        "price", "amount", "fee", "cost", "payment", "balance", "invoice_total", "currency", "wallet", "iban",
     )
 )
+_ASCII_LOWER = str.maketrans("ABCDEFGHIJKLMNOPQRSTUVWXYZ", "abcdefghijklmnopqrstuvwxyz")
 # Fields that reserve a future mode we cannot yet evaluate soundly (D-013):
 # present ⇒ reject rather than silently honour.
 _RESERVED_KEYS = frozenset(("mandates_root", "mandates_size"))
@@ -69,7 +69,8 @@ _RESERVED_KEYS = frozenset(("mandates_root", "mandates_size"))
 def _forbidden_present(node: object) -> bool:
     if isinstance(node, dict):
         for k, v in node.items():
-            if k in _FORBIDDEN_KEYS:
+            # ASCII case-insensitive, exactly as Rust's to_ascii_lowercase (never Unicode lowercasing).
+            if isinstance(k, str) and k.translate(_ASCII_LOWER) in _FORBIDDEN_KEYS:
                 return True
             if _forbidden_present(v):
                 return True
@@ -125,7 +126,7 @@ def _verify(anchors: dict, presentation: dict, now: int) -> Verdict:
     # `act_chain` is NOT required. ainra-core declares it `#[serde(default)]` (passport.rs:141) — a root-issued
     # passport with no delegation may omit it entirely, and Rust and the TS SDK both accept that. This SDK
     # required it, so it rejected, with `schema_violation`, the very bundle shipped in the external verifier kit
-    # (kits/verifier/sample-artifacts/bundle-valid.json, which has no act_chain). The 1153-vector corpus cannot
+    # (kits/verifier/sample-artifacts/bundle-valid.json, which has no act_chain). The 1156-vector corpus cannot
     # catch it: the generator always emits the field, even when empty, so the omitted case is never on the wire.
     # Found by the M30 policy-parity harness — see docs/POLICY-PARITY.md.
     required = (
@@ -265,7 +266,7 @@ def _verify(anchors: dict, presentation: dict, now: int) -> Verdict:
     # credential claiming authority past the grant's end. Python accepted that; Rust and TS refuse it.
     #
     # No vector could see the split, and it is worth naming why: the generator sets every hop's ``exp`` equal to
-    # the passport's, and at equality both rules agree. A four-way differential over 1153 vectors proved agreement
+    # the passport's, and at equality both rules agree. A four-way differential over 1156 vectors proved agreement
     # on every byte it was given and had nothing to say about the case nobody generated.
     if act_chain:
         eff_exp = act_chain[0].get("exp")

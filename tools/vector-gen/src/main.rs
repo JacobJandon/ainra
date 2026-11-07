@@ -461,6 +461,69 @@ fn build_prevleaf_null(seed: u64) -> Built {
     }
 }
 
+/// A fully valid credential whose signed (and logged) body carries `extra` top-level claims — `transfer_history` for a
+/// lineage that moved registrars (D-102), or a nested key the denylist must find. Signed properly, with the extra
+/// claims inside the pre-log body, so the leaf binding holds and the expected verdict is whatever the schema gate says.
+fn build_with_claims(seed: u64, extra: Value) -> Built {
+    let mut rng = ChaCha20Rng::seed_from_u64(0x4149_4E52_4154_0000 ^ seed);
+    let issuer = crypto::HybridKeypair::generate(&mut rng);
+    let root = crypto::TestRootSlh::generate(&mut rng);
+    let p = valid_params(seed as usize);
+    let mut body = json!({
+        "vct": ainra_core::PASSPORT_VCT,
+        "iss": format!("did:ainra:{}:{}:{}", p.registrar, p.operator, p.lineage),
+        "sub": format!("ainra:{}:{}:{}@{}", p.registrar, p.operator, p.lineage, p.version),
+        "nbf": p.nbf, "exp": p.exp,
+        "authority": { "class": "A2", "principal_proof": "deadbeef" },
+        "tier": "L1",
+        "capabilities": p.capabilities.clone(),
+        "scope_ceiling": p.scope_ceiling.clone(),
+        "keys": [ { "ed25519": "AAAA", "mldsa65": "BBBB" } ],
+        "cnf": { "jkt": "thumb" },
+        "status": { "status_list": { "idx": p.status_idx, "uri": format!("status://{}/1", p.registrar) } },
+        "act_chain": []
+    });
+    for (k, v) in extra.as_object().expect("extra claims are an object") {
+        body[k] = v.clone();
+    }
+    let body_bytes = canon::canonicalize(&body).expect("canon").into_bytes();
+    let leaf = merkle::hash_leaf(&body_bytes);
+    let mut log = merkle::TestLog::new();
+    for k in 0..3u8 {
+        log.append(&[k]);
+    }
+    let leaf_index = log.append(&body_bytes);
+    let cp = checkpoint::Checkpoint {
+        origin: format!("ainra-log/{}", p.registrar),
+        tree_size: log.size(),
+        root: log.root(),
+    };
+    let cp_sig = checkpoint_sig(&cp, &root, &mut rng, false, None);
+    let proof = log.inclusion_proof(leaf_index).expect("proof");
+    let mut full = body;
+    full["log"] =
+        json!({ "leaf": b64::encode(&leaf), "root": b64::encode(&cp.root), "checkpoint": "cp-1" });
+    let claims = canon::canonicalize(&full).expect("canon").into_bytes();
+    let issuer_sig = issuer.sign(&claims).expect("sign");
+    Built {
+        claims,
+        issuer_pub: issuer.public(),
+        issuer_sig,
+        root_pub: root.public(),
+        registrar: p.registrar.clone(),
+        cp,
+        cp_sig,
+        proof,
+        leaf_index,
+        status_list: status::StatusList::from_bits(vec![false; p.status_len]),
+        status_len: p.status_len,
+        chain_keys: Vec::new(),
+        hop_proofs: Vec::new(),
+        nbf: p.nbf,
+        exp: p.exp,
+    }
+}
+
 /// A validly-signed credential whose `log.leaf` references a REAL in-tree leaf that is NOT its own body. Every check
 /// through step 8 passes and the inclusion proof is genuinely valid — only the body↔leaf binding stops it, so the
 /// expected verdict is NotLogged. Guards the binding across implementations (review finding #4).
@@ -886,6 +949,42 @@ fn generate() -> Vec<Vector> {
         "renewal-null-prevleaf-0000",
         "prev_leaf: null is treated as absent (first issuance) by both implementations — verifies",
         &build_prevleaf_null(3_120),
+    ));
+
+    // ── D-102: a lineage that moved registrars carries `transfer_history`, signed and logged. Every implementation
+    //    must accept it, and must find a forbidden key inside it, in any ASCII case — the field is free-form and
+    //    denylist-scanned. ──
+    let moved = json!({ "transfer_history": [ {
+        "from": "ainra:registrar-07:acme:billing@1.0.0", "log_origin": "ainra-log/registrar-07",
+        "leaf_index": 41, "checkpoint_size": 44, "checkpoint_root": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        "transfer": "00112233445566778899aabbccddeeff", "at": 1_776_384_000u64,
+    } ] });
+    out.push(wire_valid(
+        "transfer-history-valid-0000",
+        "a passport that moved registrars (D-102): transfer_history is signed and logged, and verifies everywhere",
+        &build_with_claims(3_130, moved.clone()),
+    ));
+    let mut fee = moved.clone();
+    fee["transfer_history"][0]["fee"] = json!(5);
+    out.push(invalid(
+        wire_valid(
+            "transfer-history-forbidden-0000",
+            "",
+            &build_with_claims(3_131, fee),
+        ),
+        Reason::SchemaViolation,
+        "a forbidden key (fee) inside transfer_history — the denylist scans every nested object",
+    ));
+    let mut wallet = moved;
+    wallet["transfer_history"][0]["Wallet"] = json!("x");
+    out.push(invalid(
+        wire_valid(
+            "transfer-history-forbidden-0001",
+            "",
+            &build_with_claims(3_132, wallet),
+        ),
+        Reason::SchemaViolation,
+        "a forbidden key in another case (Wallet) — the denylist match is ASCII case-insensitive",
     ));
 
     // ── D-029 canonical-encoding sweep: a non-canonical base64url encoding of a CLAIMS-INTERNAL decoded field

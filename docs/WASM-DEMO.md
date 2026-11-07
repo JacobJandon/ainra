@@ -23,8 +23,8 @@ the one the site already serves — the example now uses it.
 
 **This section's blocker is now closed.** The site's **Try it** panel (`/verify.html#try`) runs `ainra-core`
 itself — `crates/ainra-wasm`, a thin `wasm-bindgen` binding over the extracted adapter — and `make wasm-diff`
-pushes all **1153** vectors through that exact artifact in a headless browser, requiring agreement with the core on
-verdict *and* named reason. Result: **1153/1153**. The harness carries its own negative control, so the number means
+pushes all **1156** vectors through that exact artifact in a headless browser, requiring agreement with the core on
+verdict *and* named reason. Result: **1156/1156**. The harness carries its own negative control, so the number means
 something: with `NEGATIVE_CONTROL=1` one bit of one issuer signature is flipped and the run must fail (proven —
 1008/1153, exit 1). Artifact: **367 KiB** wasm + 9 KiB glue, under a ceiling enforced by `tools/build-wasm.sh`.
 

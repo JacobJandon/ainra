@@ -14,6 +14,15 @@
 //!   GET  /fresh-head?now=T              → the 30-second delegate-signed fresh head
 //!   GET  /deltas?since=S                → the signed deltas a client at head S still needs
 //!   GET  /export?now=T                  → the whole registrar snapshot + live verdicts (for the explorer)
+//!   GET  /transfers                     → every move into this registrar, open and closed (D-102)
+//!   GET  /operator-key?operator=&lineage= → a logged operator key with its inclusion proof (D-102)
+//!   POST /operator-key    {operator, lineage, key, pop}            → log it (write-authorized)
+//!   POST /transfer-in      {request, passport, operator_key, directory, status, now?} → open a move (public)
+//!   POST /transfer-consent {id, operator_sig, now?}                 → the operator signs it (public)
+//!   POST /transfer-contest {id, by, reason, sig, directory, now?}   → stop it (public; signature-checked)
+//!   POST /transfer-complete {id, passport, directory, status, now?} → issue here after the window (write-authorized)
+//!   POST /transfer-out     {passport, request, directory, status, now?} → revoke the passport that moved away (public)
+//!   The `/transfer-*` doors read a signed directory under the roots in `AINRA_ROOTS_FILE`; without it they refuse.
 //!
 //! Usage: `registrar-box [addr] [registrar-id] [data-dir]` (defaults 127.0.0.1:4900 / registrar-07 / ./rb-data).
 
@@ -24,10 +33,12 @@ use std::time::Instant;
 use ainra_core::{b64, Verdict};
 use ainra_services::http::{serve, Request};
 use ainra_services::registrar::principal::PrincipalPolicy;
+use ainra_services::registrar::transfer::{OperatorKeyReceipt, PeerRegistrar, TransferRequest};
+use ainra_services::registrar::IssuedRecord;
 use ainra_services::registrar::{
     AuditEvidence, HybridB64, IssueSpec, LinkSpec, RegistrarBox, RevocationKind,
 };
-use ainra_services::status::{WireDelta, WireFreshHead};
+use ainra_services::status::{SignedStatusList, WireDelta, WireFreshHead};
 use rand_chacha::ChaCha20Rng;
 use rand_core::{RngCore, SeedableRng};
 use serde_json::json;
@@ -128,6 +139,13 @@ struct State {
     /// D-081: logged decision heads are an open write (each statement is self-authenticating), so they get a bucket
     /// of their own — a busy gate cannot starve issuance, and the demo door cannot starve a gate.
     head_writes: VecDeque<Instant>,
+    /// D-102: the transfer doors' own bucket.
+    transfer_writes: VecDeque<Instant>,
+    /// D-102: the roots a caller-supplied directory must verify under (`AINRA_ROOTS_FILE`), and the newest directory
+    /// epoch seen, kept in `directory.epoch` so an older directory (before a distrust cutoff) is refused after a
+    /// restart too.
+    roots: Option<([u8; 32], Vec<u8>)>,
+    dir_epoch: u64,
 }
 
 const WRITE_BURST: usize = 30;
@@ -332,6 +350,12 @@ fn main() {
         writes: VecDeque::new(),
         demo_writes: VecDeque::new(),
         head_writes: VecDeque::new(),
+        transfer_writes: VecDeque::new(),
+        roots: roots_from_env(&id),
+        dir_epoch: std::fs::read_to_string(data_dir.join("directory.epoch"))
+            .ok()
+            .and_then(|t| t.trim().parse().ok())
+            .unwrap_or(0),
     });
     eprintln!(
         "registrar-box '{id}' data={dir}{}{}",
@@ -401,6 +425,11 @@ fn main() {
             ),
 
             ("GET", "/accreditation") => ok(&st.rb.accreditation()),
+
+            // D-102 portability: the public record of moves, logged operator keys, and the transfer doors.
+            (_, r) if r == "/transfers" || r == "/operator-key" || r.starts_with("/transfer-") => {
+                transfer_door(&mut st, req, r, &dir, &id, open_writes)
+            }
 
             ("POST", "/issue") => {
                 if !write_authorized(req, &st.issue_token, open_writes) {
@@ -970,6 +999,271 @@ fn main() {
         }
     })
     .expect("serve");
+}
+
+/// D-102: the roots every caller-supplied directory must verify under, from `AINRA_ROOTS_FILE`
+/// (`{"root_ed25519": b64, "root_slh": b64}`, the file `ainra ctl` reads). None ⇒ the transfer doors refuse.
+fn roots_from_env(id: &str) -> Option<([u8; 32], Vec<u8>)> {
+    let path = std::env::var("AINRA_ROOTS_FILE").ok()?;
+    let parsed = std::fs::read_to_string(&path)
+        .ok()
+        .and_then(|t| serde_json::from_str::<serde_json::Value>(&t).ok())
+        .and_then(|v| {
+            let ed = b64::decode_array::<32>(v["root_ed25519"].as_str()?).ok()?;
+            let slh = b64::decode(v["root_slh"].as_str()?).ok()?;
+            Some((ed, slh))
+        });
+    match &parsed {
+        Some(_) => eprintln!("registrar-box '{id}': transfer doors read directories under the roots in {path}"),
+        None => eprintln!("registrar-box '{id}': AINRA_ROOTS_FILE={path} does not name root_ed25519 and root_slh — transfer doors closed"),
+    }
+    parsed
+}
+
+fn err(code: u16, msg: impl std::fmt::Display) -> (u16, String) {
+    (code, json!({ "error": msg.to_string() }).to_string())
+}
+
+/// What a transfer door knows about the other registrar: the directory the caller sent, authenticated under the
+/// pinned roots and no older than the newest one seen — its anchors, its revoked delegate certificates, and that
+/// registrar's status key from its entry.
+/// The anchors, revoked delegate fingerprints and the peer's status key, all from one authenticated directory.
+type PeerTrust = (
+    ainra_core::verify::TrustAnchors,
+    std::collections::BTreeSet<[u8; 32]>,
+    ainra_core::crypto::HybridPublic,
+);
+
+fn peer_from(
+    st: &mut State,
+    data_dir: &str,
+    body: &serde_json::Value,
+    peer: &str,
+) -> Result<PeerTrust, (u16, String)> {
+    let Some((ed, slh)) = st.roots.clone() else {
+        return Err(err(
+            503,
+            "this registrar has no pinned roots (AINRA_ROOTS_FILE); the transfer doors are closed",
+        ));
+    };
+    let d: ainra_core::directory::Directory = serde_json::from_value(body["directory"].clone())
+        .map_err(|e| err(400, format!("directory: {e}")))?;
+    let set = d.accredit(&ed, &slh).map_err(|_| {
+        err(
+            400,
+            "the directory does not verify under this registrar's pinned roots",
+        )
+    })?;
+    if set.epoch < st.dir_epoch {
+        return Err(err(
+            409,
+            format!(
+                "directory epoch {} is older than {} already seen",
+                set.epoch, st.dir_epoch
+            ),
+        ));
+    }
+    if set.epoch > st.dir_epoch {
+        st.dir_epoch = set.epoch;
+        let _ = std::fs::write(
+            std::path::Path::new(data_dir).join("directory.epoch"),
+            set.epoch.to_string(),
+        );
+    }
+    let entry = d
+        .entries
+        .iter()
+        .find(|e| e.registrar == peer)
+        .ok_or_else(|| err(400, format!("{peer} is not in the directory")))?;
+    let status_key = ainra_core::crypto::HybridPublic {
+        ed25519: b64::decode_array::<32>(&entry.status_ed25519)
+            .map_err(|_| err(400, "status key"))?,
+        mldsa65: b64::decode(&entry.status_mldsa65).map_err(|_| err(400, "status key"))?,
+    };
+    Ok((set.anchors, set.revoked_delegates, status_key))
+}
+
+fn field<T: serde::de::DeserializeOwned>(
+    body: &serde_json::Value,
+    k: &str,
+) -> Result<T, (u16, String)> {
+    serde_json::from_value(body[k].clone()).map_err(|e| err(400, format!("{k}: {e}")))
+}
+
+fn registrar_of(sub: &str) -> Result<String, (u16, String)> {
+    ainra_core::AinraName::parse(sub)
+        .map(|n| n.registrar().to_string())
+        .map_err(|_| err(400, "not an ainra name"))
+}
+
+/// D-102: every transfer route. Reads are open; `/operator-key` (POST) and `/transfer-complete` are the registrar's
+/// own acts and need write authorization; the other doors are public, rate-limited, and decided by signatures.
+fn transfer_door(
+    st: &mut State,
+    req: &Request,
+    route: &str,
+    data_dir: &str,
+    id: &str,
+    open_writes: bool,
+) -> (u16, String) {
+    let method = req.method.as_str();
+    if method == "GET" {
+        return match route {
+            "/transfers" => (
+                200,
+                json!({ "registrar": st.rb.id(), "transfers": st.rb.transfers() }).to_string(),
+            ),
+            "/operator-key" => {
+                let (Some(op), Some(lin)) =
+                    (qparam(&req.path, "operator"), qparam(&req.path, "lineage"))
+                else {
+                    return err(400, "operator and lineage required");
+                };
+                match st
+                    .rb
+                    .operator_key_receipt(&urldecode(&op), &urldecode(&lin))
+                {
+                    Some(r) => ok(&r),
+                    None => err(404, "no operator key logged for that lineage"),
+                }
+            }
+            _ => err(404, "not found"),
+        };
+    }
+    if method != "POST" {
+        return err(405, "method not allowed");
+    }
+    let privileged = route == "/operator-key" || route == "/transfer-complete";
+    if privileged && !write_authorized(req, &st.issue_token, open_writes) {
+        return err(401, "unauthorized (bearer token required)");
+    }
+    if !rate_ok(if privileged {
+        &mut st.writes
+    } else {
+        &mut st.transfer_writes
+    }) {
+        return err(429, "rate limited");
+    }
+    let body: serde_json::Value =
+        serde_json::from_str(&req.body).unwrap_or(serde_json::Value::Null);
+    // The registrar's OWN clock decides every time in a move: the window, the lock, the request's age, the freshness of
+    // a status list. A caller-chosen `now` would let anyone backdate a stale (pre-revocation) status list into
+    // freshness, or close a five-day window at once. Only a hermetic drill (`AINRA_CLOCK=pinned`) may name the time.
+    let now = if clock_pinned() {
+        body["now"].as_u64().unwrap_or_else(default_now)
+    } else {
+        wall_now()
+    };
+    let result: Result<(u16, String), (u16, String)> = (|| {
+        Ok(match route {
+            "/operator-key" => {
+                let (op, lin): (String, String) =
+                    (field(&body, "operator")?, field(&body, "lineage")?);
+                let (key, pop): (HybridB64, HybridB64) =
+                    (field(&body, "key")?, field(&body, "pop")?);
+                let r = st
+                    .rb
+                    .register_operator_key(&op, &lin, &key, &pop)
+                    .map_err(|e| err(400, e))?;
+                ok(&r)
+            }
+            "/transfer-in" => {
+                let request: TransferRequest = field(&body, "request")?;
+                let passport: IssuedRecord = field(&body, "passport")?;
+                let receipt: OperatorKeyReceipt = field(&body, "operator_key")?;
+                let status: SignedStatusList = field(&body, "status")?;
+                let (anchors, revoked, status_key) =
+                    peer_from(st, data_dir, &body, &registrar_of(&request.from_sub)?)?;
+                let side = PeerRegistrar {
+                    anchors: &anchors,
+                    revoked_delegates: &revoked,
+                    status_key: &status_key,
+                    status: &status,
+                };
+                let t = st
+                    .rb
+                    .transfer_in(request, &passport, &receipt, &side, now)
+                    .map_err(|e| err(400, e))?;
+                ok(&t)
+            }
+            "/transfer-consent" => {
+                let (tid, sig): (String, HybridB64) =
+                    (field(&body, "id")?, field(&body, "operator_sig")?);
+                st.rb
+                    .transfer_consent(&tid, &sig, now)
+                    .map_err(|e| err(400, e))?;
+                (
+                    200,
+                    json!({ "id": tid, "operator_signed": true }).to_string(),
+                )
+            }
+            "/transfer-contest" => {
+                let (tid, by, reason): (String, String, String) = (
+                    field(&body, "id")?,
+                    field(&body, "by")?,
+                    field(&body, "reason")?,
+                );
+                let sig: HybridB64 = field(&body, "sig")?;
+                let peer = st
+                    .rb
+                    .transfers()
+                    .iter()
+                    .find(|t| t.id == tid)
+                    .map(|t| t.from_registrar.clone())
+                    .ok_or_else(|| err(404, "no such move"))?;
+                let (anchors, _, _) = peer_from(st, data_dir, &body, &peer)?;
+                let t = st
+                    .rb
+                    .transfer_contest(&tid, &by, &reason, &sig, &anchors, now)
+                    .map_err(|e| err(400, e))?;
+                ok(&t)
+            }
+            "/transfer-complete" => {
+                let tid: String = field(&body, "id")?;
+                let passport: IssuedRecord = field(&body, "passport")?;
+                let status: SignedStatusList = field(&body, "status")?;
+                let audit: Option<AuditEvidence> = field(&body, "audit").unwrap_or(None);
+                let evidence = body.get("principal_evidence").cloned();
+                let (anchors, revoked, status_key) =
+                    peer_from(st, data_dir, &body, &registrar_of(&passport.sub)?)?;
+                let side = PeerRegistrar {
+                    anchors: &anchors,
+                    revoked_delegates: &revoked,
+                    status_key: &status_key,
+                    status: &status,
+                };
+                let State { rb, rng, .. } = st;
+                let rec = rb
+                    .transfer_complete(&tid, &passport, &side, audit.as_ref(), evidence, now, rng)
+                    .map_err(|e| err(400, e))?;
+                ok(&rec)
+            }
+            "/transfer-out" => {
+                let passport: IssuedRecord = field(&body, "passport")?;
+                let request: TransferRequest = field(&body, "request")?;
+                let status: SignedStatusList = field(&body, "status")?;
+                let (anchors, revoked, status_key) =
+                    peer_from(st, data_dir, &body, &registrar_of(&passport.sub)?)?;
+                let side = PeerRegistrar {
+                    anchors: &anchors,
+                    revoked_delegates: &revoked,
+                    status_key: &status_key,
+                    status: &status,
+                };
+                let delta = st
+                    .rb
+                    .transfer_out(&passport, &request, &side, now)
+                    .map_err(|e| err(400, e))?;
+                ok(&WireDelta::from_core(&delta))
+            }
+            _ => err(404, "not found"),
+        })
+    })();
+    let out = result.unwrap_or_else(|e| e);
+    // D-080: a write that changed state is on disk before it is answered — refusals included, since a refused
+    // completion records why.
+    persist(&st.rb, id);
+    out
 }
 
 fn ok<T: serde::Serialize>(v: &T) -> (u16, String) {

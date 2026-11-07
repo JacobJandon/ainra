@@ -16,7 +16,7 @@ A stranger clones, runs `make test && make vectors && make diff`, all green in <
 | `make test` | `cargo test --release --workspace` — every test in the workspace (core unit incl. directory + property + frost + ceremony + registrar + service + networked-quorum regression) | ✅ green |
 | `make vectors` | regenerate every CC0 corpus — passport (incl. ADR-017 boundary, renewal/REISSUE, delegate-revocation and D-029 non-canonical-encoding cases), delta, directory, presentation, gate, link, decision and directory-epoch — + self-check | ✅ green |
 | `make vectors-check` | replay every committed corpus back through ainra-core | ✅ green |
-| `make diff` | differential (below) — verdicts **1156/1156**, canon 10/10 + 4/4, delta 17/17, **directory 9/9** | ✅ green |
+| `make diff` | differential (below) — verdicts **1169/1169**, canon 10/10 + 4/4, delta 17/17, **directory 9/9** | ✅ green |
 | `make ceremony` | **M4** genesis rehearsal: FROST 5-of-9 dual root → signed directory → mint/verify → revoke→`checkpoint_invalid` → rotate→VALID → transcript | ✅ green |
 | `make testbed` | **M5** the wedge: live registrar → `accredit` → 5-line `ainra-verify` → VALID; revoke → INVALID; **+ 4b: forged all-clear status (clear/strip/swap-uri) → INVALID**; verify-latency | ✅ green |
 | `make wedge-test` | **M5+M6** the `@ainra/middleware` gate — **18** fail-closed tests (malformed denied, nothing throws, **the revocation-bypass regression**: forge/DoS/freshness-window, **+ M6 currency-mode**: fresh-head bind + monotonic-seq replay rejected) | ✅ green |
@@ -78,13 +78,13 @@ revocations) and self-checks all 12 records against the core verifier; `reverify
 URL-state, the visualized narrowing delegation chain, the 9-step verification trace (each step honestly labelled
 `re-checked` live vs `core-verified` crypto), a revoke workflow (live daemon or over loaded state), verify-at-time.
 
-**Conformance corpora** — `vectors/v1/` **1156** passport vectors (every one of the 20 verify reasons) + `vectors/v1-delta/`
+**Conformance corpora** — `vectors/v1/` **1169** passport vectors (every one of the 20 verify reasons) + `vectors/v1-delta/`
 **17** delta/fresh-head vectors (every accept/reject reason of the delta codec, incl. seq-0 wrap, descending idx,
 future-dated head). Both replay-gated (`--check` / `--check-delta`) locally AND in hosted CI.
 
 **`packages/sdk-ts`** — independent verify-only mirror; byte-matches canon + all M2/M3 semantics incl.
 `verifyDelta`/`verifyFreshHead` (same fixed order, same reasons, fail-closed on unknown freshness class + canon
-errors). **Differential** (`make diff`): verdicts core↔sdk **1156/1156**; canon core↔sdk↔P0 10/10; canon-reject 4/4;
+errors). **Differential** (`make diff`): verdicts core↔sdk **1169/1169**; canon core↔sdk↔P0 10/10; canon-reject 4/4;
 **delta core↔sdk 17/17**.
 
 **Scale proof** (`make scale` → `docs/SCALE.md`) — the billion-device question answered with measurements, not
@@ -170,7 +170,7 @@ field is gone, and `certified` refuses k=0. Regressions added; `fork_drill.rs` p
 can't certify. See D-021.
 
 **M7 — reproducible builds + mirrors + docs freeze** (`make repro` / `make verify-mirror` / `make check-freeze`).
-The published spec artifacts (1156 + 17 + 9 CC0 vectors + the 3-face sample book, 838 files) are made verifiable by
+The published spec artifacts (1169 + 17 + 9 CC0 vectors + the 3-face sample book, 838 files) are made verifiable by
 anyone, with the **source** as trust root. `make repro` rebuilds the whole set from source into a fresh empty temp
 tree **twice** and asserts **committed == clean-rebuild ×2** byte-identical (deterministic: seeded RNG, no wall-clock),
 then writes `MANIFEST.sha256`. A **mirror** is any host serving that set; `make verify-mirror` recomputes every hash
@@ -235,7 +235,7 @@ project** (not `$HOME`), with a strict `.gitignore` (no secrets — the TEST reg
 `target/`, `node_modules/`, `dist/`, run-outputs), dual-license (Apache-2.0 OR MIT) + **CC0** vectors, and 15
 milestone-mapped commits. **Acceptance proven:** a fresh `git clone` runs `make test && make diff && make
 genesis-local` green (re-proven after every kit change). **CI** (`.github/workflows/ci.yml`) runs every gate on push —
-fmt/clippy/test(release)/vectors, the 1156/1156 differential, wedge, **integration** (drill/testbed/genesis-local),
+fmt/clippy/test(release)/vectors, the 1169/1169 differential, wedge, **integration** (drill/testbed/genesis-local),
 **reproducibility** (repro + verify-mirror tamper), check-freeze, fuzz, S7/license/N7. Four **kits** let outsiders run
 the pending real-world DoD events without us: **`kits/verifier/`** (verify root-dark + reject revoked/forged with only
 `@ainra/sdk`, then verify a **fresh challenge corpus** with secret coin-flip revocations → an **execution-bound**
@@ -302,7 +302,7 @@ DECISIONS D-027/D-028, MTS ADR-017.
 
 ## Known limitations honestly stated
 
-- 1156 passport + 17 delta + 9 directory vectors, plus 46 request-signature vectors (`vectors/v1-presentation`,
+- 1169 passport + 17 delta + 9 directory vectors, plus 46 request-signature vectors (`vectors/v1-presentation`,
   D-067, D-070), 37 gate vectors (`vectors/v1-gate`, D-073, PLAN-M50, PLAN-M51, D-100), 43 link vectors (`vectors/v1-link`, D-078, D-082), 32 decision vectors (`vectors/v1-decision`, D-079, D-081), 9 directory-epoch vectors (D-083) and 18 currency vectors (`vectors/v1-currency`, D-086) — not the 10 k GA target; broad but not the full combinatorial cross-product.
 - Services persist to local files, bind 127.0.0.1, single-key signers — a working reference, not the hardened
   multi-region deployment (M4–M8). The CLI's `registrar.secret` is a TEST-labeled dev keystore, not an HSM.

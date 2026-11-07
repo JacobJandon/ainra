@@ -9,7 +9,9 @@
 # `make identity-e2e` proves end to end.
 #
 # It is still TEST-ROOT. The registrar id is `registrar-07`, whose issuer key derives from its id, so it is the key
-# the published directory already accredits: verifiers need no new genesis to trust it. The state is fresh and
+# the published directory already accredits: verifiers need no new genesis to trust it. That key is recomputable by
+# anyone, so a registrar on a real clock refuses it unless told `AINRA_TEST_DERIVED_KEYS=1` (2026-11-07 review), and
+# never on a production network. The state is fresh and
 # lives in live/ (gitignored). Nothing here is production, and nothing here claims to be.
 set -uo pipefail
 cd "$(dirname "$0")/.."
@@ -32,7 +34,7 @@ up() {
   if [ ! -s "$TOKF" ]; then (umask 077; head -c 24 /dev/urandom | od -An -tx1 | tr -d ' \n' >"$TOKF"); fi
   # AINRA_CLOCK=wall is also the default; it is stated here so nobody has to know that.
   AINRA_STAGE=1 AINRA_CLOCK=wall AINRA_STAGE_ISSUE_TOKEN="$(cat "$TOKF")" \
-    setsid ./target/release/registrar-box "127.0.0.1:$PORT" "$ID" "$DIR" \
+    AINRA_TEST_DERIVED_KEYS=1 setsid ./target/release/registrar-box "127.0.0.1:$PORT" "$ID" "$DIR" \
     >"$LOG" 2>&1 </dev/null &
   echo $! >"$PIDF"
   for _ in $(seq 1 50); do curl -sf -m 1 "$URL/accreditation" >/dev/null 2>&1 && break; sleep 0.2; done

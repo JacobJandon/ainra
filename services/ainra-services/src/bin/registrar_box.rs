@@ -22,6 +22,10 @@
 //!   POST /transfer-contest {id, by, reason, sig, directory, now?}   → stop it (public; signature-checked)
 //!   POST /transfer-complete {id, passport, directory, status, now?} → issue here after the window (write-authorized)
 //!   POST /transfer-out     {passport, request, directory, status, now?} → revoke the passport that moved away (public)
+//!   GET  /ownership-changes             → every change of owner at this registrar, open and closed (D-103)
+//!   POST /ownership-open    {request, now?}                         → the old owner gives a lineage away (public)
+//!   POST /ownership-contest {id, reason, sig, now?}                 → the old operator key stops it (public)
+//!   POST /ownership-complete {id, assurance, now?}                  → issue to the new owner after the window (write-authorized)
 //!   The `/transfer-*` doors read a signed directory under the roots in `AINRA_ROOTS_FILE`; without it they refuse.
 //!
 //! Usage: `registrar-box [addr] [registrar-id] [data-dir]` (defaults 127.0.0.1:4900 / registrar-07 / ./rb-data).
@@ -33,7 +37,9 @@ use std::time::Instant;
 use ainra_core::{b64, Verdict};
 use ainra_services::http::{serve, Request};
 use ainra_services::registrar::principal::PrincipalPolicy;
-use ainra_services::registrar::transfer::{OperatorKeyReceipt, PeerRegistrar, TransferRequest};
+use ainra_services::registrar::transfer::{
+    NewOwnerAssurance, OperatorKeyReceipt, OwnershipRequest, PeerRegistrar, TransferRequest,
+};
 use ainra_services::registrar::IssuedRecord;
 use ainra_services::registrar::{
     AuditEvidence, HybridB64, IssueSpec, LinkSpec, RegistrarBox, RevocationKind,
@@ -115,7 +121,21 @@ fn operational_rng(id_seed: u64, id: &str) -> ChaCha20Rng {
     ChaCha20Rng::from_seed(seed)
 }
 
+/// The time a READ endpoint signs at: a status list, a fresh head, a presentation bundle, an export. On a registrar
+/// keeping real time it is the registrar's clock, whatever the caller asks for. A caller-chosen `now` let anyone
+/// collect status lists signed for a future instant while a passport was still clear, and present them as fresh after
+/// it was revoked (2026-11-07 review). Only a pinned clock (`AINRA_CLOCK=pinned`, hermetic drills and the TEST-ROOT
+/// staging network) names the time, as it always has.
 fn qnow(path: &str) -> u64 {
+    if clock_pinned() {
+        caller_now(path)
+    } else {
+        wall_now()
+    }
+}
+
+/// A caller-chosen time, for an endpoint that signs nothing (`/verify`): any instant may be asked about.
+fn caller_now(path: &str) -> u64 {
     qparam(path, "now")
         .and_then(|s| s.parse().ok())
         .unwrap_or_else(default_now)
@@ -227,9 +247,34 @@ fn demo_spec(rng: &mut ChaCha20Rng, operator: &str, lineage: &str) -> IssueSpec 
 /// `true` iff `sub` is a specimen THIS registrar minted through the public door (stamped `demo:specimen`) — the
 /// public revoke door touches nothing else, whatever operator/lineage the visitor named it.
 fn is_demo_specimen(rb: &RegistrarBox, sub: &str) -> bool {
-    rb.get(sub)
-        .map(|r| r.capabilities.iter().any(|c| c == "demo:specimen"))
-        .unwrap_or(false)
+    rb.get(sub).is_some_and(|r| {
+        r.capabilities.iter().any(|c| c == "demo:specimen")
+            && demo_lineage_clean(rb, &r.operator, &r.lineage)
+    })
+}
+
+/// Has the door minted EVERY passport of `operator:lineage` here (or none exists)? The door used to check only the
+/// passport it was asked about, so a visitor could mint a specimen under a real customer's name and then revoke or
+/// renew it — and, revocation being lineage-wide, revoke the real passport with it (2026-11-07 review).
+fn demo_lineage_clean(rb: &RegistrarBox, operator: &str, lineage: &str) -> bool {
+    rb.records()
+        .chain(rb.superseded_records())
+        .filter(|r| r.operator == operator && r.lineage == lineage)
+        .all(|r| r.capabilities.iter().any(|c| c == "demo:specimen"))
+}
+
+/// Status indices the public door may never take: they stay for the registrar's own issuance. The segment is fixed,
+/// and every specimen takes one for good, so an unbounded door could exhaust it (2026-11-07 review).
+const DEMO_RESERVE: usize = 1024;
+
+fn demo_room(rb: &RegistrarBox) -> Option<(u16, String)> {
+    (rb.status_room() <= DEMO_RESERVE).then(|| {
+        (
+            503,
+            r#"{"error":"the demo door is full; the remaining status indices are reserved for issuance"}"#
+                .to_string(),
+        )
+    })
 }
 
 /// Persist after every mutation. Without this the reload added above would have nothing to reload: `save()` writes
@@ -292,9 +337,46 @@ fn main() {
         // `"seed": 0` and `load()` refuses the snapshot outright — "created by the daemon, not the CLI". The
         // daemon was already deriving exactly the right seed and then throwing it away into an rng, which is why
         // its state was structurally unreloadable no matter how often it was saved.
-        RegistrarBox::create_seeded(data_dir, &id, 4096, seed, NBF - 3600, NBF, EXP)
-            .expect("create registrar-box")
+        // A live registrar's keys come from the OS CSPRNG, 32 bytes, kept in `registrar.secret`. The id-derived seed
+        // above is public — anyone could recompute every key from it (2026-11-07 review) — so only a pinned, hermetic
+        // drill may use it, where reproducible keys are the point.
+        let test_derived_new = std::env::var("AINRA_TEST_DERIVED_KEYS").ok().as_deref()
+            == Some("1")
+            && std::env::var("AINRA_NETWORK").ok().as_deref() != Some("production");
+        if clock_pinned() || test_derived_new {
+            RegistrarBox::create_seeded(data_dir, &id, 4096, seed, NBF - 3600, NBF, EXP)
+                .expect("create registrar-box")
+        } else {
+            let mut key_seed = [0u8; 32];
+            if let Err(e) = std::fs::File::open("/dev/urandom").and_then(|mut f| {
+                use std::io::Read;
+                f.read_exact(&mut key_seed)
+            }) {
+                eprintln!("registrar-box '{id}': no OS entropy for the registrar keys ({e}) — refusing to start");
+                std::process::exit(2);
+            }
+            RegistrarBox::create_seeded32(data_dir, &id, 4096, key_seed, NBF - 3600, NBF, EXP)
+                .expect("create registrar-box")
+        }
     };
+    // A registrar keeping real time refuses to run on keys anyone can recompute from its public id. Such a snapshot is
+    // from before the 2026-11-07 fix, or from a drill; it must be re-keyed (a new data directory, re-accredited).
+    // `AINRA_TEST_DERIVED_KEYS=1` is the one exception: the TEST-ROOT wall-clock drill (`make live-up`) runs
+    // registrar-07 on purpose with the key the published TEST directory accredits. Never on a production network.
+    let test_derived = std::env::var("AINRA_TEST_DERIVED_KEYS").ok().as_deref() == Some("1")
+        && std::env::var("AINRA_NETWORK").ok().as_deref() != Some("production");
+    if test_derived && !clock_pinned() && rb.seed_u64() == Some(seed) {
+        eprintln!(
+            "registrar-box '{id}': TEST ONLY — keys derive from the public id (AINRA_TEST_DERIVED_KEYS=1); anyone can recompute them"
+        );
+    }
+    if !test_derived && !clock_pinned() && rb.seed_u64() == Some(seed) {
+        eprintln!(
+            "registrar-box '{id}': this registrar's keys derive from its public id, so anyone can recompute them — \
+             refusing to run it on a real clock. Start it with a new data directory (fresh keys) and re-accredit it."
+        );
+        std::process::exit(2);
+    }
     // M35: certify the delegates at the WALL CLOCK before serving anything. A registrar reloaded from a snapshot —
     // or created at the fixed genesis instant below — would otherwise sign with certs that lapsed long ago.
     let mut rb = rb;
@@ -427,7 +509,12 @@ fn main() {
             ("GET", "/accreditation") => ok(&st.rb.accreditation()),
 
             // D-102 portability: the public record of moves, logged operator keys, and the transfer doors.
-            (_, r) if r == "/transfers" || r == "/operator-key" || r.starts_with("/transfer-") => {
+            (_, r)
+                if r == "/transfers"
+                    || r == "/operator-key"
+                    || r.starts_with("/transfer-")
+                    || r.starts_with("/ownership-") =>
+            {
                 transfer_door(&mut st, req, r, &dir, &id, open_writes)
             }
 
@@ -489,6 +576,16 @@ fn main() {
                     .unwrap_or("demo");
                 let State { rb, rng, .. } = &mut *st;
                 let mut spec = demo_spec(rng, operator, lineage);
+                if let Some(full) = demo_room(rb) {
+                    return full;
+                }
+                if !demo_lineage_clean(rb, &spec.operator, &spec.lineage) {
+                    return (
+                        403,
+                        r#"{"error":"that name belongs to a passport the demo door did not mint"}"#
+                            .to_string(),
+                    );
+                }
                 // D-063: a visitor's agent may bring its OWN key, with a proof it holds it. Then the specimen it
                 // receives is one it can actually use — prove possession of, and mint instance credentials under —
                 // instead of one bound to a key the registrar generated and threw away. Omit both and the door
@@ -596,6 +693,9 @@ fn main() {
                             .to_string(),
                     );
                 }
+                if let Some(full) = demo_room(&st.rb) {
+                    return full;
+                }
                 let now = v
                     .get("now")
                     .and_then(|x| x.as_u64())
@@ -676,7 +776,7 @@ fn main() {
             }
 
             ("GET", "/verify") => {
-                let now = qnow(&req.path);
+                let now = caller_now(&req.path);
                 match qparam(&req.path, "sub").map(|s| urldecode(&s)) {
                     Some(sub) => {
                         let v = st.rb.verify_record(&sub, now);
@@ -759,6 +859,9 @@ fn main() {
                         )
                     }
                 };
+                if let Some(full) = demo_room(&st.rb) {
+                    return full;
+                }
                 if !is_demo_specimen(&st.rb, &spec.passport) {
                     return (
                         403,
@@ -1090,6 +1193,28 @@ fn field<T: serde::de::DeserializeOwned>(
     serde_json::from_value(body[k].clone()).map_err(|e| err(400, format!("{k}: {e}")))
 }
 
+/// The other registrar's signed status list, if the caller sent one. A distrusted or defunct registrar may publish
+/// none: its list counts for nothing then (D-102), so its absence must not block the door; for any other registrar an
+/// absent list fails authentication in the engine, as a forged one would.
+fn status_field(body: &serde_json::Value) -> SignedStatusList {
+    field(body, "status").unwrap_or_else(|_| SignedStatusList {
+        uri: String::new(),
+        status_list_b64: String::new(),
+        bit_len: 0,
+        issued_at: 0,
+        sig_ed25519: String::new(),
+        sig_mldsa65: String::new(),
+    })
+}
+
+/// The subject a record's SIGNED claims name. `IssuedRecord.sub` is an unsigned copy a presenter can edit.
+fn signed_sub(rec: &IssuedRecord) -> String {
+    serde_json::from_str::<serde_json::Value>(&rec.claims)
+        .ok()
+        .and_then(|c| c["sub"].as_str().map(String::from))
+        .unwrap_or_default()
+}
+
 fn registrar_of(sub: &str) -> Result<String, (u16, String)> {
     ainra_core::AinraName::parse(sub)
         .map(|n| n.registrar().to_string())
@@ -1109,6 +1234,11 @@ fn transfer_door(
     let method = req.method.as_str();
     if method == "GET" {
         return match route {
+            "/ownership-changes" => (
+                200,
+                json!({ "registrar": st.rb.id(), "ownership_changes": st.rb.ownerships() })
+                    .to_string(),
+            ),
             "/transfers" => (
                 200,
                 json!({ "registrar": st.rb.id(), "transfers": st.rb.transfers() }).to_string(),
@@ -1133,7 +1263,8 @@ fn transfer_door(
     if method != "POST" {
         return err(405, "method not allowed");
     }
-    let privileged = route == "/operator-key" || route == "/transfer-complete";
+    let privileged =
+        route == "/operator-key" || route == "/transfer-complete" || route == "/ownership-complete";
     if privileged && !write_authorized(req, &st.issue_token, open_writes) {
         return err(401, "unauthorized (bearer token required)");
     }
@@ -1171,7 +1302,7 @@ fn transfer_door(
                 let request: TransferRequest = field(&body, "request")?;
                 let passport: IssuedRecord = field(&body, "passport")?;
                 let receipt: OperatorKeyReceipt = field(&body, "operator_key")?;
-                let status: SignedStatusList = field(&body, "status")?;
+                let status: SignedStatusList = status_field(&body);
                 let (anchors, revoked, status_key) =
                     peer_from(st, data_dir, &body, &registrar_of(&request.from_sub)?)?;
                 let side = PeerRegistrar {
@@ -1221,11 +1352,20 @@ fn transfer_door(
             "/transfer-complete" => {
                 let tid: String = field(&body, "id")?;
                 let passport: IssuedRecord = field(&body, "passport")?;
-                let status: SignedStatusList = field(&body, "status")?;
+                let status: SignedStatusList = status_field(&body);
                 let audit: Option<AuditEvidence> = field(&body, "audit").unwrap_or(None);
                 let evidence = body.get("principal_evidence").cloned();
-                let (anchors, revoked, status_key) =
-                    peer_from(st, data_dir, &body, &registrar_of(&passport.sub)?)?;
+                let (anchors, revoked, status_key) = peer_from(
+                    st,
+                    data_dir,
+                    &body,
+                    &st.rb
+                        .transfers()
+                        .iter()
+                        .find(|t| t.id == tid)
+                        .map(|t| t.from_registrar.clone())
+                        .ok_or_else(|| err(404, "no such move"))?,
+                )?;
                 let side = PeerRegistrar {
                     anchors: &anchors,
                     revoked_delegates: &revoked,
@@ -1238,12 +1378,39 @@ fn transfer_door(
                     .map_err(|e| err(400, e))?;
                 ok(&rec)
             }
+            "/ownership-open" => {
+                let request: OwnershipRequest = field(&body, "request")?;
+                let o = st
+                    .rb
+                    .ownership_open(request, now)
+                    .map_err(|e| err(400, e))?;
+                ok(&o)
+            }
+            "/ownership-contest" => {
+                let (oid, reason): (String, String) =
+                    (field(&body, "id")?, field(&body, "reason")?);
+                let sig: HybridB64 = field(&body, "sig")?;
+                let o = st
+                    .rb
+                    .ownership_contest(&oid, &reason, &sig, now)
+                    .map_err(|e| err(400, e))?;
+                ok(&o)
+            }
+            "/ownership-complete" => {
+                let oid: String = field(&body, "id")?;
+                let assurance: NewOwnerAssurance = field(&body, "assurance")?;
+                let State { rb, rng, .. } = st;
+                let rec = rb
+                    .ownership_complete(&oid, &assurance, now, rng)
+                    .map_err(|e| err(400, e))?;
+                ok(&rec)
+            }
             "/transfer-out" => {
                 let passport: IssuedRecord = field(&body, "passport")?;
                 let request: TransferRequest = field(&body, "request")?;
-                let status: SignedStatusList = field(&body, "status")?;
+                let status: SignedStatusList = status_field(&body);
                 let (anchors, revoked, status_key) =
-                    peer_from(st, data_dir, &body, &registrar_of(&passport.sub)?)?;
+                    peer_from(st, data_dir, &body, &registrar_of(&signed_sub(&passport))?)?;
                 let side = PeerRegistrar {
                     anchors: &anchors,
                     revoked_delegates: &revoked,

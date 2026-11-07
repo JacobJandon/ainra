@@ -34,7 +34,7 @@ So the page funds **the events, not the author**, and says what is genuinely unc
 > lines, with the root switched off.
 >
 > The engineering is done and public: four independent implementations of the verify path exist, the three in
-> Rust, TypeScript and Python agree on 1156 CC0 conformance vectors on verdict and reason, every artifact rebuilds
+> Rust, TypeScript and Python agree on 1169 CC0 conformance vectors on verdict and reason, every artifact rebuilds
 > byte-for-byte from tagged source, and a stranger's cold clone passes the full board.
 > **Verification is free forever and always will be — that is in the charter, enforced in code.**
 >

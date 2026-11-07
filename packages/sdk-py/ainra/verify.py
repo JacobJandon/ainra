@@ -34,7 +34,7 @@ from ._crypto import (
     slh_dsa_sha2_128s_verify,
 )
 from ._merkle import leaf_hash, root_from_inclusion
-from ._name import parse_issuer, parse_subject
+from ._name import parse_issuer, parse_issuer_parts, parse_subject
 from .verdict import Verdict, invalid, valid
 
 VCT = "ainra/passport/v1"
@@ -126,18 +126,19 @@ def _verify(anchors: dict, presentation: dict, now: int) -> Verdict:
     # `act_chain` is NOT required. ainra-core declares it `#[serde(default)]` (passport.rs:141) — a root-issued
     # passport with no delegation may omit it entirely, and Rust and the TS SDK both accept that. This SDK
     # required it, so it rejected, with `schema_violation`, the very bundle shipped in the external verifier kit
-    # (kits/verifier/sample-artifacts/bundle-valid.json, which has no act_chain). The 1156-vector corpus cannot
+    # (kits/verifier/sample-artifacts/bundle-valid.json, which has no act_chain). The 1169-vector corpus cannot
     # catch it: the generator always emits the field, even when empty, so the omitted case is never on the wire.
     # Found by the M30 policy-parity harness — see docs/POLICY-PARITY.md.
     required = (
         "iss", "sub", "nbf", "exp", "authority", "tier", "capabilities",
-        "scope_ceiling", "keys", "status", "log",
+        "scope_ceiling", "keys", "status", "log", "cnf",
     )
     for f in required:
         if f not in claims:
             return invalid(R.SCHEMA_VIOLATION)
     nbf, exp = claims["nbf"], claims["exp"]
-    if not isinstance(nbf, int) or not isinstance(exp, int):
+    # u64 in Rust: a bool, a negative number or a float does not decode there (D-104).
+    if any(isinstance(x, bool) or not isinstance(x, int) or x < 0 for x in (nbf, exp)):
         return invalid(R.SCHEMA_VIOLATION)
     authority = claims["authority"]
     caps = claims["capabilities"]
@@ -187,12 +188,22 @@ def _verify(anchors: dict, presentation: dict, now: int) -> Verdict:
     reg = parse_issuer(claims.get("iss"))
     if sub_name is None or reg is None:
         return invalid(R.NAME_MALFORMED, **ident())
+    # The subject names the registrar, operator and lineage that signed it (D-104): trust comes from the issuer alone.
+    if (sub_name.registrar, sub_name.operator, sub_name.lineage) != parse_issuer_parts(claims.get("iss")):
+        return invalid(R.NAME_MALFORMED, **ident())
     # Delegation hop endpoints must also be grammatical subject names.
     for hop in act_chain:
         if not isinstance(hop, dict):
             return invalid(R.SCHEMA_VIOLATION, **ident())
         if parse_subject(hop.get("from")) is None or parse_subject(hop.get("to")) is None:
             return invalid(R.NAME_MALFORMED, **ident())
+    # The chain is linked: each hop starts where the last ended, and the last hop's delegate is this subject
+    # (passport.rs validate_structure; found missing here by the 2026-11-07 review).
+    for h0, h1 in zip(act_chain, act_chain[1:]):
+        if h1.get("from") != h0.get("to"):
+            return invalid(R.SCHEMA_VIOLATION, **ident())
+    if act_chain and act_chain[-1].get("to") != claims.get("sub"):
+        return invalid(R.SCHEMA_VIOLATION, **ident())
 
     # ── Step 3: registrar known ───────────────────────────────────────────
     anchor = anchors.get(reg) if isinstance(anchors, dict) else None
@@ -266,7 +277,7 @@ def _verify(anchors: dict, presentation: dict, now: int) -> Verdict:
     # credential claiming authority past the grant's end. Python accepted that; Rust and TS refuse it.
     #
     # No vector could see the split, and it is worth naming why: the generator sets every hop's ``exp`` equal to
-    # the passport's, and at equality both rules agree. A four-way differential over 1156 vectors proved agreement
+    # the passport's, and at equality both rules agree. A four-way differential over 1169 vectors proved agreement
     # on every byte it was given and had nothing to say about the case nobody generated.
     if act_chain:
         eff_exp = act_chain[0].get("exp")
@@ -371,9 +382,9 @@ def _verify(anchors: dict, presentation: dict, now: int) -> Verdict:
     body_no_log = {k: v for k, v in claims.items() if k != "log"}
     if leaf_hash(canon_bytes(body_no_log)) != leaf:
         return invalid(R.NOT_LOGGED, **ident())  # leaf doesn't bind this body
-    # The credential must point at the checkpoint it proves inclusion in.
-    if b64f(log.get("root"), 32) != cp_root:
-        return invalid(R.NOT_LOGGED, **ident())
+    # `log.root` is the issuance-time root. Inclusion is proven against the presented, SIGNED checkpoint, which may be
+    # newer (a registrar presents against its current one, M35); Rust and TS do not compare the two, and this check
+    # refused every such bundle here (2026-11-07 review; D-104).
     proof = _decode_proof(presentation.get("inclusion_proof"))
     if proof is None or root_from_inclusion(leaf, presentation.get("leaf_index"), size, proof) != cp_root:
         return invalid(R.NOT_LOGGED, **ident())

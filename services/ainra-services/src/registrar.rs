@@ -383,20 +383,33 @@ pub struct RegistrarBox {
     operator_keys: BTreeMap<String, transfer::OperatorKeyEntry>,
     /// D-102 moves into this registrar, open and closed, in the order they were opened: the public record.
     transfers: Vec<transfer::PendingTransfer>,
+    /// D-103 changes of owner at this registrar, open and closed, in the order they were opened: the public record.
+    ownerships: Vec<transfer::PendingOwnership>,
     next_status_idx: usize,
     status_capacity: usize,
     dir: PathBuf,
     nbf: u64,
     exp: u64,
     /// The master seed the registrar's keys derive from — persisted so [`RegistrarBox::load`] regenerates byte-
-    /// identical issuer/root/delegate keys and the stored records still verify. `0` marks a non-reloadable
-    /// (externally-seeded) instance (e.g. the HTTP daemon, which is a single long-lived process).
-    seed: u64,
+    /// identical issuer/root/delegate keys and the stored records still verify. `Seed::None` marks a non-reloadable
+    /// (externally-seeded) instance.
+    seed: Seed,
     /// The unix time the certs were issued at — persisted for deterministic reload.
     create_now: u64,
     /// What an A1 request needs here (PLAN-M51 step 3). Not persisted: whoever opens the registrar installs it, and
     /// until they do every A1 request is refused.
     principal_policy: principal::PrincipalPolicy,
+}
+
+/// Where a registrar's keys come from, kept so a reload regenerates the same keys.
+#[derive(Clone, Copy)]
+enum Seed {
+    /// Not reloadable: keys from an external rng, not recorded.
+    None,
+    /// A 64-bit seed: test, drill and CLI registrars.
+    U64(u64),
+    /// A full 32-byte seed from the OS CSPRNG: a live registrar.
+    Bytes([u8; 32]),
 }
 
 /// An issuance error the engine surfaces honestly (never a faked success).
@@ -496,12 +509,13 @@ impl RegistrarBox {
             decision_heads: BTreeMap::new(),
             operator_keys: BTreeMap::new(),
             transfers: Vec::new(),
+            ownerships: Vec::new(),
             next_status_idx: 0,
             status_capacity,
             dir: dir.to_path_buf(),
             nbf,
             exp,
-            seed: 0,
+            seed: Seed::None,
             create_now: now,
             principal_policy: principal::PrincipalPolicy::default(),
         })
@@ -522,8 +536,36 @@ impl RegistrarBox {
     ) -> Result<Self, IssueError> {
         let mut rng = rand_chacha::ChaCha20Rng::seed_from_u64(seed);
         let mut me = Self::create(dir, id, status_capacity, now, nbf, exp, &mut rng)?;
-        me.seed = seed;
+        me.seed = Seed::U64(seed);
         Ok(me)
+    }
+
+    /// The live constructor: keys from a full 32-byte seed the caller drew from the OS CSPRNG, persisted in
+    /// `registrar.secret` for reload. A `u64` seed is 64 bits, and the daemon used to derive it from the registrar's
+    /// public id, so anyone could recompute every key (2026-11-07 review); a live registrar uses this instead.
+    #[allow(clippy::too_many_arguments)]
+    pub fn create_seeded32(
+        dir: &Path,
+        id: &str,
+        status_capacity: usize,
+        seed: [u8; 32],
+        now: u64,
+        nbf: u64,
+        exp: u64,
+    ) -> Result<Self, IssueError> {
+        let mut rng = rand_chacha::ChaCha20Rng::from_seed(seed);
+        let mut me = Self::create(dir, id, status_capacity, now, nbf, exp, &mut rng)?;
+        me.seed = Seed::Bytes(seed);
+        Ok(me)
+    }
+
+    /// The 64-bit seed this registrar's keys derive from, if it has one (test and drill registrars). `None` for a
+    /// registrar seeded with 32 bytes, or not reloadable at all.
+    pub fn seed_u64(&self) -> Option<u64> {
+        match self.seed {
+            Seed::U64(n) => Some(n),
+            _ => None,
+        }
     }
 
     /// Reload a persisted registrar from `dir` (offline, no daemon). Regenerates the keys from the stored seed,
@@ -545,17 +587,26 @@ impl RegistrarBox {
         })?;
         let secret: serde_json::Value =
             serde_json::from_str(&secret_raw).map_err(|e| IssueError::Malformed(e.to_string()))?;
-        let seed = secret["seed"].as_u64().unwrap_or(0);
-        if seed == 0 {
-            return Err(IssueError::Malformed(
-                "snapshot is not reloadable (seed 0 — created by the daemon, not the CLI)".into(),
-            ));
-        }
         let capacity = snap["status_capacity"].as_u64().unwrap_or(4096) as usize;
         let create_now = snap["create_now"].as_u64().unwrap_or(0);
         let nbf = snap["nbf"].as_u64().unwrap_or(0);
         let exp = snap["exp"].as_u64().unwrap_or(0);
-        let mut me = Self::create_seeded(dir, id, capacity, seed, create_now, nbf, exp)?;
+        let seed32 = secret["seed32"].as_str().and_then(|h| {
+            let b: Vec<u8> = (0..h.len())
+                .step_by(2)
+                .map(|i| u8::from_str_radix(h.get(i..i + 2)?, 16).ok())
+                .collect::<Option<_>>()?;
+            <[u8; 32]>::try_from(b).ok()
+        });
+        let mut me = match (seed32, secret["seed"].as_u64().unwrap_or(0)) {
+            (Some(s), _) => Self::create_seeded32(dir, id, capacity, s, create_now, nbf, exp)?,
+            (None, n) if n != 0 => Self::create_seeded(dir, id, capacity, n, create_now, nbf, exp)?,
+            _ => {
+                return Err(IssueError::Malformed(
+                    "snapshot is not reloadable (no seed in registrar.secret)".into(),
+                ))
+            }
+        };
         // Restore records + the status-index cursor.
         if let Some(records) = snap["records"].as_array() {
             for r in records {
@@ -636,6 +687,15 @@ impl RegistrarBox {
                 me.transfers.push(
                     serde_json::from_value(t.clone())
                         .map_err(|e| IssueError::Malformed(format!("transfer: {e}")))?,
+                );
+            }
+        }
+        // D-103 changes of owner. Absent in snapshots written before they existed: then there are none.
+        if let Some(changes) = snap["ownerships"].as_array() {
+            for o in changes {
+                me.ownerships.push(
+                    serde_json::from_value(o.clone())
+                        .map_err(|e| IssueError::Malformed(format!("ownership: {e}")))?,
                 );
             }
         }
@@ -781,6 +841,11 @@ impl RegistrarBox {
             },
         );
         TrustAnchors { registrars }
+    }
+
+    /// Status indices still free in this registrar's segment. Each issuance, renewal and link takes one, for good.
+    pub fn status_room(&self) -> usize {
+        self.status_capacity.saturating_sub(self.next_status_idx)
     }
 
     pub fn records(&self) -> impl Iterator<Item = &IssuedRecord> {
@@ -1541,6 +1606,7 @@ impl RegistrarBox {
             "decision_heads": self.decision_heads.values().flatten().collect::<Vec<_>>(),
             "operator_keys": self.operator_keys.values().collect::<Vec<_>>(),
             "transfers": self.transfers,
+            "ownerships": self.ownerships,
         });
         let path = self.dir.join("registrar.json");
         std::fs::write(
@@ -1556,7 +1622,11 @@ impl RegistrarBox {
             &secret_path,
             serde_json::to_string(&json!({
                 "comment": "TEST reload seed — this derives ALL of this registrar's private keys. Never share; never a production keystore.",
-                "seed": self.seed,
+                "seed": match self.seed { Seed::U64(n) => n, _ => 0 },
+                "seed32": match self.seed {
+                    Seed::Bytes(b) => Some(b.iter().map(|x| format!("{x:02x}")).collect::<String>()),
+                    _ => None,
+                },
             }))
             .map_err(|e| IssueError::Io(e.to_string()))?,
         )

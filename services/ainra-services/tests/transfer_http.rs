@@ -330,15 +330,18 @@ fn the_registrars_own_clock_decides_not_the_caller() {
         json!({ "request": request, "passport": passport, "operator_key": receipt, "directory": directory,
                 "status": status, "now": T0 })
     };
-    // A status list stamped at T0 (months ago), with `now: T0` to match: stale by the registrar's clock.
-    let stale = post(
-        &b,
-        "/transfer-in",
-        &body(get(&a, &format!("/status-list?now={T0}"))),
-    );
+    // A registrar keeping real time will not sign a status list for an instant the caller names: asked for one at T0
+    // (months ago), it signs at its own clock. So a back-dated (pre-revocation) list cannot be had at all, and a
+    // forward-dated one cannot be stockpiled (2026-11-07 review).
+    let asked = get(&a, &format!("/status-list?now={T0}"));
     assert!(
-        error_of(&stale).contains("not fresh"),
-        "a backdated status list must be stale: {stale}"
+        asked["issued_at"].as_u64().unwrap() >= wall,
+        "signed at the registrar's clock, not at ?now: {asked}"
+    );
+    let ahead = get(&a, &format!("/status-list?now={}", wall + 400 * 86_400));
+    assert!(
+        ahead["issued_at"].as_u64().unwrap() < wall + 3600,
+        "a future instant is not signed either: {ahead}"
     );
     // A current list opens the move, at the registrar's time, not the caller's.
     let opened = post(&b, "/transfer-in", &body(get(&a, "/status-list")));
@@ -360,4 +363,86 @@ fn the_registrars_own_clock_decides_not_the_caller() {
         error_of(&done).contains("open to contest"),
         "a future `now` does not close the window: {done}"
     );
+}
+
+/// A change of owner over HTTP (D-103): opened publicly with the old operator key, completed by the registrar after the
+/// window with the new owner's assurance; the public record lists it and survives a restart.
+#[test]
+fn a_change_of_owner_over_http() {
+    use ainra_services::registrar::transfer::ownership_message;
+    let mut rng = ChaCha20Rng::seed_from_u64(0xD1_03_77);
+    let da = dir("own-a");
+    let a = format!("127.0.0.1:{}", free_port());
+    let ga = start(&a, "registrar-07", &da, None);
+    let agent = crypto::HybridKeypair::generate(&mut rng);
+    let old_op = crypto::HybridKeypair::generate(&mut rng);
+    let new_op = crypto::HybridKeypair::generate(&mut rng);
+    let akey = wire_of(&agent.public());
+    let apop = sign_b64(&agent, &holder_pop_message("registrar-07", &akey).unwrap()).unwrap();
+    let rec = post(
+        &a,
+        "/issue",
+        &json!({
+            "operator": "acme", "lineage": "billing", "version": "1.0.0", "tier": "L2", "auth_class": "A2",
+            "principal_proof": "deadbeef", "capabilities": ["read:invoices"], "scope_ceiling": ["read:invoices"],
+            "holder_key": akey, "holder_pop": apop,
+        }),
+    );
+    let old_sub = rec["sub"].as_str().unwrap().to_string();
+    let okey = wire_of(&old_op.public());
+    let opop = sign_b64(
+        &old_op,
+        &operator_key_message("registrar-07", "acme", "billing", &okey).unwrap(),
+    )
+    .unwrap();
+    post(
+        &a,
+        "/operator-key",
+        &json!({ "operator": "acme", "lineage": "billing", "key": okey, "pop": opop }),
+    );
+    let nkey = wire_of(&new_op.public());
+    let npop = sign_b64(
+        &new_op,
+        &operator_key_message("registrar-07", "globex", "billing", &nkey).unwrap(),
+    )
+    .unwrap();
+    let hpop = sign_b64(&new_op, &holder_pop_message("registrar-07", &nkey).unwrap()).unwrap();
+    let msg = ownership_message(&old_sub, "globex", T0, &nkey, &nkey).unwrap();
+    let opened = post(
+        &a,
+        "/ownership-open",
+        &json!({ "now": T0, "request": {
+            "from_sub": old_sub, "new_operator": "globex", "requested_at": T0,
+            "new_operator_key": nkey, "new_operator_pop": npop, "new_holder_key": nkey, "new_holder_pop": hpop,
+            "old_operator_sig": sign_b64(&old_op, &msg).unwrap(),
+        }}),
+    );
+    let id = opened["id"]
+        .as_str()
+        .unwrap_or_else(|| panic!("opened: {opened}"))
+        .to_string();
+    let assurance = json!({ "tier": "L1", "auth_class": "A3", "principal_proof": "c0ffee",
+        "capabilities": ["read:invoices"], "scope_ceiling": ["read:invoices"] });
+    let early = post(
+        &a,
+        "/ownership-complete",
+        &json!({ "id": id, "assurance": assurance, "now": T0 + 60 }),
+    );
+    assert!(error_of(&early).contains("open to contest"), "{early}");
+    let done_at = T0 + CONTEST_WINDOW_SECS;
+    let new = post(
+        &a,
+        "/ownership-complete",
+        &json!({ "id": id, "assurance": assurance, "now": done_at }),
+    );
+    assert_eq!(
+        new["sub"], "ainra:registrar-07:globex:billing@1.0.0",
+        "{new}"
+    );
+    let v = get(&a, &format!("/verify?sub={old_sub}&now={}", done_at + 60));
+    assert_eq!(v["verdict"]["reason"], "revoked", "{v}");
+    drop(ga);
+    let _ga = start(&a, "registrar-07", &da, None);
+    let rec = get(&a, "/ownership-changes");
+    assert_eq!(rec["ownership_changes"][0]["state"], "completed", "{rec}");
 }

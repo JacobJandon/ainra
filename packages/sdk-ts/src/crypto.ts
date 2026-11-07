@@ -115,7 +115,9 @@ export function verifyInclusion(
   proof: Uint8Array[],
   root: Uint8Array,
 ): boolean {
-  if (index >= treeSize) return false;
+  // Safe, non-negative integers only: JS bitwise operators below truncate to 32 bits, and a negative index must never
+  // satisfy `index < treeSize` into a proof walk (2026-11-07 review).
+  if (!Number.isSafeInteger(index) || !Number.isSafeInteger(treeSize) || index < 0 || index >= treeSize) return false;
   let fn = index;
   let sn = treeSize - 1;
   let r = leaf;

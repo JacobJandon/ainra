@@ -205,6 +205,20 @@ interface ResLike {
 }
 type Next = () => void;
 
+/** Does the request carry a body the gate was not given the raw bytes of? */
+function bodyUnseen(req: ReqLike): boolean {
+  if (req.rawBody !== undefined) return false;
+  const h = (k: string) => { const v = req.headers[k]; return Array.isArray(v) ? v[0] : v; };
+  if (Number(h("content-length") ?? 0) > 0 || h("transfer-encoding") !== undefined || h("content-digest") !== undefined) return true;
+  const b = req.body;
+  if (typeof b === "string") return b.length > 0;
+  if (b && typeof b === "object") {
+    const keys = Object.keys(b).filter((k) => k !== "ainra_passport");
+    return keys.length > 0;
+  }
+  return false;
+}
+
 /** Build the signed-over view of an Express/Node request. `authority` comes from the Host header, which is what
  *  the client addressed and therefore what it signed. */
 function bindingFromReq(req: ReqLike): RequestBinding {
@@ -267,8 +281,11 @@ export function ainraGate(verifier: Verifier, opts: GateOptions = {}) {
   return (req: ReqLike, res: ResLike, next: Next): void => {
     const raw = req.headers[header] ?? (req.body as { ainra_passport?: unknown } | undefined)?.ainra_passport;
     const popRaw = req.headers[popHeader];
+    // A signed request whose body the gate cannot see is refused, not checked as if it had none: a signature captured
+    // on a bodyless request would otherwise pass with any body attached (2026-11-07 review).
+    const blind = opts.requireSignature === true && bodyUnseen(req);
     const result: GateResult =
-      raw === undefined
+      raw === undefined || blind
         ? { allow: false, reason: "schema_violation", verdict: DENY_SCHEMA, event: verdictEvent({}, DENY_SCHEMA, (opts.now ?? (() => Math.floor(Date.now() / 1000)))()) }
         : checkRequest(verifier, Array.isArray(raw) ? raw[0] : raw, {
             ...opts,

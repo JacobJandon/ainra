@@ -160,6 +160,12 @@ fn verify_inner(pres: &Presentation, anchors: &TrustAnchors) -> core::result::Re
             chain::verify_hop_sig(hop, &pres.chain_keys[i], &pres.chain_keys[i + 1])?;
         }
         let head = &p.act_chain[0];
+        // The first grant narrows within the lineage's scope ceiling, like every grant after it: `scope_ceiling` is
+        // "the maximum authority this lineage may ever wield" (passport.rs). Python enforced this and Rust and TS did
+        // not, so the three disagreed (2026-11-07 review; D-104).
+        if !head.granted.iter().all(|c| p.scope_ceiling.contains(c)) {
+            return Err(Reason::ChainWidening);
+        }
         let eff = chain::narrow(&head.granted, head.exp, &p.act_chain[1..])?;
         if !p.capabilities.iter().all(|c| eff.capabilities.contains(c)) {
             return Err(Reason::ChainWidening);

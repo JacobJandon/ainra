@@ -231,8 +231,16 @@ impl Passport {
             return Err(Reason::SchemaViolation);
         }
         // Subject MUST be a well-formed ainra name; issuer MUST be a well-formed did:ainra.
-        AinraName::parse(&self.sub).map_err(|_| Reason::NameMalformed)?;
-        AinraName::parse_did(&self.iss).map_err(|_| Reason::NameMalformed)?;
+        let name = AinraName::parse(&self.sub).map_err(|_| Reason::NameMalformed)?;
+        let (registrar, operator, lineage) =
+            AinraName::parse_did(&self.iss).map_err(|_| Reason::NameMalformed)?;
+        // The subject names the registrar, operator and lineage that SIGNED it (the issuer). Trust is taken from the
+        // issuer alone, so a subject naming another registrar's namespace let any accredited registrar mint names in
+        // a competitor's namespace, and slip past a gate's `deny` on its own id (2026-11-07 review; D-104).
+        if name.registrar() != registrar || name.operator() != operator || name.lineage() != lineage
+        {
+            return Err(Reason::NameMalformed);
+        }
         // At least one hybrid key, and every entry carries BOTH algorithms (non-empty strings).
         if self.keys.is_empty() {
             return Err(Reason::SchemaViolation);

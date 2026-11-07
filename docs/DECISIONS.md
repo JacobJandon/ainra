@@ -2978,3 +2978,140 @@ The root still never chooses a gaining registrar (P6).
 approval to cite this record (`docs/AMENDMENTS.md`).
 
 *Status:* ACCEPTED 2026-11-07, building PLAN-M53 step 7 (PLAN-M52 step 12).
+
+## D-103 — A change of owner: the old owner gives it away, assurance starts again, the history stays (M53)
+
+*Problem:* the Standard §1 says the lineage is the permanent identity, and "a genuine ownership transfer is a logged
+event that resets assurance evidence while preserving the historical record". The version is re-certified on every
+change of operator. Nothing could change an owner. A sold agent either kept the seller's name and assurance, which
+silently carries old trust over new behaviour, or started a new lineage with no history. PLAN-M53 step 8.
+
+*Decision:* in `registrar_transfer.rs`, beside the transfer door (D-102), sharing its window, lock and keys. The
+change happens at one registrar; moving to another registrar is D-102.
+
+1. **The old owner gives the lineage away with the operator key its registrar logged.** An agent key cannot.
+2. **The new owner proves it holds its own operator key**, which is logged beside the lineage under the new name when
+   the change completes. The new owner can then move the lineage or pass it on, with its own key.
+3. **The change is public for five days, logged when it opens.** The old operator key may stop it. A thief holding
+   that key and the real owner hold the same key, and stopping is the safe outcome. A stop that does not verify is
+   refused and leaves no record.
+4. **Assurance starts again.** The registrar completes the change with the tier, class, principal proof,
+   capabilities and scope it establishes for the new owner (`NewOwnerAssurance`). Nothing is copied from the old
+   passport: an L3+ tier needs the registrar's own audit evidence, an A1 class its own principal check. Completing is
+   the registrar's own act, behind its write authorization. It is where the registrar confirms the new owner is who
+   the new operator name says, exactly as at issuance: the old owner can propose any name, and only the registrar
+   decides that a name belongs to a customer.
+5. **The history stays and the old passport ends.** The new passport, `ainra:{registrar}:{new operator}:{lineage}`,
+   carries the old one in its signed, logged `transfer_history`, with `kind: "ownership"` and `assurance_reset: true`.
+   The old lineage is revoked in the same step. The sixty-day lock covers any kind of change, so a lineage cannot be
+   laundered through quick hops. D-102's history entries now carry `kind: "registrar"`.
+
+Also refused: a revoked passport, a passport that is not the lineage's current head (renewed away), a request older
+than a day, a new name already taken here, and a second change while one is open. A change opened before a renewal
+or a revocation is refused at completion.
+
+**The doors** (`registrar-box`): `GET /ownership-changes` (the public record), `POST /ownership-open` and
+`/ownership-contest` (public, rate-limited, decided by signatures), `POST /ownership-complete` (write-authorized).
+Every time in a change is the registrar's own clock, as for D-102. Every write is persisted before it is answered.
+
+*WITNESS:* `services/ainra-services/tests/ownership_door.rs`, and `a_change_of_owner_over_http` in `transfer_http.rs`.
+They require:
+- after the window, the new owner's passport verifies with the tier set for the new owner (L1, not the old L2);
+- its signed history names the old passport and its leaf, marked `assurance_reset`;
+- the new owner's operator key is logged;
+- the old passport is `revoked`;
+- nothing completes before the window closes;
+- an agent key cannot open a change, and nothing is logged when it tries;
+- the old operator key stops a change, while a forged stop is refused and not recorded;
+- the new owner cannot pass the lineage on within sixty days, and can after, with its own key;
+- each other rule above refuses by name;
+- the record survives a restart, in-process and over HTTP.
+
+*Not changed:* the passport format; the verifier; the reasons; the corpora.
+
+*Status:* ACCEPTED 2026-11-07, building PLAN-M53 step 8.
+
+## D-104 — The first independent adversarial review: what it found, what is fixed, what is next (M53)
+
+*Problem:* every security pass so far was done by the author of the code it reviewed. The operator approved an
+independent one on 2026-11-07. Six reviewers each attacked one surface, and a separate skeptic tried to refute each
+finding against the code: the transfer door, the registrar daemon, the core verifier, the divergence between the
+three verifiers, the edge gates, and the registrar engine. 21 findings survived refutation, about 18 of them
+distinct; 3 were refuted.
+
+*Fixed, each with a witness that fails without the fix:*
+
+**The registrar daemon.**
+1. **The public demo door could revoke any real passport.** A visitor minted a specimen under a real customer's
+   `operator:lineage` and revoked it; revocation is lineage-wide. The door now refuses any name that holds a passport
+   it did not mint, for minting, revoking, renewing and linking. The service image no longer turns the door on: only
+   the staging compose sets `AINRA_STAGE`.
+2. **The demo door could exhaust the status segment.** It now leaves 1,024 indices for the registrar's own issuance.
+3. **Read endpoints signed at a caller-chosen time.** `/status-list`, `/fresh-head`, `/present` and `/export` took
+   `?now=`, so a holder could collect lists signed for future instants while still clear and present them after a
+   revocation. A registrar on a real clock now signs at its own time; only a pinned clock names it. `/verify`, which
+   signs nothing, still answers about any instant.
+4. **One idle connection stopped the registrar.** The server read one connection at a time with no timeout. Each
+   connection now has its own thread, at most 64 at once, with 10-second timeouts and bounded request lines and
+   headers. This server is shared by `logd`, `statusd` and `witnessd`, so they are fixed too.
+5. **Every registrar's keys derived from its public id.** The daemon seeded its keys with a hash of the registrar's
+   name, so anyone could recompute them. A new registrar on a real clock now takes 32 bytes from the OS CSPRNG, kept
+   in `registrar.secret` (`seed32`). A registrar on a real clock refuses to run on id-derived keys unless it is a
+   TEST drill that says so (`AINRA_TEST_DERIVED_KEYS=1`, never with `AINRA_NETWORK=production`). Pinned drills keep
+   reproducible keys.
+
+**The transfer door (D-102).**
+6. **A distrusted or defunct registrar could strand its customers** by revoking them, or by publishing no fresh
+   status list. A distrusted registrar's status list now counts for nothing either way. A stolen passport is still
+   protected by what that registrar cannot fake: the operator's signature under a key logged before the cutoff, and
+   the public window.
+7. **Another registrar's genuine status list could hide a revocation.** The status list must now be the one the
+   passport's signed claims name, and the daemon takes the other registrar from signed or stored data, never from a
+   record's unsigned `sub`.
+
+**The verifiers: one answer in all three.**
+8. **A passport's subject was never bound to the registrar that signed it.** Trust is taken from the issuer alone, so
+   any accredited registrar could mint names in another registrar's namespace, and slip past a gate's `deny` on its
+   own id. Rust, TypeScript and Python now require the subject's registrar, operator and lineage to equal the
+   issuer's (`name_malformed`).
+9. **TypeScript accepted a negative log position**, which passed its Merkle check and slipped under a distrust cutoff.
+   It now decodes positions as unsigned integers, as Rust does, and its inclusion check refuses unsafe numbers.
+10. **TypeScript accepted an unknown tier or class, a missing `cnf`, and non-integer times.** Fixed.
+11. **Python accepted** an unlinked delegation chain, names with a trailing newline, an end hyphen, a 64-character
+    label or a leading-zero version, a missing `cnf`, and a negative `nbf`. Fixed.
+12. **Python refused** every bundle presented against a checkpoint newer than the issuance-time `log.root`, which is
+    how a registrar presents (M35). Fixed.
+13. **The first delegation grant was not held to the scope ceiling** in Rust and TypeScript (Python held it). It is
+    now held in all three (`chain_widening`): `scope_ceiling` is "the maximum authority this lineage may ever wield".
+
+Thirteen new passport vectors pin items 8, 10–13 across all implementations (1,156 → 1,169). Every earlier vector
+keeps its recorded verdict under the stricter rules, checked before any vector was generated.
+
+**The gates.**
+14. **`@ainra/edge` read a request body of any size** before any check. Bodies over `maxBodyBytes` (1 MiB by
+    default) are now refused with 413 while they are read, and the prime path is capped the same way.
+15. **The edge nonce cache forgot its oldest entry when full**, so a valid credential could flush a captured request's
+    nonce and replay it. A full cache now refuses.
+16. **`@ainra/middleware` checked a signed request with an unseen body as if it had none.** It now refuses a request
+    whose raw body was not captured.
+
+*Not fixed here, because each needs a protocol change, not a patch:*
+- **A distrusted registrar can get past its own cutoff by forking its log.** The verifier proves inclusion under any
+  checkpoint the registrar's log root signs, and the registrar holds that key. The D-098 fork proof detects the
+  fork, but only once someone holds both checkpoints. The fix is to pin the log head at the cutoff in the signed
+  directory entry, beside `distrust_from_leaf`, and prove pre-cutoff passports against it. That is a directory format
+  addition across three implementations and the ceremony tools. PLAN-M53 step R1.
+- **Delegation party keys are not bound to the parties named.** A hop's two signatures verify under keys the
+  presentation supplies, so they prove only what the issuer says. Binding each party to its own passport is a
+  presentation format change. PLAN-M53 step R2.
+- **The live TEST staging registrars run on id-derived keys today.** Their keys are recomputable. Re-keying them
+  wipes the TEST network's state and needs the operator's decision. PLAN-M53 step R3.
+
+*WITNESS:*
+- `services/ainra-services/tests/review_2026_11_07.rs`: the demo door, the idle connection, the key refusal.
+- `transfer_door.rs` `a_distrusted_registrar_cannot_strand_a_customer_through_its_status`.
+- `transfer_http.rs` `the_registrars_own_clock_decides_not_the_caller`.
+- The 13 vectors under `make diff`, which also caught two more Python divergences while they were being written.
+- The new tests in `packages/edge` and `packages/middleware`.
+
+*Status:* ACCEPTED 2026-11-07. Fixes 1–16 are built; R1–R3 are planned.

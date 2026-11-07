@@ -85,8 +85,22 @@ named reason, in all four implementations and the edge gate. This is the fastest
 WITNESS: a transfer signed only by a stolen agent key, contested by the operator, is refused. A credential issued
 after the cutoff at a distrusted registrar is refused while the transferred one verifies.
 
-**8. Ownership transfer as a logged event.** A genuine change of operator resets assurance and keeps the history
+**8. Ownership transfer as a logged event.** *Built 2026-11-07 (D-103): the old operator key gives a lineage away, a five-day public window, assurance set fresh by the registrar for the new owner, the history in the signed passport, the old lineage revoked. Witnessed by `ownership_door.rs` and `a_change_of_owner_over_http`.* A genuine change of operator resets assurance and keeps the history
 (Standard §1). It is separate from step 7, which moves the registrar, not the owner.
+
+**R1. Pin the distrust cutoff to a log head** (D-104). A distrusted registrar still holds its log root and can fork its
+log to place new passports below its own cutoff. The signed directory entry gains the log head at the cutoff
+(`distrust_root`, beside `distrust_from_leaf`, omitted when absent so earlier directories keep their bytes). Every
+verifier proves a distrusted registrar's passport against that head. Ceremony tools must require the head on a new
+DISTRUST_FROM_LEAF. WITNESS: a forked-log passport below the cutoff is refused in all three implementations, and an
+honest pre-cutoff one verifies.
+
+**R2. Bind delegation party keys to the parties named** (D-104). A hop's dual signature is checked under keys the
+presentation supplies, so it proves no more than the issuer's word. Each party must be bound to its own passport.
+This is a presentation format change. WITNESS: a chain signed by keys that are not the named parties' is refused.
+
+**R3. Re-key the TEST staging registrars** (D-104, the operator's decision). Their keys derive from their public ids.
+Fresh keys from the OS CSPRNG, re-accredited in the TEST directory. This wipes the TEST network's state.
 
 **9. Registrar key roll.** D-094 item 13 decided it: a two-key overlap in the entry, and a declared 2-of-3 offline
 approver set, disjoint from the online keys. The approver set becomes a published object. REGISTRAR_KEY_ROLL and

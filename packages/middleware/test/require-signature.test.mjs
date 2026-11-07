@@ -64,3 +64,25 @@ test("the verdict event still has the one shape, whichever way the request faile
   const r = checkRequest(verifier, bundle, { now, requireSignature: true, binding: req() });
   for (const k of ["status", "reason", "name", "number", "tier"]) assert.ok(k in r.event, `event must keep ${k}`);
 });
+
+// 2026-11-07 review (D-104): a signed request whose body the gate cannot see is refused. Before, a request with a
+// body but no captured `rawBody` was checked as if it had none, so a signature captured on a bodyless request passed
+// with any body attached.
+test("a body the gate cannot see is refused, not checked as if there were none", async () => {
+  const { ainraGate } = await import("../dist/index.js");
+  const gate = ainraGate(verifier, { now, requireSignature: true });
+  let status = 0;
+  const res = { status(c) { status = c; return this; }, json(b) { return b; }, setHeader() {} };
+  let passed = false;
+  gate(
+    {
+      method: "POST", url: "/orders", originalUrl: "/orders",
+      headers: { host: "shop.example", "content-length": "17", "x-ainra-passport": JSON.stringify(bundle) },
+      body: { amount: "999999" },
+    },
+    res,
+    () => { passed = true; },
+  );
+  assert.equal(passed, false, "a request with an unseen body must not pass");
+  assert.equal(status, 403);
+});

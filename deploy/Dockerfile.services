@@ -15,6 +15,6 @@ USER 10001
 WORKDIR /data
 # health: the registrar-box /health endpoint (compose overrides the CMD per service)
 HEALTHCHECK --interval=15s --timeout=3s --retries=5 CMD curl -fsS http://127.0.0.1:4900/health || exit 1
-ENV AINRA_STAGE=1
+# AINRA_STAGE is NOT baked in: it opens the public demo door, so only the staging compose sets it (2026-11-07 review).
 ENTRYPOINT ["registrar-box"]
 CMD ["0.0.0.0:4900", "registrar-07", "/data"]

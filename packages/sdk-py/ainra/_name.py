@@ -12,14 +12,29 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-# A label is one or more lowercase alphanumerics / hyphens.
-_LABEL = re.compile(r"^[a-z0-9-]+$")
-# semver: 1 to 3 dot-separated numeric fields.
-_VERSION = re.compile(r"^[0-9]+(\.[0-9]+){0,2}$")
+# Mirrors crates/ainra-core/src/name.rs exactly (2026-11-07 review, D-104). The regexes used to accept a trailing
+# newline (`$`), a hyphen at either end, labels over 63 characters and leading-zero version fields.
+_MAX_LABEL = 63
 
 
 def _label_ok(s: str) -> bool:
-    return bool(_LABEL.match(s))
+    if not 1 <= len(s) <= _MAX_LABEL:
+        return False
+    if any(not ("a" <= c <= "z" or "0" <= c <= "9" or c == "-") for c in s):
+        return False
+    return s[0] != "-" and s[-1] != "-"
+
+
+def _version_ok(v: str) -> bool:
+    fields = v.split(".")
+    if not 1 <= len(fields) <= 3:
+        return False
+    for f in fields:
+        if not f or any(not "0" <= c <= "9" for c in f):
+            return False
+        if len(f) > 1 and f[0] == "0":
+            return False
+    return True
 
 
 @dataclass(frozen=True)
@@ -37,10 +52,10 @@ class SubjectName:
 
 def parse_subject(name: object) -> SubjectName | None:
     """Parse ``ainra:reg:op:lin@ver``; ``None`` if it violates the grammar."""
-    if not isinstance(name, str) or "@" not in name:
+    if not isinstance(name, str) or not name.startswith("ainra:") or "@" not in name:
         return None
-    body, _, version = name.partition("@")
-    if not _VERSION.match(version):
+    body, _, version = name.rpartition("@")
+    if not _version_ok(version):
         return None
     parts = body.split(":")
     if len(parts) != 4 or parts[0] != "ainra":
@@ -49,6 +64,19 @@ def parse_subject(name: object) -> SubjectName | None:
     if not (_label_ok(reg) and _label_ok(op) and _label_ok(lin)):
         return None
     return SubjectName(reg, op, lin, version)
+
+
+def parse_issuer_parts(iss: object) -> tuple[str, str, str] | None:
+    """Parse ``did:ainra:reg:op:lin`` into (registrar, operator, lineage), else ``None``."""
+    if not isinstance(iss, str):
+        return None
+    parts = iss.split(":")
+    if len(parts) != 5 or parts[0] != "did" or parts[1] != "ainra":
+        return None
+    reg, op, lin = parts[2], parts[3], parts[4]
+    if not (_label_ok(reg) and _label_ok(op) and _label_ok(lin)):
+        return None
+    return reg, op, lin
 
 
 def parse_issuer(iss: object) -> str | None:

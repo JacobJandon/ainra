@@ -36,7 +36,8 @@ use super::{
 };
 use crate::status::SignedStatusList;
 
-/// How long a move stays open to contest before it can complete (five days, as for domain-name transfers).
+/// How long a move, or a change of owner, stays open to contest before it can complete (five days, as for
+/// domain-name transfers).
 pub const CONTEST_WINDOW_SECS: u64 = 5 * 86_400;
 /// How long a lineage that has just moved cannot move again.
 pub const TRANSFER_LOCK_SECS: u64 = 60 * 86_400;
@@ -279,6 +280,48 @@ fn old_passport_valid(
     let Some(idx) = claims["status"]["status_list"]["idx"].as_u64() else {
         return refuse("the passport names no status index");
     };
+    // A registrar the root has DISTRUSTED gets no say through its status list, either way: not by revoking a customer
+    // who asked to leave, and not by going dark so that no fresh list exists. Otherwise a distrusted or defunct
+    // registrar could strand every customer at no cost (2026-11-07 review), which is exactly what the distrust cutoff
+    // must not allow. What still protects a stolen passport is what the registrar cannot fake: the operator's
+    // signature, under a key logged before the cutoff, and the public window in which the operator can stop a move.
+    // The passport itself must still verify: issued before the cutoff, signed, logged.
+    let registrar = AinraName::parse(claims["sub"].as_str().unwrap_or(""))
+        .map(|n| n.registrar().to_string())
+        .unwrap_or_default();
+    if losing
+        .anchors
+        .registrars
+        .get(&registrar)
+        .is_some_and(|i| i.distrust_from_leaf.is_some())
+    {
+        const MAX_IDX: u64 = 1 << 24;
+        if idx >= MAX_IDX {
+            return refuse("the passport names a status index beyond any status list");
+        }
+        let clear = status::StatusList::from_bits(vec![false; idx as usize + 1]);
+        return match verify_record_offline_with(
+            old,
+            losing.anchors,
+            losing.revoked_delegates,
+            clear,
+            now,
+            now,
+            fresh,
+        ) {
+            Verdict::Valid => Ok(()),
+            v => refuse(format!(
+                "the passport does not verify ({}); only a valid passport can move",
+                v.reason().map(|r| r.as_str()).unwrap_or("invalid")
+            )),
+        };
+    }
+    // The list must be the one the passport's SIGNED claims name. Otherwise any accredited registrar's genuine, fresh
+    // list (where this index happens to be clear) could stand in for the real one and hide a revocation: the status
+    // key is chosen by the caller's side of the door (2026-11-07 review).
+    if claims["status"]["status_list"]["uri"].as_str() != Some(losing.status.uri.as_str()) {
+        return refuse("the status list is not the one the passport names");
+    }
     match crate::status::verify_publication(losing.status_key, losing.status, now, fresh, idx) {
         Ok(status::LineageStatus::Valid) => {}
         Ok(_) => return refuse("the passport is revoked at its registrar"),
@@ -834,6 +877,7 @@ impl RegistrarBox {
         };
         let mut history = t.prior_history.clone();
         history.push(json!({
+            "kind": "registrar",
             "from": t.request.from_sub,
             "log_origin": t.from_log_origin,
             "leaf_index": t.from_leaf_index,
@@ -923,5 +967,374 @@ impl RegistrarBox {
             _ => return refuse("the request is not signed by the operator key logged here"),
         }
         self.revoke(&old_sub, now)
+    }
+}
+
+// ── A change of owner (PLAN-M53 step 8, D-103) ──────────────────────────────────────────────────────────────────
+//
+// The Standard §1: "a genuine ownership transfer is a logged event that resets assurance evidence while preserving the
+// historical record", and the version is re-certified on every change of operator. The rules, at one registrar:
+//
+// 1. **The old owner gives the lineage away, with the operator key its registrar logged.** An agent key cannot.
+// 2. **The new owner proves it holds its own operator key**, which is logged beside the lineage under its name when the
+//    change completes, so the new owner can later move the lineage or give it away in turn.
+// 3. **The change is public for [`CONTEST_WINDOW_SECS`], logged when it opens.** The old operator key may stop it: a
+//    thief holding that key and the real owner hold the same key, and stopping is the safe outcome.
+// 4. **Assurance starts again.** The registrar completes the change with the tier, class, principal proof,
+//    capabilities and scope it establishes for the NEW owner now; nothing is copied from the old passport. Completing
+//    is the registrar's own act (it authenticates its new customer), behind its write authorization.
+// 5. **The history is kept and the old passport ends.** The new passport (`ainra:{registrar}:{new operator}:{lineage}`)
+//    carries the old one in its signed `transfer_history` with `kind: "ownership"` and `assurance_reset: true`; the old
+//    lineage is revoked in the same step; the sixty-day lock applies to any kind of change.
+
+/// What the old owner signs to give a lineage to a new owner.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct OwnershipRequest {
+    /// The passport whose lineage changes hands, by its full name at this registrar.
+    pub from_sub: String,
+    pub new_operator: String,
+    pub requested_at: u64,
+    /// The new owner's operator key, and its proof over [`operator_key_message`] for the new name.
+    pub new_operator_key: HybridB64,
+    pub new_operator_pop: HybridB64,
+    /// The key the new passport certifies, and its proof of possession for this registrar (D-063).
+    pub new_holder_key: HybridB64,
+    pub new_holder_pop: HybridB64,
+    /// The OLD operator key (as logged here) over [`ownership_message`].
+    pub old_operator_sig: HybridB64,
+}
+
+/// The public record of one change of owner.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct PendingOwnership {
+    pub id: String,
+    pub request: OwnershipRequest,
+    pub operator: String,
+    pub lineage: String,
+    pub version: String,
+    pub from_leaf_index: u64,
+    pub from_checkpoint_size: u64,
+    pub from_checkpoint_root: String,
+    pub prior_history: Vec<Value>,
+    pub old_operator_key: HybridB64,
+    pub opened_leaf: u64,
+    pub opened_at: u64,
+    pub closes_at: u64,
+    pub contests: Vec<ContestRecord>,
+    #[serde(flatten)]
+    pub state: TransferState,
+}
+
+/// The assurance the registrar establishes for the NEW owner, at completion. Nothing here comes from the old passport.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct NewOwnerAssurance {
+    pub tier: String,
+    pub auth_class: String,
+    pub principal_proof: String,
+    pub capabilities: Vec<String>,
+    pub scope_ceiling: Vec<String>,
+    #[serde(default)]
+    pub audit: Option<super::AuditEvidence>,
+    #[serde(default)]
+    pub principal_evidence: Option<Value>,
+}
+
+/// The bytes the old operator key signs to give a lineage away.
+pub fn ownership_message(
+    from_sub: &str,
+    new_operator: &str,
+    requested_at: u64,
+    new_operator_key: &HybridB64,
+    new_holder_key: &HybridB64,
+) -> Result<String, IssueError> {
+    canonical(&json!({
+        "purpose": "ainra-ownership-v1",
+        "from": from_sub,
+        "new_operator": new_operator,
+        "at": requested_at,
+        "new_operator_key": { "ed25519": new_operator_key.ed25519, "mldsa65": new_operator_key.mldsa65 },
+        "new_holder": { "ed25519": new_holder_key.ed25519, "mldsa65": new_holder_key.mldsa65 },
+    }))
+}
+
+impl RegistrarBox {
+    /// Every change of owner this registrar has opened, in order: the public record.
+    pub fn ownerships(&self) -> &[PendingOwnership] {
+        &self.ownerships
+    }
+
+    /// Open a change of owner. Checked before anything is logged: the passport is this registrar's current head of its
+    /// lineage and not revoked; the old operator key logged here signed the request; the new owner holds its operator
+    /// key and the new holder key; the lineage is not locked by a recent change; the new name is free here; no other
+    /// change of this lineage is open.
+    pub fn ownership_open(
+        &mut self,
+        req: OwnershipRequest,
+        now: u64,
+    ) -> Result<PendingOwnership, IssueError> {
+        if req.requested_at + REQUEST_MAX_AGE_SECS < now || req.requested_at > now + CLOCK_SKEW_SECS
+        {
+            return refuse("the request is too old or dated in the future");
+        }
+        let Some(rec) = self.records.get(&req.from_sub).cloned() else {
+            return refuse(format!(
+                "{} is not a passport of this registrar",
+                req.from_sub
+            ));
+        };
+        if rec.revoked {
+            return refuse("the passport is revoked; a revoked lineage does not change hands");
+        }
+        let (operator, lineage) = (rec.operator.clone(), rec.lineage.clone());
+        let key = format!("{operator}:{lineage}");
+        if self.lineage_heads.get(&key).map(|(s, _)| s.as_str()) != Some(req.from_sub.as_str()) {
+            return refuse("only the lineage's current passport can change hands");
+        }
+        let Some(old_op) = self.operator_keys.get(&key).map(|e| e.key.clone()) else {
+            return refuse("no operator key is logged here for this lineage");
+        };
+        let msg = ownership_message(
+            &req.from_sub,
+            &req.new_operator,
+            req.requested_at,
+            &req.new_operator_key,
+            &req.new_holder_key,
+        )?;
+        let old_pk =
+            public_of(&old_op).ok_or_else(|| IssueError::Transfer("operator key".into()))?;
+        if !verifies(&old_pk, &msg, &req.old_operator_sig) {
+            return refuse("the request is not signed by the operator key logged for this lineage");
+        }
+        if req.new_operator == operator {
+            return refuse("the new owner is the current owner");
+        }
+        let new_name = format!(
+            "ainra:{}:{}:{}@{}",
+            self.id, req.new_operator, lineage, rec.version
+        );
+        AinraName::parse(&new_name).map_err(|e| {
+            IssueError::Malformed(format!("the new name is not well-formed: {e:?}"))
+        })?;
+        let new_op_pk = public_of(&req.new_operator_key).ok_or_else(|| {
+            IssueError::HolderProof("the new operator key does not decode".into())
+        })?;
+        let pop_msg =
+            operator_key_message(&self.id, &req.new_operator, &lineage, &req.new_operator_key)?;
+        if !verifies(&new_op_pk, &pop_msg, &req.new_operator_pop) {
+            return refuse("the new owner did not prove it holds its operator key");
+        }
+        verify_holder(&self.id, &req.new_holder_key, Some(&req.new_holder_pop))?;
+        let claims: Value = serde_json::from_str(&rec.claims)
+            .map_err(|e| IssueError::Malformed(format!("claims: {e}")))?;
+        let prior_history: Vec<Value> = claims["transfer_history"]
+            .as_array()
+            .cloned()
+            .unwrap_or_default();
+        if let Some(at) = last_transfer_at(&prior_history) {
+            if now < at + TRANSFER_LOCK_SECS {
+                return refuse(format!(
+                    "the lineage changed at {at} and is locked until {}",
+                    at + TRANSFER_LOCK_SECS
+                ));
+            }
+        }
+        self.refuse_name_taken(&req.new_operator, &lineage)?;
+        let busy = self.ownerships.iter().any(|o| {
+            o.operator == operator && o.lineage == lineage && o.state == TransferState::Open
+        }) || self.transfers.iter().any(|t| {
+            t.operator == operator && t.lineage == lineage && t.state == TransferState::Open
+        });
+        if busy {
+            return refuse("a change of this lineage is already open here");
+        }
+        let id = transfer_id(&msg);
+        if self.ownerships.iter().any(|o| o.id == id) {
+            return refuse("this request was already received");
+        }
+        let opened = canonical(&json!({
+            "purpose": "ainra-ownership-opened-v1", "change": id, "request": msg,
+            "old_operator_sig": req.old_operator_sig, "at": now, "closes_at": now + CONTEST_WINDOW_SECS,
+        }))?;
+        let opened_leaf = self
+            .log
+            .append(opened.as_bytes())
+            .map_err(|e| IssueError::Io(e.to_string()))?;
+        let pending = PendingOwnership {
+            id,
+            request: req,
+            operator,
+            lineage,
+            version: rec.version.clone(),
+            from_leaf_index: rec.leaf_index,
+            from_checkpoint_size: rec.checkpoint_size,
+            from_checkpoint_root: rec.checkpoint_root.clone(),
+            prior_history,
+            old_operator_key: old_op,
+            opened_leaf,
+            opened_at: now,
+            closes_at: now + CONTEST_WINDOW_SECS,
+            contests: Vec::new(),
+            state: TransferState::Open,
+        };
+        self.ownerships.push(pending.clone());
+        Ok(pending)
+    }
+
+    /// The old operator key stops a change of owner during its window. A contest that does not verify is refused and
+    /// leaves no record.
+    pub fn ownership_contest(
+        &mut self,
+        id: &str,
+        reason: &str,
+        sig: &HybridB64,
+        now: u64,
+    ) -> Result<PendingOwnership, IssueError> {
+        let Some(i) = self.ownerships.iter().position(|o| o.id == id) else {
+            return refuse(format!("no change {id} here"));
+        };
+        let o = &self.ownerships[i];
+        if o.state != TransferState::Open {
+            return refuse(format!("change {id} is no longer open"));
+        }
+        if now >= o.closes_at {
+            return refuse(format!("the window for change {id} has closed"));
+        }
+        let msg = contest_message(id, "operator", reason)?;
+        let pk = public_of(&o.old_operator_key)
+            .ok_or_else(|| IssueError::Transfer("operator key".into()))?;
+        if !verifies(&pk, &msg, sig) {
+            return refuse("the contest is not signed by the logged operator key");
+        }
+        let line = canonical(&json!({
+            "purpose": "ainra-ownership-contested-v1", "contest": msg, "sig": sig, "at": now,
+        }))?;
+        self.log
+            .append(line.as_bytes())
+            .map_err(|e| IssueError::Io(e.to_string()))?;
+        let note = "the operator stopped the change of owner".to_string();
+        let o = &mut self.ownerships[i];
+        o.contests.push(ContestRecord {
+            by: "operator".into(),
+            reason: reason.into(),
+            at: now,
+            counted: true,
+            note: note.clone(),
+        });
+        o.state = TransferState::Refused { reason: note };
+        Ok(o.clone())
+    }
+
+    /// Complete a change of owner after its window, with the assurance this registrar establishes for the new owner.
+    /// Issues the new passport, logs the new owner's operator key, and revokes the old lineage, in that order; a
+    /// failure before issuance changes nothing.
+    pub fn ownership_complete(
+        &mut self,
+        id: &str,
+        assurance: &NewOwnerAssurance,
+        now: u64,
+        rng: &mut impl CryptoRngCore,
+    ) -> Result<IssuedRecord, IssueError> {
+        self.refuse_outside_delegate_window(now)?;
+        let Some(i) = self.ownerships.iter().position(|o| o.id == id) else {
+            return refuse(format!("no change {id} here"));
+        };
+        let o = self.ownerships[i].clone();
+        if o.state != TransferState::Open {
+            return refuse(format!("change {id} is no longer open"));
+        }
+        if now < o.closes_at {
+            return refuse(format!(
+                "change {id} is open to contest until {}",
+                o.closes_at
+            ));
+        }
+        let old_sub = o.request.from_sub.clone();
+        let still_head = self
+            .lineage_heads
+            .get(&format!("{}:{}", o.operator, o.lineage))
+            .map(|(s, _)| s.clone());
+        let revoked = self
+            .records
+            .get(&old_sub)
+            .map(|r| r.revoked)
+            .unwrap_or(true);
+        if revoked || still_head.as_deref() != Some(old_sub.as_str()) {
+            let reason = "the passport was revoked or renewed during the window".to_string();
+            self.ownerships[i].state = TransferState::Refused {
+                reason: reason.clone(),
+            };
+            return refuse(reason);
+        }
+        if let Err(e) = self.refuse_name_taken(&o.request.new_operator, &o.lineage) {
+            self.ownerships[i].state = TransferState::Refused {
+                reason: e.to_string(),
+            };
+            return Err(e);
+        }
+        let spec = IssueSpec {
+            operator: o.request.new_operator.clone(),
+            lineage: o.lineage.clone(),
+            version: o.version.clone(),
+            tier: assurance.tier.clone(),
+            auth_class: assurance.auth_class.clone(),
+            principal_proof: assurance.principal_proof.clone(),
+            capabilities: assurance.capabilities.clone(),
+            scope_ceiling: assurance.scope_ceiling.clone(),
+            hops: vec![],
+            audit: assurance.audit.clone(),
+            holder_key: Some(o.request.new_holder_key.clone()),
+            holder_pop: Some(o.request.new_holder_pop.clone()),
+            principal_evidence: assurance.principal_evidence.clone(),
+        };
+        check_audit_cap(&spec.tier, self.exp, spec.audit.as_ref())?;
+        let proof = principal::principal_for(&self.principal_policy, &self.id, &spec)?;
+        let spec = IssueSpec {
+            principal_proof: proof,
+            ..spec
+        };
+        let mut history = o.prior_history.clone();
+        history.push(json!({
+            "kind": "ownership",
+            "from": old_sub,
+            "log_origin": self.log_origin(),
+            "leaf_index": o.from_leaf_index,
+            "checkpoint_size": o.from_checkpoint_size,
+            "checkpoint_root": o.from_checkpoint_root,
+            "transfer": o.id,
+            "at": now,
+            "assurance_reset": true,
+        }));
+        let sub = format!(
+            "ainra:{}:{}:{}@{}",
+            self.id, spec.operator, spec.lineage, spec.version
+        );
+        let (nbf, exp) = (self.nbf, self.exp);
+        let rec = self.issue_with(&spec, sub.clone(), (nbf, exp), None, &history, &[], rng)?;
+        // The new owner's key, logged beside the lineage under its new name, exactly as `register_operator_key` would.
+        let pop_msg = operator_key_message(
+            &self.id,
+            &spec.operator,
+            &spec.lineage,
+            &o.request.new_operator_key,
+        )?;
+        let statement = operator_key_statement(&pop_msg, &o.request.new_operator_pop)?;
+        let leaf_index = self
+            .log
+            .append(statement.as_bytes())
+            .map_err(|e| IssueError::Io(e.to_string()))?;
+        self.operator_keys.insert(
+            format!("{}:{}", spec.operator, spec.lineage),
+            OperatorKeyEntry {
+                operator: spec.operator.clone(),
+                lineage: spec.lineage.clone(),
+                key: o.request.new_operator_key.clone(),
+                pop: o.request.new_operator_pop.clone(),
+                leaf_index,
+            },
+        );
+        self.revoke(&old_sub, now)?;
+        self.ownerships[i].state = TransferState::Completed { sub };
+        Ok(rec)
     }
 }

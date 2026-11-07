@@ -10,6 +10,37 @@ We **publicly own fixed security bugs** — hiding them would be the opposite of
 
 ## [Unreleased]
 
+### Security — the first independent adversarial review (D-104)
+
+- **Registrar:**
+  - The public demo door can no longer revoke, renew or mint under a real passport's name.
+  - The service image no longer opens that door.
+  - Read endpoints sign at the registrar's own clock, not at a caller's `?now=`.
+  - The HTTP server serves connections concurrently with timeouts: one idle socket no longer stops it.
+  - New registrars take 32 random bytes for their keys instead of a hash of their public id.
+  - A registrar on a real clock refuses id-derived keys unless `AINRA_TEST_DERIVED_KEYS=1` (TEST only).
+- **Transfer door:**
+  - A distrusted registrar's status no longer strands a move.
+  - Another registrar's status list cannot stand in for the passport's own.
+- **Verifiers (Rust, TypeScript, Python):**
+  - A passport's subject must name the registrar, operator and lineage of its issuer.
+  - The first delegation grant must fit the scope ceiling.
+  - TypeScript now refuses negative log positions, unknown tiers and classes, a missing `cnf` and non-integer times.
+  - Python now refuses unlinked chains, loose names, a missing `cnf` and a negative `nbf`, and accepts bundles
+    presented against a newer checkpoint.
+  - Thirteen new vectors hold all three to it (1,156 → 1,169).
+- **Gates:**
+  - `@ainra/edge` caps request bodies (`maxBodyBytes`) and its nonce cache fails closed when full.
+  - `@ainra/middleware` refuses a signed request whose raw body it was not given.
+
+### Added — a lineage can change owner (D-103)
+
+- **`POST /ownership-open`, `/ownership-contest`, `/ownership-complete`, `GET /ownership-changes`** at the reference
+  registrar. The old owner gives a lineage away with the operator key its registrar logged, and an agent key cannot.
+  The change is public for five days and the old operator key may stop it. Assurance starts again: the registrar sets
+  the new owner's tier, class and scope, and nothing is copied. The new passport's signed history names the old one
+  (`kind: "ownership"`, `assurance_reset: true`), the old lineage is revoked, and the sixty-day lock covers any change.
+
 ### Added — a lineage can move to another registrar (D-102)
 
 - **The transfer door** at the reference registrar: `POST /transfer-in`, `/transfer-consent`, `/transfer-contest`,

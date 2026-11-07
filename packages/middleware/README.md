@@ -75,7 +75,7 @@ depends on the lenient path.
 ## Underneath
 
 Verification is [`@ainra/sdk`](https://www.npmjs.com/package/@ainra/sdk) — one of the three implementations that
-agree on all 1156 conformance vectors, on verdict and reason. This package adds only the request plumbing: header decoding, the 403, the
+agree on all 1169 conformance vectors, on verdict and reason. This package adds only the request plumbing: header decoding, the 403, the
 verdict event, and `req.ainra`.
 
 Licensed Apache-2.0 OR MIT.

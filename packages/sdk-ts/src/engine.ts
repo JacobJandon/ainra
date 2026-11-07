@@ -219,6 +219,9 @@ function parseChecked(claims: Uint8Array): Passport {
   if (o.vct !== VCT) throw new Reject("schema_violation");
   if (typeof o.sub !== "string" || !parseName(o.sub)) throw new Reject("name_malformed");
   if (typeof o.iss !== "string" || parseDidRegistrar(o.iss) === null) throw new Reject("name_malformed");
+  // The subject names the registrar, operator and lineage that signed it (D-104): trust comes from the issuer alone,
+  // so a subject in another registrar's namespace is malformed (2026-11-07 review).
+  if (o.sub.split("@")[0].slice("ainra:".length) !== o.iss.slice("did:ainra:".length)) throw new Reject("name_malformed");
   // authority (nested deny_unknown_fields + required fields)
   denyUnknown(o.authority, ALLOWED_AUTHORITY);
   reqString((o.authority as Record<string, unknown>).class);
@@ -232,7 +235,15 @@ function parseChecked(claims: Uint8Array): Passport {
     if (typeof ke.ed25519 !== "string" || ke.ed25519.length === 0) throw new Reject("schema_violation");
     if (typeof ke.mldsa65 !== "string" || ke.mldsa65.length === 0) throw new Reject("schema_violation");
   }
-  if (typeof o.nbf !== "number" || typeof o.exp !== "number" || o.exp <= o.nbf) throw new Reject("schema_violation");
+  // nbf/exp are u64 in Rust: a negative, fractional or unsafe number does not decode there (2026-11-07 review).
+  if (!isU64(o.nbf) || !isU64(o.exp) || o.exp <= o.nbf) throw new Reject("schema_violation");
+  // tier and authority.class are closed enums in Rust (MTS §15), and cnf is a required field (any JSON value).
+  if (!["L0", "L1", "L2", "L3", "L4"].includes(o.tier as string)) throw new Reject("schema_violation");
+  if (!["A1", "A2", "A3", "A4"].includes((o.authority as Record<string, unknown>).class as string)) {
+    throw new Reject("schema_violation");
+  }
+  if (!("cnf" in o)) throw new Reject("schema_violation");
+  if ("transfer_history" in o && !Array.isArray(o.transfer_history)) throw new Reject("schema_violation");
   // capabilities + scope_ceiling are REQUIRED string arrays (Rust has no serde default — review #10)
   const capabilities = reqStringArray(o.capabilities);
   const scope_ceiling = reqStringArray(o.scope_ceiling);
@@ -257,7 +268,7 @@ function parseChecked(claims: Uint8Array): Passport {
     if (!reqString(hop.from) || !parseName(hop.from)) throw new Reject("name_malformed");
     if (!reqString(hop.to) || !parseName(hop.to)) throw new Reject("name_malformed");
     reqStringArray(hop.granted);
-    if (typeof hop.exp !== "number") throw new Reject("schema_violation");
+    if (!isU64(hop.exp)) throw new Reject("schema_violation");
     if (!hop.sig_ed25519 || !hop.sig_mldsa65 || !hop.sig_child_ed25519 || !hop.sig_child_mldsa65 || !hop.log_leaf)
       throw new Reject("schema_violation");
   }
@@ -763,6 +774,8 @@ function verifyInner(pres: Presentation, anchors: TrustAnchors): void {
       const rc = verifyHybrid(pres.chainKeys[i + 1], msg, child);
       if (rc) throw new Reject(rc);
     }
+    // The first grant narrows within the scope ceiling, as in Rust (D-104).
+    if (!subset(p.act_chain[0].granted, p.scope_ceiling)) throw new Reject("chain_widening");
     let effCaps = p.act_chain[0].granted;
     let effExp = p.act_chain[0].exp;
     for (let i = 1; i < p.act_chain.length; i++) {
@@ -1029,6 +1042,11 @@ export function decodeInstance(i: NonNullable<PresentationBundle["instance"]>): 
 }
 
 function decodePresentation(pr: PresentedBundle, revoked: Set<string>, now: number, audience: string): Presentation {
+  // Rust decodes these as u64: a negative, fractional or unsafe number does not decode there (schema_violation), so
+  // it must not here. A negative leaf index passed the Merkle check here and slipped under a distrust cutoff
+  // (2026-11-07 review).
+  if (!isU64(pr.leaf_index) || !pr.hop_proofs.every((hp) => isU64(hp.leaf_index))) throw new Reject("schema_violation");
+  if (!isU64(pr.checkpoint?.size) || !isU64(pr.status_issued_at)) throw new Reject("schema_violation");
   return {
     claims: dec(pr.claims),
     issuerSig: { ed25519: dec(pr.issuer_sig.ed25519), mldsa65: dec(pr.issuer_sig.mldsa65) },

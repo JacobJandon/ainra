@@ -3,7 +3,7 @@
     "alg_downgrade": 26,
     "ceiling_exceeded": 24,
     "chain_expired": 48,
-    "chain_widening": 24,
+    "chain_widening": 25,
     "checkpoint_invalid": 72,
     "expired": 36,
     "instance_expired": 48,
@@ -11,18 +11,18 @@
     "instance_scope_exceeds": 24,
     "instance_sig_invalid": 24,
     "mandate_revoked": 24,
-    "name_malformed": 24,
+    "name_malformed": 30,
     "not_logged": 75,
     "not_yet_valid": 30,
     "registrar_distrusted": 24,
     "revoked": 48,
-    "schema_violation": 129,
+    "schema_violation": 134,
     "sig_invalid": 48,
     "stale_status": 24,
     "unknown_registrar": 24,
-    "valid": 308
+    "valid": 309
   },
-  "count": 1156,
+  "count": 1169,
   "note": "CC0 conformance vectors. Each is a real signed credential + expected verdict. Regenerate with `make vectors`.",
   "version": "v1"
 }

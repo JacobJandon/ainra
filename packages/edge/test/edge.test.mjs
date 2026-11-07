@@ -168,3 +168,14 @@ test("the stores are bounded and forget", () => {
   assert.equal(n.seen("x", T), true, "a nonce is single use");
   assert.equal(n.seen("x", T + 400), false, "past the acceptance window it cannot verify anyway, so it is forgotten");
 });
+
+// 2026-11-07 review (D-104): a full nonce cache refuses instead of forgetting a nonce that is still inside the window.
+// Evicting the oldest let anyone with a valid credential flush a captured request's nonce and replay it.
+test("a full nonce cache refuses rather than forgets a live nonce", () => {
+  const n = createNonceCache({ max: 2 });
+  assert.equal(n.seen("captured", T), false);
+  assert.equal(n.seen("filler", T), false);
+  assert.equal(n.seen("flood", T + 1), true, "full of live nonces: refused, fail closed");
+  assert.equal(n.seen("captured", T + 2), true, "the captured nonce was not evicted, so its replay is still refused");
+  assert.equal(n.seen("later", T + 400), false, "once the window has passed, room returns");
+});

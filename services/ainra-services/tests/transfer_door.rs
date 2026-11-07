@@ -661,3 +661,65 @@ fn attacks_on_the_door_are_refused() {
         "a fresh version keeps the moves, so the lock and the trail cannot be shed"
     );
 }
+
+/// The 2026-11-07 review (D-104): a distrusted registrar cannot strand a customer through its status list — not by
+/// revoking during the window, not by going dark — and another registrar's genuine list cannot stand in for the
+/// passport's own.
+#[test]
+fn a_distrusted_registrar_cannot_strand_a_customer_through_its_status() {
+    let mut w = world("strand");
+    let cut = w.old.leaf_index + 2;
+    let dir_d = directory(&[&w.from], Some(("registrar-07", cut)));
+    let id = open(&mut w, &dir_d, true);
+    // The distrusted registrar revokes its customer during the window, and then publishes nothing at all.
+    let sub = w.old.sub.clone();
+    w.from.revoke(&sub, T0 + 3600).unwrap();
+    let dark = ainra_services::status::SignedStatusList {
+        uri: String::new(),
+        status_list_b64: String::new(),
+        bit_len: 0,
+        issued_at: 0,
+        sig_ed25519: String::new(),
+        sig_mldsa65: String::new(),
+    };
+    let sk = w.from.status_public();
+    let side = PeerRegistrar {
+        anchors: &dir_d,
+        revoked_delegates: &NO_REVOKED,
+        status_key: &sk,
+        status: &dark,
+    };
+    let old = w.old.clone();
+    let mut rng = w.rng.clone();
+    let new =
+        w.to.transfer_complete(
+            &id,
+            &old,
+            &side,
+            None,
+            None,
+            T0 + CONTEST_WINDOW_SECS,
+            &mut rng,
+        )
+        .expect("the move completes: a distrusted registrar's status counts for nothing");
+    assert_eq!(new.sub, "ainra:registrar-08:acme:billing@1.0.0");
+
+    // In good standing, another registrar's genuine, fresh list cannot stand in for the passport's own.
+    let mut w = world("substitute");
+    let dir_a = directory(&[&w.from], None);
+    let stranger = registrar("substitute", "registrar-09", 91);
+    let receipt = w.from.operator_key_receipt("acme", "billing").unwrap();
+    let (sk, st) = (stranger.status_public(), stranger.publish_status(T0));
+    let side = PeerRegistrar {
+        anchors: &dir_a,
+        revoked_delegates: &NO_REVOKED,
+        status_key: &sk,
+        status: &st,
+    };
+    let (req, old) = (request(&w, "registrar-08", T0, true), w.old.clone());
+    let e =
+        w.to.transfer_in(req, &old, &receipt, &side, T0)
+            .unwrap_err()
+            .to_string();
+    assert!(e.contains("not the one the passport names"), "{e}");
+}

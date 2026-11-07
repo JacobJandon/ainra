@@ -465,6 +465,17 @@ fn build_prevleaf_null(seed: u64) -> Built {
 /// lineage that moved registrars (D-102), or a nested key the denylist must find. Signed properly, with the extra
 /// claims inside the pre-log body, so the leaf binding holds and the expected verdict is whatever the schema gate says.
 fn build_with_claims(seed: u64, extra: Value) -> Built {
+    build_with(seed, false, |body| {
+        for (k, v) in extra.as_object().expect("extra claims are an object") {
+            body[k] = v.clone();
+        }
+    })
+}
+
+/// [`build_with_claims`], general: `edit` changes the pre-log body however a vector needs (set, remove, rename), and
+/// `newer_checkpoint` appends more entries after the credential, so the presented checkpoint is NEWER than the
+/// `log.root` the claims carry — exactly how a registrar presents a passport against its current checkpoint (M35).
+fn build_with(seed: u64, newer_checkpoint: bool, edit: impl FnOnce(&mut Value)) -> Built {
     let mut rng = ChaCha20Rng::seed_from_u64(0x4149_4E52_4154_0000 ^ seed);
     let issuer = crypto::HybridKeypair::generate(&mut rng);
     let root = crypto::TestRootSlh::generate(&mut rng);
@@ -483,9 +494,7 @@ fn build_with_claims(seed: u64, extra: Value) -> Built {
         "status": { "status_list": { "idx": p.status_idx, "uri": format!("status://{}/1", p.registrar) } },
         "act_chain": []
     });
-    for (k, v) in extra.as_object().expect("extra claims are an object") {
-        body[k] = v.clone();
-    }
+    edit(&mut body);
     let body_bytes = canon::canonicalize(&body).expect("canon").into_bytes();
     let leaf = merkle::hash_leaf(&body_bytes);
     let mut log = merkle::TestLog::new();
@@ -493,6 +502,13 @@ fn build_with_claims(seed: u64, extra: Value) -> Built {
         log.append(&[k]);
     }
     let leaf_index = log.append(&body_bytes);
+    // The claims commit to the root at issuance; a newer checkpoint is cut after more entries.
+    let issued_root = log.root();
+    if newer_checkpoint {
+        for k in 10..14u8 {
+            log.append(&[k]);
+        }
+    }
     let cp = checkpoint::Checkpoint {
         origin: format!("ainra-log/{}", p.registrar),
         tree_size: log.size(),
@@ -501,8 +517,7 @@ fn build_with_claims(seed: u64, extra: Value) -> Built {
     let cp_sig = checkpoint_sig(&cp, &root, &mut rng, false, None);
     let proof = log.inclusion_proof(leaf_index).expect("proof");
     let mut full = body;
-    full["log"] =
-        json!({ "leaf": b64::encode(&leaf), "root": b64::encode(&cp.root), "checkpoint": "cp-1" });
+    full["log"] = json!({ "leaf": b64::encode(&leaf), "root": b64::encode(&issued_root), "checkpoint": "cp-1" });
     let claims = canon::canonicalize(&full).expect("canon").into_bytes();
     let issuer_sig = issuer.sign(&claims).expect("sign");
     Built {
@@ -985,6 +1000,173 @@ fn generate() -> Vec<Vector> {
         ),
         Reason::SchemaViolation,
         "a forbidden key in another case (Wallet) — the denylist match is ASCII case-insensitive",
+    ));
+
+    // ── D-104: the 2026-11-07 independent review. Each vector holds all three implementations to one answer on a
+    //    rule one of them had wrong. ──
+    // The subject names the registrar that signed it. Trust is the issuer's alone, so a subject in another registrar's
+    // namespace let any registrar mint names in a competitor's (and slip past a gate's deny on its own id).
+    out.push(invalid(
+        wire_valid(
+            "name-iss-mismatch-0000",
+            "",
+            &build_with(3_140, false, |b| {
+                b["sub"] = json!("ainra:registrar-01:bigco:payments@1.0.0");
+            }),
+        ),
+        Reason::NameMalformed,
+        "the subject names another registrar's namespace than the issuer that signed it",
+    ));
+    out.push(invalid(
+        wire_valid(
+            "name-iss-mismatch-0001",
+            "",
+            &build_with(3_141, false, |b| {
+                let sub = b["sub"].as_str().unwrap().to_string();
+                let (head, ver) = sub.rsplit_once('@').unwrap();
+                let mut parts: Vec<&str> = head.split(':').collect();
+                parts[2] = "someone-else";
+                b["sub"] = json!(format!("{}@{}", parts.join(":"), ver));
+            }),
+        ),
+        Reason::NameMalformed,
+        "the subject names another operator than the issuer's",
+    ));
+    // The name grammar, exactly as name.rs: the Python verifier accepted each of these.
+    let renamed = |label: &'static str, version: &'static str| {
+        move |b: &mut Value| {
+            let parts: Vec<String> = b["iss"]
+                .as_str()
+                .unwrap()
+                .split(':')
+                .map(String::from)
+                .collect();
+            let (reg, op) = (parts[2].clone(), parts[3].clone());
+            b["iss"] = json!(format!("did:ainra:{reg}:{op}:{label}"));
+            b["sub"] = json!(format!("ainra:{reg}:{op}:{label}@{version}"));
+        }
+    };
+    out.push(invalid(
+        wire_valid(
+            "name-grammar-hyphen-0000",
+            "",
+            &build_with(3_142, false, renamed("agent-", "1.0.0")),
+        ),
+        Reason::NameMalformed,
+        "a label may not end with a hyphen",
+    ));
+    out.push(invalid(
+        wire_valid(
+            "name-grammar-long-label-0000",
+            "",
+            &build_with(
+                3_143,
+                false,
+                renamed(
+                    "a123456789b123456789c123456789d123456789e123456789f123456789xyzw",
+                    "1.0.0",
+                ),
+            ),
+        ),
+        Reason::NameMalformed,
+        "a label may not exceed 63 characters",
+    ));
+    out.push(invalid(
+        wire_valid(
+            "name-grammar-leading-zero-0000",
+            "",
+            &build_with(3_144, false, renamed("agent", "01.0.0")),
+        ),
+        Reason::NameMalformed,
+        "a version field may not have a leading zero",
+    ));
+    out.push(invalid(
+        wire_valid(
+            "name-grammar-newline-0000",
+            "",
+            &build_with(3_145, false, |b| {
+                let s = b["sub"].as_str().unwrap().to_string();
+                b["sub"] = json!(format!("{s}\n"));
+            }),
+        ),
+        Reason::NameMalformed,
+        "a name with a trailing newline is not a name",
+    ));
+    // The schema, exactly as passport.rs: the TypeScript verifier accepted each of these.
+    out.push(invalid(
+        wire_valid(
+            "schema-tier-unknown-0000",
+            "",
+            &build_with(3_146, false, |b| b["tier"] = json!("L5")),
+        ),
+        Reason::SchemaViolation,
+        "the tier vocabulary is closed: L0..L4",
+    ));
+    out.push(invalid(
+        wire_valid(
+            "schema-class-unknown-0000",
+            "",
+            &build_with(3_147, false, |b| {
+                b["authority"]["class"] = json!("A9");
+            }),
+        ),
+        Reason::SchemaViolation,
+        "the authority-class vocabulary is closed: A1..A4",
+    ));
+    out.push(invalid(
+        wire_valid(
+            "schema-cnf-missing-0000",
+            "",
+            &build_with(3_148, false, |b| {
+                b.as_object_mut().unwrap().remove("cnf");
+            }),
+        ),
+        Reason::SchemaViolation,
+        "cnf is a required claim",
+    ));
+    out.push(invalid(
+        wire_valid(
+            "schema-nbf-negative-0000",
+            "",
+            &build_with(3_149, false, |b| b["nbf"] = json!(-1)),
+        ),
+        Reason::SchemaViolation,
+        "nbf is an unsigned integer",
+    ));
+    // log.root is the issuance-time root; inclusion is proven against the presented, signed checkpoint, which may
+    // be newer. The Python verifier refused this, so it refused every bundle a registrar presents against its
+    // current checkpoint.
+    out.push(wire_valid(
+        "log-newer-checkpoint-0000",
+        "presented against a checkpoint newer than the issuance-time log.root — verifies everywhere",
+        &build_with(3_150, true, |_| {}),
+    ));
+    // The first grant narrows within the scope ceiling, like every grant after it (Rust and TS did not check).
+    {
+        let mut p = valid_chain_params(60);
+        p.chain[0].granted = caps(&["read:invoices", "sign:invoice", "pay:invoice"]);
+        out.push(invalid(
+            wire_valid("chain-widening-ceiling-0000", "", &build(&p)),
+            Reason::ChainWidening,
+            "the first hop grants a capability outside the lineage's scope ceiling",
+        ));
+    }
+    // The chain is linked: the last hop's delegate is this subject (the Python verifier did not check).
+    out.push(invalid(
+        wire_valid(
+            "chain-unlinked-0000",
+            "",
+            &build_mut(&valid_chain_params(61), |full| {
+                let n = full["act_chain"].as_array().unwrap().len();
+                let sub = full["sub"]
+                    .as_str()
+                    .unwrap()
+                    .replace("@1.0.0", "-other@1.0.0");
+                full["act_chain"][n - 1]["to"] = json!(sub);
+            }),
+        ),
+        Reason::SchemaViolation,
+        "the last hop delegates to someone other than this subject",
     ));
 
     // ── D-029 canonical-encoding sweep: a non-canonical base64url encoding of a CLAIMS-INTERNAL decoded field

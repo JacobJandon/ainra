@@ -7,7 +7,7 @@
 // Node Buffer, no filesystem), so the same file runs in a Worker, in Deno, and in Node's fetch server.
 //
 // WHAT ANSWERS. Not a re-implementation: `ainra-core` itself, compiled to WebAssembly — the Rust verify path that
-// generates the conformance corpus, held to all 1156 passport vectors in the browser (`make wasm-diff`) and to the
+// generates the conformance corpus, held to all 1169 passport vectors in the browser (`make wasm-diff`) and to the
 // request-signature corpus here. The only JavaScript is what must be stateful, which the core cannot be (N7):
 //   * the send-once store (D-065) — bundles sent to PRIME_PATH, verified in full, named by digest;
 //   * the nonce cache — single use, checked only AFTER the signature holds (D-062).
@@ -62,11 +62,36 @@ export function createNonceCache({ max = 100_000 } = {}) {
     seen(nonce, now) {
       for (const [k, t] of m) { if (now - t > NONCE_TTL_SECS) m.delete(k); else break; }
       if (m.has(nonce)) return true;
+      // Full of nonces still inside the window: refuse rather than forget one. Evicting the oldest let anyone with a
+      // valid credential flush a captured request's nonce and replay it (2026-11-07 review). Fail closed; size `max`
+      // for the gate's traffic over NONCE_TTL_SECS.
+      if (m.size >= max) return true;
       m.set(nonce, now);
-      while (m.size > max) m.delete(m.keys().next().value);
       return false;
     },
   };
+}
+
+/** Read a request body, refusing (null) once it passes `max` bytes — before it is all in memory. The body is not
+ *  authenticated yet when it is read, so an unbounded read let anyone exhaust the gate's memory (2026-11-07 review). */
+async function readCapped(request, max) {
+  const declared = Number(request.headers.get("content-length"));
+  if (Number.isFinite(declared) && declared > max) return null;
+  if (!request.body) return new Uint8Array(0);
+  const reader = request.body.getReader();
+  const parts = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.length;
+    if (total > max) { try { await reader.cancel(); } catch { /* already closed */ } return null; }
+    parts.push(value);
+  }
+  const out = new Uint8Array(total);
+  let o = 0;
+  for (const p of parts) { out.set(p, o); o += p.length; }
+  return out;
 }
 
 // ── web-standard base64url (no Buffer) ───────────────────────────────────────────────────────────────────────────
@@ -108,7 +133,8 @@ function accreditAtLeast(directoryJson, rootsJson, minEpoch) {
  *
  * Options: `directory` + `roots` (the published, root-signed directory and the two ceremony root keys), `audience`
  * (who THIS service is — ADR-019; never taken from the request), `freshness` ("F1" | "F2" | "F3", default "F2"),
- * `now` (seconds), `store`, `nonces`, `primePath`, `maxPrimeBytes`, and `minEpoch` (PLAN-M50): the lowest directory
+ * `now` (seconds), `store`, `nonces`, `primePath`, `maxPrimeBytes`, `maxBodyBytes` (default 1 MiB; a larger body is
+ * refused with 413 before it is read whole), and `minEpoch` (PLAN-M50): the lowest directory
  * epoch this gate accepts — pass the highest epoch a previous gate accepted when you rebuild it on a directory refresh.
  * Rejects if the directory does not verify, or is older than `minEpoch` (a rollback).
  *
@@ -123,7 +149,8 @@ function accreditAtLeast(directoryJson, rootsJson, minEpoch) {
  */
 export async function createAinraEdgeGate({ directory, roots, audience, freshness = "F2",
   now = () => Math.floor(Date.now() / 1000), store = createStore(), nonces = createNonceCache(),
-  primePath = PRIME_PATH, maxPrimeBytes = 256 * 1024, decisions = null, minEpoch = 0, currency = false, policy = {} } = {}) {
+  primePath = PRIME_PATH, maxPrimeBytes = 256 * 1024, maxBodyBytes = 1024 * 1024, decisions = null, minEpoch = 0, currency = false,
+  policy = {} } = {}) {
   if (typeof audience !== "string" || !audience) throw new Error("createAinraEdgeGate: `audience` is required — the gate must know who it is (ADR-019)");
   if (!["F1", "F2", "F3"].includes(freshness)) throw new Error(`createAinraEdgeGate: freshness must be F1, F2 or F3, not ${freshness}`);
   if (!engineReady()) throw new Error("@ainra/edge: call initAinra(wasm) before creating a gate");
@@ -179,8 +206,10 @@ export async function createAinraEdgeGate({ directory, roots, audience, freshnes
 
     // ── send once (D-065): verify in full, keep the stable part, answer with its digest ─────────────────────────
     if (request.method === "POST" && url.pathname === primePath) {
-      const text = await request.text();
-      if (text.length > maxPrimeBytes) return deny(413, "schema_violation", null);
+      const primeBytes = await readCapped(request, maxPrimeBytes);
+      if (!primeBytes) return deny(413, "schema_violation", null);
+      let text;
+      try { text = utf8.decode(primeBytes); } catch { return deny(403, "schema_violation", null); }
       let bundle;
       try { bundle = JSON.parse(text); } catch { return deny(403, "schema_violation", null); }
       if (!bundle || typeof bundle !== "object" || Array.isArray(bundle)) return deny(403, "schema_violation", null);
@@ -222,7 +251,8 @@ export async function createAinraEdgeGate({ directory, roots, audience, freshnes
     }
     let body = null;
     if (request.method !== "GET" && request.method !== "HEAD" && request.body) {
-      const bytes = new Uint8Array(await request.clone().arrayBuffer());
+      const bytes = await readCapped(request.clone(), maxBodyBytes);
+      if (!bytes) return deny(413, "schema_violation", null);
       if (bytes.length) body = bytesToB64u(bytes);
     }
     const req = { method: request.method, authority: url.host, path: url.pathname + url.search, headers: [...request.headers], body_b64u: body };

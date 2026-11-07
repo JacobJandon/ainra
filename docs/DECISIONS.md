@@ -2974,7 +2974,7 @@ difference, and it now lowercases ASCII only, as Rust does.
 none, so every earlier passport's bytes are unchanged. The verifier, the reasons and every other corpus are unchanged.
 The root still never chooses a gaining registrar (P6).
 
-*Standard text:* §3 still says holder-driven portability is "not built yet". Changing it is an amendment, which needs
-the operator's approval of the new sentence (`GOVERNANCE-AMENDMENT.md`). It is proposed in this record and not made.
+*Standard text:* §3 said holder-driven portability was "not built yet". Amended 2026-11-07 with the operator's
+approval to cite this record (`docs/AMENDMENTS.md`).
 
 *Status:* ACCEPTED 2026-11-07, building PLAN-M53 step 7 (PLAN-M52 step 12).

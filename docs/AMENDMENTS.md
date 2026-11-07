@@ -97,3 +97,17 @@ touched. The public diff is the commit itself; the entry names it once it exists
   P6 forbids the root choosing a gaining registrar, and what the code does is distrust from a log position (D-044) or
   withdrawal. The texts are brought to the code; holder-driven portability is named as planned (PLAN-M52 step 12).
   P1–P6 are untouched.
+
+## 2026-11-07 — The Standard §3: holder-driven portability is built (D-102)
+
+- **Era:** operator-run
+- **Approved by:** the operator, with this public record. The operator was shown the proposed sentence and replied
+  "i approve 1,,3,4 to you do them", item 1 being this amendment.
+- **Files touched:** `docs/AINRA_I_The_Standard.md` §3 (one clause); its renderings in `site/docs.html`,
+  `site/standard.md`, `site/AINRA_I_The_Standard.md`; `docs/FREEZE.sha256`. Decision record: `D-102` in
+  `docs/DECISIONS.md`. Evidence: `services/ainra-services/tests/transfer_door.rs` and `transfer_http.rs`.
+- **Rationale:** the 2026-11-06 amendment (D-093) named holder-driven portability as planned: "its holders may move to
+  another accredited registrar of their own choosing, by holder-driven portability, not built yet". D-102 built it:
+  the operator signs a move, the window is public, a distrusted registrar cannot keep its customers, and the root
+  never chooses the gaining registrar. "Not built yet" became untrue, so the clause now cites the decision that built
+  it. Only those three words change. P1–P6 are untouched.

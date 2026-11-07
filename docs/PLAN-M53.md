@@ -75,7 +75,7 @@ named reason, in all four implementations and the edge gate. This is the fastest
 
 ### Phase B — keep the Standard's promises
 
-**7. Portability: the transfer door** *Built 2026-11-07 (D-102): `registrar_transfer.rs` and the `/transfer-*` doors; the operator signs, a five-day public window, a sixty-day lock, the history in the signed passport, distrust honoured both ways. Witnessed by `transfer_door.rs` and `transfer_http.rs`. The Standard §3 sentence awaits an amendment.* (PLAN-M52 step 12; Standard 0.5(iii); MTS F6 and `POST /transfer-out|in`).
+**7. Portability: the transfer door** *Built 2026-11-07 (D-102): `registrar_transfer.rs` and the `/transfer-*` doors; the operator signs, a five-day public window, a sixty-day lock, the history in the signed passport, distrust honoured both ways. Witnessed by `transfer_door.rs` and `transfer_http.rs`. The Standard §3 was amended 2026-11-07 to cite D-102.* (PLAN-M52 step 12; Standard 0.5(iii); MTS F6 and `POST /transfer-out|in`).
 - The transfer is signed by the operator's key. An agent key alone is refused.
 - A public pending-transfer record opens a contest window for the losing registrar and the operator.
 - A lock follows the transfer.

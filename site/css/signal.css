@@ -1,0 +1,83 @@
+/* SPDX-License-Identifier: Apache-2.0 OR MIT */
+/* The third colour layer: SIGNAL. Paper and ink carry the reading, green carries trust, red carries refusal; signal
+   carries life — what moves, what you can act on, what is happening now. It never stands for a verdict, so it
+   cannot be mistaken for "valid" (green) or "refused" (red). Loaded last on every page.
+   Every rule below reads the five tokens, so a different signal colour is a few-line override. Contrast, measured
+   for the default (blue): --signal-ink on --paper 6.6:1, white on --signal 5.2:1, --signal-lite on --ink 9.1:1. */
+:root{
+  --signal:#2F5BFF;        /* fills: the call to action, dots, rules */
+  --signal-ink:#2346D8;    /* text, icons and thin lines on paper; the pressed and hover fill */
+  --signal-lite:#9DB2FF;   /* text and icons on ink */
+  --signal-soft:#E8EDFF;   /* washes behind text */
+  --signal-glow:rgba(47,91,255,.18);
+  --signal-rgb:47,91,255;        /* the same colours as channels, for translucent fills */
+  --signal-lite-rgb:157,178,255;
+}
+
+/* text selection and the keyboard focus ring: the first places a visitor touches the page */
+::selection{background:var(--signal-soft);color:var(--ink)}
+:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
+
+/* ── the header's call to action ──────────────────────────────────────────────────────────────────────────────────
+   over the hero film it stays exactly as it was (transparent, a light outline, paper text) so the film stays the
+   picture; the moment the page scrolls onto paper it turns solid signal; on phones, where it is the bottom bar, it is
+   solid signal throughout. Every state keeps the wipe from the left on hover. */
+nav:not([class]) .nav-r > .btn:first-child{background:var(--signal);border-color:var(--signal);color:#fff;
+  transition:background-color var(--t-fast,.2s) ease,border-color var(--t-fast,.2s) ease,color var(--t-fast,.2s) ease}
+nav:not([class]) .nav-r > .btn:first-child::before{background:var(--signal-ink)}
+nav:not([class]) .nav-r > .btn:first-child:hover,
+nav:not([class]) .nav-r > .btn:first-child:focus-visible{color:#fff;border-color:var(--signal-ink)}
+html.nav-on-dark nav:not([class]) .nav-r > .btn:first-child,
+html.g-search-open nav:not([class]) .nav-r > .btn:first-child{color:var(--paper);border-color:rgba(245,246,243,.7);background:transparent}
+html.nav-on-dark nav:not([class]) .nav-r > .btn:first-child::before{background:var(--signal)}
+html.nav-on-dark nav:not([class]) .nav-r > .btn:first-child:hover,
+html.nav-on-dark nav:not([class]) .nav-r > .btn:first-child:focus-visible{color:#fff;border-color:var(--signal)}
+@media (max-width:800px){
+  nav:not([class]) .nav-r > .btn:first-child,
+  html.nav-on-dark nav:not([class]) .nav-r > .btn:first-child{background:var(--signal);border-color:var(--signal);color:#fff}
+  nav:not([class]) .nav-r > .btn:first-child::before{background:var(--signal-ink)}
+}
+
+/* ── buttons: the existing hover wipe fills with signal instead of ink ────────────────────────────────────────────── */
+.btn-ghost::before{background:var(--signal)}
+.btn-ghost:hover,.btn-ghost:focus-visible{color:#fff;border-color:var(--signal)}
+.btn-ink:hover,.btn-ink:focus-visible{background:var(--signal);border-color:var(--signal)}
+[aria-label="Next cards"]:hover,[aria-label="Previous cards"]:hover,
+[aria-label="Next cards"]:focus-visible,[aria-label="Previous cards"]:focus-visible{background:var(--signal);border-color:var(--signal);color:#fff}
+.g-tabs__all:hover,.g-tabs__all:focus-visible{background:var(--signal);border-color:var(--signal);color:#fff}
+
+/* ── the statement: the second half of the sentence glows from grey into signal ────────────────────────────────── */
+.g-statement__t .soft,.statement-big .soft{background:linear-gradient(90deg,var(--muted) 0%,var(--signal-ink) 85%);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-box-decoration-break:clone;box-decoration-break:clone}
+
+/* ── eyebrows and underlines: where the eye lands first ─────────────────────────────────────────────────────────── */
+.c-hero .u{background-image:linear-gradient(90deg,var(--green),var(--signal))}
+.g-hero__k,.g-lead__k,.h-trip__k{color:var(--signal-ink)}
+
+/* ── the check cards: their own colours at rest; touched, a signal edge and the icon fills with signal ───────────────────────────────────────────────── */
+.g-ask__i{transition:background-color .25s ease,color .25s ease,border-color .25s ease}
+.g-ask{transition:box-shadow .25s ease}
+.g-ask:hover{box-shadow:inset 0 3px 0 var(--signal)}
+.g-ask:hover .g-ask__i{background:var(--signal);color:#fff;border-color:var(--signal)}
+
+/* ── the closing tiles: arrows point in signal; the light tile warms on touch ───────────────────────────────────── */
+.g-duplex__go{color:var(--signal-ink)}
+.g-duplex__b .g-duplex__go{color:var(--signal-lite)}
+.g-duplex__a{transition:background-color .3s ease}
+.g-duplex__a:hover{background:var(--signal-soft)}
+
+/* ── inner pages: the chapter the reader is in, marked in signal ─────────────────────────────────────────────────── */
+.chapter-rail a[aria-current="true"],.chapter-rail a.is-current{color:var(--signal-ink);box-shadow:inset 2px 0 0 var(--signal)}
+.rail-ink{background:var(--signal)}
+@media (max-width:1023px){.chapter-rail a[aria-current="true"],.chapter-rail a.is-current,
+  .chapter-rail.has-ink a[aria-current="true"],.chapter-rail.has-ink a.is-current{box-shadow:inset 0 -2px 0 var(--signal)}}
+
+/* ── links in running text ─────────────────────────────────────────────────────────────────────────────────────── */
+main a:not(.btn):not([class*="g-"]):hover{color:var(--signal-ink)}
+
+/* ── the live marker breathes ──────────────────────────────────────────────────────────────────────────────────── */
+.live::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--signal);margin-right:8px;vertical-align:middle;animation:signal-breathe 2.4s ease-out infinite}
+@keyframes signal-breathe{0%{box-shadow:0 0 0 0 var(--signal-glow)}70%{box-shadow:0 0 0 8px transparent}100%{box-shadow:0 0 0 0 transparent}}
+
+@media (prefers-reduced-motion:reduce){.live::before{animation:none}.g-ask,.g-ask__i,.g-duplex__a{transition:none}}
+/* forced-colours (Windows high contrast): let the system colours win, keep the text readable */
+@media (forced-colors:active){.g-statement__t .soft,.statement-big .soft{background:none;color:CanvasText}}

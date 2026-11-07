@@ -10,6 +10,23 @@ We **publicly own fixed security bugs** — hiding them would be the opposite of
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [0.8.0] — 2026-11-07
+
+The release commit; its board is `docs/releases/v0.8.0-board.md`. Published to npm and PyPI from the tag, by the
+release workflow, on the operator's instruction. What it carries:
+- the fixes from the first independent adversarial review (D-104), in all three verifiers, the gates and the registrar;
+- a lineage can move between registrars (D-102) and change owner (D-103);
+- a gate's own policy, `denied_by_policy` (D-100);
+- the remote emergency ceremony (D-101);
+- the steward's desk (D-099), distrust on proof (D-098), and a witnessed epoch log (D-097).
+
+**Stricter, on purpose.** A passport whose subject names another registrar's namespace than its issuer's, or whose
+first delegation grant exceeds its scope ceiling, is now refused everywhere. No registrar issues either. A signed
+request whose body `@ainra/middleware` was not given is refused, so capture the raw body with body-parser's
+`verify` hook. `@ainra/edge` refuses bodies over `maxBodyBytes` (1 MiB by default).
+
 ### Security — the first independent adversarial review (D-104)
 
 - **Registrar:**

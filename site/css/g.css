@@ -687,3 +687,54 @@ nav:not([class]) .nav-r .g-menubtn,nav:not([class]) .nav-r .g-sq{min-width:40px;
 .g-car__card.is-bp .g-tabs__label{opacity:0;transform:translateY(-10px);pointer-events:none}
 /* phones: the details panel is dropped too — the page below says the same, and on a small screen it covers it */
 @media (max-width:800px){.g-side{display:none}}
+
+/* ── G, seventh pass (2026-11-10, owner: "the headline static at the lower left of the hero while the video plays
+   behind it"): the headline leaves the film and stands in the page again, ink on the film's own paper. The film's
+   drawings play on one stage in the upper right (film/cut2.py), clear of the headline, the header and the Details
+   panel; its world shots dissolve into paper toward the bottom, so the words read over any of them. The film is
+   anchored a little right of centre: on a narrower window the stage stays whole and the crop falls on the left. ── */
+.g-hero__v{object-position:85% 50%}
+.g-hero__plate{display:block;position:absolute;left:clamp(16px,3vw,48px);bottom:clamp(48px,11vh,128px);max-width:none;background:transparent;border:0;border-radius:0;padding:0;z-index:2}
+.g-hero h1.display{font-size:clamp(44px,5.2vw,104px);line-height:.96;letter-spacing:-.04em;font-weight:500;margin:0;max-width:none;color:var(--ink)}
+/* the words rise out of a clipped box; at this tight leading the box needs room for the descenders (g, p) */
+.g-hero h1.display .gw{padding-bottom:.2em;margin-bottom:-.2em}
+.rv .g-hero.is-in .g-hero__plate{clip-path:none}   /* the first pass's reveal still boxed the plate, and cut the g of "agent" */
+/* how the headline arrives (2026-11-10, owner: "a better animation, smooth"): a short signal rule draws in above it,
+   then each word rises out of its own clipped line, tilting level and clearing as it lands, a beat after the word
+   before — one long ease, transform and opacity only, so it stays on the compositor. With motion off (no .rv) the
+   headline and the rule are simply there. */
+.g-hero__plate::before{content:"";display:block;width:clamp(40px,4.2vw,72px);height:2px;background:var(--signal,#2F5BFF);margin:0 0 clamp(14px,1.6vw,26px) .06em;transform-origin:0 50%}
+.rv .g-hero__plate::before{transform:scaleX(0);transition:transform .9s cubic-bezier(.16,1,.3,1) .05s}
+.rv .g-hero.is-in .g-hero__plate::before{transform:none}
+.rv .g-hero h1.display .gw > span{transform:translate3d(0,115%,0) rotate(6deg);transform-origin:0 100%;opacity:0;
+  transition:transform 1.2s cubic-bezier(.16,1,.3,1) calc(var(--i) * 80ms + .18s),opacity .55s ease-out calc(var(--i) * 80ms + .18s)}
+.rv .g-hero.is-in h1.display .gw > span{transform:none;opacity:1}
+/* the hero's last sliver is paper, so it meets the page below without an edge */
+.g-hero__scrim{display:block;position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(245,246,243,0) 86%,var(--paper) 100%)}
+/* the Details panel, a little tighter beside this hero, so on a full-size window it ends below the film's stage; where
+   it still would not (a short window), g.mjs starts it closed and the edge tab offers it */
+.g-hero + .g-side{padding:14px 16px 12px}
+.g-hero + .g-side .g-side__head{margin-bottom:8px}
+.g-hero + .g-side ul{gap:10px}
+/* a short, wide window crops the film top and bottom: take most of it from the bottom, so the stage stays below the header */
+@media (max-height:720px) and (min-aspect-ratio:16/9){.g-hero__v{object-position:85% 20%}}
+/* a phone, or any window taller than it is wide: the film is a strip on top (its phone cut: each drawing fills the
+   frame), and the headline sits under it on paper */
+@media (max-width:700px),(max-aspect-ratio:5/4){
+  .g-hero{height:auto;min-height:0;display:flex;flex-direction:column}
+  .g-hero__film{position:relative;inset:auto;width:100%;height:auto;aspect-ratio:16/9}
+  .g-hero__v{object-position:50% 50%}
+  .g-hero__scrim{display:none}
+  .g-hero__plate{position:relative;left:auto;bottom:auto;padding:22px 16px 4px;background:var(--paper)}
+  .g-hero__plate::before{margin-bottom:14px}
+  .g-hero h1.display{font-size:clamp(40px,11vw,64px)}
+  /* the phone cut's drawings fill the frame, so the pause control leaves the film: a round button beside the headline */
+  .g-hero__pause{top:calc(56.25vw + 20px);bottom:auto;right:16px;width:40px;padding:0;justify-content:center;z-index:3}
+  .g-hero__pause .film__lbl{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+}
+/* a tall window wider than a phone (a tablet held upright): the header still floats, so the strip starts below it */
+@media (min-width:701px) and (max-aspect-ratio:5/4){
+  .g-hero{padding-top:102px}
+  .g-hero__pause{top:calc(56.25vw + 122px)}
+}
+

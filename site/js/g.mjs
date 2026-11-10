@@ -57,15 +57,18 @@ const tabs = document.querySelector("[data-tabs]");
 if (tabs) {
   const chips = [...tabs.querySelectorAll("[role=tab]")], data = [...tabs.querySelectorAll("[data-tab-data] li")].map((li) => ({ ...li.dataset }));
   const track = tabs.querySelector("[data-car-track]"), N = data.length, DWELL = 10000, GAP = 20;
+  // on a phone the card's caption is hidden, so each clip has a phone framing where the drawing fills the frame
+  // (data-src-m); those clips carry no blueprint, so nothing steps aside for one
+  const phone = matchMedia("(max-width:800px)").matches;
   const arrow = (dir) => `<button type="button" class="g-car__arr g-car__arr--${dir}" data-car-step="${dir === "prev" ? -1 : 1}" aria-label="${dir === "prev" ? "Previous" : "Next"}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="${dir === "prev" ? "M19 12H5m6-6-6 6 6 6" : "M5 12h14m-6-6 6 6-6 6"}" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></button>`;
   for (let copy = 0; copy < 3; copy++) for (let i = 0; i < N; i++) {
     const d = data[i], el = document.createElement("div");
     el.className = "g-car__card"; el.dataset.i = i; if (copy !== 1) el.setAttribute("aria-hidden", "true");
-    el.innerHTML = `<video muted playsinline loop preload="none" data-src="${d.src}"></video><a class="g-tabs__label" href="${d.href}"${copy !== 1 ? ' tabindex="-1"' : ""}><span class="g-tabs__k">${d.k}</span><b>${d.t} ↗</b></a>${arrow("prev")}${arrow("next")}`;
+    el.innerHTML = `<video muted playsinline loop preload="none" data-src="${(phone && d.srcM) || d.src}"></video><a class="g-tabs__label" href="${d.href}"${copy !== 1 ? ' tabindex="-1"' : ""}><span class="g-tabs__k">${d.k}</span><b>${d.t} ↗</b></a>${arrow("prev")}${arrow("next")}`;
     if (copy !== 1) el.querySelectorAll("button").forEach((x) => (x.tabIndex = -1));
     // each clip ends on a blueprint with its own title in the top-left corner: from data-bp seconds on, the caption
     // steps aside (the chip still names the clip) and comes back when the clip starts again
-    if (d.bp) { const v = el.querySelector("video"); v.addEventListener("timeupdate", () => el.classList.toggle("is-bp", v.currentTime >= +d.bp)); }
+    if (d.bp && !(phone && d.srcM)) { const v = el.querySelector("video"); v.addEventListener("timeupdate", () => el.classList.toggle("is-bp", v.currentTime >= +d.bp)); }
     track.append(el);
   }
   const cards = [...track.children];
@@ -160,8 +163,18 @@ if (side && sideTab) {
   side.querySelector("[data-side-close]").addEventListener("click", () => { closedByReader = true; set(false); sideTab.focus(); });
   sideTab.addEventListener("click", () => { closedByReader = false; set(true); side.querySelector("[data-side-close]").focus(); });
   side.addEventListener("keydown", (e) => { if (e.key === "Escape") { closedByReader = true; set(false); sideTab.focus(); } });
+  // the film's drawings play on a stage in its upper right (data-stage-bottom: where that stage ends, as a fraction of
+  // the 1920×1080 frame). On a short window the panel would cover the stage's lower right, and on a tall one
+  // (the film a strip at the top) the page's text; there it starts closed and the edge tab offers it — the same
+  // state as when the reader closes it.
+  const overStage = () => {
+    const v = document.querySelector(".g-hero [data-film][data-stage-bottom]"); if (!v) return false;
+    const r = v.getBoundingClientRect(), k = Math.max(r.width / 1920, r.height / 1080), py = parseFloat(getComputedStyle(v).objectPosition.split(" ")[1]) / 100;
+    if (r.height < innerHeight * 0.6) return true;   // a tall window: the film is a strip at the top and the page's own text is where the panel would sit
+    return r.top + scrollY + (r.height - 1080 * k) * py + +v.dataset.stageBottom * 1080 * k > side.getBoundingClientRect().top - 4;
+  };
   const introMs = document.getElementById("gIntro") && html.classList.contains("rv") ? 1150 : 300;
-  setTimeout(() => { ready = true; if (heroOn && !closedByReader) set(true); }, introMs);
+  setTimeout(() => { ready = true; if (overStage()) closedByReader = true; if (heroOn) set(!closedByReader); }, introMs);
   if (heroBox && "IntersectionObserver" in window) new IntersectionObserver((es) => {
     heroOn = es[0].intersectionRatio > 0.35;
     if (!heroOn) { side.classList.remove("is-open"); sideTab.classList.remove("is-shown"); sideTab.setAttribute("aria-expanded", "false"); }
@@ -192,17 +205,14 @@ if (drift) {
 const gi = document.querySelector(".gi-hero");
 if (gi) setTimeout(() => gi.classList.add("is-in"), document.getElementById("gIntro") && html.classList.contains("rv") ? 950 : 0);
 
-// the header reads light-on-dark while the film's dark opening (its first 5 s, or the poster before it plays) is
-// behind it, and ink again once the film reaches its light footage or the hero scrolls out from under it
-const heroVid = document.querySelector(".g-hero [data-film]"), heroBoxEl = document.querySelector(".g-hero");
-if (heroVid && heroBoxEl) {
-  const OPENING = 4.0;
-  const setDark = () => {
-    const r = heroBoxEl.getBoundingClientRect(), underNav = r.top < 90 && r.bottom > 90;
-    html.classList.toggle("nav-on-dark", underNav && heroVid.currentTime < OPENING);
-  };
-  heroVid.addEventListener("timeupdate", setDark); heroVid.addEventListener("seeked", setDark);
-  addEventListener("scroll", setDark, { passive: true }); setDark();
+// the header's call to action stays quiet (an outline) while the hero film is under it, and turns solid once the hero
+// has scrolled out from under the header. The film no longer opens on a dark title shot — the headline is the page's
+// own <h1> again — so the header never needs to read light-on-dark over it.
+const heroBoxEl = document.querySelector(".g-hero");
+if (heroBoxEl) {
+  const navEl = document.querySelector("nav:not([class])");
+  const setHero = () => { const r = heroBoxEl.getBoundingClientRect(), nb = navEl ? navEl.getBoundingClientRect().bottom : 90; html.classList.toggle("nav-on-hero", r.top < nb && r.bottom > nb); };
+  addEventListener("scroll", setHero, { passive: true }); addEventListener("resize", setHero); setHero();
 }
 
 // the wider argument (Docs): the talk loads from its host only when the reader presses play — nothing is requested before

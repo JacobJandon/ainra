@@ -158,7 +158,10 @@ for (const v of $$("[data-film]")) {
   let loaded = false, userPaused = html.dataset.motion === "off", onScreen = false;
   // the film waits for the page: its poster shows at once; the film itself starts downloading 1.2 s after load
   const afterLoad = new Promise((r) => (document.readyState === "complete" ? setTimeout(r, 1200) : addEventListener("load", () => setTimeout(r, 1200), { once: true })));
-  const load = () => { if (loaded) return; loaded = true; afterLoad.then(() => { for (const s of v.querySelectorAll("source[data-src]")) s.src = s.dataset.src; v.load(); decide(); }); };
+  // a phone (or a window taller than wide) gets the film's phone cut, where each drawing fills the frame
+  const small = matchMedia("(max-width:700px),(max-aspect-ratio:5/4)").matches;
+  if (small && v.dataset.posterM) v.poster = v.dataset.posterM;
+  const load = () => { if (loaded) return; loaded = true; afterLoad.then(() => { for (const s of v.querySelectorAll("source[data-src]")) s.src = (small && s.dataset.srcM) || s.dataset.src; v.load(); decide(); }); };
   const sync = () => { if (btn) { btn.setAttribute("aria-pressed", String(userPaused)); btn.setAttribute("aria-label", userPaused ? "Play the film" : "Pause the film"); if (lbl) lbl.textContent = userPaused ? "Play" : "Pause"; } };
   const decide = () => { if (!userPaused && onScreen && html.dataset.motion !== "off") { load(); v.play().catch(() => {}); } else v.pause(); };
   btn?.addEventListener("click", () => { userPaused = !userPaused; if (!userPaused) load(); sync(); decide(); });

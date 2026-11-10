@@ -19,9 +19,10 @@
 :focus-visible{outline:2px solid var(--signal);outline-offset:2px}
 
 /* ── the header's call to action ──────────────────────────────────────────────────────────────────────────────────
-   over the hero film it stays exactly as it was (transparent, a light outline, paper text) so the film stays the
-   picture; the moment the page scrolls onto paper it turns solid signal; on phones, where it is the bottom bar, it is
-   solid signal throughout. Every state keeps the wipe from the left on hover. */
+   over the hero film it stays quiet (transparent, an outline, no fill) so the film stays the picture; the moment the
+   page scrolls onto paper it turns solid signal; on phones, where it is the bottom bar, it is solid signal
+   throughout. Every state keeps the wipe from the left on hover. The film is light now (2026-11-10), so the quiet
+   state is ink on paper (html.nav-on-hero); the paper-on-dark state (html.nav-on-dark) stays for a dark hero. */
 nav:not([class]) .nav-r > .btn:first-child{background:var(--signal);border-color:var(--signal);color:#fff;
   transition:background-color var(--t-fast,.2s) ease,border-color var(--t-fast,.2s) ease,color var(--t-fast,.2s) ease}
 nav:not([class]) .nav-r > .btn:first-child::before{background:var(--signal-ink)}
@@ -32,8 +33,13 @@ html.g-search-open nav:not([class]) .nav-r > .btn:first-child{color:var(--paper)
 html.nav-on-dark nav:not([class]) .nav-r > .btn:first-child::before{background:var(--signal)}
 html.nav-on-dark nav:not([class]) .nav-r > .btn:first-child:hover,
 html.nav-on-dark nav:not([class]) .nav-r > .btn:first-child:focus-visible{color:#fff;border-color:var(--signal)}
+html.nav-on-hero nav:not([class]) .nav-r > .btn:first-child{color:var(--ink);border-color:var(--ink);background:transparent}
+html.nav-on-hero nav:not([class]) .nav-r > .btn:first-child::before{background:var(--signal)}
+html.nav-on-hero nav:not([class]) .nav-r > .btn:first-child:hover,
+html.nav-on-hero nav:not([class]) .nav-r > .btn:first-child:focus-visible{color:#fff;border-color:var(--signal)}
 @media (max-width:800px){
   nav:not([class]) .nav-r > .btn:first-child,
+  html.nav-on-hero nav:not([class]) .nav-r > .btn:first-child,
   html.nav-on-dark nav:not([class]) .nav-r > .btn:first-child{background:var(--signal);border-color:var(--signal);color:#fff}
   nav:not([class]) .nav-r > .btn:first-child::before{background:var(--signal-ink)}
 }

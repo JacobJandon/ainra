@@ -41,6 +41,24 @@ if (fig && img) {
 const hero = document.querySelector(".g-hero");
 if (hero && !document.getElementById("gIntro")) requestAnimationFrame(() => requestAnimationFrame(() => hero.classList.add("is-in")));
 
+// the headline leaves and returns with the film: data-chapters lists the seconds at which each world shot opens
+// (film/cut2.py prints them). Over the last 0.8 s of a chapter the words lift away; as the next opens they rise again.
+// Only while the film is actually playing and motion is on — paused, stalled or still, the headline stands.
+const chapVid = hero?.querySelector("[data-film][data-chapters]"), plate = hero?.querySelector(".g-hero__plate");
+if (chapVid && plate && html.classList.contains("rv")) {
+  const marks = chapVid.dataset.chapters.split(",").map(Number).filter((n) => n > 0), LEAD = 0.8;
+  let out = false, raf = 0;
+  const back = () => { if (!out) return; out = false; plate.classList.add("is-reset"); plate.classList.remove("is-out"); void plate.offsetWidth; plate.classList.remove("is-reset"); };
+  const tick = () => {
+    const t = chapVid.currentTime, ends = Number.isFinite(chapVid.duration) ? [...marks, chapVid.duration] : marks;
+    const leaving = ends.some((m) => t >= m - LEAD && t < m);
+    if (leaving && !out) { out = true; plate.classList.add("is-out"); } else if (!leaving) back();
+    raf = requestAnimationFrame(tick);
+  };
+  chapVid.addEventListener("playing", () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(tick); });
+  for (const ev of ["pause", "waiting", "ended", "emptied"]) chapVid.addEventListener(ev, () => { cancelAnimationFrame(raf); back(); });
+}
+
 // the announcement strip: dismissing it is remembered in this browser (a convenience; it may not persist)
 const ann = document.querySelector("[data-announce]");
 if (ann) {

@@ -3,7 +3,7 @@
 // (the copy of the staging network's read contract shipped with the site). Every fetch has a deadline (net.mjs).
 // The per-registrar checkpoint files are named by their height, so the page declares which ones it reads in
 // <meta name="ainra-checkpoints">, written by tools/record-stamp.mjs from the directory listing at build time.
-import { getJSON } from "./net.mjs";
+import { getJSON, sharedJSON } from "./net.mjs";
 import { model } from "./record-view.mjs";
 
 let P = null;
@@ -13,9 +13,9 @@ export function loadRecord() {
   return (P ||= (async () => {
     const b = base();
     const [published, registry, roots] = await Promise.all([
-      getJSON(`${b}/published.json`, { cache: "no-store" }),
-      getJSON(`${b}/registry.json`, { cache: "no-store" }),
-      getJSON(`${b}/roots.json`, { cache: "no-store" }).catch(() => null),
+      sharedJSON(`${b}/published.json`).then((r) => r.json),
+      sharedJSON(`${b}/registry.json`).then((r) => r.json),
+      sharedJSON(`${b}/roots.json`).then((r) => r.json).catch(() => null),
     ]);
     const checkpoints = {};
     const list = (document.querySelector('meta[name="ainra-checkpoints"]')?.content || "").split(/\s+/).filter(Boolean);

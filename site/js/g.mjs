@@ -101,7 +101,7 @@ if (tabs) {
   // the current card (and its two neighbours, which slide past) carries its still as the clip's poster, so a card is
   // never an empty panel — not while the clip loads, and not with motion off, where the clip waits for its own Play
   const playOnly = () => cards.forEach((c, k) => { const v = c.querySelector("video");
-    if (onScreen && Math.abs(k - pos) <= 1 && v.dataset.poster && !v.getAttribute("poster")) v.poster = v.dataset.poster;
+    if ((k === pos || (onScreen && Math.abs(k - pos) <= 1)) && v.dataset.poster && !v.getAttribute("poster")) v.poster = v.dataset.poster;   // the current card has its picture from the start
     c.inert = k !== pos;   // only the card on screen can be focused or clicked (the copies and off-screen cards were tab stops)
     c.classList.toggle("is-still", k === pos && !motion());
     if (k === pos && onScreen) { if (!v.getAttribute("src")) v.src = v.dataset.src;
@@ -285,9 +285,11 @@ if (sBtn) {
     const q = input.value.trim().toLowerCase(); ov.classList.toggle("has-q", !!q); clear.hidden = !q;
     if (!q) { list.innerHTML = ""; return; }
     const toks = q.split(/\s+/).filter(Boolean), d = await load();
-    const hits = d.map((e) => { const tl = e.t.toLowerCase(), hay = `${tl} ${e.x.toLowerCase()} ${e.p.toLowerCase()}`;
+    const hits = d.map((e) => { const tl = e.t.toLowerCase(), hay = `${tl} ${e.x.toLowerCase()} ${e.p.toLowerCase()} ${e.k || ""}`;
       if (!toks.every((k) => hay.includes(k))) return null;
-      return { e, s: toks.reduce((n, k) => n + (tl.includes(k) ? 3 : 1), 0) + (tl.startsWith(q) ? 5 : 0) }; })
+      // a word in the title or the page's name counts most, in the excerpt less, only in the part's body least
+      const pl = e.p.toLowerCase(), xl = e.x.toLowerCase();
+      return { e, s: toks.reduce((n, k) => n + (tl.includes(k) || pl.includes(k) ? 3 : xl.includes(k) ? 1 : 0.4), 0) + (tl.startsWith(q) ? 5 : 0) }; })
       .filter(Boolean).sort((a, b) => b.s - a.s).slice(0, 12);
     list.innerHTML = hits.length ? hits.map(({ e }) => `<li><a href="/${esc(e.u)}"><span class="g-search__p">${esc(e.p)}</span><span class="g-search__t">${mark(e.t, toks)}</span><span class="g-search__x">${mark(e.x, toks)}</span></a></li>`).join("")
       : `<li class="g-search__none">No results found</li>`;

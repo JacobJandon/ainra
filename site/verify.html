@@ -11,14 +11,14 @@
 <meta property="og:url" content="https://ainra.org/verify.html">
 <meta property="og:title" content="Verify — AINRA">
 <meta property="og:description" content="How AINRA verification works: seven checks, a fail-closed freshness profile, a reference CLI you can download, and a verifier you can run in the browser.">
-<meta property="og:image" content="https://ainra.org/og-cover.png">
-<meta property="og:image:alt" content="AINRA — the neutral root of AI-agent identity">
+<meta property="og:image" content="https://ainra.org/og-cover.png?v=2">
+<meta property="og:image:alt" content="A passport for every AI agent — AINRA">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Verify — AINRA">
 <meta name="twitter:description" content="How AINRA verification works — a handful of checks, fail-closed, offline-capable.">
-<meta name="twitter:image" content="https://ainra.org/og-cover.png">
+<meta name="twitter:image" content="https://ainra.org/og-cover.png?v=2">
 <noscript><style>.needs-js{display:none!important}#noscript-note{display:block!important}</style></noscript><meta name="description" content="Check theirs — the other half of the loop. Seven checks, fail-closed freshness, a reference CLI, and a verifier you can run in your own browser.">
 <link rel="stylesheet" href="fonts/faces.css">
 <link rel="stylesheet" href="css/ainra.css">
@@ -329,6 +329,12 @@ setTimeout(function(){var h=document.documentElement;if(!h.dataset.rvReady)h.cla
         <div class="try-head"><h3 class="h4">The passport</h3><span class="state-chip state-chip--specimen" id="srcTag">STAGING · TEST-ROOT</span></div>
         <div class="field"><label for="pick">Choose a live lineage</label><select id="pick"></select></div>
         <div class="pf" id="pfields"></div>
+        <div class="cta-row run">
+          <button class="btn btn-ink" id="verifyBtn" type="button"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 1l9 5-9 5z" fill="currentColor"/></svg>Verify in my browser</button>
+          <button class="btn btn-ghost" id="resetBtn" type="button" hidden>↺ Reset (undo forgery)</button>
+        </div>
+        <details class="try-own">
+        <summary>Use your own bundle, or verify as a named service</summary>
         <h3 class="try-sub">Or paste your own bundle</h3>
         <p class="pnote">A conformance vector, a <code>{anchors, presentation}</code> pair, or a bare presentation (checked against the registrar selected above). It is read in this tab and nothing is sent anywhere.</p>
         <div class="field"><label for="pasteBox">Bundle JSON</label><textarea id="pasteBox" spellcheck="false" rows="5" placeholder='{"anchors":{…},"presentation":{…}}'></textarea></div>
@@ -345,10 +351,7 @@ setTimeout(function(){var h=document.documentElement;if(!h.dataset.rvReady)h.cla
           that service's identifier here to verify as it; leave it blank and any such credential is refused —
           a verifier that has not said who it is cannot be the audience of anything.</small>
         </div>
-        <div class="cta-row run">
-          <button class="btn btn-ink" id="verifyBtn" type="button"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 1l9 5-9 5z" fill="currentColor"/></svg>Verify in my browser</button>
-          <button class="btn btn-ghost" id="resetBtn" type="button" hidden>↺ Reset (undo forgery)</button>
-        </div>
+        </details>
       </div>
       <div class="split__r6 verdict">
         <div class="try-head"><h3 class="h4">The verdict</h3><span class="state-chip">RUNS ON YOUR MACHINE</span></div>
@@ -785,7 +788,7 @@ async function boot(){
   if(!$("#demo")) return;
   ENGINE = await loadEngine();
   if(!ENGINE){ showLoadError("Could not load the in-browser verifier."); return; }
-  try{ REG=await (await fetch("net/registry.json",{cache:"no-store"})).json(); }
+  try{ REG=(await (await import("./js/net.mjs")).sharedJSON("net/registry.json")).json; }   /* the page's one shared copy of the record */
   catch(e){ showLoadError("Could not load the demo data (data/registry.json). Serve this page over http (e.g. `python3 -m http.server` in site/)."); return; }
   NOW=REG.generated_window?.verified_at ?? 0;
   for(const R of REG.registrars) for(const e of R.records) ROWS.push({rec:e.record, R});
@@ -793,17 +796,21 @@ async function boot(){
   const valids=ROWS.filter(r=>!r.rec.revoked&&!r.rec.hops?.length), deleg=ROWS.filter(r=>r.rec.hops?.length), revs=ROWS.filter(r=>r.rec.revoked);
   const ordered=[...valids.slice(0,1),...deleg.slice(0,1),...revs.slice(0,1),...valids.slice(1),...deleg.slice(1),...revs.slice(1)].filter(Boolean);
   $("#pick").innerHTML=ordered.map(opt).join("");
-  $("#pick").addEventListener("change",e=>select(e.target.value));
+  // a verdict is always on screen: the check runs on arrival and again on every choice (the button re-runs it)
+  $("#pick").addEventListener("change",e=>{select(e.target.value); verify();});
   document.querySelectorAll(".tbtn").forEach(b=>b.addEventListener("click",()=>{
     const t=b.dataset.t, on=b.getAttribute("aria-pressed")==="true";
     if(on){tamper.delete(t);b.setAttribute("aria-pressed","false");} else {tamper.add(t);b.setAttribute("aria-pressed","true");}
     verify();
   }));
-  $("#verifyBtn").addEventListener("click",verify);
+  // after a run the reader sees its verdict: on a narrow screen or a short window it can be out of view
+  const seeVerdict=()=>{const v=document.querySelector(".verdict-top"); if(!v) return; const r=v.getBoundingClientRect(); if(r.top<70||r.bottom>innerHeight) v.scrollIntoView({block:"center",behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"});};
+  $("#verifyBtn").addEventListener("click",()=>{verify(); seeVerdict();});
   $("#resetBtn").addEventListener("click",()=>{select(sel.rec.sub);});
   $("#pasteBtn").addEventListener("click",verifyPasted);
   $("#pasteClear").addEventListener("click",clearPasted);
   select(ordered[0].rec.sub);
+  verify();
 }
 boot();
 </script>

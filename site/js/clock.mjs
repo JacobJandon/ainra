@@ -4,13 +4,13 @@
 // itself is in the HTML from the build (tools/record-stamp.mjs); this only adds the age and the state. With motion
 // off the age is whole days and does not tick. One text update per second, aligned to the second; no animation frame.
 import { staleness } from "./staleness.mjs";
-import { getJSON } from "./net.mjs";
+import { sharedJSON } from "./net.mjs";
 
 const els = [...document.querySelectorAll("[data-record-clock]")];
 const base = (document.querySelector('meta[name="ainra-net"]')?.content || "net").replace(/\/$/, "");
 const two = (n) => String(n).padStart(2, "0");
 
-if (els.length) getJSON(`${base}/published.json`, { cache: "no-store" }).then((p) => {
+if (els.length) sharedJSON(`${base}/published.json`).then((r) => r.json).then((p) => {
   const t = Date.parse(p?.published_at_iso);
   if (!Number.isFinite(t)) return;
   const { state } = staleness(p.published_at_iso);

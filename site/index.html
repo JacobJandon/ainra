@@ -14,21 +14,20 @@
 <meta property="og:url" content="https://ainra.org/">
 <meta property="og:title" content="AINRA — A passport for every AI agent">
 <meta property="og:description" content="Verifiable identity for AI agents, separate from the people and companies behind them. Anyone checks it offline, in a few lines of code.">
-<meta property="og:image" content="https://ainra.org/og-cover.png">
+<meta property="og:image" content="https://ainra.org/og-cover.png?v=2">
 <meta property="og:image:alt" content="A passport for every AI agent — AINRA">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="AINRA — A passport for every AI agent">
 <meta name="twitter:description" content="A passport for every AI agent — checked offline, by anyone.">
-<meta name="twitter:image" content="https://ainra.org/og-cover.png">
+<meta name="twitter:image" content="https://ainra.org/og-cover.png?v=2">
 
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="manifest" href="site.webmanifest">
 <link rel="stylesheet" href="fonts/faces.css">
 <link rel="stylesheet" href="css/ainra.css">
 <link rel="stylesheet" href="css/living.css">
-<link rel="stylesheet" href="css/calm.css">
 <meta name="ainra-contract" content="/net">
 <meta name="ainra-checkpoints" content="net/registrars/registrar-07/checkpoints/3.json net/registrars/registrar-11/checkpoints/9.json">
 <link rel="stylesheet" href="css/g.css">
@@ -159,14 +158,15 @@ setTimeout(function(){var h=document.documentElement;if(!h.dataset.rvReady)h.cla
 <header class="g-hero" id="hero">
   <div class="g-hero__film">
     <video class="g-hero__v" muted playsinline loop preload="metadata" poster="media/ainra-film-hero-poster.jpg?v=9" data-poster-m="media/ainra-film-hero-m-poster.jpg?v=9" aria-describedby="g-film-shots" data-film data-stage-bottom="0.655" data-chapters="0,8.8,17,25.8,34.2,42.8,52,60.6,68.8,77,85.2">
-      <source data-src="media/ainra-film-hero.webm?v=9" data-src-m="media/ainra-film-hero-m.webm?v=9" type="video/webm">
-      <source data-src="media/ainra-film-hero.mp4?v=9" data-src-m="media/ainra-film-hero-m.mp4?v=9" type="video/mp4">
+      <source data-src="media/ainra-film-hero.webm?v=9" data-src-m="media/ainra-film-hero-m.webm?v=10" type="video/webm">
+      <source data-src="media/ainra-film-hero.mp4?v=9" data-src-m="media/ainra-film-hero-m.mp4?v=10" type="video/mp4">
     </video>
     <p class="vh" id="g-film-shots">A silent film in eleven pairs: a shot of the real world, then the drawing that explains it — hands on a phone, then an agent handed a task shows its passport; a city crossing, then agents each checked as they pass; a dish array, then the root with three rings and nine keys; a clean-room machine, then a passport valid only once logged; capsules on a line, then running copies with short-lived keys; a motorway interchange, then requests checked at a verifier; a warehouse aisle, then one revoked bit refused by every verifier; a drone in the sky, then a check with no signal; wind turbines, then agents presenting to verifiers peer to peer; hands at a keyboard, then one line that installs the skills; a field, then the closing words: every check runs on your machine.</p>
   </div>
   <div class="g-hero__scrim" aria-hidden="true"></div>
   <div class="g-hero__plate">
     <h1 class="display" id="g-h1">A passport for<br>every AI agent.</h1>
+    <div class="g-lead__cta"><a class="btn btn-ink" href="verify.html#try">Try it live →</a><a class="btn btn-ghost" href="docs.html#standard">Read the standard</a></div>
   </div>
   <button class="g-hero__pause" type="button" aria-pressed="false" data-film-toggle><svg viewBox="0 0 20 20" aria-hidden="true"><path class="i-pause" d="M6 4h3v12H6zM11 4h3v12h-3z"/><path class="i-play" d="M6 4l10 6-10 6z"/></svg><span class="film__lbl">Pause</span></button>
 </header>
@@ -184,7 +184,19 @@ setTimeout(function(){var h=document.documentElement;if(!h.dataset.rvReady)h.cla
   <div class="wrap g-lead__in">
     <div><p class="g-lead__k">Open standard · neutral root</p>
       <p class="g-lead__t">Verifiable identity for AI agents, separate from the people and companies behind them — and anyone can check it offline.</p></div>
-    <div class="g-lead__cta"><a class="btn btn-ink" href="verify.html#try">Try it live →</a><a class="btn btn-ghost" href="docs.html#standard">Read the standard</a></div>
+  </div>
+</section>
+
+<section class="g-proof" aria-labelledby="g-proof-k">
+  <div class="wrap">
+    <p class="g-proof__k" id="g-proof-k">The test network, as published · every passport a labelled specimen</p>
+    <dl class="g-proof__row">
+      <div><dt>Passports in the record</dt><dd data-stamp="issued">80</dd><p class="g-proof__src">net/registry.json</p></div>
+      <div><dt>Revoked</dt><dd data-stamp="revoked">53</dd><p class="g-proof__src">one bit each, in a signed status list</p></div>
+      <div><dt>Registrars</dt><dd data-stamp="registrars">2</dd><p class="g-proof__src">each with its own public log</p></div>
+      <div><dt>Conformance vectors, one answer</dt><dd>1169</dd><p class="g-proof__src">Rust, TypeScript and Python agree · <code>make diff</code></p></div>
+    </dl>
+    <a class="g-proof__go" href="verify.html#try">Check one of these passports in your browser&nbsp;→</a>
   </div>
 </section>
 
@@ -208,11 +220,11 @@ setTimeout(function(){var h=document.documentElement;if(!h.dataset.rvReady)h.cla
       <ol class="vh" data-tab-data>
         <li data-k="Delegate" data-t="Your agent shows its passport before it pays" data-href="verify.html#try" data-src="media/g/delegate.mp4?v=7" data-src-m="media/g/delegate-m.mp4?v=1" data-poster="media/g/delegate-poster.jpg?v=1" data-poster-m="media/g/delegate-m-poster.jpg?v=1"></li>
         <li data-k="Issue" data-t="A passport is valid only once it is logged" data-href="docs.html#verify" data-src="media/g/issue.mp4?v=7" data-src-m="media/g/issue-m.mp4?v=1" data-poster="media/g/issue-poster.jpg?v=1" data-poster-m="media/g/issue-m-poster.jpg?v=1"></li>
-        <li data-k="Verify" data-t="Every request checked on the verifier's own machine" data-href="verify.html#try" data-src="media/g/gate.mp4?v=7" data-src-m="media/g/gate-m.mp4?v=1" data-poster="media/g/gate-poster.jpg?v=1" data-poster-m="media/g/gate-m-poster.jpg?v=1" data-bp="5.9"></li>
-        <li data-k="Revoke" data-t="One bit set, and every verifier that checks refuses" data-href="docs.html#verify" data-src="media/g/revoke.mp4?v=7" data-src-m="media/g/revoke-m.mp4?v=1" data-poster="media/g/revoke-poster.jpg?v=1" data-poster-m="media/g/revoke-m-poster.jpg?v=1" data-bp="3.9"></li>
+        <li data-k="Verify" data-t="Every request checked on the verifier's own machine" data-href="verify.html#try" data-src="media/g/gate.mp4?v=8" data-src-m="media/g/gate-m.mp4?v=1" data-poster="media/g/gate-poster.jpg?v=2" data-poster-m="media/g/gate-m-poster.jpg?v=1"></li>
+        <li data-k="Revoke" data-t="One bit set, and every verifier that checks refuses" data-href="docs.html#verify" data-src="media/g/revoke.mp4?v=8" data-src-m="media/g/revoke-m.mp4?v=1" data-poster="media/g/revoke-poster.jpg?v=1" data-poster-m="media/g/revoke-m-poster.jpg?v=1"></li>
         <li data-k="Running copies" data-t="Each copy carries its own short-lived key" data-href="docs.html#install" data-src="media/g/copies.mp4?v=7" data-src-m="media/g/copies-m.mp4?v=1" data-poster="media/g/copies-poster.jpg?v=1" data-poster-m="media/g/copies-m-poster.jpg?v=1"></li>
         <li data-k="Offline" data-t="No signal, and the check still runs" data-href="https://github.com/JacobJandon/ainra/blob/main/docs/drills/REGISTRAR-DARK.md" data-src="media/g/offline.mp4?v=7" data-src-m="media/g/offline-m.mp4?v=1" data-poster="media/g/offline-poster.jpg?v=1" data-poster-m="media/g/offline-m-poster.jpg?v=1"></li>
-        <li data-k="Peer to peer" data-t="Agents present to verifiers; the root is not on the path" data-href="landscape.html" data-src="media/g/network.mp4?v=7" data-src-m="media/g/network-m.mp4?v=1" data-poster="media/g/network-poster.jpg?v=1" data-poster-m="media/g/network-m-poster.jpg?v=1" data-bp="3.9"></li>
+        <li data-k="Peer to peer" data-t="Agents present to verifiers; the root is not on the path" data-href="landscape.html" data-src="media/g/network.mp4?v=8" data-src-m="media/g/network-m.mp4?v=1" data-poster="media/g/network-poster.jpg?v=1" data-poster-m="media/g/network-m-poster.jpg?v=1"></li>
       </ol>
     </div>
   </div>
@@ -233,7 +245,7 @@ setTimeout(function(){var h=document.documentElement;if(!h.dataset.rvReady)h.cla
       <li><a class="g-row" href="docs.html#verify" data-preview="media/g/part-revocation.jpg?v=3" data-preview-video="media/g/part-revocation.mp4?v=3"><span class="g-row__name">Revocation</span><span class="g-row__d">Sets one bit in a signed list; every verifier that checks refuses.</span><span class="g-row__i">/0.4</span></a></li>
       <li><a class="g-row" href="docs.html#install" data-preview="media/g/part-copies.jpg?v=3" data-preview-video="media/g/part-copies.mp4?v=3"><span class="g-row__name">Running copies</span><span class="g-row__d">Give every instance its own short-lived key.</span><span class="g-row__i">/0.5</span></a></li>
     </ol>
-    <figure class="g-preview" aria-hidden="true"><img alt="" src="media/g/part-standard.jpg?v=3" width="1280" height="720"><video muted playsinline loop preload="none"></video></figure>
+    <figure class="g-preview" aria-hidden="true"><img alt="" width="1280" height="720"><video muted playsinline loop preload="none"></video></figure>
   </div>
 </section>
 
@@ -349,8 +361,6 @@ setTimeout(function(){var h=document.documentElement;if(!h.dataset.rvReady)h.cla
 </footer>
 
 <script type="module" src="js/motion.mjs"></script>
-<script type="module" src="js/page.mjs"></script>
-<script type="module" src="js/calm.mjs"></script>
 <script type="module" src="js/reveal.mjs"></script>
 <script type="module" src="js/g.mjs"></script>
 <script>/* aria-current-marker: answer "where am I?" in the nav (§16 wayfinding) */

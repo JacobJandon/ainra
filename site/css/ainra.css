@@ -393,3 +393,11 @@ footer{background:var(--paper);border-top:1px solid var(--ink);margin-top:var(--
 .w-toggle button{min-height:32px;min-width:44px;padding:0 8px;border-left:1px solid var(--line);color:var(--ink)}
 .w-toggle button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
 @media print{.w-toggle{display:none}}
+/* phones: an inner page's top strip is its one message; the record clock and the Motion switch it also carried are in
+   the footer of every page, and here they made the strip three lines and a box, about a sixth of the first screen */
+@media (max-width:700px){.announce .announce__side{display:none}}
+.s-rows .s-more{margin-top:16px}
+/* the verifier: paste-your-own and the audience field wait behind one closed disclosure, under the run button */
+.try-own{margin-top:18px;border-top:1px solid var(--line);padding-top:12px}
+.try-own > summary{cursor:pointer;font-weight:500;color:var(--ink);padding:10px 0;min-height:44px;display:flex;align-items:center}
+.try-own[open] > summary{margin-bottom:6px}

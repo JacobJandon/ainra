@@ -802,3 +802,57 @@ nav:not([class]) .nav-r .g-menubtn[aria-expanded="true"]{background:var(--ink);c
 .g-car__play svg{width:14px;height:14px;fill:currentColor}
 .g-car__play .i-pause{display:none}.g-car__play[aria-pressed="true"] .i-play{display:none}.g-car__play[aria-pressed="true"] .i-pause{display:inline}
 .g-car__card.is-still .g-car__play{display:inline-flex}
+
+/* ── G, ninth pass (2026-11-11): proof first. The hero's two actions stand under the headline, on the first screen
+   at every size; a row of the test network's own numbers follows the lead, each with where it comes from. ────── */
+.g-hero__plate .g-lead__cta{margin-top:clamp(18px,2.2vw,30px)}
+.g-hero__plate .g-lead__cta .btn{min-height:44px}
+@media (max-width:700px),(max-aspect-ratio:5/4){.g-hero__plate .g-lead__cta{margin-top:18px}}
+@media (max-height:639px) and (min-width:701px) and (min-aspect-ratio:5/4){.g-hero__plate .g-lead__cta{margin-top:14px}}
+.g-lead__in{grid-template-columns:minmax(0,1fr)}
+.g-proof{padding:clamp(28px,3.4vw,52px) 0;border-bottom:1px solid var(--line)}
+.g-proof__k{font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 clamp(16px,2vw,26px)}
+.g-proof__row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;margin:0;border-top:1px solid var(--line)}
+.g-proof__row > div{padding:18px 24px 6px 0;border-right:1px solid var(--line);margin-right:24px}
+.g-proof__row > div:last-child{border-right:0;margin-right:0}
+.g-proof__row dt{font-size:14px;color:var(--ink-soft,#3A4250);margin:0 0 6px}
+.g-proof__row dd{margin:0;font-size:clamp(40px,4.4vw,64px);line-height:1;letter-spacing:-.03em;font-weight:500;color:var(--ink);font-variant-numeric:tabular-nums}
+.g-proof__src{margin:10px 0 0;font-size:13px;color:var(--muted)}
+.g-proof__src code{font-size:12px}
+.g-proof__go{display:inline-block;margin-top:clamp(18px,2vw,28px);font-weight:500;color:var(--ink);text-decoration:underline;text-underline-offset:4px;text-decoration-thickness:1px}
+.g-proof__go:hover{color:var(--signal-ink,#2346D8)}
+@media (max-width:800px){.g-proof__row{grid-template-columns:repeat(2,minmax(0,1fr))}.g-proof__row > div:nth-child(2n){border-right:0;margin-right:0}.g-proof__row > div{border-bottom:1px solid var(--line)}}
+/* inner pages: the page's name is a title, not the whole first screen (it was 158 px tall at 1440 wide, and the first
+   real sentence started 650–830 px down a 900 px screen); the page's own statement now starts on screen one */
+.gi-hero{padding-top:110px;padding-bottom:clamp(20px,2.6vw,36px)}
+.gi-title{font-size:clamp(44px,6.4vw,112px);margin-top:clamp(22px,3vw,44px)}
+.gi-hero .g-side{margin-top:clamp(22px,3vw,44px)}
+@media (max-width:700px){.gi-hero{padding-top:18px}}
+/* the details panel beside an inner page's title is three facts in one row (its card set the height of the whole
+   title block); and the page's first section starts closer under it */
+.gi-hero .wrap{grid-template-columns:minmax(0,1fr) auto}
+.gi-hero .g-side{background:none;border:0;padding:0;-webkit-backdrop-filter:none;backdrop-filter:none;box-shadow:none;align-self:end;margin-bottom:.4em}
+.gi-hero .g-side__head{display:none}
+.gi-hero .g-side ul{flex-direction:row;gap:28px}
+.gi-hero .g-side li{max-width:220px}
+.gi-page main > section:first-of-type,.gi-page main > .section:first-child{padding-top:clamp(28px,3.4vw,56px)}
+@media (max-width:1100px){.gi-hero .wrap{grid-template-columns:minmax(0,1fr)}.gi-hero .g-side{margin-top:20px;max-width:none}.gi-hero .g-side ul{flex-wrap:wrap;gap:16px 24px}}
+/* ── G, tenth pass (2026-11-11): one light site. The search panel was the one dark full screen left (and darkened the
+   header with it); it is paper and ink now, fills the phone screen, and the header keeps its own light look. ──── */
+.g-search{background:var(--paper);color:var(--ink)}
+.g-search__q{border-color:var(--ink);color:var(--ink);background:var(--card)}
+.g-search__q:focus{border-color:var(--signal,#2F5BFF);outline:2px solid var(--signal,#2F5BFF);outline-offset:2px}
+.g-search__q::placeholder{color:var(--muted)}
+.g-search__clear,.g-search__pop button,.g-search__res a{color:var(--ink)}
+.g-search__k,.g-search__p{color:var(--muted)}
+.g-search__x{color:var(--ink-soft,#3A4250)}
+.g-search__res a{border-top-color:var(--line)}
+.g-search__res li:last-child a{border-bottom-color:var(--line)}
+.g-search__res a:focus-visible{outline:2px solid var(--signal,#2F5BFF);outline-offset:4px}
+.g-search mark{color:var(--ink);background:var(--signal-soft,#E8EDFF)}
+html.g-search-open nav:not([class]) .nav-in{background:var(--paper)}
+html.g-search-open nav:not([class]) .brand,html.g-search-open nav:not([class]) .brand .wm{color:var(--ink)}
+html.g-search-open nav:not([class]) .brand svg{filter:none}
+html.g-search-open nav:not([class]) .btn-ghost,html.g-search-open nav:not([class]) .g-menubtn{color:var(--ink);border-color:var(--ink);background:var(--card)}
+html.g-search-open nav:not([class]) .g-sq{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+@media (max-width:700px){.g-search{bottom:0;padding-bottom:96px}}

@@ -28,8 +28,7 @@ nav:not([class]) .nav-r > .btn:first-child{background:var(--signal);border-color
 nav:not([class]) .nav-r > .btn:first-child::before{background:var(--signal-ink)}
 nav:not([class]) .nav-r > .btn:first-child:hover,
 nav:not([class]) .nav-r > .btn:first-child:focus-visible{color:#fff;border-color:var(--signal-ink)}
-html.nav-on-dark nav:not([class]) .nav-r > .btn:first-child,
-html.g-search-open nav:not([class]) .nav-r > .btn:first-child{color:var(--paper);border-color:rgba(245,246,243,.7);background:transparent}
+html.nav-on-dark nav:not([class]) .nav-r > .btn:first-child{color:var(--paper);border-color:rgba(245,246,243,.7);background:transparent}
 html.nav-on-dark nav:not([class]) .nav-r > .btn:first-child::before{background:var(--signal)}
 html.nav-on-dark nav:not([class]) .nav-r > .btn:first-child:hover,
 html.nav-on-dark nav:not([class]) .nav-r > .btn:first-child:focus-visible{color:#fff;border-color:var(--signal)}
@@ -90,3 +89,11 @@ main a:not(.btn):not([class*="g-"]):hover{color:var(--signal-ink)}
 @media (forced-colors:active){.g-statement__t .soft,.statement-big .soft{background:none;color:CanvasText}}
 /* placeholder text was the browser's default grey, just under the contrast floor on paper */
 input::placeholder,textarea::placeholder{color:var(--muted,#5A6372);opacity:1}
+
+/* ── green means valid, nothing else (2026-11-11 review): the announcement strips and small labels that used it as
+   decoration are ink and grey now; the verdict chips, VALID, ACTIVE and the trust marks keep it ─────────────────── */
+.g-announce{background:var(--band,#ECEEE9)}
+.g-announce__k{background:var(--ink);color:var(--paper)}
+.announce a{color:var(--ink)}
+.announce a:hover,.g-announce a:hover{color:var(--signal-ink)}
+.film__k{color:var(--muted)}

@@ -155,7 +155,9 @@ for (const v of $$("[data-vid]")) {
 // screen; the Pause button is always there and its choice sticks for the visit
 for (const v of $$("[data-film]")) {
   const btn = (v.closest(".film, .g-hero") || v.parentElement).querySelector("[data-film-toggle]"), lbl = btn?.querySelector(".film__lbl");
-  let loaded = false, userPaused = html.dataset.motion === "off", onScreen = false;
+  // a connection that asks to save data, or a slow one, starts on the poster: the film is several megabytes
+  const thrifty = (() => { const c = navigator.connection; return !!c && (c.saveData || /(^|-)(2g|3g)$/.test(c.effectiveType || "")); })();
+  let loaded = false, userPaused = html.dataset.motion === "off" || thrifty, onScreen = false;
   // the film waits for the page: its poster shows at once; the film itself starts downloading 1.2 s after load
   const afterLoad = new Promise((r) => (document.readyState === "complete" ? setTimeout(r, 1200) : addEventListener("load", () => setTimeout(r, 1200), { once: true })));
   // a phone (or a window taller than wide) gets the film's phone cut, where each drawing fills the frame
@@ -166,7 +168,8 @@ for (const v of $$("[data-film]")) {
   const decide = () => { if (!userPaused && onScreen && html.dataset.motion !== "off") { load(); v.play().catch(() => {}); } else v.pause(); };
   btn?.addEventListener("click", () => { userPaused = !userPaused; if (!userPaused) load(); sync(); decide(); });
   new MutationObserver(() => { if (html.dataset.motion === "off") userPaused = true; sync(); decide(); }).observe(html, { attributes: true, attributeFilter: ["data-motion"] });
-  if ("IntersectionObserver" in window) new IntersectionObserver((es) => { onScreen = es[0].isIntersecting; if (onScreen) load(); decide(); }, { rootMargin: "200px 0px" }).observe(v);
+  // the film is fetched only when it is about to play (decide → load), never just because it is on screen
+  if ("IntersectionObserver" in window) new IntersectionObserver((es) => { onScreen = es[0].isIntersecting; decide(); }, { rootMargin: "200px 0px" }).observe(v);
   else { onScreen = true; decide(); }
   sync();
 }

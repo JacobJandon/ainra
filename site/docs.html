@@ -16,14 +16,14 @@
 <meta property="og:url" content="https://ainra.org/docs.html">
 <meta property="og:title" content="Docs — AINRA">
 <meta property="og:description" content="Every check runs on your machine: get the reference, verify in five lines, gate a route, prove the request.">
-<meta property="og:image" content="https://ainra.org/og-cover.png">
+<meta property="og:image" content="https://ainra.org/og-cover.png?v=2">
 <meta property="og:image:alt" content="A passport for every AI agent — AINRA">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Docs — AINRA">
 <meta name="twitter:description" content="Verify an AI agent's passport in five lines, offline.">
-<meta name="twitter:image" content="https://ainra.org/og-cover.png">
+<meta name="twitter:image" content="https://ainra.org/og-cover.png?v=2">
 <link rel="stylesheet" href="fonts/faces.css">
 <link rel="stylesheet" href="css/ainra.css">
 <link rel="stylesheet" href="css/living.css">
@@ -75,7 +75,8 @@
   .specdoc > .sec-head,.specdoc > h3,.specdoc > .doc-masthead,.specdoc > .tbl,.specdoc > table,.specdoc > hr,.specdoc > .index{grid-column:1 / -1}
   .doc .chap p,.doc .chap li{max-width:none}
   /* the Standard: balanced columns, cut at every Part and sub-heading so no column runs past about a screen */
-  .chap--flow .specdoc{display:block;columns:2;column-gap:var(--s7);column-rule:1px solid var(--line)}
+  .chap--flow .specdoc{display:block}
+  .doc .chap--flow .specdoc > p,.doc .chap--flow .specdoc > ul,.doc .chap--flow .specdoc > ol,.doc .chap--flow .specdoc > .note{max-width:72ch}   /* a reading measure: lines ran ~130 characters */
   .specdoc > * + *{margin-top:var(--s4)!important}
   .specdoc > .sec-head,.specdoc > h3,.specdoc > .doc-masthead,.specdoc > table,.specdoc > hr,.specdoc > .index{column-span:all}
   .specdoc > .tbl{column-span:all}
@@ -272,6 +273,7 @@ setTimeout(function(){var h=document.documentElement;if(!h.dataset.rvReady)h.cla
       <li><a href="#verify"><span>03</span>Verify in five lines</a></li>
       <li><a href="#gate"><span>04</span>Gate a route</a></li>
       <li><a href="#request"><span>05</span>Prove the request</a></li>
+      <li><a href="#integrate-instance"><span>↳</span>Verifying a running copy</a></li>
       <li><a href="#cli"><span>06</span>The CLI lifecycle</a></li>
       <li><a href="#agents"><span>07</span>For agents</a></li>
     </ol>
@@ -291,7 +293,6 @@ setTimeout(function(){var h=document.documentElement;if(!h.dataset.rvReady)h.cla
     <span class="earmark rail-grp">Reference</span>
     <ol>
       <li><a href="#standard"><span>15</span>The Standard</a></li>
-      <li><a href="#integrate-instance"><span>16</span>Verifying a running copy</a></li>
     </ol>
     <ul>
       <li><a href="verify.html">Verification</a></li>
@@ -386,6 +387,12 @@ app.use(<span class="g">"/agent"</span>, ainraGate(verifier, { store, requireSig
     <p><b>Beside a signature agent.</b> If an operator already signs its agents' requests as a signature agent (the Web Bot Auth profile of RFC 9421, keys in a directory at its origin), keep that signature. The running copy adds its own beside it, and each verifier reads only its own label. That profile defines no revocation: a withdrawn key keeps verifying until a verifier fetches the directory again. AINRA revokes the passport itself, and a gate refuses it once its status snapshot is fresh, within the gate's freshness class (five minutes by default). <a href="https://github.com/JacobJandon/ainra/blob/main/docs/SIGNATURE-AGENTS.md" rel="noopener">How to run both</a>.</p>
     <p><b>As a WIMSE workload.</b> The IETF's agent-identity drafts build on WIMSE workload identity: a short-lived Workload Identity Token, and requests signed with RFC 9421. A running copy can speak that too. Its token is signed by its passport's key, and the passport's name is its trust domain. A service that speaks only WIMSE accepts it. An AINRA-aware service also checks the passport, so it refuses a revoked one within its freshness class. WIMSE itself has no revocation: a token stays valid until it expires. <a href="https://github.com/JacobJandon/ainra/blob/main/docs/WIMSE.md" rel="noopener">How it maps</a>.</p>
     <p>How it's checked: the request profile is stated once in <code>ainra-core</code>, and three implementations (Rust, TypeScript, Python) must agree on its conformance vectors. An independent open-source signature-agent verifier checks the vectors that carry both signatures. <code>make identity-e2e</code>, <code>make edge-e2e</code> and <code>make signature-agent-e2e</code> run the whole journey against a live registrar.</p>
+    <div class="chap-sub" data-chapter="integrate-instance">
+<h3 id="integrate-instance">Verifying a running copy</h3>
+<p>An agent has one <b>passport</b>. Each running copy of it — a container, a worker — carries an <b>instance credential</b> instead of the lineage&rsquo;s key: minted outside the container by the passport&rsquo;s control key, narrowed to fewer capabilities, valid for at most an hour, addressed to one audience, and bound to a key only that copy holds. Before this existed, whoever read a container held the lineage&rsquo;s key and a presentation that worked anywhere for a year.</p>
+<p>Integrating changes one thing: <b>tell the verifier who you are</b>. The audience is never read from the presentation, and an empty audience refuses every instance credential — a service that has not said who it is cannot be the intended recipient of anything. Four refusal reasons belong to this layer and never collapse into <code>expired</code>; a revoked passport still reports <code>revoked</code>, because the lineage failed rather than the copy. Runnable end to end: <code>node examples/instance-deployment.mjs</code>.</p>
+<div class="note amber"><b>Where that is design and not yet fact:</b> the paragraph above describes the standard. Checkpoint cosigning by independent witnesses is <b>built and drilled but unstaffed — there are zero witness operators today</b>, so the part that would stop the root showing different histories to different parties is not in force. Everything else there is running: logged-before-valid is enforced in every implementation, the logs are mirrorable, and the system is forkable from public artifacts. Running a witness is one command (<code>bash kits/witness/be-a-witness.sh</code>) and needs no accreditation.</div>
+</div>
     </div>
   </section>
 
@@ -682,13 +689,6 @@ $ make repro                          <span class="c"># byte-exact rebuild — t
 
 <h3>9. Revocation fabric &amp; transparency logs</h3>
 <p>One compressed, signed status structure every verifier mirrors; push channels propagate deltas, and each verifier refuses a revoked passport within its own freshness class — <b>under 60 seconds issue-to-rejection at the strict class (F1)</b>, 5 minutes at F2 (the SDK default), a day at F3 — every class failing closed. Revocation scopes: a version (kills its entire fleet), a lineage, a mandate subtree, or a registrar (wholesale). Every event — registration, issuance, re-certification, transfer, mandate grant/revoke, accreditation action — is sealed <b>before validity</b> in append-only, hash-chained Merkle logs whose checkpoints are cosigned by <b>independent witnesses</b>; anyone may run a monitor; registrars must fund one watching a competitor; the logs are mirrorable and the whole system forkable, so history cannot be rewritten and the root cannot quietly lie. &quot;Logged before valid&quot; is load-bearing: unlogged is invalid.</p>
-<div class="chap-sub" data-chapter="integrate-instance">
-<h3 id="integrate-instance">Verifying a running copy</h3>
-<p>An agent has one <b>passport</b>. Each running copy of it — a container, a worker — carries an <b>instance credential</b> instead of the lineage&rsquo;s key: minted outside the container by the passport&rsquo;s control key, narrowed to fewer capabilities, valid for at most an hour, addressed to one audience, and bound to a key only that copy holds. Before this existed, whoever read a container held the lineage&rsquo;s key and a presentation that worked anywhere for a year.</p>
-<p>Integrating changes one thing: <b>tell the verifier who you are</b>. The audience is never read from the presentation, and an empty audience refuses every instance credential — a service that has not said who it is cannot be the intended recipient of anything. Four refusal reasons belong to this layer and never collapse into <code>expired</code>; a revoked passport still reports <code>revoked</code>, because the lineage failed rather than the copy. Runnable end to end: <code>node examples/instance-deployment.mjs</code>.</p>
-<div class="note amber"><b>Where that is design and not yet fact:</b> the paragraph above describes the standard. Checkpoint cosigning by independent witnesses is <b>built and drilled but unstaffed — there are zero witness operators today</b>, so the part that would stop the root showing different histories to different parties is not in force. Everything else there is running: logged-before-valid is enforced in every implementation, the logs are mirrorable, and the system is forkable from public artifacts. Running a witness is one command (<code>bash kits/witness/be-a-witness.sh</code>) and needs no accreditation.</div>
-</div>
-
 <h3>10. Threat model (condensed register)</h3>
 <p>Root-key compromise → threshold + standby + ceremony-only use. Registrar fraud → audits, monitors, wholesale de-accreditation with customer grace. Impersonation → key-in-signature binding + mTLS instance creds. Replay/theft → minutes-TTL local credentials. Delegation laundering → dual-signed narrowing chains (depth is not capped today). Sybil floods → L0 grants existence, not consequence. Revocation suppression → freshness classes fail closed. Log fork/rewrite → witness cosigning, open monitors. Jurisdictional coercion → custodian spread; namespace censorship is structurally impossible below quorum. Privacy attack → no PII at root; principals checked at the registrar and seen only as a digest; graph shows structure, never behavior. Capture of governance → constituency supermajorities, 12-month comment, public everything. Price abuse → charter fee caps that only fall. Explorer manipulation → independence + client-side verification. Metaphor-imported failure modes (registrar race-to-bottom, registry price creep, public-record privacy conflict) → uniform tier standards + falling caps + zero-PII design, respectively. Successor standard emerges → managed-migration clause (Part V.4). Root institutional failure → fork-readiness drills; the standard outlives the institution.</p>
 

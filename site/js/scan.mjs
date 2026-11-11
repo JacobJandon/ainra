@@ -5,7 +5,7 @@
 // Everything is client-side against the same read contract mirrors use (CORS from M14). Zero telemetry.
 import { conformance, verdictEvent, serializeVerdictEvent, verifyDirectory } from "../vendor/ainra-sdk.js";
 const { runVector } = conformance;
-import { fetchT, why } from "./net.mjs";
+import { fetchT, why, sharedJSON } from "./net.mjs";
 
 const qs = new URLSearchParams(location.search);
 const meta = (n) => document.querySelector(`meta[name="${n}"]`)?.content?.trim();
@@ -35,7 +35,7 @@ async function boot() {
   if (!$("#scan")) return;
   if (!CONTRACT) return down("This reads a live AINRA network. Start one — <code>make stage-all</code> — then reload, or pass <code>?net=&lt;contract-url&gt;</code>.");
   let res;
-  try { res = await fetchT(CONTRACT + "/registry.json", { cache: "no-store" }); if (!res.ok) throw 0; REG = await res.json(); }
+  try { res = await sharedJSON(CONTRACT + "/registry.json"); REG = res.json; }   // shared with the page's other readers
   catch (e) { return down(`Record unavailable — ${why(e, `<code>${CONTRACT}</code>`)}. Run <code>make stage-all</code>, or check the URL you passed to <code>?net=</code>.`); }
   NOW = REG.generated_window?.verified_at ?? 0;
   const root = (res.headers.get("X-AINRA-Root") || "test-root");
@@ -52,7 +52,7 @@ async function boot() {
         el.hidden = false;
       } else {
         try {
-          const pub = await (await fetchT(CONTRACT + "/published.json", { cache: "no-store" })).json();
+          const pub = (await sharedJSON(CONTRACT + "/published.json")).json;
           if (pub?.published_at_iso) {
             const days = Math.max(0, Math.round((Date.now() - Date.parse(pub.published_at_iso)) / 86400000));
             el.innerHTML = `<b>Published record</b> — taken from the network on ${pub.published_at_iso.slice(0, 10)}` +
@@ -115,14 +115,20 @@ async function boot() {
   render(ROWS);
   $("#s-search").addEventListener("input", () => {
     const q = $("#s-search").value.toLowerCase();
-    render(ROWS.filter((r) => r.rec.sub.toLowerCase().includes(q) || (r.rec.operator || "").toLowerCase().includes(q) || r.rec.tier.toLowerCase().includes(q)));
+    render(ROWS.filter((r) => r.rec.sub.toLowerCase().includes(q) || (r.rec.operator || "").toLowerCase().includes(q) || r.rec.tier.toLowerCase().includes(q)), !!q);
   });
 }
 
-function render(rows) {
+// the list shows its first rows and offers the rest: all 80 passports took six thousand pixels and buried "Get a
+// passport" nine screens down. A search always shows every match; the totals above count every passport.
+const FIRST = 10;
+let showAll = false;
+
+function render(rows, searching = false) {
   const t = $("#s-rows"); t.innerHTML = "";
   if (!rows.length) { t.innerHTML = `<div class="s-empty">No passports match.</div>`; return; }
-  for (const { rec, R } of rows) {
+  const shown = searching || showAll ? rows : rows.slice(0, FIRST);
+  for (const { rec, R } of shown) {
     const wrap = document.createElement("div"); wrap.className = "s-item";
     const row = document.createElement("div"); row.className = "s-row";
     row.innerHTML = `<div class="s-main"><div class="s-name">${rec.sub}</div><div class="s-meta">${rec.tier} · ${rec.auth_class} · ${rec.registrar}${rec.hops?.length ? " · delegated" : ""}</div></div>
@@ -131,6 +137,12 @@ function render(rows) {
     const detail = document.createElement("div"); detail.className = "s-detail"; detail.hidden = true;
     row.querySelector(".s-verify").addEventListener("click", () => { if (!detail.hidden) { detail.hidden = true; return; } verifyRow(rec, R, detail); });
     wrap.appendChild(row); wrap.appendChild(detail); t.appendChild(wrap);
+  }
+  if (shown.length < rows.length) {
+    const more = document.createElement("button"); more.type = "button"; more.className = "btn btn-ghost s-more";
+    more.textContent = `Show all ${rows.length} passports`;
+    more.addEventListener("click", () => { showAll = true; render(rows); t.querySelectorAll(".s-verify")[FIRST]?.focus(); });
+    t.appendChild(more);
   }
 }
 

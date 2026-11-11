@@ -35,6 +35,23 @@ export async function getJSON(url, opts = {}) {
   return res.json();
 }
 
+/** The published record, fetched once per page whoever asks for it. Three scripts on one page read the same 1.6 MB
+ *  registry.json; each used to download its own copy, never cached. Now the first caller fetches it and every later
+ *  caller shares that answer (each gets its own copy of the parsed object, so no script can change another's). It
+ *  is revalidated rather than re-downloaded: `no-cache` asks the host, which answers 304 while the copy is current.
+ *  Resolves to { headers, json }; a failure is not remembered, so a later caller tries again. */
+const shared = new Map();
+export function sharedJSON(url) {
+  url = new URL(url, location.href).href;   // "net/x.json" and "/net/x.json" are one file, so one download
+  let p = shared.get(url);
+  if (!p) {
+    p = (async () => { const res = await fetchT(url, { cache: "no-cache" }); if (!res.ok) throw new Error(`HTTP ${res.status}`); return { headers: res.headers, json: await res.json() }; })();
+    shared.set(url, p); p.catch(() => shared.delete(url));
+  }
+  let first = !p.handed; p.handed = true;
+  return p.then((r) => ({ headers: r.headers, json: first ? r.json : structuredClone(r.json) }));
+}
+
 /** Say which failure it was: a host that never answered is a different problem from one that said no. */
 export function why(e, url) {
   const n = e?.name === "TimeoutError" || e?.name === "AbortError";

@@ -12,7 +12,7 @@
 //     "production logs sealed = 0" is DERIVED here, not asserted in copy. Staging figures are labeled STAGING·TEST-ROOT.
 //   * Everything runs client-side against the same public read contract AINRAscan/mirrors use (CORS from M14). Zero telemetry.
 
-import { fetchT, getJSON } from "./net.mjs";
+import { fetchT, getJSON, sharedJSON } from "./net.mjs";
 import { staleness } from "./staleness.mjs";
 
 const qs = new URLSearchParams(location.search);
@@ -36,9 +36,8 @@ function unreachable(base) {
 async function connect(base) {
   let res, reg;
   try {
-    res = await fetchT(base + "/registry.json", { cache: "no-store" });
-    if (!res.ok) { unreachable(base); return; }
-    reg = await res.json();
+    res = await sharedJSON(base + "/registry.json");   // the same download every script on this page shares
+    reg = res.json;
   } catch { unreachable(base); return; }
 
   const root = (res.headers.get("X-AINRA-Root") || "test-root").trim();

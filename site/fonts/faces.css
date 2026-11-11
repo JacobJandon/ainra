@@ -6,6 +6,12 @@
   src:url(bricolage-grotesque-latin-wght.woff2) format('woff2-variations'),url(bricolage-grotesque-latin-wght.woff2) format('woff2')}
 @font-face{font-family:'Inter';font-style:normal;font-weight:100 900;font-display:swap;
   src:url(inter-latin-wght.woff2) format('woff2-variations'),url(inter-latin-wght.woff2) format('woff2')}
+/* the code and label face (2026-11-11 review: the earlier one drew parentheses like square brackets and left a gap
+   after every full stop and colon, which hurt exactly the text it carries — code, names, timestamps) */
+@font-face{font-family:'Noto Sans Mono';font-style:normal;font-weight:400;font-display:swap;
+  src:url(noto-sans-mono-latin-400.woff2) format('woff2')}
+@font-face{font-family:'Noto Sans Mono';font-style:normal;font-weight:700;font-display:swap;
+  src:url(noto-sans-mono-latin-700.woff2) format('woff2')}
 @font-face{font-family:'B612 Mono';font-style:normal;font-weight:400;font-display:swap;
   src:url(b612-mono-latin-400.woff2) format('woff2')}
 @font-face{font-family:'B612 Mono';font-style:normal;font-weight:700;font-display:swap;

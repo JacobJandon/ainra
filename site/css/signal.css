@@ -97,3 +97,11 @@ input::placeholder,textarea::placeholder{color:var(--muted,#5A6372);opacity:1}
 .announce a{color:var(--ink)}
 .announce a:hover,.g-announce a:hover{color:var(--signal-ink)}
 .film__k{color:var(--muted)}
+
+/* ── small labels are readable (2026-11-11): a tenth to a fifth of the visible text was 10–11 px capitals. Twelve
+   pixels is the floor for a label; the tracking eases a little so the wider letters do not sprawl. ─────────────── */
+.rclock,.motion-btn,.ticker__head,.rec-table caption,.rec-table th,.tree-key,.sgrid__msg,.sgrid__tip,.sgrid__sum,.sgrid__key,
+.sec-index,.sec-index ol,.reg-sum__h,.watch__facts dt,.src,.g-k,.g-link,.g-announce__k,.g-menu__k,.g-card__d,.g-fact a,
+.g-tabs__all,.g-tabs__k,.g-lead__k,.g-side__head span,.g-side li span,.g-side__tab,.gi-sub__k,.g-foot__cols h4,.g-foot__status,
+.g-search__k,.g-search__p,.film__k,.h-trip__k,.g-hero__k,.g-row__i{font-size:12px}
+.g-foot__status,.g-side li span,.g-side__head span,.g-menu__k,.g-foot__cols h4{letter-spacing:.1em}

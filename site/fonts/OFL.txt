@@ -7,3 +7,8 @@ Bundled locally (latin subsets; Bricolage + Inter variable-weight from @fontsour
 400 + 700 from @fontsource 5.3.0) so the site makes zero external requests. These are the display, body and mono
 faces docs/DESIGN.md specifies; until 2026-09-24 they were named in the CSS but never shipped, so every visitor
 saw their system default instead. fonts/faces.css declares them once for every page.
+
+--------------------------------------------------------------------------------
+Noto Sans Mono (noto-sans-mono-latin-400.woff2, noto-sans-mono-latin-700.woff2; a Latin subset)
+Copyright 2022 The Noto Project Authors (https://github.com/notofonts/latin-greek-cyrillic)
+This Font Software is licensed under the SIL Open Font License, Version 1.1 (the text above).

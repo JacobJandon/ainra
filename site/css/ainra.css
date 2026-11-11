@@ -10,14 +10,14 @@
   --green:#1A6B4E;--green-deep:#14563F;--green-br:#57C08F;--mint:#E2EFE7;--amber:#8A6A14;--red:#A83A2C;
   --code-bg:#0B1220;--code-text:#E7EAF0;--code-muted:#98A1B3;--life-cell:#D3D6D1;
   --sans:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
-  --mono:"B612 Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+  --mono:"Noto Sans Mono","B612 Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
   --w-display:400; /* OD-2: 400 or 600; compare with ?w=400 / ?w=600 */
   --w-display-phone:max(var(--w-display),500);
   --fs-display:clamp(46px,6.517vw + 20.58px,104px);--fs-title:clamp(40px,5.393vw + 18.97px,88px);
   --fs-statement:clamp(32px,3.596vw + 17.98px,64px);--fs-h2:clamp(28px,1.798vw + 20.99px,44px);
   --fs-index:clamp(26px,1.573vw + 19.87px,40px);--fs-h3:clamp(21px,.562vw + 18.81px,26px);--fs-h4:17px;
   --fs-lead:clamp(18px,.449vw + 16.25px,22px);--fs-body:clamp(16px,.112vw + 15.56px,17px);
-  --fs-small:14px;--fs-earmark:11px;--fs-data:13px;--fs-spec:15px;--fs-btn:15px;
+  --fs-small:14px;--fs-earmark:12px;--fs-data:13px;--fs-spec:15px;--fs-btn:15px;
   --max:1440px;--gutter:clamp(16px,1.798vw + 8.99px,32px);--gap:24px;--section:clamp(64px,5.393vw + 42.97px,112px);--measure:62ch;
   --s1:4px;--s2:8px;--s3:12px;--s4:16px;--s5:24px;--s6:32px;--s7:48px;--s8:64px;--s9:96px;
   --r-0:0;--r-ctl:2px;--r-doc:16px;--hair:1px;--t-fast:150ms;--t:200ms;--ease:cubic-bezier(.2,0,0,1);

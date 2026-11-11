@@ -342,7 +342,7 @@ setTimeout(function(){var h=document.documentElement;if(!h.dataset.rvReady)h.cla
   <div class="g-civic__grid">
       <article class="g-civic__item"><span class="g-civic__n">/01</span><h3>A real tool, not a decoy.</h3><p>Check that an agent belongs to the organisation it names, and not to an impersonator or a spoofed bot: the passport carries its operator, proven to an accredited registrar.</p></article>
       <article class="g-civic__item"><span class="g-civic__n">/02</span><h3>A check that calls no one.</h3><p>Signatures and revocation are checked on the verifier’s own machine, from public files. No request goes to us or anyone during a check, so there is no log of who checked whom.</p></article>
-      <article class="g-civic__item"><span class="g-civic__n">/03</span><h3>A seized key, switched off.</h3><p>If a device or an agent’s key is taken, one bit set in the signed status list (an IETF Token Status List) makes every verifier that checks refuse it — within its freshness class: 30 seconds at F1, five minutes by default.</p></article>
+      <article class="g-civic__item"><span class="g-civic__n">/03</span><h3>A seized key, switched off.</h3><p>If a device or an agent’s key is taken, one bit set in the signed status list (an IETF Token Status List) makes every verifier that checks refuse it — within its freshness class: a status no older than 30 seconds at F1 (measured end to end, under 60 seconds, in <code>make soak-smoke</code>), five minutes by default.</p></article>
       <article class="g-civic__item"><span class="g-civic__n">/04</span><h3>No single owner, two signatures.</h3><p>Every passport is signed twice, Ed25519 and ML-DSA-65, so it holds even if one scheme falls — including to a future quantum computer. The root is built to be held 5-of-9 by independent custodians; today it is pre-ceremony, with no witnesses yet.</p></article>
     </div>
 </section>
@@ -414,7 +414,7 @@ setTimeout(function(){var h=document.documentElement;if(!h.dataset.rvReady)h.cla
           <li><a href="docs.html#standard">The standard</a></li>
           <li><a href="ainra-cli-v0.3.3.zip">Reference CLI v0.3.3</a></li>
           <li><a href="https://github.com/JacobJandon/ainra" rel="noopener">Source — the full reference impl</a></li>
-          <li><a href="index.html#top">The passport</a></li>
+          <li><a href="index.html#passport">The passport</a></li>
           <li><a href="verify.html#authority">Authority model</a></li>
           <li><a href="docs.html">Docs</a></li>
         </ul>
@@ -424,9 +424,9 @@ setTimeout(function(){var h=document.documentElement;if(!h.dataset.rvReady)h.cla
         <ul>
           <li><a href="verify.html#align">Where you plug in</a></li>
           <li><a href="verify.html#tiers">Assurance tiers</a></li>
-          <li><a href="index.html#integrate">Onboard an agent</a></li>
+          <li><a href="docs.html#install">Onboard an agent</a></li>
           <li><a href="landscape.html">The landscape</a></li>
-          <li><a href="get.html">Run a registrar</a></li>
+          <li><a href="get.html#get">Run a registrar</a></li>
         </ul>
       </div>
       <div>

@@ -209,12 +209,25 @@ nav:not([class]) .brand .wm{font-size:18px;line-height:20px}
 nav:not([class]) .nav-r .g-menubtn,nav:not([class]) .nav-r .g-sq{min-width:40px;max-width:40px;padding:0}
 @media (min-width:701px){nav:not([class]) .nav-in,html.nav-float nav:not([class]) .nav-in{max-width:1480px;margin-left:auto;margin-right:auto}}
 @media (max-width:800px){.g-side{display:none}}
+html.g-menu-open nav:not([class]){z-index:90}
+.g-menu{background:rgba(245,246,243,.96)}
+@media (max-width:700px){.g-menu{padding-bottom:96px}}
+@keyframes gIntroLift{to{transform:translateX(130%) skewX(-12deg)}}
+.g-intro:not(.is-done):not(.is-leaving) .g-intro__panel{animation:gIntroLift .6s cubic-bezier(.76,0,.24,1) 2.4s forwards}
+html.g-intro-brief .g-intro__panel{transition-duration:.42s}
+html.g-intro-brief .g-intro.is-leaving.is-cover .g-intro__panel{transition-duration:.26s}
+.g-side__tab:not(.is-shown){visibility:hidden;transition:transform .45s cubic-bezier(.22,1,.36,1),visibility 0s .45s}
+@media (max-width:700px){body.gi-page{padding-bottom:70px}}
+.nav-r{transition:opacity .2s ease}
+html.nav-bar-yield .nav-r{opacity:0;pointer-events:none}
+nav:not([class]) .nav-r .g-menubtn[aria-expanded="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+@media (max-height:639px) and (min-width:701px){.g-side,.g-side__tab{display:none}}
 /* the inner pages' sticky chapter rail sits below the floating header */
 @media (min-width:1024px){.chapter-rail{top:104px}}
 /* a jump to any section lands below the floating header, not under it */
 [id]{scroll-margin-top:110px}
 /* below 1024 px the rail is a sticky strip: it pins under the header (floating 16 + 70, or flush 70 on phones), on paper */
-@media (max-width:1023px){.chapter-rail{top:96px;background:var(--paper)}}
+@media (max-width:1023px){.chapter-rail{position:sticky;z-index:5;top:96px;background:var(--paper)}}
 @media (max-width:700px){.chapter-rail{top:70px}}
 /* inner pages: a little less air under each section head, so a short heading beside a long lede leaves no hole */
 .gi-page .section .sec-head{margin-bottom:32px}

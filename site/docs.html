@@ -341,15 +341,16 @@ $ pip install ainra       <span class="c"># PEP 740 attestations, published toke
     <p>Point at a root-signed directory, verify the bundle, gate on the verdict. <code>VALID</code> proceeds; anything else returns a named reason — <code>revoked</code>, <code>stale_status</code>, <code>alg_downgrade</code>, … The decision stays yours.</p>
     <div class="code-panel"><div class="code-panel__body"><span class="code-panel__cap">typescript · @ainra/sdk</span><button class="code-panel__copy" type="button" aria-live="polite">COPY</button><pre tabindex="0"><span class="w">import</span> { Verifier } <span class="w">from</span> <span class="g">"@ainra/sdk"</span>;
 
-<span class="w">const</span> v = <span class="w">await</span> Verifier.fromDirectory(dir);
+<span class="w">const</span> v = Verifier.fromDirectory(dir, rootEd, rootSlh);  <span class="c">// null: the directory is not authentic</span>
+<span class="w">if</span> (!v) <span class="w">throw new</span> Error(<span class="g">"untrusted directory"</span>);
 <span class="w">const</span> verdict = v.verify(bundle, now);
-<span class="c">// → { status: "VALID" } — or a named reason</span></pre></div></div>
+<span class="c">// → { verdict: "valid" } — or { verdict: "invalid", reason }</span></pre></div></div>
     <div class="code-panel"><div class="code-panel__body"><span class="code-panel__cap">python · independent verifier</span><button class="code-panel__copy" type="button" aria-live="polite">COPY</button><pre tabindex="0"><span class="w">from</span> ainra <span class="w">import</span> Verifier
 
 v = Verifier.from_directory(dir, root_ed, root_slh)
 verdict = v.verify(bundle, now)
 <span class="c"># → verdict.valid is True — or verdict.reason</span></pre></div></div>
-    <div class="note">Four independently written implementations — Rust core, TypeScript SDK, the reference CLI, and Python — agree on <b>1169/1169</b> conformance vectors, on verdict <i>and</i> reason. A disagreement would be a finding.</div>
+    <div class="note">Four independently written implementations exist — Rust core, TypeScript SDK, Python and the reference CLI. Three of them agree on <b>1169/1169</b> conformance vectors, on verdict <i>and</i> reason (<code>make diff</code>); the CLI agrees on canonical encoding. A disagreement would be a finding.</div>
     </div>
   </section>
 
@@ -408,7 +409,7 @@ $ ainra verify ./reg ainra:registrar-07:acme:invoicing@1.0.0
     <div class="chap__body">
       <div class="sec-head"><div class="sec-head__row"><span class="earmark"><b>/07</b> · FOR AGENTS</span><a href="#agents">↳ #agents</a></div>
         <div class="split"><h2 class="split__full" id="agents">For agents</h2></div></div>
-    <p>An agent onboards itself from the machine-readable map — no account, no human in the loop:</p>
+    <p>An agent onboards itself from the machine-readable map, with no human in the loop:</p>
     <ul>
       <li><code>/llms.txt</code> — the capability map (what exists, what to fetch, honest status).</li>
       <li><code>/skills.md</code> — deterministic onboarding steps, executable exactly as written (CI replays them).</li>
@@ -750,7 +751,7 @@ $ make repro                          <span class="c"># byte-exact rebuild — t
           <li><a href="#standard">The standard</a></li>
           <li><a href="ainra-cli-v0.3.3.zip">Reference CLI v0.3.3</a></li>
           <li><a href="https://github.com/JacobJandon/ainra" rel="noopener">Source — the full reference impl</a></li>
-          <li><a href="index.html#top">The passport</a></li>
+          <li><a href="index.html#passport">The passport</a></li>
           <li><a href="verify.html#authority">Authority model</a></li>
           <li><a href="docs.html">Docs</a></li>
         </ul>
@@ -760,9 +761,9 @@ $ make repro                          <span class="c"># byte-exact rebuild — t
         <ul>
           <li><a href="verify.html#align">Where you plug in</a></li>
           <li><a href="verify.html#tiers">Assurance tiers</a></li>
-          <li><a href="index.html#integrate">Onboard an agent</a></li>
+          <li><a href="#install">Onboard an agent</a></li>
           <li><a href="landscape.html">The landscape</a></li>
-          <li><a href="get.html">Run a registrar</a></li>
+          <li><a href="get.html#get">Run a registrar</a></li>
         </ul>
       </div>
       <div>

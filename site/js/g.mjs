@@ -10,10 +10,14 @@ const menu = document.getElementById("gMenu"), btn = document.querySelector("[da
 if (menu && btn) {
   let last = null;
   const focusables = () => [...menu.querySelectorAll("a, button")].filter((e) => !e.hidden);
-  const open = () => { last = document.activeElement; menu.hidden = false; html.classList.add("g-menu-open"); btn.setAttribute("aria-expanded", "true"); btn.querySelector("span").textContent = "Close"; focusables()[0]?.focus(); };
-  const close = () => { menu.hidden = true; html.classList.remove("g-menu-open"); btn.setAttribute("aria-expanded", "false"); btn.querySelector("span").textContent = "Menu"; (last || btn).focus(); };
+  // while the menu is open everything behind it is inert: focus, clicks and screen readers stay in the menu and header
+  const behind = (on) => { for (const el of document.body.children) if (el !== menu && !el.contains(btn) && el.tagName !== "SCRIPT") el.inert = on; };
+  const open = () => { last = document.activeElement; menu.hidden = false; behind(true); html.classList.add("g-menu-open");
+    // the header now stays above the open sheet, so the sheet's first line starts below the header's lower edge
+    const nb = document.querySelector("nav:not([class]) .nav-in")?.getBoundingClientRect().bottom || 0; menu.style.paddingTop = `${Math.max(96, Math.round(nb + 24))}px`; btn.setAttribute("aria-expanded", "true"); btn.querySelector("span").textContent = "Close"; focusables()[0]?.focus(); };
+  const close = () => { menu.hidden = true; behind(false); html.classList.remove("g-menu-open"); btn.setAttribute("aria-expanded", "false"); btn.querySelector("span").textContent = "Menu"; (last || btn).focus(); };
   btn.addEventListener("click", () => (menu.hidden ? open() : close()));
-  menu.addEventListener("click", (e) => { if (e.target.closest("a")) close(); });
+  menu.addEventListener("click", (e) => { if (e.target.closest("a") || e.target === menu || e.target.parentElement === menu) close(); });   // a link, or the sheet's empty space
   addEventListener("keydown", (e) => {
     if (menu.hidden) return;
     if (e.key === "Escape") { e.preventDefault(); close(); return; }
@@ -82,7 +86,7 @@ if (tabs) {
   for (let copy = 0; copy < 3; copy++) for (let i = 0; i < N; i++) {
     const d = data[i], el = document.createElement("div");
     el.className = "g-car__card"; el.dataset.i = i; if (copy !== 1) el.setAttribute("aria-hidden", "true");
-    el.innerHTML = `<video muted playsinline loop preload="none" data-src="${(phone && d.srcM) || d.src}"></video><a class="g-tabs__label" href="${d.href}"${copy !== 1 ? ' tabindex="-1"' : ""}><span class="g-tabs__k">${d.k}</span><b>${d.t} ↗</b></a>${arrow("prev")}${arrow("next")}`;
+    el.innerHTML = `<video muted playsinline loop preload="none" data-src="${(phone && d.srcM) || d.src}" data-poster="${(phone && d.posterM) || d.poster || ""}"></video><a class="g-tabs__label" href="${d.href}"${copy !== 1 ? ' tabindex="-1"' : ""}><span class="g-tabs__k">${d.k}</span><b>${d.t} ↗</b></a>${arrow("prev")}${arrow("next")}<button type="button" class="g-car__play" aria-pressed="false" aria-label="Play this clip"><svg viewBox="0 0 20 20" aria-hidden="true"><path class="i-play" d="M6 4l10 6-10 6z"/><path class="i-pause" d="M6 4h3v12H6zM11 4h3v12h-3z"/></svg><span>Play</span></button>`;
     if (copy !== 1) el.querySelectorAll("button").forEach((x) => (x.tabIndex = -1));
     // each clip ends on a blueprint with its own title in the top-left corner: from data-bp seconds on, the caption
     // steps aside (the chip still names the clip) and comes back when the clip starts again
@@ -94,8 +98,20 @@ if (tabs) {
   const motion = () => html.dataset.motion !== "off";
   const width = () => track.parentElement.getBoundingClientRect().width;
   const place = (animate) => { track.style.transition = animate && motion() ? "transform .5s cubic-bezier(.65,0,.35,1)" : "none"; track.style.transform = `translateX(${-pos * (width() + GAP)}px)`; };
+  // the current card (and its two neighbours, which slide past) carries its still as the clip's poster, so a card is
+  // never an empty panel — not while the clip loads, and not with motion off, where the clip waits for its own Play
   const playOnly = () => cards.forEach((c, k) => { const v = c.querySelector("video");
-    if (k === pos && onScreen) { if (!v.getAttribute("src")) v.src = v.dataset.src; if (v.paused && !v.dataset.keep) v.currentTime = 0; if (motion()) v.play().catch(() => {}); } else v.pause(); });
+    if (onScreen && Math.abs(k - pos) <= 1 && v.dataset.poster && !v.getAttribute("poster")) v.poster = v.dataset.poster;
+    c.inert = k !== pos;   // only the card on screen can be focused or clicked (the copies and off-screen cards were tab stops)
+    c.classList.toggle("is-still", k === pos && !motion());
+    if (k === pos && onScreen) { if (!v.getAttribute("src")) v.src = v.dataset.src;
+      if (motion()) { if (v.paused && !v.dataset.keep) v.currentTime = 0; v.play().catch(() => {}); } else if (!c.dataset.asked) v.pause(); } else { v.pause(); delete c.dataset.asked; } });
+  // motion off: the card's own Play plays (or pauses) that one clip, by the reader's choice
+  track.addEventListener("click", (e) => { const b = e.target.closest(".g-car__play"); if (!b) return; const c = b.closest(".g-car__card"), v = c.querySelector("video");
+    if (v.paused) { c.dataset.asked = "1"; if (!v.getAttribute("src")) v.src = v.dataset.src; v.play().catch(() => {}); } else { delete c.dataset.asked; v.pause(); } });
+  track.addEventListener("play", (e) => { const b = e.target.closest(".g-car__card")?.querySelector(".g-car__play"); if (b) { b.setAttribute("aria-pressed", "true"); b.lastChild.textContent = "Pause"; b.setAttribute("aria-label", "Pause this clip"); } }, true);
+  track.addEventListener("pause", (e) => { const b = e.target.closest(".g-car__card")?.querySelector(".g-car__play"); if (b) { b.setAttribute("aria-pressed", "false"); b.lastChild.textContent = "Play"; b.setAttribute("aria-label", "Play this clip"); } }, true);
+  track.parentElement.addEventListener("scroll", () => { track.parentElement.scrollLeft = 0; });   // focus must never scroll the clipped strip itself
   // on a phone the chips are one swipeable row: keep the current one in view (horizontally only — never moves the page)
   const reveal = (c) => { const bar = c.parentElement; if (bar.scrollWidth <= bar.clientWidth + 2) return;
     const left = c.getBoundingClientRect().left - bar.getBoundingClientRect().left + bar.scrollLeft, want = Math.max(0, left - (bar.clientWidth - c.offsetWidth) / 2);
@@ -157,7 +173,11 @@ if (intro && html.classList.contains("rv")) {
   heroEl?.classList.remove("is-in");
   html.classList.add("g-intro-hold");
   const done = () => { intro.classList.add("is-done"); html.classList.remove("g-intro-hold"); setTimeout(() => heroEl?.classList.add("is-in"), 250); };
-  setTimeout(done, 750); setTimeout(() => { if (!intro.classList.contains("is-done")) done(); }, 2000);
+  // the full intro plays once, on the first page of a visit; after that the switch between pages is brief (a review
+  // measured about two seconds from a click to a readable page with no network time at all)
+  let seen = false; try { seen = sessionStorage.getItem("ainra-intro") === "1"; sessionStorage.setItem("ainra-intro", "1"); } catch { /* storage may be blocked: play it in full */ }
+  if (seen) html.classList.add("g-intro-brief");
+  setTimeout(done, seen ? 160 : 750); setTimeout(() => { if (!intro.classList.contains("is-done")) done(); }, 2000);
   document.addEventListener("click", (e) => {
     const a = e.target.closest("a[href]"); if (!a || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
     if (a.target && a.target !== "_self") return; if (a.hasAttribute("download")) return;
@@ -165,7 +185,7 @@ if (intro && html.classList.contains("rv")) {
     if (html.dataset.motion === "off" || !html.classList.contains("rv")) return;
     e.preventDefault(); intro.classList.remove("is-done"); intro.classList.add("is-leaving");
     requestAnimationFrame(() => requestAnimationFrame(() => intro.classList.add("is-cover")));
-    setTimeout(() => { location.href = url.href; }, 470);
+    setTimeout(() => { location.href = url.href; }, 280);
   });
   // coming back through the browser's history restores this page as it was: clear the cover
   addEventListener("pageshow", (e) => { if (e.persisted) { intro.classList.remove("is-leaving", "is-cover"); intro.classList.add("is-done"); } });
@@ -193,11 +213,17 @@ if (side && sideTab) {
   };
   const introMs = document.getElementById("gIntro") && html.classList.contains("rv") ? 1150 : 300;
   setTimeout(() => { ready = true; if (overStage()) closedByReader = true; if (heroOn) set(!closedByReader); }, introMs);
-  if (heroBox && "IntersectionObserver" in window) new IntersectionObserver((es) => {
-    heroOn = es[0].intersectionRatio > 0.35;
+  // a panel fixed to the window (the home page's) may sit only over the hero: once the hero's lower edge has risen
+  // past the panel's, the page's own text and buttons would be under it (a review found "Read the standard" fully
+  // covered through the first scroll), so it steps away at once and returns at the top
+  const fixedPanel = getComputedStyle(side).position === "fixed";
+  const clear = () => !fixedPanel || !heroBox || heroBox.getBoundingClientRect().bottom >= side.getBoundingClientRect().bottom - 4;
+  let ratioOn = true;
+  const apply = () => { const on = ratioOn && clear(); if (on === heroOn) return; heroOn = on;
     if (!heroOn) { side.classList.remove("is-open"); sideTab.classList.remove("is-shown"); sideTab.setAttribute("aria-expanded", "false"); }
-    else if (ready) set(!closedByReader);
-  }, { threshold: [0, 0.35, 0.6] }).observe(heroBox);
+    else if (ready) set(!closedByReader); };
+  if (heroBox && "IntersectionObserver" in window) new IntersectionObserver((es) => { ratioOn = es[0].intersectionRatio > 0.35; apply(); }, { threshold: [0, 0.35, 0.6] }).observe(heroBox);
+  if (fixedPanel) { addEventListener("scroll", apply, { passive: true }); addEventListener("resize", apply); }
 }
 
 // the cards drift slowly (about 27 px a second); pointing, focus, a touch or the arrows stop them for a while; off
@@ -226,11 +252,17 @@ if (gi) setTimeout(() => gi.classList.add("is-in"), document.getElementById("gIn
 // the header's call to action stays quiet (an outline) while the hero film is under it, and turns solid once the hero
 // has scrolled out from under the header. The film no longer opens on a dark title shot — the headline is the page's
 // own <h1> again — so the header never needs to read light-on-dark over it.
-const heroBoxEl = document.querySelector(".g-hero");
+const heroBoxEl = document.querySelector(".g-hero [data-film]")?.closest(".g-hero");
 if (heroBoxEl) {
   const navEl = document.querySelector("nav:not([class])");
   const setHero = () => { const r = heroBoxEl.getBoundingClientRect(), nb = navEl ? navEl.getBoundingClientRect().bottom : 90; html.classList.toggle("nav-on-hero", r.top < nb && r.bottom > nb); };
   addEventListener("scroll", setHero, { passive: true }); addEventListener("resize", setHero); setHero();
+}
+// phones: the floating bottom bar steps aside while the page's own two main buttons are under it
+const leadCta = document.querySelector(".g-lead__cta"), barMq = matchMedia("(max-width:700px)");
+if (leadCta) {
+  const yieldBar = () => { const r = leadCta.getBoundingClientRect(); html.classList.toggle("nav-bar-yield", barMq.matches && !html.classList.contains("g-menu-open") && r.bottom > innerHeight - 92 && r.top < innerHeight - 8); };
+  addEventListener("scroll", yieldBar, { passive: true }); addEventListener("resize", yieldBar); yieldBar();
 }
 
 // the wider argument (Docs): the talk loads from its host only when the reader presses play — nothing is requested before

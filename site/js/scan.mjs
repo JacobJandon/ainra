@@ -104,7 +104,10 @@ async function boot() {
   if (wel && W.length) {
     const regions = [...new Set(W.map((w) => (w.region || "").trim()).filter(Boolean))];
     wel.hidden = false; wel.className = "s-rootdark";
-    wel.innerHTML = `witnesses — <b>${W.length}</b> cosigning the log` +
+    // one wording site-wide: independent witnesses are counted apart from the network operator's own (which catches a
+    // fork today but is not independent), so this line and the "WITNESSES 0" lines never read as two different numbers
+    const own = W.filter((w) => /\bAINRA\b/i.test(w.operator || "")).length, indep = W.length - own;
+    wel.innerHTML = `independent witnesses — <b>${indep}</b>` + (own ? ` · ${own} run by the network's own operator` : "") +
       (regions.length ? ` · ${regions.map((r) => `<em>${r}</em>`).join(" · ")}` : "") +
       ` · self-declared, verified by no one — a fork must out-collude the relying party's quorum`;
   }

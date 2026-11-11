@@ -48,6 +48,7 @@ html.nav-on-hero nav:not([class]) .nav-r > .btn:first-child:focus-visible{color:
 .btn-ghost::before{background:var(--signal)}
 .btn-ghost:hover,.btn-ghost:focus-visible{color:#fff;border-color:var(--signal)}
 .btn-ink:hover,.btn-ink:focus-visible{background:var(--signal);border-color:var(--signal)}
+.btn-ink::before{background:var(--signal)}   /* its wipe was still the deep green: green is a verdict here, never a hover */
 [aria-label="Next cards"]:hover,[aria-label="Previous cards"]:hover,
 [aria-label="Next cards"]:focus-visible,[aria-label="Previous cards"]:focus-visible{background:var(--signal);border-color:var(--signal);color:#fff}
 .g-tabs__all:hover,.g-tabs__all:focus-visible{background:var(--signal);border-color:var(--signal);color:#fff}
@@ -87,3 +88,5 @@ main a:not(.btn):not([class*="g-"]):hover{color:var(--signal-ink)}
 @media (prefers-reduced-motion:reduce){.live::before{animation:none}.g-ask,.g-ask__i,.g-duplex__a{transition:none}}
 /* forced-colours (Windows high contrast): let the system colours win, keep the text readable */
 @media (forced-colors:active){.g-statement__t .soft,.statement-big .soft{background:none;color:CanvasText}}
+/* placeholder text was the browser's default grey, just under the contrast floor on paper */
+input::placeholder,textarea::placeholder{color:var(--muted,#5A6372);opacity:1}

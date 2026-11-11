@@ -38,7 +38,7 @@ export function model(net) {
 /** The ticker: real record lines only, each linking to the file it came from. */
 export function tickerItems(m) {
   const items = [];
-  for (const r of m.records) items.push({ href: "net/registry.json", text: `${r.registrar} · ${r.lineage} ${r.version} · ${r.tier} · `, state: r.verdict, cls: r.revoked ? "is-red" : "is-ok" });
+  for (const r of m.records) items.push({ href: "net/registry.json", text: `${r.registrar} · ${r.lineage} ${r.version} · ${r.tier} · `, state: r.revoked ? "REVOKED" : "ACTIVE", cls: r.revoked ? "is-red" : "is-ok" });   // the list's own words: the stored verdict was computed at publish time and went stale
   for (const [id, c] of Object.entries(m.checkpoints)) items.push({ href: c.file, text: `LOG ${c.origin} · SIZE ${c.size} · ROOT ${short(c.root)}` });
   for (const l of m.lists) items.push({ href: "net/registry.json", text: `STATUS LIST ${l.registrar} · SEQ ${l.seq} · ${l.bits} BITS` });
   if (m.root) items.push({ href: "net/roots.json", text: `ROOT ed25519 ${short(m.root)}` });

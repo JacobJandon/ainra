@@ -401,3 +401,10 @@ footer{background:var(--paper);border-top:1px solid var(--ink);margin-top:var(--
 .try-own{margin-top:18px;border-top:1px solid var(--line);padding-top:12px}
 .try-own > summary{cursor:pointer;font-weight:500;color:var(--ink);padding:10px 0;min-height:44px;display:flex;align-items:center}
 .try-own[open] > summary{margin-bottom:6px}
+/* phones: two wide diagrams were scaled down until their labels were 4–6 px tall. They keep a readable size and the
+   figure scrolls sideways instead, as the tables do. */
+@media (max-width:700px){
+  .vchain .fig__body,.lfig .fig__body{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .vchain svg.vc{min-width:660px;max-width:none}
+  .lfig .fig__body > svg{min-width:600px;max-width:none}
+}

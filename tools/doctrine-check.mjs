@@ -74,7 +74,7 @@ ok(`one-way mark        the root displays no third party's mark`);
 // The allowed homes are the disclosure passages themselves, listed explicitly so adding a new one is a decision.
 const MERIDIAN_ALLOWED = new Set([
   "docs/AINRA_I_The_Standard.md", "site/AINRA_I_The_Standard.md", "site/standard.md",
-  "site/docs.html", "site/index.html", "docs/PLAN-M32.md",
+  "site/docs.html", "site/standard.html", "site/index.html", "docs/PLAN-M32.md",   // standard.html: the site's copy of the Standard moved to its own page (2026-11-11); the same disclosure passage, not a new home
 ]);
 for (const f of tracked()) {
   if (MERIDIAN_ALLOWED.has(f)) continue;

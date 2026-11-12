@@ -32,7 +32,9 @@ import { runVector } from "../packages/sdk-ts/dist/conformance.js";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 const REASONS = JSON.parse(readFileSync(ROOT + "docs/reasons.json", "utf8"));
-const NET = process.env.AINRA_NET || "http://127.0.0.1:8091"; // auto-tried; falls back to the bundled testbed
+// Offline unless asked: a network is read only when AINRA_NET names one (2026-11-12: it used to try 127.0.0.1:8091 on
+// its own, so a stranger's run could read whatever answered there, and crash on anything that was not a record).
+const NET = process.env.AINRA_NET || null;
 const bold = (s) => `\x1b[1m${s}\x1b[0m`;
 const grn = (s) => `\x1b[32m${s}\x1b[0m`;
 const red = (s) => `\x1b[31m${s}\x1b[0m`;
@@ -66,14 +68,18 @@ function toWire(rec, R, now) {
 }
 
 async function tryStaging() {
-  let res;
+  let res, reg;
   try {
     res = await fetch(NET.replace(/\/$/, "") + "/registry.json", { signal: AbortSignal.timeout(2500) });
-    if (!res.ok) return null;
-  } catch { return null; }
+    if (!res.ok) return null;                              // no record there: the bundled samples, as the label says
+    reg = await res.json();
+    if (!reg?.generated_window?.verified_at || !Array.isArray(reg.registrars)) throw new Error("not a published record");
+  } catch {
+    console.error(dim(`AINRA_NET=${NET} did not answer with a published record (registry.json); showing the bundled samples instead.`));
+    return null;
+  }
   const net = (res.headers.get("X-AINRA-Network") || "staging").toLowerCase();
   const root = res.headers.get("X-AINRA-Root") || "test-root";
-  const reg = await res.json();
   const now = reg.generated_window.verified_at;
   const label = net === "production" ? `${net.toUpperCase()} NETWORK` : "STAGING · TEST-ROOT";
   const records = reg.registrars.flatMap((R) => R.records.map((e) => ({ R, rec: e.record })));
@@ -187,11 +193,13 @@ async function negative() {
 if (process.argv.includes("--negative")) await negative();
 
 // ── run ──
-const src = (await tryStaging()) || localTestbed();
+const src = (NET ? await tryStaging() : null) || localTestbed();
 if (!src) { console.error(red(NOT_ANCHORED)); process.exit(1); }
 console.log(`\n${bold("AINRA — verify, in one command")}   ${dim("[" + src.label + "]")}`);
 console.log(dim(`source: ${src.net} · root: ${src.root} · verifier: @ainra/sdk (offline, root-dark) · telemetry: none\n`));
 for (const s of src.samples) printOne(src.label, s.rec.sub, s.rec.tier, s.v);
+if (src.samples.length === 2 && src.samples[0].rec.sub === src.samples[1].rec.sub)
+  console.log(dim("  (the same passport twice: as issued, then after its registrar revoked it)"));
 const why = whyRed(src);
 console.log(`\n${dim("named-reason legend (the 21 frozen INVALID reasons):")}`);
 for (const [k, txt] of Object.entries(REASONS)) if (k !== "_note" && k !== "valid") console.log(dim(`  ${k.padEnd(20)} ${txt}`));

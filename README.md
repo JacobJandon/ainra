@@ -18,18 +18,12 @@ dark**, trusting the **source** — not us.
 
 **No install at all?** Two routes, differing in which verifier answers.
 [`examples/verify-in-browser/`](examples/verify-in-browser/) is four static files running the JavaScript verifier —
-open it, change one byte of a signature, watch it refuse. the live site's [**Try it**](https://ainra.org/verify.html#try) panel (`make site SERVE=1` locally) runs
+open it, change one byte of a signature, watch it refuse. The live site's [**Try it**](https://ainra.org/verify.html#try) panel (`make site SERVE=1` locally) runs
 **`ainra-core` itself**, the Rust verify path compiled to WebAssembly (`make wasm`), so the browser is checking with
 the same code the CLI does — and `make wasm-diff` pushes the whole corpus through that exact artifact in a headless
 browser, requiring agreement on verdict *and* named reason. Nothing is uploaded and no request leaves the page at
 verification time, either way.
 
-**Try it on your own traffic, alone.** In [watch mode](kits/pilot/README.md#watch-mode) the check sits beside one route, refuses nothing and sends its file nowhere; `node kits/pilot/watch-report.mjs watch.jsonl` then prints the share of requests carrying any signature, how many the check would have admitted or refused (and why), and its time on your machine.
-```sh
-node kits/pilot/pilot.mjs --watch --upstream http://127.0.0.1:3000 --listen 127.0.0.1:8080 \
-  --directory directory.json --roots roots.json \
-  --mode link --registrar https://registrar.example --observations watch.jsonl
-```
 ## Start here
 
 **Install the verifier** — published with provenance you can check before you trust it:
@@ -47,10 +41,22 @@ make issue-first   # boot a local registrar, issue your first passport, verify i
 ```
 
 Measured on a warm toolchain: `make verify` ≈ **1.7 s**, `make issue-first` ≈ **2.2 s** (both far under the 60 s / 5 min
-targets). From there: the [cookbook](docs/quickstarts/) · the [MCP server](docs/quickstarts/mcp.md) (AINRA as native
+targets). The first `make issue-first` also builds the Rust tools, which takes about a minute; `make doctor` checks the
+toolchain ([TOOLCHAIN.md](TOOLCHAIN.md)). From there: the [cookbook](docs/quickstarts/) · the [MCP server](docs/quickstarts/mcp.md) (AINRA as native
 agent tools) · the [registrar console](docs/quickstarts/console.md) (`make registrar-console`) · the
 [examples](examples/) · and **[`skills.md`](skills.md)** — an agent onboards itself end to end from that one file.
 Every command prints honest labels (`LOCAL TESTBED` / `STAGING · TEST-ROOT`) and names the next step on failure.
+
+**Or try the check on your own traffic, alone** — beside one route of a service you run, refusing nothing:
+
+```sh
+make watch UPSTREAM=http://127.0.0.1:3000        # then: node kits/pilot/watch-report.mjs watch.jsonl
+```
+
+It builds what it needs, reads the published test directory, and writes one line per request to a file that stays on
+your machine: which signatures the request carried, what the check would have decided, and how long that took here.
+A request's operator is named only when a registrar links its key; `make live-up` runs a local test registrar.
+Details: [watch mode](kits/pilot/README.md#watch-mode).
 
 This repository is the production-track reference implementation.
 
@@ -168,7 +174,7 @@ repository, which the host deploys to https://ainra.org/. Pushing this repositor
 ```
                       the STANDARD + CC0 conformance vectors (vectors/)  ── anyone builds against these
                                           │
-  crates/ainra-core  ── the pure verify/issue library (N7: no I/O, no clock) ── the 10-step verify, 21 reasons
+  crates/ainra-core  ── the pure verify/issue library (N7: no I/O, no clock) ── the nine-step verify (a tenth for a running copy's credential), 21 reasons
         │  hybrid Ed25519 + ML-DSA-65 (both-or-invalid) · RFC 6962 Merkle · Token Status List
         ▼
   crates/ainra-adapter ── the ONE place external bytes become core verify types, and the canonical verdict event.

@@ -20,6 +20,7 @@ TIER="${TIER:-L2}"; AUTH="${AUTH:-A2}"; CAP="${CAP:-read:data}"
 b(){ printf '\033[1m%s\033[0m' "$1"; }; dim(){ printf '\033[2m%s\033[0m' "$1"; }
 
 echo; b "AINRA — issue your first passport"; printf '   '; dim "[LOCAL TESTBED · real crypto · local only · zero telemetry]"; echo; echo
+[ -x ./target/release/ainra ] || echo "   $(dim "building the Rust tools once — about a minute the first time (make doctor checks the toolchain)…")"
 cargo build --release -q -p ainra-cli-rs
 BIN=./target/release/ainra
 
@@ -48,9 +49,16 @@ echo "   verdict: $(b "$V")"
 echo
 b "You now have a working registrar."; echo
 echo "  $(dim "· issue more:")   $BIN issue $DIR --operator $OPERATOR --lineage <name> --version 1.0.0 --cap <cap>"
-echo "  $(dim "· revoke one:")   $BIN revoke $DIR $SUB      $(dim "(watch it flip to INVALID · revoked)")"
+echo "  $(dim "· revoke it:")    $BIN revoke $DIR $SUB
+                  then $BIN verify $DIR $SUB      $(dim "(→ INVALID (revoked); revocation is one-way)")"
 echo "  $(dim "· see it in a UI:")  make registrar-console  $(dim "(the open registrar console — issue/renew/revoke/list)")"
-echo "  $(dim "· verify anything:") make verify"
+echo "  $(dim "· verify yours:")  $BIN verify $DIR $SUB
+  $(dim "· the bundled samples:") make verify"
 echo "  $(dim "cookbook →")        docs/quickstarts/"
 echo
-[ "$V" = "VALID" ] || { echo "unexpected non-VALID verdict: \"$V\" — see docs/quickstarts/cli.md"; exit 1; }
+if [ "$V" != "VALID" ]; then
+  echo "unexpected non-VALID verdict: \"$V\" — see docs/quickstarts/cli.md"
+  case "$V" in *revoked*) echo "  $SUB was revoked in $DIR, and revocation is one-way. Issue another lineage:"
+    echo "    LINEAGE=<new name> make issue-first     or start a fresh registrar:  DIR=my-registrar-2 make issue-first";; esac
+  exit 1
+fi

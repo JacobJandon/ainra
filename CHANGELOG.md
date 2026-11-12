@@ -79,6 +79,31 @@ We **publicly own fixed security bugs** — hiding them would be the opposite of
 - **S7:** `tools/onboard-registrar.sh` named two domain-registrar brands as its foil, and neither denylist knew them.
   The script now says "a domain-name registrar", and both names are on both lists (`make s7`, `--negative`).
 
+### Fixed — what three first-time users ran into (12 November 2026)
+
+Three newcomers, each starting from a fresh clone or an empty folder with only the README, timed themselves and wrote
+down every place they stuck. What changed because of it:
+
+- **`make verify` read a network it was not asked to.** It tried `127.0.0.1:8091` on its own, so a newcomer's run could
+  read whatever answered there, and crashed with a stack trace on anything that was not a published record. It is now
+  offline unless `AINRA_NET` names a network, falls back to the bundled samples with a named message on a bad answer,
+  and says when its two lines are the same passport before and after revocation (`make verify`; its `--negative`
+  still catches all 8 planted faults).
+- **The npm example could never show VALID.** `@ainra/sdk`'s README verified with today's clock against samples signed
+  for one day in April, so both answered `stale_status`, and it never said where the sample files come from. It now
+  fetches the five sample files, uses their own moment from `meta.json`, explains the clock, and runs as pasted from
+  an empty folder after `npm i` (checked against the published 0.8.0). The SDK quickstart's "Real output" now matches
+  what its snippet prints.
+- **Watch mode did not start from a fresh clone.** `make watch UPSTREAM=…` now builds what the kit needs and starts it
+  against the test network's published directory; the kit README says what `--directory`, `--roots` and
+  `--registrar` are and where they come from, and that plain traffic never reaches a registrar. The report now says
+  how many `sig_invalid` refusals carried no signature at all, so unsigned traffic does not read as forgeries.
+- **`make issue-first`** says the first build of the Rust tools takes about a minute, shows the exact revoke-then-verify
+  commands for your own passport, and on a re-run after a revocation says how to carry on (a new lineage or a fresh
+  registrar). The README now says the first build takes about a minute and points at `make doctor`.
+- **README:** the watch command sits in "Start here" as `make watch`, a sentence starts with a capital, and the core
+  is "the nine-step verify (a tenth for a running copy's credential)".
+
 ### Docs — the landscape, re-checked 12 November 2026
 
 - `docs/LANDSCAPE.md` was checked again on 12 November 2026, for items dated 28 October to 12 November. The Agent

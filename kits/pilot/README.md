@@ -31,17 +31,36 @@ To try the check alone, beside one route, before it can refuse anything. `--watc
 instead of in front of it. Every request is served as before, and the pilot writes down what the gate would have
 decided and how long the check took on this machine. It works with `--mode link` and `--mode passport`.
 
+From a fresh clone, one command builds what the kit needs and starts it against the test network's published
+directory:
+
+```
+make watch UPSTREAM=http://127.0.0.1:3000    # in the path, listening on 127.0.0.1:8080
+make watch LISTEN=127.0.0.1:8081             # a mirror target: no UPSTREAM; a proxy sends it copies
+node kits/pilot/watch-report.mjs watch.jsonl # the report, at any time
+```
+
+The same, by hand (after `make wedge-build` and `npm ci` in `kits/pilot`):
+
 ```
 # In the path: every request goes on to the service at once, as it came.
 node kits/pilot/pilot.mjs --watch --upstream http://127.0.0.1:3000 --listen 127.0.0.1:8080 \
-  --directory directory.json --roots roots.json \
-  --mode link --registrar https://registrar.example --observations watch.jsonl
+  --directory site/net/directory.json --roots site/net/roots.json \
+  --mode link --registrar http://127.0.0.1:4970 --observations watch.jsonl
 
 # A mirror target: no --upstream. A proxy sends it copies, and it answers each one 204 at once.
 node kits/pilot/pilot.mjs --watch --listen 127.0.0.1:8081 \
-  --directory directory.json --roots roots.json \
-  --mode link --registrar https://registrar.example
+  --directory site/net/directory.json --roots site/net/roots.json \
+  --mode link --registrar http://127.0.0.1:4970
 ```
+
+`--directory` and `--roots` are the signed list of accredited registrars and the two root keys that anchor it; the test
+network's are `site/net/directory.json` and `site/net/roots.json` in this repository, also published at
+`https://ainra.org/net/`. `--registrar` is asked only about a request whose signature verifies (the link and status of
+its key), so plain traffic never reaches it; `make live-up` runs a local test registrar at `http://127.0.0.1:4970`. On
+today's test network no public registrar answers those questions, so a signed request from an operator you have not
+linked there reads `not_linked`, or `unchecked` when no registrar answers. A request with no signature at all is
+refused under the gate's reason `sig_invalid`; the report says how many of those carried no signature.
 
 - **The check never refuses a request and never holds one up.** In the path, a request goes on to the service as
   soon as its headers arrive, and its body streams on as it comes. A service that cannot be reached still gives 502.

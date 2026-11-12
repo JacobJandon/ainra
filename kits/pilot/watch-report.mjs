@@ -20,6 +20,7 @@ const KINDS = ["signature-agent", "rfc9421", "ainra-presentation"];
 let n = 0, skipped = 0, first = null, last = null;
 const carrying = { any: 0, "signature-agent": 0, rfc9421: 0, "ainra-presentation": 0 };
 const decided = { admit: 0, refuse: 0 }, reasons = new Map(), unchecked = new Map();
+let unsignedInvalid = 0;
 let times = new Float64Array(1024), timed = 0;
 const bump = (m, k) => m.set(k, (m.get(k) ?? 0) + 1);
 
@@ -36,6 +37,9 @@ function take(text) {
   if (kind === "unchecked") return bump(unchecked, String(r.not_checked ?? "(no reason)"));
   decided[kind]++;
   if (kind === "refuse") bump(reasons, r.reason ?? "(no reason)");
+  // the gate names a request with no signature at all sig_invalid too; the report says how many of those carried none,
+  // so it does not read as forgeries (a first-time reader took it so, 2026-11-12)
+  if (kind === "refuse" && r.reason === "sig_invalid" && !r.signatures.length) unsignedInvalid++;
   if (typeof r.check_ms === "number" && Number.isFinite(r.check_ms)) {
     if (timed === times.length) { const t = new Float64Array(times.length * 2); t.set(times); times = t; }
     times[timed++] = r.check_ms;
@@ -80,7 +84,7 @@ console.log("");
 row("checked", checked);
 row("  the gate would admit", decided.admit);
 row("  the gate would refuse", decided.refuse);
-for (const [reason, c] of byCount(reasons)) row(`    ${reason}`, c);
+for (const [reason, c] of byCount(reasons)) { row(`    ${reason}`, c); if (reason === "sig_invalid" && unsignedInvalid) row("      of which no signature at all", unsignedInvalid); }
 row("not checked", notChecked);
 for (const [why, c] of byCount(unchecked)) row(`  ${why}`, c);
 console.log("");

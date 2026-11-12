@@ -10,7 +10,12 @@ npm i @ainra/sdk            # published with Sigstore provenance
 npm audit signatures        # optional: verify where it was built before you trust it
 ```
 
+From this repository the sample files are in `kits/verifier/sample-artifacts/`. From an empty folder, fetch them
+first: `for f in roots.json directory.json bundle-valid.json bundle-revoked.json meta.json; do curl -sLO
+https://github.com/JacobJandon/ainra/raw/main/kits/verifier/sample-artifacts/$f; done`, and read them from `./`.
+
 ```js
+// verify.mjs — run with: node verify.mjs
 import { Verifier } from "@ainra/sdk";
 import { readFileSync } from "node:fs";
 const j = (f) => JSON.parse(readFileSync("kits/verifier/sample-artifacts/" + f, "utf8"));
@@ -23,9 +28,12 @@ console.log(verifier.verify(j("bundle-revoked.json"), j("meta.json").now));   //
 Real output:
 
 ```
-valid  : {"verdict":"valid"}
-revoked: {"verdict":"invalid","reason":"revoked"}
+{ verdict: 'valid' }
+{ verdict: 'invalid', reason: 'revoked' }
 ```
+
+The samples were signed for the moment in `meta.json`; with today's clock they answer `stale_status`, because their
+status list is from that day. For a live passport, pass `Math.floor(Date.now() / 1000)`.
 
 - `Verifier.fromDirectoryB64` returns `null` if the directory isn't anchored by the given roots (fail closed).
 - `verify()` never throws — any malformed input is `{verdict:"invalid", reason:…}` (one of the 21 in [`reasons.json`](../reasons.json)).

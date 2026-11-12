@@ -15,7 +15,18 @@ npm audit signatures    # optional: check the Sigstore provenance before you tru
 
 ## Verify a presentation
 
+Try it in an empty folder with the test network's sample files (a valid passport, the same one revoked, and the
+directory and root keys they verify against):
+
+```sh
+npm i @ainra/sdk
+for f in roots.json directory.json bundle-valid.json bundle-revoked.json meta.json; do
+  curl -sLO https://github.com/JacobJandon/ainra/raw/main/kits/verifier/sample-artifacts/$f
+done
+```
+
 ```js
+// verify.mjs — run with: node verify.mjs
 import { Verifier } from "@ainra/sdk";
 import { readFileSync } from "node:fs";
 
@@ -25,8 +36,11 @@ const roots = j("roots.json");
 // Build a verifier from the dual-root-signed directory. `null` if the directory isn't authentic — check it.
 const verifier = Verifier.fromDirectoryB64(j("directory.json"), roots.root_ed25519, roots.root_slh);
 
-const verdict = verifier.verify(j("bundle.json"), Math.floor(Date.now() / 1000));
-// { verdict: "valid" }  |  { verdict: "invalid", reason: "revoked" }
+// The samples were signed for one moment, kept in meta.json. With today's clock they answer `stale_status`, because
+// their status list is from that day: the check working. For a live passport, pass Math.floor(Date.now() / 1000).
+const now = j("meta.json").now;
+console.log(verifier.verify(j("bundle-valid.json"), now));    // { verdict: 'valid' }
+console.log(verifier.verify(j("bundle-revoked.json"), now));  // { verdict: 'invalid', reason: 'revoked' }
 ```
 
 `reason` is one of the frozen strings in the `Reason` type this package exports. The same list, with a plain-words

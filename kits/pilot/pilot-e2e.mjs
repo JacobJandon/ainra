@@ -567,7 +567,7 @@ const watchLink = join(work, "watch-link.jsonl");
   const REPORT = new URL("watch-report.mjs", import.meta.url).pathname;
   const rep = spawnSync("node", [REPORT, watchLink], { encoding: "utf8" });
   const want = [/: 4 requests seen/, /carrying any signature\s+3 of 4/, /Signature-Agent header\s+3 of 4/, /RFC 9421 signature\s+2 of 4/,
-    /AINRA presentation\s+0 of 4/, /\n {2}checked\s+3\n/, /would admit\s+1\n/, /would refuse\s+2\n/, /not_linked\s+1\n/, /sig_invalid\s+1\n/,
+    /AINRA presentation\s+0 of 4/, /\n {2}checked\s+3\n/, /would admit\s+1\n/, /would refuse\s+2\n/, /not_linked\s+1\n/, /sig_invalid\s+1\n/, /of which no signature at all\s+1\n/,
     /not checked\s+1\n/, /check_failed\s+1\n/, /p50 [\d.]+ ms · p95 [\d.]+ ms · p99 [\d.]+ ms \(3 checks\)/];
   const missed = want.filter((re) => !re.test(rep.stdout));
   rep.status === 0 && missed.length === 0

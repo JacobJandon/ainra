@@ -6,7 +6,7 @@
 // key + signature), over most header limits, so the body is the recommended envelope (see docs/PRESENTATION.md).
 import http from "node:http";
 import { readFileSync } from "node:fs";
-import { Verifier, checkRequest, serializeVerdictEvent } from "../packages/middleware/dist/index.js";
+import { Verifier, checkRequest, verdictHeaderValue } from "../packages/middleware/dist/index.js";
 
 const j = (f) => JSON.parse(readFileSync(new URL("../kits/verifier/sample-artifacts/" + f, import.meta.url), "utf8"));
 const roots = j("roots.json");
@@ -20,7 +20,7 @@ const server = http.createServer((req, res) => {
   req.on("end", () => {
     const bundle = (() => { try { return JSON.parse(body).ainra_passport; } catch { return undefined; } })();
     const result = checkRequest(verifier, bundle, { now: () => NOW });
-    res.setHeader("x-ainra-verdict", serializeVerdictEvent(result.event));
+    res.setHeader("x-ainra-verdict", verdictHeaderValue(result.event));
     if (!result.allow) { res.statusCode = 403; res.end(JSON.stringify({ error: "denied", reason: result.reason })); return; }
     res.end(JSON.stringify({ ok: true, agent: result.event.name, tier: result.event.tier }));
   });

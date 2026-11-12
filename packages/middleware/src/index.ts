@@ -17,6 +17,15 @@ import {
 } from "@ainra/sdk";
 import { createHash } from "node:crypto";
 
+/** The verdict event as an HTTP header value (2026-11-12). The event's `name` comes from the presenter's own claims,
+ *  also when the bundle is refused, and `serializeVerdictEvent` keeps non-ASCII as it is (it must byte-match the Rust
+ *  emitter). A header cannot hold most of those characters: Node's `setHeader` throws on them, which turned a refusal
+ *  into a 500 in a framework that catches, and stopped a server whose handler did not. So every character outside
+ *  printable ASCII is written as its JSON `\uXXXX` escape: still valid JSON, and it parses to exactly the same event. */
+export function verdictHeaderValue(e: VerdictEvent): string {
+  return serializeVerdictEvent(e).replace(/[^\x20-\x7e]/g, (c) => "\\u" + c.charCodeAt(0).toString(16).padStart(4, "0"));
+}
+
 // ── M36 (D-065): bundles sent once, named by digest after that ───────────────────────────────────────────────────
 
 /** Where the gate keeps bundles a running copy has sent once. Only bundles that verified VALID when they arrived
@@ -295,7 +304,7 @@ export function ainraGate(verifier: Verifier, opts: GateOptions = {}) {
     req.ainra = result;
     if (opts.decisions) recordDecision(opts.decisions, raw, result, req, opts);
     // Emit the canonical verdict event on every request (allow or deny) — one event shape everywhere (PRESENTATION.md).
-    res.setHeader("x-ainra-verdict", serializeVerdictEvent(result.event));
+    res.setHeader("x-ainra-verdict", verdictHeaderValue(result.event));
     if (result.allow) {
       next();
       return;
@@ -340,7 +349,7 @@ export function ainraPrime(verifier: Verifier, opts: { store: PresentationStore;
     if (!body || typeof body !== "object" || Array.isArray(body)) return deny("schema_violation");
     if ((req.method ?? "POST").toUpperCase() !== "POST") return deny("schema_violation");
     const result = checkRequest(verifier, body, { now: () => now });
-    res.setHeader("x-ainra-verdict", serializeVerdictEvent(result.event));
+    res.setHeader("x-ainra-verdict", verdictHeaderValue(result.event));
     if (!result.allow) return deny(result.reason ?? "schema_violation");
     const bundle = body as Record<string, unknown> & { instance?: { exp?: unknown } };
     const { stable } = splitPresentation(bundle);

@@ -79,6 +79,20 @@ We **publicly own fixed security bugs** — hiding them would be the opposite of
 - **S7:** `tools/onboard-registrar.sh` named two domain-registrar brands as its foil, and neither denylist knew them.
   The script now says "a domain-name registrar", and both names are on both lists (`make s7`, `--negative`).
 
+### Security — a presenter's name could make the gate throw (fixed here, not yet released)
+
+- **`@ainra/middleware` wrote the verdict event into the `x-ainra-verdict` header as plain JSON.** The event names the
+  passport the presenter sent, refused ones included, so a name with a character outside printable ASCII (for example
+  `€` or U+007F) made Node's `setHeader` throw: in a framework that catches errors a refusal became a 500, and in an
+  async server that does not, the process stopped. The header is now written with every character outside 0x20–0x7E as
+  its JSON `\uXXXX` escape (`verdictHeaderValue`, exported). It parses to the same event, and the event's own bytes
+  still match the Rust emitter. Affected: `ainraGate` in v0.2.0–v0.8.0 and `ainraPrime` in v0.5.0–v0.8.0;
+  `examples/gate-http-service.mjs` is fixed the same way. Not affected: `@ainra/edge`, the Python gate (its JSON is
+  already ASCII-escaped) and `@ainra/mcp`. `packages/middleware/test/header-escape.test.mjs` fails on the previous
+  code and passes now (44/44).
+- **Not yet fixed:** `kits/pilot` without `--watch` can still be stopped by certain malformed requests; with `--watch`
+  it cannot. A change is drafted and waits on the owner's decision.
+
 ### Fixed — what three first-time users ran into (12 November 2026)
 
 Three newcomers, each starting from a fresh clone or an empty folder with only the README, timed themselves and wrote

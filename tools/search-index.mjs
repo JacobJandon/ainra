@@ -19,6 +19,10 @@ const text = (h) => h.replace(/<[^>]+>/g, " ").replace(/&(#?\w+);/g, (m, e) => e
 const out = [];
 for (const [file, label] of PAGES) {
   let h = readFileSync(join(SITE, file), "utf8");
+  // tools/nobreak.mjs wraps short hyphenated words so they stay whole across a line break. The wrap is unwrapped
+  // first: read as a tag it became a space, so a page built twice gave "fail-closed ." for "fail-closed." and the
+  // index depended on whether the page had been through that step yet.
+  h = h.replace(/<span class="nw">([\s\S]*?)<\/span>/g, "$1");
   h = h.replace(/<(script|style|svg|template|nav|footer|aside)\b[\s\S]*?<\/\1>/gi, " ")
        .replace(/<div class="g-menu"[\s\S]*?<\/ul>\s*<\/div>\s*<\/div>\s*<\/div>/, " ")
        // the Standard's Part IV is the first registrar's required disclosure: it is read in place, in full, and kept

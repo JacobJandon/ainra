@@ -130,6 +130,20 @@
       "fixed": "2026-11-06",
       "released": null,
       "record": null
+    },
+    {
+      "id": "INC-2026-009",
+      "class": "LOW",
+      "surface": "a test-only dependency in Cargo.lock (ainra-core's property tests: proptest, tempfile, rustix), locked by every tag from v0.3.0 to v0.8.0; nothing a relying party runs links it",
+      "title": "RUSTSEC-2026-0486: rustix 1.1.4, and a weekly audit that went red for a day unseen",
+      "opened": "2026-11-11",
+      "disclosed": "2026-11-12",
+      "fixed": "2026-11-12",
+      "released": null,
+      "record": {
+        "file": "SECURITY-ADVISORIES.md",
+        "heading": "RUSTSEC-2026-0486"
+      }
     }
   ],
   "not_incidents": [

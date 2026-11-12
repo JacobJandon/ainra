@@ -162,6 +162,16 @@ const intro = document.getElementById("gIntro");
 // the mark moves on the band and beside a verdict (mark-hooks.mjs). Loaded apart from this module, so a failed
 // download costs only the motion: the band still lifts and the still mark stays.
 import("./mark-hooks.mjs").catch(() => {});
+// a mouse wheel glides the page (glide.mjs); apart from this module for the same reason
+import("./glide.mjs").catch(() => {});
+// the next page starts to arrive when a link is pointed at or focused, so the band between pages has less to wait for
+{ const seen = new Set();
+  const warm = (e) => { const a = e.target.closest?.("a[href]"); if (!a || (a.target && a.target !== "_self") || a.hasAttribute("download")) return;
+    let u; try { u = new URL(a.href, location.href); } catch { return; }
+    if (u.origin !== location.origin || u.pathname === location.pathname || !/(\.html|\/)$/.test(u.pathname) || seen.has(u.pathname)) return;
+    if (navigator.connection?.saveData) return;
+    seen.add(u.pathname); const l = document.createElement("link"); l.rel = "prefetch"; l.href = u.pathname; l.as = "document"; document.head.append(l); };
+  document.addEventListener("pointerover", warm, { passive: true }); document.addEventListener("focusin", warm); document.addEventListener("touchstart", warm, { passive: true }); }
 const h1 = document.querySelector(".g-hero h1");
 if (h1 && html.classList.contains("rv")) {
   let i = 0; const walk = (node) => { for (const n of [...node.childNodes]) { if (n.nodeType === 1) { walk(n); continue; }

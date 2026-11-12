@@ -166,6 +166,9 @@ for (const v of $$("[data-film]")) {
   // a phone (or a window taller than wide) gets the film's phone cut, where each drawing fills the frame
   const small = matchMedia("(max-width:700px),(max-aspect-ratio:5/4)").matches;
   if (small && v.dataset.posterM) v.poster = v.dataset.posterM;
+  // the hero's poster is the film at one second, after it has faded up from paper. Its first play starts there too,
+  // so the still picture begins to move; started from zero it went back to paper first, which read as a flash.
+  if (hero) v.addEventListener("loadedmetadata", () => { try { if (v.currentTime < 0.1) v.currentTime = 1; } catch { /* not seekable yet: it starts from zero */ } }, { once: true });
   const load = () => { if (loaded) return; loaded = true; afterLoad.then(() => { for (const s of v.querySelectorAll("source[data-src]")) s.src = (small && s.dataset.srcM) || s.dataset.src; v.load(); decide(); }); };
   const sync = () => { if (btn) { btn.setAttribute("aria-pressed", String(userPaused)); btn.setAttribute("aria-label", userPaused ? "Play the film" : "Pause the film"); if (lbl) lbl.textContent = userPaused ? "Play" : "Pause"; } };
   const decide = () => { if (!userPaused && onScreen && (hero || html.dataset.motion !== "off")) { load(); v.play().catch(() => {}); } else v.pause(); };

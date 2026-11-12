@@ -17,13 +17,13 @@ a:hover > .arr,a:focus-visible > .arr,button:hover > .arr,.btn:hover .arr{transf
 :root{--q:cubic-bezier(.22,1,.36,1);--io:cubic-bezier(.65,0,.35,1)}
 .rv .rv-lines .lw{display:inline-block;clip-path:inset(0 0 100% 0);transform:translateY(.35em);transition:clip-path .55s var(--q),transform .55s var(--q);transition-delay:calc(var(--d,0ms) + var(--l,0) * 70ms)}
 .rv .is-in .rv-lines .lw,.rv .rv-lines.is-in .lw{clip-path:inset(-.1em -.05em -.25em -.05em);transform:none}
-.rv [data-rv]{opacity:0;transform:translateY(10px);transition:opacity .4s var(--q) var(--d,0ms),transform .45s var(--q) var(--d,0ms)}
+.rv [data-rv]{opacity:0;transform:translateY(14px);transition:opacity .6s var(--q) var(--d,0ms),transform .75s var(--q) var(--d,0ms)}
 .rv [data-rv].is-in{opacity:1;transform:none}
 .rv .sec-head{border-top-color:transparent}
 .rv .sec-head::before{content:"";position:absolute;left:0;right:0;top:-1px;height:1px;background:var(--line);transform:scaleX(0);transform-origin:left center;transition:transform .7s var(--io)}
 .rv .sec-head.is-in::before{transform:scaleX(1)}
 nav:not([class]){position:sticky;top:0;transition:background-color .25s ease-in-out,border-color .25s ease-in-out}
-nav:not([class]) .nav-in{transition:margin .25s ease-in-out,background-color .25s ease-in-out,border-color .25s ease-in-out,border-radius .25s ease-in-out,box-shadow .25s ease-in-out;border:1px solid transparent}
+nav:not([class]) .nav-in{transition:background-color .25s var(--q),border-color .25s var(--q),box-shadow .25s var(--q);border:1px solid transparent}
 .nav-float nav:not([class]){background:transparent;border-bottom-color:transparent}
 .nav-float nav:not([class]) .nav-in{margin-top:10px;width:calc(100% - 20px);background:var(--card);border-color:var(--line);border-radius:10px;box-shadow:0 1px 0 rgba(11,18,32,.04)}
 nav:not([class]) .nav-in{width:100%}

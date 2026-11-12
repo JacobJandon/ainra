@@ -117,7 +117,7 @@ html[data-motion="off"] .g-side,html[data-motion="off"] .g-side li,html[data-mot
 .rv .gi-hero.is-in .gi-title span{color:var(--ink);transform:none}
 @media (max-width:700px){.gi-hero{padding-top:24px}.gi-sub{overflow-x:auto;flex-wrap:nowrap;white-space:nowrap}}
 nav:not([class]){top:16px;margin:16px 0 -86px;padding:0 10px}
-nav:not([class]) .nav-in,.nav-float nav:not([class]) .nav-in{height:70px;min-height:70px;padding:0 20px;border-radius:10px;border:0;background:rgba(171,171,171,.1);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:0 2px 10px rgba(0,0,0,.1)}
+nav:not([class]) .nav-in,.nav-float nav:not([class]) .nav-in{height:70px;min-height:70px;padding:0 20px;border-radius:10px;border:0;background:rgba(245,246,243,.88);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:0 2px 10px rgba(0,0,0,.1)}
 nav:not([class]) .brand{gap:10px}
 nav:not([class]) .brand .wm{font-size:20px;letter-spacing:-.01em}
 .g-menu__about{font-size:15px;color:var(--ink-soft);margin:0 0 28px;max-width:60ch}

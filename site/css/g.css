@@ -509,7 +509,7 @@ html[data-motion="off"] .g-side,html[data-motion="off"] .g-side li,html[data-mot
    scrolls), 70 px tall, 10 px corners, a faint grey glass (rgba 171/.1, blur 10 px) and a soft shadow; no border.
    The mark and the name sit 20 px in from the bar's left edge. ── */
 nav:not([class]){top:16px;margin:16px 0 -86px;padding:0 10px}
-nav:not([class]) .nav-in,.nav-float nav:not([class]) .nav-in{height:70px;min-height:70px;padding:0 20px;border-radius:10px;border:0;background:rgba(171,171,171,.1);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:0 2px 10px rgba(0,0,0,.1)}
+nav:not([class]) .nav-in,.nav-float nav:not([class]) .nav-in{height:70px;min-height:70px;padding:0 20px;border-radius:10px;border:0;background:rgba(245,246,243,.88);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:0 2px 10px rgba(0,0,0,.1)}
 nav:not([class]) .brand{gap:10px}
 nav:not([class]) .brand .wm{font-size:20px;letter-spacing:-.01em}
 .g-menu__about{font-size:15px;color:var(--ink-soft);margin:0 0 28px;max-width:60ch}
@@ -719,7 +719,9 @@ nav:not([class]) .nav-r .g-menubtn,nav:not([class]) .nav-r .g-sq{min-width:40px;
 .rv .g-hero.is-in .g-hero__plate.is-reset h1.display .gw > span{transform:translate3d(0,115%,0) rotate(6deg);opacity:0;transition:none}
 .rv .g-hero.is-in .g-hero__plate.is-reset::before{transform:scaleX(0);transition:none}
 /* the hero's last sliver is paper, so it meets the page below without an edge */
-.g-hero__scrim{display:block;position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(245,246,243,0) 86%,var(--paper) 100%)}
+/* and a soft veil of paper only behind the headline (lower left): the film is no longer fogged across its width
+   (2026-11-12), so the words get their own ground and the rest of the picture stays clear */
+.g-hero__scrim{display:block;position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 62% 50% at 10% 94%,rgba(245,246,243,.94) 0,rgba(245,246,243,.82) 36%,rgba(245,246,243,0) 100%),linear-gradient(180deg,rgba(245,246,243,0) 86%,var(--paper) 100%)}
 /* the Details panel, a little tighter beside this hero, so on a full-size window it ends below the film's stage; where
    it still would not (a short window), g.mjs starts it closed and the edge tab offers it */
 .g-hero + .g-side{padding:14px 16px 12px}

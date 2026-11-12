@@ -45,3 +45,6 @@ mastercard
 salesforce
 servicenow
 workday
+# domain-name registrars (named as a foil in a tracked script until 2026-11-12; the lists missed both)
+godaddy
+namecheap

@@ -280,12 +280,25 @@ function cmdVerify(ref, opts) {
   if (opts.json) { console.log(JSON.stringify({ ok, name: doc.name, serial: doc.serial, suite: doc.registrar_cert.alg || 'legacy-Ed25519', reason, revoked, legacy_credential: legacyCred, checks: { chain: certOk && passOk, dates: dateOk, status: slSigned && !revoked, log: inLog }, ms: +ms.toFixed(1) }, null, 2)); process.exit(ok ? 0 : 1); }
   const g = s => '\x1b[32m' + s + '\x1b[0m', r = s => '\x1b[31m' + s + '\x1b[0m', d = s => '\x1b[2m' + s + '\x1b[0m';
   console.log(d('$ ainra verify ') + doc.name);
-  console.log(`→ suite      ${doc.registrar_cert.alg === 'Ed25519+ML-DSA-65' ? g('Ed25519 + ML-DSA-65 ✓') : r('legacy Ed25519-only')} ${legacyCred && !acceptLegacy ? r('· alg_downgrade (fail closed)') : ''}`);
-  console.log(`→ chain      root ${certOk ? g('✓') : r('✗')} · registrar ${passOk ? g('✓') : r('✗')} · version ${g('✓')}`);
-  console.log(`→ operator   ${doc.operator.name} — ${doc.operator.kyb ? g('KYB verified') : 'self-declared'} (${doc.operator.jurisdiction})`);
-  console.log(`→ authority  ${doc.authority.class}${doc.authority.class === 'A1' ? ' human-delegated (zk-commitment)' : ''} ${g('✓')} · PII: none`);
-  console.log(`→ validity   ${doc.validity.issued.slice(0,10)} → ${doc.validity.expires.slice(0,10)} ${dateOk ? g('✓') : r('EXPIRED')}${doc.prev_leaf ? d(' · prev_leaf #' + doc.prev_leaf) : ''}`);
-  console.log(`→ status     tier ${g(doc.tier)} · revocation ${revoked ? r('REVOKED ✗') : g('ACTIVE ✓')} ${slSigned ? '' : r('(status list unsigned!)')}`);
+  // Each line claims only what this command checked. The suite is named from the signatures that verified, not from
+  // the alg string the registrar's cert declares: that string printed "Ed25519 + ML-DSA-65 ✓" for an Ed25519-only
+  // credential under --accept-legacy, and for a tampered one. Operator, authority and tier are fields the registrar
+  // signed. They are shown as the registrar's only when the whole chain verified: a registrar ✓ under a cert that does
+  // not chain to this root is anyone's signature. What they assert is never checked here. The authority line used to
+  // print a green check and "(zk-commitment)" for class A1, whose proof `issue` fills with random bytes; "version ✓"
+  // and "PII: none" were printed with nothing behind them.
+  const hybridOk = certReason === null && passReason === null;
+  const chainOk = certOk && passOk;
+  const signed = s => chainOk ? `${s}, not checked by this tool` : r('not authenticated: the chain failed');
+  console.log(`→ suite      ${hybridOk ? g('Ed25519 + ML-DSA-65 ✓') : legacyCred ? r('legacy Ed25519-only') : r('Ed25519 + ML-DSA-65 ✗')} ${legacyCred && !acceptLegacy ? r('· alg_downgrade (fail closed)') : ''}`);
+  console.log(`→ chain      root ${certOk ? g('✓') : r('✗')} · registrar ${passOk ? g('✓') : r('✗')}`);
+  console.log(`→ operator   ${doc.operator.name} (${doc.operator.jurisdiction}) — ${signed(doc.operator.kyb ? 'KYB claimed by the registrar' : 'self-declared')}`);
+  console.log(`→ authority  ${doc.authority.class}${doc.authority.class === 'A1' ? ' human-delegated' : ''} — ${signed(doc.authority.proof ? 'proof present' : 'no proof')}`);
+  // Only the end of the window is checked here (check 3 above); a start date in the future is not refused.
+  console.log(`→ validity   ${doc.validity.issued.slice(0,10)} → ${doc.validity.expires.slice(0,10)} ${dateOk ? g('not expired ✓') : r('EXPIRED')} · start not checked by this tool${doc.prev_leaf ? d(' · prev_leaf #' + doc.prev_leaf) : ''}`);
+  // A status list that is missing or fails its signature cannot show the passport ACTIVE, so revocation reads unknown.
+  const revocation = !slSigned ? r(`unknown: no validly signed status list ✗${revoked ? ' (the list names this passport)' : ''}`) : revoked ? r('REVOKED ✗') : g('ACTIVE ✓');
+  console.log(`→ status     tier ${chainOk ? g(doc.tier) : r(doc.tier + ' (not authenticated)')} · revocation ${revocation}`);
   console.log(`→ log        entry #${String(doc.log.seq).padStart(6,'0')} ${inLog ? g('✓ included') : r('✗ absent')} · chain of ${lv.entries} intact · witnesses ${lv.witnessesOk}/${lv.witnesses} ${d('(local)')}`);
   console.log(ok ? g(`✓ VALID`) + d(` · verified in ${ms.toFixed(1)} ms`) : r(`✗ INVALID`) + d(` · ${reason} · verified in ${ms.toFixed(1)} ms`));
   process.exit(ok ? 0 : 1);
@@ -487,7 +500,12 @@ function cmdInstanceVerify(iid, opts) {
   if (fails.length) { console.log(`✗ INVALID · ${iid}`); fails.forEach(x => console.log(`  ${x}`)); process.exit(1); }
   console.log(`✓ VALID · ${iid} under ${ic.sub}`);
   console.log(`  ${ic.exp - t}s of life left · capabilities ${ic.capabilities.length ? ic.capabilities.join(',') : '(none)'} · audience ${ic.aud}`);
-  console.log(`  the passport underneath verified first: unrevoked and in-window — revoke it and this dies with it`);
+  // What was checked above, and no more: the local revocation list is read without checking its signature (a missing
+  // list counts as empty here, while `ainra verify` refuses), and only the end of the passport's window is checked.
+  // `ainra verify <serial>` runs the passport's full checks.
+  const listNote = exists(slFile) ? 'not on the local revocation list and not expired' : 'not expired; no local revocation list was found, so revocation was not checked';
+  console.log(`  the passport underneath was checked first: ${listNote} — revoke it and this dies with it`);
+  console.log(`  not checked here: the passport's signatures, its log entry, the list's signature (run: ainra verify ${doc.serial})`);
   if (!held) console.log(`  note: this passport format carries no capabilities array, so the ∩ rule is not checked here`);
 }
 

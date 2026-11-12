@@ -3115,3 +3115,88 @@ keeps its recorded verdict under the stricter rules, checked before any vector w
 - The new tests in `packages/edge` and `packages/middleware`.
 
 *Status:* ACCEPTED 2026-11-07. Fixes 1–16 are built; R1–R3 are planned.
+
+## D-105 — Watch mode: the pilot beside a route, refusing nothing and signing nothing
+
+*Problem:* the pilot (PLAN-M47 step 4) sits in front of a service and refuses by name from its first request. A
+service engineer wants to try the check alone first, beside one route, before anyone else is involved and before it
+can refuse anything. They want three answers: what share of today's traffic carries any signature at all, what the
+gate would have decided, and how long the check takes on their own machine.
+
+*Decision:* `kits/pilot/pilot.mjs --watch`, valid in link and passport mode.
+
+1. **The check never refuses a request and never holds one up.** With `--upstream`, a request goes on as soon as its
+   headers arrive, and its body streams on. Its header lines go on as sent: name, case, order and duplicates. Only
+   Host's value changes to the upstream's, as without `--watch`. Node's HTTP client adds a `Connection` line when
+   the client sent none, and `Transfer-Encoding: chunked` when a POST, PUT or PATCH came with no length. The answer
+   comes back the same way. An upstream that cannot be reached still gives 502. Without `--upstream` the pilot is a
+   mirror target: it answers 204 before it reads the request.
+2. **Node's own HTTP limits are raised to what a service may take.** Headers may be up to 256 KiB, so a whole
+   presentation in one header goes on, and a body has no deadline. What remains: 408 when headers take more than
+   60 s, 431 over 256 KiB, and 400 for a request Node's parser rejects. Those requests reach neither the service nor
+   the file.
+3. **The check runs on a copy, on a second thread, in the order requests arrived.** That thread holds the gate, the
+   passport store and the nonce memory. The gate answers into a capturing shim, so its header writes never reach a
+   client. At most 1,000 copies, or 32 MiB counted from their first byte, wait for the check. Passport mode copies a
+   body only up to 1 MiB. In link mode, checks waiting on the registrar share one fetch, which gives up after 5 s,
+   and the thread keeps at most 512 key directories, each for at most an hour.
+4. **One local line per request**, in `--observations` (default `watch.jsonl`, created 0600): time, method, path
+   without its query, and the signatures it carried. A checked request adds the decision with its named reason, or
+   the operator and passport, and `check_ms`. A request that was not checked says `unchecked` and why: `check_busy`,
+   `body_over_1_mib` or `check_failed`. Never an address, a query string, a body or any other header. The log names
+   the kind of a failure, never its text. The file is sent nowhere.
+5. **The summary answers loopback only.** `GET /.well-known/ainra-watch` returns the counts and the check-time
+   percentiles to a client on a loopback address. Anyone else gets 403, including a request a local proxy relayed.
+   In passport mode the prime path answers as without `--watch`, with the same handler and store. It answers at once,
+   even while checks wait, and the bundle it stores takes its place behind the checks of earlier requests. A header
+   it cannot send as written, such as a presenter's name with characters no header can hold, goes as `\uXXXX` JSON
+   escapes.
+6. **`kits/pilot/watch-report.mjs FILE`** prints the shares over every request seen, the checked and unchecked
+   counts, the would-admit and would-refuse counts by reason, and the check time on this machine. It reads the file
+   in pieces.
+
+*Rejected:*
+- **Signing watch decisions into the decision log (D-079).** A decision record is evidence of what a gate let in. A
+  watch serves every request, so a signed record saying `refused` for a request that was in fact served would be
+  false evidence. A log that mixed enforced and watched decisions could not be read at all. `--watch` with
+  `--decisions` exits 2, and the observations file is unsigned, local, and says what it is.
+- **Checking on the forwarding thread, after the request has gone on.** That never blocks a request, but its
+  signature verification would still hold up the thread that forwards every other request.
+- **Counting unchecked requests in the summary only.** The file's shares would then leave out exactly the requests
+  the check could not handle, such as every malformed `Signature-Agent`.
+
+*WITNESS:* `make pilot-e2e`, steps W1–W6. They require:
+- in watch mode, a request the gate would refuse still reaches the upstream (W1's unsigned request, W2's unlinked
+  key and unsigned request), while in normal mode it does not (step 4's B, step 9); the upstream counts both;
+- the upstream sees every header line as sent but Host's value, with nothing added, and no answer carries
+  `x-ainra-reason` or `x-ainra-verdict`;
+- with a registrar that never answers, signed requests still reach the upstream within 1 s, and their checks share
+  one registrar fetch that gives up after 5 s;
+- a bundle naming a subject with U+20AC, sent to the prime path, gets 403 and the watch goes on; a whole bundle in
+  one header, and a body over 1 MiB, reach the upstream;
+- with 40 checks waiting, the prime path answers at once, and requests that named the bundle before it came are
+  checked without it (`presentation_unknown`);
+- the observations say `admit` with the operator and passport, `not_linked`, `sig_invalid`, `presentation_unsigned`,
+  `schema_violation` and `unchecked`; the files hold no address, query string, body or header value; a
+  `Signature-Agent` the verifier cannot parse leaves only the kind of failure in the log;
+- the summary answers on loopback, and gives 403 to a relayed request and to a client on a non-loopback address;
+- a mirror target answers 204, and the upstream count does not move;
+- `watch-report.mjs` prints the counts, gets a file of known values right, and exits 2 on a missing file;
+- `--watch --decisions` exits 2 and writes no log and no key.
+Every earlier step of `make pilot-e2e` still passes without `--watch`.
+
+*Honest limits:*
+- On a machine with one core, the check's CPU time is shared with the forwarding thread.
+- Requests Node refuses itself (above) are neither served nor written. A request whose client goes away mid-body
+  gets no line.
+- Nothing is stripped, so a client's own `x-ainra-*` headers reach the service. A service must not act on them while
+  the pilot watches.
+- The path is written as sent, so a path that holds an identifier puts it in the file.
+- The file does not rotate itself. Moving it aside starts a new one.
+- Without `--watch` the pilot is unchanged. One malformed request can still stop it there; that is a separate
+  question.
+
+*Not changed:* the decision record format, the middleware's verdicts, `serializeVerdictEvent`, the vectors, and the
+pilot without `--watch`.
+
+*Status:* PROPOSED 2026-11-12. Built; `make pilot-e2e` passes.

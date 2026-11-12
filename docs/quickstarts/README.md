@@ -19,6 +19,7 @@ then pick the surface you build on.
 - [CLI](cli.md) — `ainra init / issue / verify / renew / revoke`.
 - [MCP](mcp.md) — give an agent AINRA as native tools.
 - [Console](console.md) — the open registrar console (issue/renew/revoke/list in a browser).
+- [Registrar](registrar.md) — becoming a registrar: run one locally, the root's checks, the fees as they stand.
 
 ## Prove your own implementation
 

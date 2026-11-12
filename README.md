@@ -24,6 +24,12 @@ the same code the CLI does — and `make wasm-diff` pushes the whole corpus thro
 browser, requiring agreement on verdict *and* named reason. Nothing is uploaded and no request leaves the page at
 verification time, either way.
 
+**Try it on your own traffic, alone.** In [watch mode](kits/pilot/README.md#watch-mode) the check sits beside one route, refuses nothing and sends its file nowhere; `node kits/pilot/watch-report.mjs watch.jsonl` then prints the share of requests carrying any signature, how many the check would have admitted or refused (and why), and its time on your machine.
+```sh
+node kits/pilot/pilot.mjs --watch --upstream http://127.0.0.1:3000 --listen 127.0.0.1:8080 \
+  --directory directory.json --roots roots.json \
+  --mode link --registrar https://registrar.example --observations watch.jsonl
+```
 ## Start here
 
 **Install the verifier** — published with provenance you can check before you trust it:

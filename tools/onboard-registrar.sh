@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: Apache-2.0 OR MIT
 # Onboard a NEW registrar onto the RUNNING staging network — the whole "become an accredited registrar" path,
-# the way a real operator (a GoDaddy/Namecheap for agent passports) would walk it. General: any id/port/operator.
+# the way a real operator (a domain-name registrar, issuing agent passports) would walk it. General: any id/port/operator.
 #
 #   ID=registrar-22 PORT=4922 OPERATOR=acmecerts LINEAGE=audit-trail  bash tools/onboard-registrar.sh
 #
@@ -102,4 +102,4 @@ for(const e of R.records){const rec=e.record;
 }
 process.exit(ok>0?0:1);
 '
-sep; echo "$ID is accredited, issuing, and verifiable network-wide — a third GoDaddy on the same neutral root."; sep
+sep; echo "$ID is accredited, issuing, and verifiable network-wide — a third registrar on the same neutral root."; sep

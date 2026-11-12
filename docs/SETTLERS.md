@@ -274,7 +274,7 @@ A signing tool accepted a log entry that did not reference the artifact (2022, `
 [`verify.rs:188-197`](../crates/ainra-core/src/verify.rs) recomputes the leaf from the credential's own bytes and
 refuses a mismatch — *"the echoed leaf is not this credential's body"* — before checking inclusion, and does the
 same for **every delegation hop**. The unit test names the failure it guards; conformance vector
-`not-logged-binding-0001` runs in the **1169-vector corpus across four implementations** on every board. Their
+`not-logged-binding-0001` runs in the **1169-vector corpus, through the three verdict implementations,** on every board. Their
 regression tests were added after the second incident; ours exist before the first.
 
 ### The arrow: a core nobody can resolve, and a registry that means nothing

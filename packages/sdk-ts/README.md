@@ -29,10 +29,10 @@ const verdict = verifier.verify(j("bundle.json"), Math.floor(Date.now() / 1000))
 // { verdict: "valid" }  |  { verdict: "invalid", reason: "revoked" }
 ```
 
-`reason` is one of fifteen frozen strings — `sig_invalid`, `alg_downgrade`, `expired`, `not_yet_valid`, `revoked`,
-`mandate_revoked`, `chain_widening`, `chain_expired`, `not_logged`, `checkpoint_invalid`, `stale_status`,
-`name_malformed`, `ceiling_exceeded`, `unknown_registrar`, `schema_violation`. A closed set, so you can branch on it
-and it will not grow under you between minor versions.
+`reason` is one of the frozen strings in the `Reason` type this package exports. The same list, with a plain-words
+gloss for each, is [`docs/reasons.json`](https://github.com/JacobJandon/ainra/blob/main/docs/reasons.json) in the
+repository, and `make reasons-check` fails the build if that file and this type ever differ. A closed set, so you can
+branch on it. So far every new reason has arrived in a minor release, never in a patch.
 
 ## What it checks
 
@@ -86,9 +86,10 @@ deprecated).
 
 ## Don't take our word for it
 
-This SDK is one of **four independent implementations** — a Rust core, this one, a Node reference CLI, and a Python
-verifier — which agree on all **1169** conformance vectors, verdict *and* reason. The corpus is CC0 and the runner is
-language-agnostic, so you can build a fifth and check us:
+This SDK is one of **four independent implementations**: a Rust core, this one, a Node reference CLI, and a Python
+verifier. Three of them (the Rust core, this SDK and the Python verifier) agree on all **1169** conformance vectors,
+verdict *and* reason (`make diff`); the CLI is held to them on canonical encoding. The corpus is CC0 and the runner
+is language-agnostic, so you can build a fifth and check us:
 
 ```sh
 git clone https://github.com/JacobJandon/ainra && cd ainra && make conformance

@@ -147,7 +147,7 @@ const CLAIMS = [
   },
   {
     id: "implementations",
-    what: "independent implementations that agree over the corpus",
+    what: "independently written implementations (three agree on verdict and reason over the corpus; the fourth contributes its canonical encoder)",
     source: "ainra-core · @ainra/sdk · ainra (py) · apps/cli-node — counted by `make diff`",
     value: () => String(TRUTH.implementations()),
     // "the OTHER three independent implementations" is the browser verifier describing its three peers — correct

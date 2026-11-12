@@ -37,3 +37,6 @@ tesla
 spotify
 airbnb
 uber
+# domain-name registrars: a tracked script named both as its foil until 2026-11-12
+godaddy
+namecheap

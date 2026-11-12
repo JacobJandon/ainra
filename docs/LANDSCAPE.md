@@ -1,12 +1,17 @@
 <!-- SPDX-License-Identifier: Apache-2.0 OR MIT -->
 # The agent-identity landscape, counted
 
-The landing page states a number. This is the list behind it, so the number can be checked rather than believed.
+The site's landscape page states a number. This is the list behind it, so the number can be checked rather than
+believed.
 
 **Method, stated plainly.** Enumerated in **August 2026** from each party's own published material — its site, docs,
 repository, specification, or its entry in a funder's public directory. Every row carries the link it was read from.
 Where a claim could not be traced to a primary source it was dropped rather than softened; where a first pass
-overstated a capability, an adversarial second pass corrected it and the correction stands.
+overstated a capability, an adversarial second pass corrected it and the correction stands. The file was re-checked
+for changes on **12 November 2026**: a sweep for items dated 28 October to 12 November, with closer checks of the
+Agent Name Service and the Personal Agent Protocol. The August rows were not each re-read. The counts table stays the
+August floor, the file's convention; items found later, and corrections to the August rows, are listed in the dated
+sections below the tables.
 
 **This is a self-made enumeration, not a census.** No authoritative census exists — in February 2026 NIST's own
 concept paper asked the public which standards were being used for AI-agent identity, because it could not
@@ -17,19 +22,23 @@ bad. Most solve a real problem, well. The point is narrower and structural: near
 agents their own customer already controls, and none is a non-profit *operating* cross-vendor verification and
 revocation. That is an observation about the shape of the field, not a judgement on anyone in it.
 
-| Counted | Value |
+| Counted in August 2026 (table rows) | Value |
 |---|---|
-| Distinct efforts found | **130** |
+| Efforts listed (at most 120 distinct; see *Corrections to the August table* under [Changes since 28 October](#changes-since-28-october-checked-12-november-2026)) | **130** |
 | Single-vendor commercial products | **88** |
 | Standards bodies / specifications | **22** |
 | Consortia | **2** |
-| Non-profit or neutral bodies | **11** |
+| Non-profit or neutral bodies (at most 9 distinct) | **11** |
 | Non-profits **operating** cross-vendor verification and revocation | **0** |
 
 The last row is the one that matters, and it is the reason this file exists. Every non-profit below publishes a
-specification, convenes a working group, or has announced an intent to launch. None of them runs the thing it
-describes. The only agent verification operating at internet scale today is run by commercial vendors who also
-sell the product that blocks the traffic.
+specification or code, convenes a working group, or hosts a project. None of them runs the thing it describes. One
+change since August: the Agent Name Service (ANS) launched as a Linux Foundation project on 10 November 2026. The
+project publishes specifications and code and runs no registry, log or status service. The production ANS registry,
+log and status service that its software points to are run by GoDaddy, a commercial company, so the count stays at
+zero (see [Changes since 28 October](#changes-since-28-october-checked-12-november-2026)). The agent verification that
+operates at scale at the network edge today is run by commercial vendors who also sell the product that blocks the
+traffic.
 
 
 ## Non-profit / neutral bodies (11)
@@ -40,11 +49,11 @@ sell the product that blocks the traffic.
 | [Agentic AI Foundation (AAIF) — Linux Foundation directed fund](https://www.linuxfoundation.org/press/linux-foundation-announces-the-formation-of-the-agentic-ai-foundation) | A directed fund under the Linux Foundation, announced 9 December 2025, co-founded by Anthropic, Block and OpenAI with support from Google, Microsoft, AWS, Cloudflare and Bloomberg. Founding projects: Model Context Protocol (Anthropic), goose (Block), AGENTS.md (OpenAI). The AAIF Governing Board hand | It governs CODE and protocol specifications — it is not an identity body. AAIF operates no agent registry, issues no credentials, verifies no agents, and revokes nothing. None of its three founding projects is an identity project. Being a neutral home for a protocol is categorically different from o |
 | [Cloud Security Alliance — Agent Registry Specification v1](https://labs.cloudsecurityalliance.org/agentic/agentic-agent-registry-specification-v1/) | A CSA white paper dated 27 March 2026, status: draft. Defines a framework for authoritative records of AI agents: 'a structured representation of everything an organization knows about a specific deployed agent: its identity, capabilities, authorizations, ownership, provenance, and behavioral charac | CSA does NOT operate a registry. This is a paper specification telling organizations how they should build their own. Its cross-org model depends on explicit federation agreements between organizations — i.e. pre-existing bilateral arrangements, exactly what draft-reece-wimse says does not generaliz |
 | [Decentralized Identity Foundation — Trusted AI Agents Working Group (KYA-OS, formerly MCP-I)](https://identity.foundation/working-groups/trusted-agents.html) | A Working Group at DIF, a registered 501(c)(6) non-profit membership organization. Chairs: Nicola Gallo (Nitro Agility), Andor Kesselman (Agent Overlay), Dmitri Zagidulin (Digital Credentials Consortium). Charter: 'defining an opinionated, interoperable stack to enable trustworthy, privacy-preservin | DIF operates the Universal Resolver (DID resolution) and a Decentralized Web Node community node, but neither is a root of trust or a revocation authority for agents — resolution is not vouching. The WG page does not state whether revocation or cross-organization revocation is covered, and I found n |
-| [Linux Foundation — Agent Name Service (ANS)](https://www.linuxfoundation.org/press/linux-foundation-announces-intent-to-launch-agent-name-service-to-establish-trusted-identity-infrastructure-for-ai-agents) | On 23 June 2026 the Linux Foundation announced its INTENT TO LAUNCH the Agent Name Service — the wording is 'intent to launch', not a launch. ANS extends existing DNS infrastructure to provide trusted identity, verification and discovery for AI agents, described as a federated identity layer at inte | IT IS NOT OPERATING. As of this sweep (5 August 2026) it remains an announced intent — I found no evidence of a launched, live, production registry or root operated by the Linux Foundation. The press release does not explicitly address revocation mechanisms and gives no specifics on cross-organizati |
+| [Linux Foundation — Agent Name Service (ANS)](https://www.linuxfoundation.org/press/linux-foundation-announces-intent-to-launch-agent-name-service-to-establish-trusted-identity-infrastructure-for-ai-agents) | On 23 June 2026 the Linux Foundation announced its INTENT TO LAUNCH the Agent Name Service — the wording is 'intent to launch', not a launch. ANS extends existing DNS infrastructure to provide trusted identity, verification and discovery for AI agents, described as a federated identity layer at inte | IT IS NOT OPERATING. As of this sweep (5 August 2026) it remains an announced intent — I found no evidence of a launched, live, production registry or root operated by the Linux Foundation. The press release does not explicitly address revocation mechanisms and gives no specifics on cross-organizati… **Update, 12 November 2026:** ANS launched as a Linux Foundation project on 10 November 2026, but the project runs no registry, log or status service, and the production ones its software points to are GoDaddy's (see [Changes since 28 October](#changes-since-28-october-checked-12-november-2026)). |
 | [Linux Foundation — Agent2Agent (A2A) Protocol](https://developers.googleblog.com/en/google-cloud-donates-a2a-to-linux-foundation/) | Google announced the donation of A2A to the Linux Foundation on 23 June 2025 at Open Source Summit North America, establishing vendor-neutral governance. At its one-year mark (April 2026) the Linux Foundation reported 150+ supporting organizations, spec v1.0, integration across Google, Microsoft and | A2A is a communication and discovery protocol. Agent Cards advertise capability, not verified identity. It does not verify that an agent is who it claims to be against any authority, does not maintain a registry of legitimate operators, and defines no revocation. The Linux Foundation hosts the SPEC; |
 | [Linux Foundation — DNS-AID](https://www.linuxfoundation.org/press/linux-foundation-announces-dns-aid-project-to-advance-decentralized-ai-agent-discovery) | Announced 27 May 2026 by the Linux Foundation. Originally developed by Infoblox. Initial supporting members: Cloudflare, CSC, Equinix, GoDaddy, IDC, Indeed, Internet Systems Consortium, WWT. A vendor-neutral framework for publishing, discovering and verifying AI agents and MCP servers using existing | Revocation is not explicitly addressed. Cross-organizational verification is implied by the open-standards approach but not detailed. Critically, by design it operates NO central registry and NO root of trust — verification bottoms out in whoever controls the DNS name, which means it inherits DNS's  |
 | [MCP Authorization specification (Model Context Protocol)](https://modelcontextprotocol.io/specification/draft/basic/authorization) | The authorization section of the Model Context Protocol specification. Authorization is OPTIONAL in MCP. Built on OAuth 2.1 (draft-ietf-oauth-v2-1-13) plus RFC 6750, 8414, 7591, 8707, 9728, 9207, OAuth Client ID Metadata Documents, and OIDC Discovery/Registration. The MCP server acts as an OAuth 2.1 | It is explicitly transport-level client-to-server authorization, NOT agent identity. It defines no agent identifier, no agent credential, no registry, and no revocation beyond ordinary OAuth token lifetime and the issuing authorization server's own controls. It says the implementation details of the |
-| [OWASP Agent Name Service (ANS)](https://genai.owasp.org/resource/agent-name-service-ans-for-secure-al-agent-discovery-v1-0/) | v1.0 whitepaper published 2025-05-14 under the OWASP GenAI Security Project's Agentic Security Initiative. DNS-inspired directory using PKI for identity, JSON Schema for structured communication, a structured ANSName encoding protocol/capability/provider/version, and a protocol adapter layer for A2A | It is a specification and reference code, not an operating registry with real registrants. The v1.0 resource does not detail CA infrastructure or CRL mechanics. No neutral operator was named. Name collides with the later, separate Linux Foundation ANS. |
+| [OWASP Agent Name Service (ANS)](https://genai.owasp.org/resource/agent-name-service-ans-for-secure-al-agent-discovery-v1-0/) | v1.0 whitepaper published 2025-05-14 under the OWASP GenAI Security Project's Agentic Security Initiative. DNS-inspired directory using PKI for identity, JSON Schema for structured communication, a structured ANSName encoding protocol/capability/provider/version, and a protocol adapter layer for A2A | It is a specification and reference code, not an operating registry with real registrants. The v1.0 resource does not detail CA infrastructure or CRL mechanics. No neutral operator was named. Name collides with the later, separate Linux Foundation ANS. **Corrected 12 November 2026:** the Linux Foundation ANS is not separate; it builds on this paper (see [Changes since 28 October](#changes-since-28-october-checked-12-november-2026)). |
 | [OWASP GenAI Security Project — Agent Name Service (ANS) v1.0 whitepaper / draft-narajala-ans](https://genai.owasp.org/resource/agent-name-service-ans-for-secure-al-agent-discovery-v1-0/) | Published by the OWASP GenAI Security Project's Agentic Security Initiative on 14 May 2025 — labelled a whitepaper/guide, not a formal specification. A DNS-inspired framework using PKI identity verification, digital signatures and structured JSON schemas, with an ANSName encoding protocol, capabilit | It names NO actual operator. The draft discusses centralized, distributed, blockchain-based and federated models without choosing, requests no IANA action, and defers the decisive question: 'Establishing clear and comprehensive policies for name allocation, dispute resolution, operational practices  |
 | [Project NANDA (MIT) — NANDA Index, AgentFacts, NANDA Passport](https://github.com/projnanda) | Research project created at MIT (nanda.media.mit.edu), governance US-based. Four-layer architecture: discovery, identity, federation, interoperability. A lean global Index maps an agent handle to cryptographically verifiable AgentFacts (JSON-LD, signed as W3C VCs v2, short-lived, with VC-StatusList  | Research infrastructure, not production: individual repos have single- to double-digit star counts, and the passport service secondary sources point at is a render.com endpoint. MIT is neutral as a university but this is one lab, not a governed non-profit registry with a membership or an appeals pro |
 
@@ -257,6 +266,9 @@ question across providers today.
 - **ANS** (agent name service) revokes through CRL/OCSP with a 300 s TTL; its reference implementation "uses mock
   cryptography" according to an independent review.
   <https://labs.cloudsecurityalliance.org/research/agentic-identity-ans-security-analysis-v1-0/>
+  **Corrected 12 November 2026:** that review covers the earlier OWASP-lineage design and one individual's reference
+  code, not the Linux Foundation ANS, which publishes no CRL or OCSP and revokes through its log, with status tokens
+  that last one hour by default (see [Changes since 28 October](#changes-since-28-october-checked-12-november-2026)).
 - **The web PKI's own lesson.** Let's Encrypt switched its OCSP responders off on 6 August 2025, for privacy and
   reliability (<https://letsencrypt.org/2024/12/05/ending-ocsp/>). Firefox now downloads every revocation, about
   300 kB a day, because "the only secure approach is to check all revocations"
@@ -295,6 +307,294 @@ question across providers today.
   with Ed25519 *and* ML-DSA-65 and refuses either alone. IRONVALD itself sells critical-infrastructure defence and
   does not work on agent identity. <https://ironvald.com/news/the-passport-problem>
 
+## Changes since 28 October (checked 12 November 2026)
+
+These are not in the counts above, which stay the August floor. Each was read on 12 November 2026 from its own
+published material unless the entry says otherwise, then re-read against its source by an adversarial second pass;
+where that pass corrected the first, the correction is what appears here. Some items are older than 28 October and
+were missed by earlier checks; each carries its own date.
+
+- **The Agent Name Service (ANS) launched as a Linux Foundation project on 10 November 2026**, announced at KubeCon +
+  CloudNativeCon North America. The row above records the 23 June "intent to launch". Its legal home is "Agent Name
+  Service, a Series of LF Projects, LLC", under a technical charter adopted on 9 November 2026. The release names 11
+  organisations that "contributed to or adopted the standard": Cisco, Cloudflare, DigiCert, DistributedApps.ai,
+  GoDaddy, HOL, Infoblox, Radix, Salesforce, OWASP and Trustmodel.ai. A technical steering committee governs it.
+  Three of its five voting members list GoDaddy as their affiliation, one DistributedApps.AI and one Hashgraph Online
+  (HOL); the charter's rule that fewer than half may represent one organisation applies only after a startup period
+  that, by the governance repository's TSC.md, ends no later than 9 November 2027. The chartered mission is "a
+  vendor-neutral, implementation-independent open specification, together with open source reference
+  implementations, software development kits, and conformance tooling"; it does not mention running a registry, log
+  or status service.
+  <https://www.linuxfoundation.org/press/linux-foundation-welcomes-agent-name-service-to-bring-verifiable-identity-and-discovery-to-ai-agents>
+  <https://github.com/agentnameservice/governance/blob/main/CHARTER.md> <https://ansinfo.ai/governance/>
+- **What ANS specifies and ships.** Seven documents, ANS-0 to ANS-6, cover identity, registration, versioned naming,
+  DNS publication, transparency, integrity monitoring and agent-to-agent authentication. The release says the
+  specification "is now formalized"; the project's site says "The published specifications are drafts under active
+  development", and each document is headed "Status: DRAFT v1.0", at versions 0.1.0 to 0.3.0 dated 17 May to
+  3 November 2026. The Go reference implementation `ans` v0.2.0 (release notes dated 5 November, tag and release
+  6 November 2026) has a registration authority (RA), an append-only Merkle transparency log (TL) with SCITT receipts
+  and C2SP checkpoints, status tokens, and the offline verifier `ans-verify`; Go, Rust and Java SDKs and a gateway
+  verifier ship beside it. The code came from GoDaddy: the v0.2.0 notes say "importers must switch from
+  github.com/godaddy/ans to github.com/agentnameservice/ans". Specified, but not shipped in the reference
+  implementation: anchoring log checkpoints to the Hedera Consensus Service. The IETF companion, "Agent Name Service
+  v2 (ANS): A Domain-Anchored Identity Layer for Autonomous AI Agents" (revision 02, 26 October 2026, listed by that
+  title in the IETF's draft index), is headed "Independent Submission", intended status Informational; the spec
+  repository calls its own layered specs "the authoritative source". <https://ansinfo.ai/about/>
+  <https://github.com/agentnameservice/ans> <https://github.com/agentnameservice/ans/releases/tag/v0.2.0>
+  <https://github.com/agentnameservice/ans-spec> <https://www.ietf.org/id/1id-index.txt>
+- **How ANS revokes, and which agents it covers.** A registration is revoked by the agent's hosting platform or by the
+  RA that holds it (ANS-1). The RA's private CA "publishes no CRL or OCSP endpoint"; instead "The TL is the revocation
+  channel": the badge shows REVOKED and the status-token endpoint returns 410 (ANS-6). A status token is signed by the
+  log's key and lasts one hour by default, an operator setting (ANS-4), and a verifier "MUST treat the inability to
+  obtain a fresh status token as equivalent to revocation, subject to the failure policy in §9" (ANS-6). With the
+  log's keys cached, a verifier checks receipts and status tokens offline; the one recurring network call is each
+  agent refreshing its own token, so an offline check stays current to within one token lifetime plus clock skew
+  (ANS-6 §9.2), and longer if a deployment uses the grace window of ANS-6 §9.4, which accepts a recently expired
+  token. Every registration needs a domain name ("Every agent registration MUST have an FQDN primary anchor", a rule
+  ANS-0 calls a policy, "not a structural limit"), at least one endpoint on that host, and a server certificate
+  ("Server Certificates are required."). Open on 12 November 2026: proposals for
+  personal agents without a domain or inbound endpoint (ans-spec #75), for a hosted provider registering agents for
+  operators with no domain and no key (ans-spec #76), for making the server certificate optional (ans-spec #80), and
+  for admitting agent sessions that hold no ANS certificate (ans-gateway-auth #20). Closed as not planned on
+  11 September 2026: verifying agents not registered in ANS (ans #99 and ans-sdk-go #65; "ans-verify will remain an
+  ANS verifier") and Web Bot Auth as an identity kind (ans #102).
+  <https://github.com/agentnameservice/ans-spec/blob/main/spec/ans-0-identity-anchor.md>
+  <https://github.com/agentnameservice/ans-spec/blob/main/spec/ans-1-registration.md>
+  <https://github.com/agentnameservice/ans-spec/blob/main/spec/ans-4-transparency.md>
+  <https://github.com/agentnameservice/ans-spec/blob/main/spec/ans-6-agent-authentication.md>
+  <https://github.com/agentnameservice/ans/issues/99>
+- **GoDaddy runs the production ANS registry, log and status service, by its own account since at least January
+  2026; the August count missed it.** The project's Go SDK lists one production environment,
+  `https://api.godaddy.com` for the registry and `https://transparency.ans.godaddy.com` for the log, beside GoDaddy's
+  own test environment, and its built-in list of trusted log hosts holds only GoDaddy's two. The reference code calls
+  GoDaddy's log "the production emit", and the certificate authorities in the spec repository's production bundle name
+  GoDaddy as their organisation. The project itself runs no registry, log, status or test service: its maintainer
+  index lists hosted test environments as "[none yet]", and taking on a hosted service the project depends on needs a
+  steering-committee proposal. GoDaddy's engineering blog described "a production, cryptographically verifiable trust
+  registry for AI agents" on 12 January 2026; on 2 April 2026 GoDaddy called GoDaddy ANS "the first public
+  implementation of the open standard" as LegalZoom registered its first agent there; and its product page says
+  "Agent Identity is GoDaddy's implementation of this open standard" (read from the 23 October 2026 archive copy, as
+  the live page refused automated access).
+  <https://github.com/agentnameservice/ans-sdk-go>
+  <https://github.com/agentnameservice/ans/blob/main/internal/tl/handler/checkpoint.go>
+  <https://github.com/agentnameservice/ans-spec/blob/main/pki/README.md>
+  <https://github.com/agentnameservice/governance/blob/main/MAINTAINERS.md>
+  <https://github.com/agentnameservice/governance/blob/main/GOVERNANCE.md>
+  <https://www.godaddy.com/resources/news/building-the-agent-name-service-using-a-one-system-approach>
+  <https://aboutus.godaddy.net/newsroom/news-releases/press-release-details/2026/GoDaddy-and-LegalZoom-Partner-to-Support-Open-Agentic-Web/default.aspx>
+  <https://web.archive.org/web/20261023091126/https://www.godaddy.com/ans>
+  - Measured on 12 November 2026. The log's checkpoint signed at 13:10:13 UTC covered 456,891 entries (log events,
+    not agents), and both of its signatures were by the log's own key, with no outside witness
+    (`curl -s https://transparency.ans.godaddy.com/v1/log/checkpoint`). One agent's status token was 398 bytes,
+    status ACTIVE, valid for 3600 s, and its ES256 signature verified against the log's published key. To check it,
+    with the Python packages `cbor2` and `cryptography` installed, run
+    `python3 -c 'import base64,urllib.request as r,cbor2 as c;from cryptography.hazmat.primitives import hashes,serialization;from cryptography.hazmat.primitives.asymmetric import ec,utils;H="https://transparency.ans.godaddy.com/";t=r.urlopen(H+"v1/agents/4ad720a9-a1a5-4462-9832-372d8ebf5f21/status-token").read();p,_,m,g=c.loads(t).value;k=serialization.load_der_public_key(base64.b64decode(r.urlopen(H+"root-keys").read().split(b"+",2)[2])[1:]);k.verify(utils.encode_dss_signature(int.from_bytes(g[:32],"big"),int.from_bytes(g[32:],"big")),c.dumps(["Signature1",p,b"",m]),ec.ECDSA(hashes.SHA256()));d=c.loads(m);print(len(t),"bytes",d[2],d[4]-d[3],"s, signature ok")'`,
+    which printed `398 bytes ACTIVE 3600 s, signature ok`; with one byte of the token's payload changed, the same
+    check fails with `InvalidSignature`. That agent's badge reads "Issued By: ra.godaddy.com", "Tier 3: Domain Validated (DV)" and
+    "Verified Business: NOT PERFORMED"
+    (`curl -s -H 'Accept: text/html' https://transparency.ans.godaddy.com/v1/agents/4ad720a9-a1a5-4462-9832-372d8ebf5f21`).
+  - ANS-4 itself says "A federated deployment runs the RA and TL under different operators, eliminating collusion as
+    a single-entity risk". Its other stated mitigations are signed checkpoints and tiles that anyone can check for
+    consistency, and anchoring checkpoints to the Hedera Consensus Service, which "strengthens this further". The
+    reference implementation does not ship that anchoring (ANS-4 §7), and whether the production log anchors its
+    checkpoints was not established. In production one company runs both the RA and the TL.
+  - **Relation to AINRA:** ANS shares two parts of AINRA's design, an append-only log and revocation status a verifier
+    can check offline, and unlike AINRA it runs in production today: AINRA's root is pre-ceremony, and its network
+    runs on a labelled test root. What differs is scope and operation. ANS covers agents registered in ANS, each under
+    a domain name, and in production one company runs both the registry and the log that audits it.
+- **The OWASP ANS paper and the Linux Foundation ANS are one lineage, not two projects.** The project says "ANS
+  builds on Agent Name Service for Secure AI Agent Discovery, contributed as an IETF Internet-Draft": the OWASP GenAI
+  Security Project paper of 14 May 2025 that the non-profit table lists twice. OWASP is one of the 11 supporting
+  organisations, and in the release the CEO of DistributedApps.ai, which holds a steering-committee seat, says "I led
+  the initial development of ANS". The designs differ. The 2025 design (the paper and its first IETF draft) encodes
+  protocol, capability, provider and version in an ANSName, and already has a CA and a Registration Authority that
+  revoke through CRL/OCSP. The Linux Foundation ANS keeps the RA, anchors each agent to one domain name
+  (`ans://v{version}.{host}`), and adds the append-only log and short-lived status tokens, moving revocation from
+  CRL/OCSP to the log. Two earlier statements here are corrected accordingly: the OWASP row's "separate", with the
+  naming note at the end of this file, and the 26 October entry on ANS, whose "CRL/OCSP with a 300 s TTL" and "mock
+  cryptography" come from the Cloud Security Alliance's 25 June 2026 review of the earlier OWASP-lineage design and
+  of one individual's reference code, not of the Linux Foundation repository. <https://ansinfo.ai/about/>
+  <https://genai.owasp.org/resource/agent-name-service-ans-for-secure-al-agent-discovery-v1-0/>
+  <https://labs.cloudsecurityalliance.org/research/agentic-identity-ans-security-analysis-v1-0/>
+- **Personal Agent Protocol ("Poppy").** Sierra announced it on 6 October 2026 as "an open standard Meta and Sierra
+  are developing along with industry partners at Genesys, Instinct, Rocket, Shopify, Stripe, and Walmart". Draft 0.1
+  followed on 9 October, 0.2 on 24 October, 0.3 on 4 November and 0.4 on 10 November, "as the 1.0 release
+  candidate"; the current text, "Draft 1.0", is 0.4 with fixes, which "can include changes that aren't backward
+  compatible". The partner page lists 43 entries (44 organisations if PayPal and Venmo count apart): 3 personal-agent
+  makers, 21 companies and 19 technology providers. Sierra describes the design partners' part as feedback. A company
+  publishes `/.well-known/poppy.json`. An agent's `client_id` "MUST be an HTTPS URL that returns its metadata
+  document" (the OAuth Client ID Metadata Document draft), which points to the keys the agent signs with; a delegation
+  to a request-signing key lasts at most 24 hours. The agent signs a Session JWT for its requests to the company's
+  APIs and endpoints, naming a user ID that differs at each company and "contains no personal information". Account
+  access is standard OAuth: the person signs in on the company's page, or with a link and code on any device; an
+  extension that lets the agent sign in with the person's credentials is called transitional on the roadmap.
+  Revocation stays with one company at a time: the agent revokes its own refresh token there (RFC 7009), the person
+  can disconnect it in that company's settings, and the company can refuse a `client_id`. "A Company decides which
+  Personal Agents it accepts, and how it approves them is outside this specification." A step that reaches every
+  company is the operator removing a key from its key set, which takes effect as each company's cache of it expires
+  (the guides give "at most a day" as an example bound), and "A delegation can't be withdrawn before it expires". The
+  spec defines no offline check: verification starts by fetching the agent's metadata and keys over HTTPS, which
+  companies may cache. It recommends a Web Bot Auth signature from the operator, for edge bot defences. No foundation
+  or standards body is named as its home; the site names no authors (commit authors are visible in the repository
+  history), and only collaborators can open pull requests. Sierra's 9 October post said "Over the next month we will
+  host design workshops and publish a reference implementation"; none was listed on the protocol's site or in its
+  GitHub organisation on 12 November 2026, and a search of Meta's newsroom that day found no post about the protocol.
+  <https://sierra.ai/blog/introducing-personal-agent-protocol> <https://sierra.ai/blog/poppy>
+  <https://personalagentprotocol.org/docs/changelog> <https://personalagentprotocol.org/docs/path-to-1>
+  <https://personalagentprotocol.org/docs/introduction> <https://personalagentprotocol.org/docs/1.0/spec>
+  <https://personalagentprotocol.org/docs/1.0/guides> <https://about.fb.com/?s=Personal+Agent+Protocol>
+- **Descope Envoy (4 November 2026)** builds on the Agentic Identity Hub (row above) and gives personal agents a
+  delegated sign-in path beside a consumer site's own login. Its Personal Agent Protocol support covers discovery,
+  "agent identification through Client ID Metadata Documents with no pre-registration required", DPoP-bound session
+  tokens and all three Poppy sign-in types; scoped permissions (Rich Authorization Requests) and out-of-band approval
+  (CIBA) are separate Envoy features. GoFundMe, You.com, GoodRx and Composio are named among several launch and design
+  partners. Revocation stays with one site: "a company can revoke an agent’s access without signing the customer out".
+  <https://www.descope.com/press-release/envoy>
+- **Commercial "know your agent" launches.** None describes a revocation that anyone outside its own customers can
+  check.
+  - Shufti, Know Your Agent (London, 28 October 2026, "now available"). In one flow it checks the agent, that a person
+    or business verified through Shufti authorised it, and that the action is inside the principal's mandate. "Each AI
+    agent receives a unique time-bound credential that can be revoked"; "Every agent is assigned a trust score", and
+    unfamiliar agents are assessed with behavioural biometrics. "Each business sets its own rules within Shufti KYA."
+    The release names no standard or credential format, and no way for anyone outside Shufti's customers to check an
+    agent. <https://shuftipro.com/press-release/shufti-launches-know-your-agent-to-verify-ai-agents/>
+  - LexisNexis Risk Solutions, KYA intelligence (Atlanta, 5 November 2026). Agent detection and risk signals in its
+    digital identity and fraud-prevention platform, because "most personal agents today do not self-declare as
+    agents". Agent identity and authorisation are described as a foundation for later, "as agents, standards and use
+    cases evolve". No credential, registry or revocation.
+    <https://risk.lexisnexis.com/about-us/press-room/press-release/20261105-agentic-kya>
+  - Zetrix AI Berhad with the China Academy of Information and Communications Technology (CAICT), a KYA service
+    (Wuzhen, 5 November 2026; read on a press-wire copy of the company's own release, as zetrix.com refused automated
+    access). The service "will assign each participating AI agent a verifiable digital identity", builds on W3C
+    Verifiable Credentials and AvatarLabs' Agentic Wallet, and says "Permissions can be revoked" without naming a
+    mechanism. A cross-border pilot is proposed, "subject to confirmation", with findings to go to standards bodies
+    including ITU-T Study Group 17 through FG-TIDA. <https://kyodonewsprwire.jp/release/202611059562>
+  - BioCatch AiRE, Agentic AI Risk Essentials (New York, 10 November 2026, "through existing customer integrations").
+    It flags whether a person or an AI agent controls a banking session, from signals such as "synthetic inputs, the
+    browser permission profile, agent infrastructure, and agent declaration". It infers; it issues no credential.
+    <https://www.biocatch.com/press-release/biocatch-launches-agentic-ai-detection>
+  - zerohash (10 November 2026) announced that it had acquired "an infrastructure stack covering agent
+    authentication, permissioning, and machine-initiated financial transactions", with an IP portfolio, and set up an
+    Applied AI team to build the agent identity layer: "Every agent credential resolves to a verified person or
+    institution, and that principal sets what the agent may do, where, and up to what amount. Permissions are
+    configurable by each partner and revocable at any time." Its 30 July 2026 Agentic Finance Suite release already
+    says it "provides the Know Your Agent (KYA) screening". The 10 November release is linked from
+    <https://zerohash.com/press>.
+    <https://zerohash.com/press/zerohash-launches-agentic-finance-suite-to-power-ai-driven-money-movement>
+- **US Office of the Comptroller of the Currency, Bulletin 2026-54, "Super Intelligence: Supervisory Framework"
+  (4 November 2026).** An examiner resource on how banks use what it calls super intelligence, and nonbinding: it
+  "does not establish supervisory expectations for banks". For agents a bank does not control, "Identity, provenance,
+  delegation, authentication, monitoring, velocity limits, dispute handling, suspension, and revocation may be
+  calibrated to the action requested" (printed page 8), and agent identities and credentials "may be governed in a
+  manner comparable to privileged users" (page 9). It defines no mechanism, credential or shared revocation; each
+  bank acts alone. <https://occ.gov/news-issuances/bulletins/2026/bulletin-2026-54.html>
+  <https://occ.gov/news-issuances/news-releases/2026/nr-occ-2026-97a.pdf>
+- **Chile, Senate bill Boletín 18.820-19 (entered 28 October 2026).** A private member's bill (moción) at its first
+  constitutional stage, before the Committee on Future Challenges, Science, Technology and Innovation, with no
+  urgency. It would amend Law 21.663, the cybersecurity framework law, so that private institutions in its scope that
+  operate AI agents keep "una identidad digital verificable para cada agente" (a verifiable digital identity for each
+  agent), linked to the operating institution; record each authorisation and its limits; keep delegated permissions
+  inside the original grant; keep tamper-evident logs; and suspend or revoke access "sin demora indebida" (without
+  undue delay), derived permissions included. Those that are operators of vital importance would also keep an
+  up-to-date register of their agents with access to production systems (new Article 8, letter j). Revocation stays
+  inside each institution: the bill names no format and no verifier, and allows equivalent technological solutions.
+  It excludes
+  the bodies named in Article 1, paragraphs 2 and 3, the Coordinador Eléctrico Nacional, and any legal person in whose
+  capital the State takes part or whose administration it controls.
+  <https://tramitacion.senado.cl/appsenado/templates/tramitacion/index.php?boletin_ini=18820-19>
+  <https://tramitacion.senado.cl/appsenado/index.php?mo=tramitacion&ac=getDocto&iddocto=19502&tipodoc=mensaje_mocion>
+- **IETF Web Bot Auth: the protocol draft is now a working-group document.** The working group adopted it as
+  `draft-ietf-webbotauth-httpsig-protocol-00` on 1 September 2026, replacing the individual draft in the rows above,
+  which had reached revision -02 on 18 August; revision -01 followed on 29 October 2026, by authors from Cloudflare
+  and Google. Section 6.3: "This document defines no revocation." A key removed from the directory stops verifying at
+  each verifier only on its next refresh, and "The protocol carries no channel back to verifiers, so an Agent cannot
+  reach them sooner"; short signature lifetimes "are the only lever that acts faster". The rows above cite the
+  key-compromise text as section 5.4 of the individual draft, and the companion registry draft at revision -03; the
+  registry draft reached -04 on 27 October 2026. **Relation to AINRA:** `make link-e2e` (after `make live-up` and
+  `make stage-up`) links the key a signature agent already signs with to its operator's passport and then revokes
+  it; the signature-agent reader keeps accepting, and AINRA refuses.
+  <https://www.ietf.org/archive/id/draft-ietf-webbotauth-httpsig-protocol-01.txt>
+  <https://mailarchive.ietf.org/arch/browse/i-d-announce/?q=draft-ietf-webbotauth-httpsig-protocol>
+- **IETF OAuth WG adopted Delegate SD-JWT.** `draft-ietf-oauth-delegate-sd-jwt-00` was posted as a working-group
+  document on 30 October 2026 (dated 26 October), replacing an individual draft of 22 April 2026; its authors are
+  from Google and SPRIND. It extends SD-JWT so a holder can delegate a credential presentation to a delegate holder,
+  for example an AI agent proving to a merchant that it may buy for the user. Section 8.3 says traditional revocation
+  "can be used" but is a practical challenge, since "an individual Holder can not easily distribute revocation
+  information to Verifiers"; short expiry and constraining claims "limit this problem". It defines no registry and
+  no revocation across parties. <https://www.ietf.org/archive/id/draft-ietf-oauth-delegate-sd-jwt-00.txt>
+  <https://mailarchive.ietf.org/arch/browse/i-d-announce/?q=delegate-sd-jwt>
+- **Individual Internet-Drafts, without IETF standing.** In the IETF's index of active drafts, 122 with "agent" in
+  the name or title had a latest revision dated 28 October to 2 November 2026; 51 were first versions and none was a
+  working-group draft (by name alone: 73, of which 32 were first versions). Counted in the index as generated at
+  13:05 UTC on 12 November 2026, <https://www.ietf.org/id/1id-index.txt>, by matching "agent" in each entry's name
+  and title and its latest revision date. The copy generated at 15:05 UTC gave the same counts, and in it 16 of the
+  122 have identity, revocation, passport, credential, authentication or attestation in the name or title. The index
+  changes daily, so a later count will differ. To count, run
+  `curl -s https://www.ietf.org/id/1id-index.txt | python3 -c 'import re,sys;E=[m.groups() for c in re.split(r"\n\s*\n",sys.stdin.read()) if (m:=re.match(r"\"(.*)\",.*, (\d{4}-\d\d-\d\d), <(draft-.*)-(\d\d)\.txt>$"," ".join(c.split())))];A=[e for e in E if "2026-10-28"<=e[1]<="2026-11-02" and "agent" in (e[0]+" "+e[2]).lower()];N=[e for e in A if "agent" in e[2]];[print(len(x),sum(e[3]=="00" for e in x),sum(e[2].startswith("draft-ietf-") for e in x)) for x in (A,N)];print(sum(bool(re.search("identity|revocation|passport|credential|authentication|attestation",e[0]+" "+e[2],re.I)) for e in A))'`,
+  which printed `122 51 0`, `73 32 0` and `16` for that copy. Five of the drafts that touch agent identity or
+  revocation follow, as examples rather than the full set; each is found in that index by the words given in
+  brackets.
+  - Agent passports and delegation receipts (Redthread Security, 30 October 2026, intended Standards Track;
+    "agent-passport"). A passport binds an agent's key to its accountable controller and a digest of its build;
+    receipts record each step of delegation, and a chain can only narrow authority. Passports "SHOULD carry a status
+    claim referencing a Token Status List", and issuers should log each passport and each revocation in an RFC 9162
+    transparency log, though "This document does not require RPs to check log inclusion". A controller authorises the
+    issuers that may vouch for its agents and can withdraw them; trust in a controller "is local policy".
+    **Relation to AINRA:** AINRA registrars already serve their revocations in the Token Status List form this draft
+    points to (`make tsl-check`).
+  - The agent identity document (knownAs.dev, Authecity Systems LLC; revision -02, 31 October 2026, Informational;
+    "agent-identity-document"). A JSON document at a well-known URI on a hostname assigned to one agent, described as
+    "a practice in production at one provider". Its suspended state "is reversible by design"; there is no revoked
+    state, and deleting an identity removes the document.
+  - Secure telephone identity for agents (TransUnion, 2 November 2026, intended Standards Track; "stir-agentic"). It
+    extends STIR call signing "to include agents acting on behalf of users and enterprises", and lets intent objects
+    signed outside STIR, such as an OAuth token or a verifiable credential, be bound to a call's signed token. It does
+    not mention revocation.
+  - Agent revocation for OAuth (China Mobile, revision -01, 30 October 2026, intended Standards Track;
+    "oauth-agent-revocation-01"). One new authorisation-server endpoint for batch revocation by agent ID, cascade to
+    sub-agents, conditional revocation and audit trails. Revocation stays at the server that issued the tokens; no
+    protocol for telling other parties is defined.
+  - Signed agent metadata for Web Bot Auth (Google, 2 November 2026, intended Standards Track;
+    "signed-agent-metadata"). When "a multi-tenant agent platform signs outbound requests with a shared key", a signed
+    header can carry pseudonymous per-request metadata so verifiers can rate-limit below the platform. Attribution
+    still stops at the platform, and it defines no revocation.
+- **IETF DAWN working group (Discovery of Agents With Names), chartered on 22 October 2026** in the Internet Area,
+  six days before this check's window and in no earlier section. It will specify how a client discovers the minimum
+  public information about an AI agent or a catalogue, and "will consider DNS and mDNS". Out of scope: "Identity
+  management of AI agents, tools, and skills", and trust evaluation beyond secure content exchange. Milestones run
+  from June 2027 to January 2028. It operates nothing.
+  <https://mailarchive.ietf.org/arch/msg/ietf-announce/-Ca-oT-OOUSkpM54y5mSAMa2Pk4/>
+- **Checked again, no operating service found.** ITU-T FG-TIDA's first face-to-face meeting is scheduled for
+  30 November – 1 December 2026 at UNESCO headquarters in Paris, after online preparatory meetings (the fifth on
+  4 November); the second is scheduled for Geneva on 26–27 January 2027. NIST's NCCoE agent identity resource hub
+  links a project page, which refused automated access, and no project description document. Its latest item is a
+  27 October 2026 blog post, "Design Tenets for Agent Identity Management Systems", and it says the final deliverable
+  will be an SP 1800 practice guide. The OpenID Foundation's nearest agent item is a threat model for cross-boundary AI
+  agents, published on 12 October 2026; its news from 28 October to 12 November is not about agent identity. The
+  AGNTCY Agent Directory Service, another Linux Foundation project cited in the ANS release, is directory software
+  that can verify `ans://` claims against a log its operator chooses to trust; it registers no ANS agents and issues
+  no status, its docs point to a catalogue hosted by Cisco and a community staging testbed, and no production instance
+  run by the foundation was found. <https://www.itu.int/en/ITU-T/focusgroups/tida/Pages/default.aspx>
+  <https://pages.nist.gov/nccoe-ai-identity/> <https://openid.net/news/>
+  <https://dir.agntcy.org/latest/dir/dir-component-identity/>
+- **Older items found while checking, not yet listed.**
+  - Socure's Agent Intelligence product page (undated) says "Socure can evaluate both credentialed and uncredentialed
+    agents, and Agent Trust Score is agnostic to agent type, operator, and presentation." It says nothing about
+    revocation. <https://www.socure.com/products/agent-intelligence>
+  - Proof's x401 specification is a draft, version 0.2.0; the page carries no date. It leaves revocation to each
+    verifier, which "MUST evaluate issuer trust, status, revocation, and policy constraints independently of any
+    Agent-side interpretation of the request". <https://x401.proof.com/spec/latest/>
+- **Corrections to the August table.** It has 130 rows but 120 distinct links, and ten rows repeat an effort that
+  another row already lists: the Agent2Agent project (two rows, two links); the OWASP ANS paper; the MCP
+  authorization specification (once as a non-profit body, once as a vendor product); the Web Bot Auth registry draft
+  (once as a standard, once as a product); the FIDO Alliance announcement; the NIST initiative; Agentic Fabriq;
+  Cloudflare's signed agents; and Alter, three times. One shared link is not a repeat: the AWS page cited for two
+  different efforts. The totals are kept as counted in August, so the table holds at most 120 distinct efforts, not
+  130, and the non-profit table at most 9 distinct entries, not 11; a few more pairs may be one effort under two
+  links, such as the two DNSid rows. Reproduce the first two figures from the repository root with
+  `python3 -c 'r=[l for l in open("docs/LANDSCAPE.md") if l.startswith("| [")];print(len(r),len({l.split("](",1)[1].split(")",1)[0] for l in r}))'`,
+  which prints `130 120`.
+
 ## Corrections applied before publishing
 
 An adversarial pass re-checked every claim against primary sources. Claims that did not survive were removed, not
@@ -311,5 +611,6 @@ surviving rows worth anything:
 ## Naming collisions worth knowing about
 
 There is no naming authority for any of this, and it shows. "Agent Passport" is claimed by several unrelated
-parties at once; "Agent Name Service" means two different projects from two different organizations; "Know Your
-Agent" is in use by numerous unrelated parties. Names in this file refer to the linked artifact and nothing else.
+parties at once; "Know Your Agent" is in use by numerous unrelated parties. "Agent Name Service" is not a collision,
+as this file once said: the 2025 OWASP paper and the 2026 Linux Foundation project are one lineage, the second
+building on the first (corrected 12 November 2026). Names in this file refer to the linked artifact and nothing else.

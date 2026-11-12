@@ -1,13 +1,13 @@
 <!-- SPDX-License-Identifier: Apache-2.0 OR MIT -->
 # Python quickstart — verify in ~5 lines, gate a route
 
-`ainra` (`packages/sdk-py`) is the independent Python verifier — the **fourth column** of the conformance differential
-(`make diff`: core ↔ sdk ↔ cli ↔ py, agreeing byte-for-byte on every vector's verdict *and* reason). Offline,
-fail-closed, zero telemetry. It holds no keys: an agent written in Python signs through callbacks
-([Be the agent](../../packages/sdk-py/README.md#be-the-agent-d-071)).
+`ainra` (`packages/sdk-py`) is the independent Python verifier — a column of the conformance differential
+(`make diff`: core ↔ sdk ↔ py, agreeing byte-for-byte on every vector's verdict *and* reason; the Node CLI is held
+to them on canonical encoding only). Offline, fail-closed, zero telemetry. It holds no keys: an agent written in
+Python signs through callbacks ([Be the agent](../../packages/sdk-py/README.md#be-the-agent-d-071)).
 
 ```sh
-pip install ainra              # v0.4.0 from PyPI, published by trusted publishing with PEP 740 attestations
+pip install ainra              # from PyPI, published by trusted publishing with PEP 740 attestations
 ```
 
 Or editable from a checkout, if you would rather read the source you are running:

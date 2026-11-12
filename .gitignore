@@ -82,8 +82,13 @@ genesis-evidence/
 docs/genesis-day/declaration/founding-declaration.md
 deploy/.env.production
 
-# M16 onramp: the persistent local registrar make issue-first creates
+# M16 onramp: the persistent local registrar make issue-first creates (and the registrar page's DIR=my-registrar-42)
 my-registrar/
+my-registrar-*/
+/accreditation.json
+/acc.json
+# kits/pilot --watch observations: request paths from someone's own traffic, never committed
+watch*.jsonl
 
 # M17 site-up runtime pid
 .site-pid

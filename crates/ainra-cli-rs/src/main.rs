@@ -185,7 +185,13 @@ fn cmd_issue(a: &[String]) -> i32 {
         eprintln!("issue requires --operator, --lineage, --version\n  e.g. ainra issue {dir} --operator acme --lineage assistant --version 1.0.0 --tier L2 --cap read:data");
         return 2;
     };
-    let caps = opt_multi(a, "cap");
+    let mut caps = opt_multi(a, "cap");
+    if caps.is_empty() {
+        // The default grant is decided BEFORE the ceiling is derived from it. The other order left the ceiling empty
+        // while the grant defaulted to read:data, so `issue` without --cap made a passport that could never verify
+        // (ceiling_exceeded).
+        caps = vec!["read:data".into()];
+    }
     let mut ceiling = opt_multi(a, "ceiling");
     if ceiling.is_empty() {
         ceiling = caps.clone(); // ceiling defaults to the granted set
@@ -197,11 +203,7 @@ fn cmd_issue(a: &[String]) -> i32 {
         tier: opt(a, "tier").unwrap_or("L2").into(),
         auth_class: opt(a, "auth").unwrap_or("A2").into(),
         principal_proof: opt(a, "proof").unwrap_or("deadbeef00000000").into(),
-        capabilities: if caps.is_empty() {
-            vec!["read:data".into()]
-        } else {
-            caps
-        },
+        capabilities: caps,
         scope_ceiling: ceiling,
         hops: vec![],
         // ADR-017: L3+ requires current tier-audit evidence; the engine refuses without it (or past its expiry).

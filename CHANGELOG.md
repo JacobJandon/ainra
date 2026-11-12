@@ -10,7 +10,100 @@ We **publicly own fixed security bugs** — hiding them would be the opposite of
 
 ## [Unreleased]
 
-Nothing yet.
+### Added — the pilot can watch before it enforces (D-105)
+
+- **`kits/pilot/pilot.mjs --watch`**, in link or passport mode, puts the gate beside a route instead of in front of
+  it. The check never refuses a request and never holds one up. With `--upstream`, every request goes on at once
+  with its header lines as sent; only Host's value changes, as without `--watch`. Without `--upstream`, the pilot is
+  a mirror target and answers 204 at once. The check runs on a copy, on a second thread. Node's HTTP limits are
+  raised to headers of 256 KiB and no deadline for a body; the README names what remains.
+- Each request appends one line to `--observations` (default `watch.jsonl`, mode 0600): time, method, path without
+  its query, which signatures it carried, and what the gate would have decided and why, with the operator and
+  passport when admitted and `check_ms`, or `unchecked` and why not. Never an address, a query string, a body or
+  another header, and the file is sent nowhere.
+- `GET /.well-known/ainra-watch` returns the running summary, to loopback clients only.
+- **`kits/pilot/watch-report.mjs FILE`** prints the share of requests that carried any signature, a Signature-Agent
+  header, an RFC 9421 signature or an AINRA presentation; how many were checked, and what the gate would admit and
+  refuse, by reason; how many were not checked, and why; and the check time on this machine (p50, p95, p99).
+- `--watch` with `--decisions` exits 2: a watch signs no decision records. Without `--watch` the pilot is unchanged.
+- `make pilot-e2e` covers it (steps W1–W6).
+
+### Added — becoming a registrar, one page
+
+- **`docs/quickstarts/registrar.md`**, for an organisation that already vets companies and issues credentials. Run a
+  local registrar (no root is involved) and issue, renew and revoke; run the root's accreditation checks against the
+  published test directory; the fees as they stand (at most USD 0.10 per lineage a year, which may only stay flat or
+  fall, D-077; a flat accreditation fee, identical for every registrar, whose amount is not set); what is true today;
+  and how to say you are interested. Linked from the cookbook.
+
+### Fixed — untrue lines, each confirmed before it was changed
+- **The reference CLI's `verify` claimed checks it never ran** (`apps/cli-node`, now 0.3.4). It printed:
+  - a green check, "(zk-commitment)" and "PII: none" on the authority line, though `issue` writes random bytes as the A1 proof;
+  - "KYB verified" and "version ✓";
+  - the suite as hybrid, taken from the cert's declared algorithm;
+  - a forged tier in green;
+  - a green "ACTIVE ✓" when the status list's signature had failed.
+
+  Each line now says only what was checked. When the chain fails, the operator, authority and tier lines are marked
+  not authenticated. Revocation reads unknown without a validly signed list. `instance verify` names what it read and
+  what it did not check. Verdicts, exit codes and `--json` are unchanged. The CLI README states what `suite` and
+  `checks.dates` do not mean, and what 0.3.3 and earlier printed.
+- **The CLI lifecycle on the site's Docs and Verify pages failed as written.** With the committed Rust CLI,
+  `ainra issue` without `--cap read:data` made a passport that verified `INVALID (ceiling_exceeded)`. Both pages now:
+  - pass `--cap read:data`;
+  - drop a `--reason` flag the Rust `revoke` does not take;
+  - show the real `INVALID (revoked)`;
+  - say the commands are for the Rust `ainra` (`cargo build --release -p ainra-cli-rs`), not the Node zip.
+- **The Verify page called the downloadable CLI "the same verifier".** It is a separate, simpler implementation, and
+  its no-script and load-error notes now say so.
+- **Seven checks, not nine.** ainra-core's verify runs nine steps (`crates/ainra-core/src/verify.rs`), and
+  `make verify` prints "All nine checks passed". The Verify and request-demo pages counted the seven rows the page
+  draws instead. They now say nine. The page prints "9 checks in 7 rows" and names step 10 when a running copy's
+  credential is presented, instead of drawing an instance refusal on the log row.
+- **The Verify page claimed "witness-cosigned log inclusion".** Core checks inclusion to a checkpoint signed by the
+  registrar's log key and checks no witness cosignature. The page now says "inclusion in the registrar's signed log".
+- **Stale counts in the SDK READMEs and the Python quickstart.** `@ainra/sdk` said `reason` is "one of fifteen frozen
+  strings"; there are 21. The READMEs now point to `docs/reasons.json` and `make reasons-check` instead of a number.
+  They no longer say four implementations agree on the corpus. Three do (`make diff`); the Node CLI is held to them on
+  canonical encoding only.
+- **Quickstarts pinned v0.4.0 in their install comments.** The current release is v0.8.0. The pins are gone; the
+  provenance wording stays.
+- **`ainra issue` without `--cap` made a passport that could never verify** (`crates/ainra-cli-rs`). The ceiling was
+  copied from the empty `--cap` list before the grant defaulted to `read:data`, so the passport verified
+  `INVALID (ceiling_exceeded)` while `issue` exited 0. The default grant is now decided first; with `--cap` or
+  `--ceiling` given, nothing changes.
+- **Smaller untrue lines:** `docs/BEST-PRACTICES.md` and `docs/SETTLERS.md` said the corpus runs "across four
+  implementations" (three agree on verdict and reason, `make diff`), and so did the claims registry's own description
+  of that count (`tools/claims.mjs`; `docs/CLAIMS.md` regenerated); `docs/GOVERNANCE-PATH.md` still called D-077
+  proposed (accepted 2026-11-06); a Makefile comment said the console's write path is open locally (D-064 closed it).
+- **S7:** `tools/onboard-registrar.sh` named two domain-registrar brands as its foil, and neither denylist knew them.
+  The script now says "a domain-name registrar", and both names are on both lists (`make s7`, `--negative`).
+
+### Docs — the landscape, re-checked 12 November 2026
+
+- `docs/LANDSCAPE.md` was checked again on 12 November 2026, for items dated 28 October to 12 November. The Agent
+  Name Service launched as a Linux Foundation project on 10 November 2026. The project runs no registry, log or
+  status service; the production ones its software points to are run by a commercial company. So the count of
+  non-profits operating cross-vendor verification and revocation stays at zero. Also recorded: a draft
+  personal-agent protocol announced by a commercial company, a commercial personal-agent sign-in product, commercial
+  know-your-agent launches, a nonbinding US bank-supervision bulletin, a Chilean Senate bill at its first stage,
+  IETF working-group adoptions, a new IETF working group, individual drafts, and corrections to the August table
+  (130 rows, at most 120 distinct efforts). The figures measured on the live ANS log and in the IETF draft index sit
+  beside the commands that reproduce them.
+- The site's landscape page dates its claim to 12 November 2026, adds a row for registry standards, and says the
+  AINRA root is pre-ceremony today.
+
+### Site (local; ships with the next export)
+
+- The home film opens on the real-life dish array, then the drawing of the root it explains; the other ten pairs keep
+  their order. Its poster is the same dish-array frame. The film always starts by itself, also with reduced motion, a
+  remembered "Motion: off" or a data-saving connection; the Pause button stays, and switching Motion off during a visit
+  still pauses it.
+- Words no longer jump when the web fonts arrive: each font has a size-matched local fallback (measured from the
+  shipped files against the site's own text) and both text fonts are preloaded. Headings balance their lines, so none
+  ends on one lone word; footer links no longer cut a word between letters.
+- The download is the honest CLI 0.3.4; the 0.3.0–0.3.3 zips, which printed checks they never ran, are no longer in
+  `site/`.
 
 ## [0.8.0] — 2026-11-07
 

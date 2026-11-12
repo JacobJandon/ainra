@@ -6,7 +6,7 @@ network, no state, no telemetry. You hold a signed directory + root keys (the ro
 against them at your own clock.
 
 ```sh
-npm i @ainra/sdk            # v0.4.0, published with Sigstore provenance
+npm i @ainra/sdk            # published with Sigstore provenance
 npm audit signatures        # optional: verify where it was built before you trust it
 ```
 

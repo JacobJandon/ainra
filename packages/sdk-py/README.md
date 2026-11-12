@@ -5,15 +5,15 @@ A verify-only, offline, fail-closed, zero-telemetry Python implementation of the
 AINRA agent-passport verifier. It is written **independently** from the AINRA
 specification (`docs/AINRA_I_The_Standard.md`, `docs/AINRA_Master_Technical_Specification_v1.md`)
 and the CC0 conformance vectors — **not** transliterated from the Rust core or
-the TypeScript SDK. It joins the conformance differential as a **fourth column**:
-core ↔ sdk ↔ P0 ↔ **py**, agreeing byte-for-byte on every vector's verdict *and*
-reason.
+the TypeScript SDK. It joins the conformance differential (`make diff`) beside
+them: core ↔ sdk ↔ **py**, agreeing byte-for-byte on every vector's verdict *and*
+reason. The Node reference CLI is held to them on canonical encoding only.
 
 Why a fourth brain? If an independent reimplementation, built to the same
 spec + vector reference, reaches the same verdict on every vector, that is
 independent confirmation the standard is unambiguous and the reference is
-correct. If it disagreed, we would have found something. It agrees on
-**1153 passport + 17 delta + 9 directory** vectors.
+correct. If it disagreed, we would have found something. It agrees on every
+passport, delta and directory vector in the corpus.
 
 ## Install
 
@@ -94,8 +94,11 @@ streaming-safe.
 
 ## What it verifies
 
-The frozen nine-step verify, first-failure-wins, mapping to the 20 verify reasons (21 frozen in all: a gate with its own policy adds `denied_by_policy`)
-(`docs/reasons.json`): AINRA name grammar; canonical JSON (sorted keys, no spaces,
+The frozen nine-step verify, then step 10 when a running copy's credential is
+presented, first-failure-wins, mapping to the frozen reasons in
+`docs/reasons.json` in the repository (all but `denied_by_policy`, which only a
+gate with its own policy returns; `make reasons-check` fails the build if that
+list and this package's `ainra.reasons.ALL` ever differ): AINRA name grammar; canonical JSON (sorted keys, no spaces,
 rejecting floats / non-ASCII keys / integers beyond 2⁵³); the strict base64url
 decode gateway (D-029 — every external decode is a canonical round-trip, fail
 closed); hybrid **Ed25519 + ML-DSA-65** (both signatures or `alg_downgrade`/`sig_invalid`);
@@ -181,7 +184,8 @@ Since 0.7.0 the package root no longer exports the fixture-semantics `verify` (0
 cd packages/sdk-py && PYTHONPATH=. python3 -m unittest discover -s tests
 ```
 
-Covers the whole-corpus agreement (all 20 reasons reachable), the ~5-line
+Covers the whole-corpus agreement (every frozen reason reached: the verifier's
+by the passport corpus, the gate's `denied_by_policy` by the gate corpus), the ~5-line
 `Verifier` surface (valid / revoked / verifier-owns-the-clock), the ASGI gate
 (allow on VALID, deny 403 fail-closed on missing/revoked), and the strict
 base64url / canonical-JSON gateways. Zero telemetry, no network.

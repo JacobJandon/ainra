@@ -100,5 +100,5 @@ AINRA cannot cause step 3. It can be the ready answer when someone asks.
 
 - Interim home: a Bulgarian foundation or a fiscal host?
 - Permanent home: a Swiss foundation or a Belgian AISBL?
-- The fee model: D-077 is still PROPOSED. The LEI's per-unit cost recovery is the main precedent *for* a capped
+- The fee model: D-077 was ACCEPTED on 2026-11-06. The LEI's per-unit cost recovery is the main precedent *for* a capped
   per-unit fee, provided an oversight structure exists first.

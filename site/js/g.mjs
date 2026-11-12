@@ -15,13 +15,17 @@ if (menu && btn) {
   const open = () => { last = document.activeElement; menu.hidden = false; behind(true); html.classList.add("g-menu-open");
     // the header now stays above the open sheet, so the sheet's first line starts below the header's lower edge
     const nb = document.querySelector("nav:not([class]) .nav-in")?.getBoundingClientRect().bottom || 0; menu.style.paddingTop = `${Math.max(96, Math.round(nb + 24))}px`; btn.setAttribute("aria-expanded", "true"); btn.querySelector("span").textContent = "Close"; focusables()[0]?.focus(); };
-  const close = () => { menu.hidden = true; behind(false); html.classList.remove("g-menu-open"); btn.setAttribute("aria-expanded", "false"); btn.querySelector("span").textContent = "Menu"; (last || btn).focus(); };
+  const close = () => { menu.hidden = true; behind(false); html.classList.remove("g-menu-open"); btn.setAttribute("aria-expanded", "false"); btn.querySelector("span").textContent = "Menu"; (last && last.isConnected ? last : btn).focus(); };
   btn.addEventListener("click", () => (menu.hidden ? open() : close()));
+  // a phone's tab bar ends in More: the same menu, and it says whether the menu is open
+  const more = document.querySelector("[data-nav-more]");
+  if (more) { more.addEventListener("click", () => btn.click());
+    new MutationObserver(() => more.setAttribute("aria-expanded", btn.getAttribute("aria-expanded"))).observe(btn, { attributes: true, attributeFilter: ["aria-expanded"] }); }
   menu.addEventListener("click", (e) => { if (e.target.closest("a") || e.target === menu || e.target.parentElement === menu) close(); });   // a link, or the sheet's empty space
   addEventListener("keydown", (e) => {
     if (menu.hidden) return;
     if (e.key === "Escape") { e.preventDefault(); close(); return; }
-    if (e.key === "Tab") { const f = [...focusables(), btn], i = f.indexOf(document.activeElement);
+    if (e.key === "Tab") { const f = [...focusables(), more && more.offsetParent ? more : btn], i = f.indexOf(document.activeElement);
       if (e.shiftKey && i <= 0) { e.preventDefault(); f[f.length - 1].focus(); } else if (!e.shiftKey && i === f.length - 1) { e.preventDefault(); f[0].focus(); } }
   });
 }
@@ -158,6 +162,10 @@ for (const b of document.querySelectorAll("[data-asks]")) b.addEventListener("cl
 // On load: a panel holds the screen while the sigil's snake draws (0.7 s), then wipes off sideways and the headline
 // rises word by word. Leaving for another page of this site: the panel sweeps back across, then the browser
 // navigates. Only with motion on (html.rv); a fail-safe clears it if anything stalls.
+// the header's tabs: the one for this page is marked (the header is the same file on every page, so it cannot say)
+{ const here = location.pathname.split("/").pop() || "index.html";
+  const under = { "standard.html": "docs.html", "scan.html": "get.html", "control.html": "get.html", "foundations.html": "foundation.html" }[here] || here;
+  for (const a of document.querySelectorAll("nav [data-nav-tabs] a")) if (new URL(a.href, location.href).pathname.split("/").pop() === under) a.setAttribute("aria-current", "page"); }
 const intro = document.getElementById("gIntro");
 // the mark moves on the band and beside a verdict (mark-hooks.mjs). Loaded apart from this module, so a failed
 // download costs only the motion: the band still lifts and the still mark stays.

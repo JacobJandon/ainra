@@ -93,6 +93,14 @@ We **publicly own fixed security bugs** — hiding them would be the opposite of
 - **Not yet fixed:** `kits/pilot` without `--watch` can still be stopped by certain malformed requests; with `--watch`
   it cannot. A change is drafted and waits on the owner's decision.
 
+### Security — RUSTSEC-2026-0486 in a test-only dependency
+
+- **`rustix` 1.1.4 → 1.1.6** (lockfile only). The advisory is an unsoundness in its xattr functions. AINRA reaches
+  the crate only through `ainra-core`'s property tests (`proptest` → `tempfile`); nothing a relying party runs
+  links it, and no published artifact changes. Every tag from v0.3.0 to v0.8.0 locked 1.1.4. The weekly
+  `cargo-audit` run went red on 11 November and was seen a day later, on the next push; the scoping and what that
+  says about the gates are in [SECURITY-ADVISORIES.md](SECURITY-ADVISORIES.md).
+
 ### Fixed — what three first-time users ran into (12 November 2026)
 
 Three newcomers, each starting from a fresh clone or an empty folder with only the README, timed themselves and wrote

@@ -124,6 +124,32 @@ not have been made: a dependency change is audited before it is pushed, not afte
 
 ---
 
+## RUSTSEC-2026-0486 — `rustix` 1.1.4, reached only by the tests
+
+| | |
+|---|---|
+| **Advisory** | [RUSTSEC-2026-0486](https://rustsec.org/advisories/RUSTSEC-2026-0486) — unsound: the xattr functions mark unwritten bytes as initialized when given a zero-length buffer |
+| **Crate** | `rustix`, reached as `ainra-core` (dev-dependency) → `proptest` → `tempfile` → `rustix` |
+| **Affected** | `1.1.4` — locked by every tag from v0.3.0 to v0.8.0 |
+| **Fixed in** | `1.1.6` — on main 2026-11-12; not yet in a release |
+| **Published** | dated 2026-10-27 · **found by us**: the `cargo-audit` job was green on the push of 7 November and red on its weekly run of 11 November |
+
+**Where it touches us: the test suite, and nothing a relying party runs.** `cargo tree -i tempfile -e normal,build`
+prints nothing: no shipped crate reaches `tempfile` or `rustix` outside `ainra-core`'s property tests. The verifier,
+the adapter, the WASM build, the CLI, the services, the ceremony tools and the vector generator do not link it, and
+no AINRA code calls an xattr function. No published artifact changes: the reproducibility check rebuilds the same
+bytes before and after.
+
+**What we did.** `cargo update -p rustix` (1.1.4 → 1.1.6, lockfile only). `cargo audit --deny warnings` is clean,
+and the workspace tests pass on the new lock.
+
+**What we got wrong.** The weekly run went red on 11 November and nobody saw it until the next push, a day later:
+a scheduled run that fails tells no one. Two commits were then pushed onto a red check, because the gate that was
+run before pushing (`make preflight`) does not run `cargo audit`. Both are open: the weekly run should reach a
+person, and the advisory check belongs in what is run before a push.
+
+---
+
 ## RUSTSEC-2023-0089 — `atomic-polyfill` unmaintained
 
 Not a vulnerability: an unmaintained notice. Reached only as

@@ -159,6 +159,9 @@ for (const b of document.querySelectorAll("[data-asks]")) b.addEventListener("cl
 // rises word by word. Leaving for another page of this site: the panel sweeps back across, then the browser
 // navigates. Only with motion on (html.rv); a fail-safe clears it if anything stalls.
 const intro = document.getElementById("gIntro");
+// the mark moves on the band and beside a verdict (mark-hooks.mjs). Loaded apart from this module, so a failed
+// download costs only the motion: the band still lifts and the still mark stays.
+import("./mark-hooks.mjs").catch(() => {});
 const h1 = document.querySelector(".g-hero h1");
 if (h1 && html.classList.contains("rv")) {
   let i = 0; const walk = (node) => { for (const n of [...node.childNodes]) { if (n.nodeType === 1) { walk(n); continue; }
@@ -177,7 +180,8 @@ if (intro && html.classList.contains("rv")) {
   // measured about two seconds from a click to a readable page with no network time at all)
   let seen = false; try { seen = sessionStorage.getItem("ainra-intro") === "1"; sessionStorage.setItem("ainra-intro", "1"); } catch { /* storage may be blocked: play it in full */ }
   if (seen) html.classList.add("g-intro-brief");
-  setTimeout(done, seen ? 160 : 750); setTimeout(() => { if (!intro.classList.contains("is-done")) done(); }, 2000);
+  // brief: 380 ms, long enough to see the mark move on the band (mark-hooks.mjs), no longer
+  setTimeout(done, seen ? 380 : 750); setTimeout(() => { if (!intro.classList.contains("is-done")) done(); }, 2000);
   document.addEventListener("click", (e) => {
     const a = e.target.closest("a[href]"); if (!a || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
     if (a.target && a.target !== "_self") return; if (a.hasAttribute("download")) return;

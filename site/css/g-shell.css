@@ -94,7 +94,7 @@ nav:not([class]) .nav-in,.nav-float nav:not([class]) .nav-in{max-width:none;widt
 .g-side__head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
 .g-side__head span{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
 .g-side__x{width:28px;height:28px;border:1px solid var(--ink);background:transparent;color:var(--ink);border-radius:2px;cursor:pointer;font-size:16px;line-height:1}
-.g-side ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:14px}
+.g-side ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:14px;overflow:clip}
 .g-side li{border-left:1px solid var(--ink);padding-left:12px;font-size:13px;line-height:1.4;color:var(--ink)}
 .g-side li span{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-bottom:3px}
 .g-side li{opacity:0;transform:translateX(12px);transition:opacity .4s ease,transform .5s cubic-bezier(.22,1,.36,1)}

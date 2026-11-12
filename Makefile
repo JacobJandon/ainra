@@ -182,7 +182,7 @@ skills-replay: sdk-build cli-deps
 	@bash tools/skills-replay.sh
 
 # M16 — the OPEN registrar console (neutral open-core, D-034): start a registrar-in-a-box and serve its lifecycle UI.
-# Also served by every staging registrar at /console. DIR/PORT/ID override; write path is open locally, token on staging.
+# Also served by every staging registrar at /console. DIR/PORT/ID override; writes need the registrar's token, or AINRA_OPEN_WRITES=1 on loopback only (D-064).
 registrar-console:
 	cargo build --release -q -p ainra-services --bin registrar-box
 	@echo "→ open the registrar console:  http://127.0.0.1:$(or $(PORT),4899)/console   (Ctrl-C to stop)"
@@ -442,6 +442,7 @@ site-down:
 	bash tools/site.sh down
 site-check:
 	node tools/site-includes.mjs --check
+	node tools/nobreak.mjs --check
 	node tools/link-check.mjs
 
 # M17 — the full staging deploy profile: network (registrars + witness + artifacts + console) + site + explorer, one cmd.

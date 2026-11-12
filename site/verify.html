@@ -10,7 +10,7 @@
 <meta property="og:site_name" content="AINRA">
 <meta property="og:url" content="https://ainra.org/verify.html">
 <meta property="og:title" content="Verify — AINRA">
-<meta property="og:description" content="How AINRA verification works: seven checks, a fail-closed freshness profile, a reference CLI you can download, and a verifier you can run in the browser.">
+<meta property="og:description" content="How AINRA verification works: nine checks, a fail-closed freshness profile, a reference CLI you can download, and a verifier you can run in the browser.">
 <meta property="og:image" content="https://ainra.org/og-cover.png?v=2">
 <meta property="og:image:alt" content="A passport for every AI agent — AINRA">
 <meta property="og:image:width" content="1200">
@@ -19,8 +19,8 @@
 <meta name="twitter:title" content="Verify — AINRA">
 <meta name="twitter:description" content="How AINRA verification works — a handful of checks, fail-closed, offline-capable.">
 <meta name="twitter:image" content="https://ainra.org/og-cover.png?v=2">
-<noscript><style>.needs-js{display:none!important}#noscript-note{display:block!important}</style></noscript><meta name="description" content="Check theirs — the other half of the loop. Seven checks, fail-closed freshness, a reference CLI, and a verifier you can run in your own browser.">
-<link rel="stylesheet" href="fonts/faces.css">
+<noscript><style>.needs-js{display:none!important}#noscript-note{display:block!important}</style></noscript><meta name="description" content="Check theirs — the other half of the loop. Nine checks, fail-closed freshness, a reference CLI, and a verifier you can run in your own browser.">
+<link rel="preload" href="fonts/inter-latin-wght.woff2" as="font" type="font/woff2" crossorigin><link rel="preload" href="fonts/noto-sans-mono-latin-400.woff2" as="font" type="font/woff2" crossorigin><link rel="stylesheet" href="fonts/faces.css">
 <link rel="stylesheet" href="css/ainra.css">
 <link rel="stylesheet" href="css/living.css">
 <link rel="stylesheet" href="css/g-shell.css">
@@ -211,7 +211,7 @@ setTimeout(function(){var h=document.documentElement;if(!h.dataset.rvReady)h.cla
     </g>
   </defs>
 </svg>
-<div class="announce"><div class="wrap"><span class="announce__msg">Don't trust us — verify us: every claim runs from a cold clone. <a href="docs.html#install">Run it →</a></span><span class="announce__side"><span class="rclock" data-record-clock><span class="rclock__l"><span class="rclock__k">PUBLISHED RECORD</span> <span data-stamp="published-iso">2026-11-04T18:19:51Z</span></span><span class="rclock__s"><span class="rclock__k">RECORD</span> <span data-stamp="published-date">2026-11-04</span></span><span data-rc-more hidden> · <span class="rclock__l"><span class="rclock__k">AGE</span> <span data-rc-age></span></span><span class="rclock__s" data-rc-days></span> · <b data-rc-state></b></span></span><button class="motion-btn" type="button" data-motion-toggle aria-pressed="true" hidden><svg class="i-on" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 2h2v8H3zM7 2h2v8H7z" fill="currentColor"/></svg><svg class="i-off" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 2v8l7-4z" fill="currentColor"/></svg><span data-motion-label>Motion: on</span></button></span></div></div>
+<div class="announce"><div class="wrap"><span class="announce__msg">Don't trust us — verify us: every claim runs from a cold clone. <a href="docs.html#install">Run it →</a></span><span class="announce__side"><span class="rclock" data-record-clock><span class="rclock__l"><span class="rclock__k">PUBLISHED RECORD</span> <span data-stamp="published-iso"><span class="nw">2026-11-04T18:19:51Z</span></span></span><span class="rclock__s"><span class="rclock__k">RECORD</span> <span data-stamp="published-date"><span class="nw">2026-11-04</span></span></span><span data-rc-more hidden> · <span class="rclock__l"><span class="rclock__k">AGE</span> <span data-rc-age></span></span><span class="rclock__s" data-rc-days></span> · <b data-rc-state></b></span></span><button class="motion-btn" type="button" data-motion-toggle aria-pressed="true" hidden><svg class="i-on" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 2h2v8H3zM7 2h2v8H7z" fill="currentColor"/></svg><svg class="i-off" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 2v8l7-4z" fill="currentColor"/></svg><span data-motion-label>Motion: on</span></button></span></div></div>
 <nav><div class="wrap nav-in">
   <a class="brand" href="index.html" aria-label="AINRA — Agent Identity and Naming Registry Authority">
     <span class="sigil" aria-hidden="true"><svg viewBox="0 0 112 112"><use href="#ainra-sigil"/></svg></span>
@@ -275,7 +275,7 @@ setTimeout(function(){var h=document.documentElement;if(!h.dataset.rvReady)h.cla
   <div class="g-side__head"><span>Details</span><button class="g-side__x" type="button" aria-label="Close details" data-side-close>×</button></div>
   <ul>
     <li><a href="#try"><span>Try</span>Verify a real passport in this browser</a></li>
-    <li><a href="docs.html#verify"><span>Checks</span>Seven, each run on this machine</a></li>
+    <li><a href="docs.html#verify"><span>Checks</span>Nine, each run on this machine</a></li>
     <li><a href="docs.html#charter"><span>Sends</span>Nothing — no call goes anywhere</a></li>
   </ul>
 </aside>
@@ -287,29 +287,29 @@ setTimeout(function(){var h=document.documentElement;if(!h.dataset.rvReady)h.cla
 <section id="g-for-verifiers-builders" class="v-hero"><div class="wrap">
   <span class="earmark">For verifiers &amp; builders</span>
   <div class="split v-hero__grid">
-    <h2 class="title split__l" data-was-h1>Check theirs.<br><span class="soft">Trust the source, not us.</span></h2>
+    <h2 class="title split__l" data-was-h1>Check theirs.<br><span class="soft">Trust the source, not&nbsp;us.</span></h2>
     <div class="split__r">
       <p class="lede">One half of the loop — <a href="get.html">prove yours</a> is the other. The check runs on your machine; nothing reaches us.</p>
-      <p class="lede">Every check runs locally, from public artifacts, in milliseconds — offline-capable, with the root dark. Verification never reports to anyone.</p>
+      <p class="lede">Every check runs locally, from public artifacts, in milliseconds — <span class="nw">offline-capable</span>, with the root dark. Verification never reports to&nbsp;anyone.</p>
     </div>
   </div>
   <ol class="steps-rail v-steps">
     <li><span class="glyph" data-glyph="glider"></span><span class="steps-rail__label">1 · PRESENT</span><span class="steps-rail__text">The agent's request arrives signed; the signature names its passport key.</span></li>
     <li><span class="glyph" data-glyph="block"></span><span class="steps-rail__label">2 · CHECK THE CHAIN</span><span class="steps-rail__text">Passport → registrar → root, plus the authority chain to its anchor. Cached keys, milliseconds.</span></li>
-    <li><span class="glyph" data-glyph="glider"></span><span class="steps-rail__label">3 · CHECK STATUS</span><span class="steps-rail__text">Fresh revocation proof and witness-cosigned log inclusion. In good standing, right now.</span></li>
-    <li><span class="glyph" data-glyph="block"></span><span class="steps-rail__label">4 · DECIDE</span><span class="steps-rail__text">Your policy: tier floor, accepted authority classes, required scopes, fail-open or closed.</span></li>
+    <li><span class="glyph" data-glyph="glider"></span><span class="steps-rail__label">3 · CHECK STATUS</span><span class="steps-rail__text">Fresh revocation proof and inclusion in the registrar's signed log. In good standing, right now.</span></li>
+    <li><span class="glyph" data-glyph="block"></span><span class="steps-rail__label">4 · DECIDE</span><span class="steps-rail__text">Your policy: tier floor, accepted authority classes, required scopes, <span class="nw">fail-open</span> or closed.</span></li>
   </ol>
   <div class="v-fresh">
-    <p class="earmark v-fresh__head">PROPOSED VERIFICATION PROFILE — NOT YET IN THE STANDARD (v5.1 defines proof freshness only for L3–L4)</p>
+    <p class="earmark v-fresh__head">PROPOSED VERIFICATION PROFILE — NOT YET IN THE STANDARD (v5.1 defines proof freshness only for <span class="nw">L3–L4</span>)</p>
     <div class="spec-row spec-row--3">
-      <div class="spec"><h3 class="v-fresh__h"><span class="spec__cap">F1</span> <span class="spec__val">PAYMENTS-GRADE</span></h3><span class="glyph-line"><span class="glyph glyph--sm" data-glyph="blinker"></span><span class="state-chip state-chip--gap">PROPOSED</span></span><p class="v-fresh__text">Requires a signed fresh status head no older than 30 seconds. Missing or stale? The check fails closed.</p></div>
+      <div class="spec"><h3 class="v-fresh__h"><span class="spec__cap">F1</span> <span class="spec__val"><span class="nw">PAYMENTS-GRADE</span></span></h3><span class="glyph-line"><span class="glyph glyph--sm" data-glyph="blinker"></span><span class="state-chip state-chip--gap">PROPOSED</span></span><p class="v-fresh__text">Requires a signed fresh status head no older than 30 seconds. Missing or stale? The check fails closed.</p></div>
       <div class="spec"><h3 class="v-fresh__h"><span class="spec__cap">F2</span> <span class="spec__val">STANDARD</span></h3><span class="glyph-line"><span class="glyph glyph--sm" data-glyph="blinker"></span><span class="state-chip state-chip--gap">PROPOSED</span></span><p class="v-fresh__text">Status list no older than five minutes, with signed deltas applied. Stale? Fails closed.</p></div>
-      <div class="spec"><h3 class="v-fresh__h"><span class="spec__cap">F3</span> <span class="spec__val">OFFLINE</span></h3><span class="glyph-line"><span class="glyph glyph--sm" data-glyph="blinker"></span><span class="state-chip state-chip--gap">PROPOSED</span></span><p class="v-fresh__text">Air-gapped verification against a cached list up to 24 hours old — still cryptographically complete, still fail-closed.</p></div>
+      <div class="spec"><h3 class="v-fresh__h"><span class="spec__cap">F3</span> <span class="spec__val">OFFLINE</span></h3><span class="glyph-line"><span class="glyph glyph--sm" data-glyph="blinker"></span><span class="state-chip state-chip--gap">PROPOSED</span></span><p class="v-fresh__text"><span class="nw">Air-gapped</span> verification against a cached list up to 24 hours old — still cryptographically complete, still <span class="nw">fail-closed</span>.</p></div>
     </div>
   </div>
   <ul class="steps-rail v-real">
-    <li><span class="steps-rail__label">REAL TODAY — THE REFERENCE CLI</span><p class="steps-rail__text">A zero-dependency command-line tool with real signatures and a hash-chained local log. It issues, verifies and revokes — and it catches tampering live: a forged tier and a rewritten log line are both rejected with the exact reason. <a href="ainra-cli-v0.3.3.zip">Download v0.3.3</a> and try to break it.</p></li>
-    <li><span class="steps-rail__label">REAL TODAY — THE FULL IMPLEMENTATION</span><p class="steps-rail__text">Verify in five lines with the SDK (<code>@ainra/sdk</code> on npm, <code>ainra</code> on PyPI), a fail-closed middleware gate, registrar-in-a-box in one command, and the complete conformance vector set — published under CC0, so conformance never needs anyone's permission.</p></li>
+    <li><span class="steps-rail__label">REAL TODAY — THE REFERENCE CLI</span><p class="steps-rail__text">A <span class="nw">zero-dependency</span> <span class="nw">command-line</span> tool with real signatures and a <span class="nw">hash-chained</span> local log. It issues, verifies and revokes — and it catches tampering live: a forged tier and a rewritten log line are both rejected with the exact reason. <a href="ainra-cli-v0.3.4.zip">Download v0.3.4</a> and try to break it.</p></li>
+    <li><span class="steps-rail__label">REAL TODAY — THE FULL IMPLEMENTATION</span><p class="steps-rail__text">Verify in five lines with the SDK (<code>@ainra/sdk</code> on npm, <code>ainra</code> on PyPI), a <span class="nw">fail-closed</span> middleware gate, <span class="nw">registrar-in-a-box</span> in one command, and the complete conformance vector set — published under CC0, so conformance never needs anyone's permission.</p></li>
   </ul>
   <p class="earmark v-note">VERIFICATION IS LOCAL · IT NEVER PHONES HOME · CONFORMANCE IS CLAIMED AGAINST THE PUBLIC VECTOR SET, NOT GRANTED BY US</p>
 </div></section>
@@ -319,14 +319,14 @@ setTimeout(function(){var h=document.documentElement;if(!h.dataset.rvReady)h.cla
     <div class="sec-head">
       <div class="sec-head__row"><span class="earmark"><b>/01</b> · Try it — 20 seconds, in this tab</span></div>
       <div class="split">
-        <div class="split__l"><h2>Verify an agent.<br><span class="soft">Then try to forge one.</span></h2>
+        <div class="split__l"><h2>Verify an agent.<br><span class="soft">Then try to forge&nbsp;one.</span></h2>
           <p class="src v-rec"><span class="glyph glyph--sm" data-glyph="glider"></span> THE PICKER BELOW HOLDS THE PUBLISHED RECORD · <b data-stamp="issued">80</b> PASSPORTS · <b data-stamp="revoked">53</b> REVOKED · <b data-stamp="registrars">2</b> REGISTRARS · source: <a href="net/registry.json">net/registry.json</a></p></div>
-        <p class="lede split__r">The actual AINRA verifier — the same code that passes every conformance vector — runs in your browser. It checks passports and, when one is present, the short-lived credential a <b>running copy</b> carries (<a href="docs.html#integrate-instance">the instance path</a>). Pick a real passport, then tamper with it and watch it fail closed with a named reason. Nothing is uploaded; the root is never contacted.</p>
+        <p class="lede split__r">The actual AINRA verifier — the same code that passes every conformance vector — runs in your browser. It checks passports and, when one is present, the <span class="nw">short-lived</span> credential a <b>running copy</b> carries (<a href="docs.html#integrate-instance">the instance path</a>). Pick a real passport, then tamper with it and watch it fail closed with a named reason. Nothing is uploaded; the root is never contacted.</p>
       </div>
     </div>
     <div id="demo" class="demo needs-js split try">
       <div class="split__l try-l">
-        <div class="try-head"><h3 class="h4">The passport</h3><span class="state-chip state-chip--specimen" id="srcTag">STAGING · TEST-ROOT</span></div>
+        <div class="try-head"><h3 class="h4">The passport</h3><span class="state-chip state-chip--specimen" id="srcTag">STAGING · <span class="nw">TEST-ROOT</span></span></div>
         <div class="field"><label for="pick">Choose a live lineage</label><select id="pick"></select></div>
         <div class="pf" id="pfields"></div>
         <div class="cta-row run">
@@ -335,7 +335,7 @@ setTimeout(function(){var h=document.documentElement;if(!h.dataset.rvReady)h.cla
         </div>
         <details class="try-own">
         <summary>Use your own bundle, or verify as a named service</summary>
-        <h3 class="try-sub">Or paste your own bundle</h3>
+        <h3 class="try-sub">Or paste your own&nbsp;bundle</h3>
         <p class="pnote">A conformance vector, a <code>{anchors, presentation}</code> pair, or a bare presentation (checked against the registrar selected above). It is read in this tab and nothing is sent anywhere.</p>
         <div class="field"><label for="pasteBox">Bundle JSON</label><textarea id="pasteBox" spellcheck="false" rows="5" placeholder='{"anchors":{…},"presentation":{…}}'></textarea></div>
         <div class="cta-row prow">
@@ -347,7 +347,7 @@ setTimeout(function(){var h=document.documentElement;if(!h.dataset.rvReady)h.cla
           <label for="aud">This verifier's audience</label>
           <input id="aud" type="text" placeholder="leave blank — most passports are not addressed to anyone"
                  autocomplete="off" spellcheck="false" aria-describedby="audNote">
-          <small id="audNote">A holder-bound instance credential (ADR-019) names the one service it may be presented to. Type
+          <small id="audNote">A <span class="nw">holder-bound</span> instance credential (<span class="nw">ADR-019</span>) names the one service it may be presented to. Type
           that service's identifier here to verify as it; leave it blank and any such credential is refused —
           a verifier that has not said who it is cannot be the audience of anything.</small>
         </div>
@@ -365,13 +365,13 @@ setTimeout(function(){var h=document.documentElement;if(!h.dataset.rvReady)h.cla
           <div class="fig__cap fig__cap--top"><span>FIG. 01 — THE CHAIN, AS THIS CHECK WENT</span><span class="fig__tag">FROM THE VERIFIER ABOVE</span></div>
           <div class="fig__body">
             <svg viewBox="0 0 624 58" class="vc" aria-hidden="true"><g data-vn="0" data-state="wait" transform="translate(0,0)"><rect width="112" height="58" rx="2"/><text x="10" y="22" class="vc__h">PASSPORT</text><text x="10" y="42" class="vc__t" data-vt>WAITING</text></g><path d="M112 29 h16" class="vc__w"/><g data-vn="1" data-state="wait" transform="translate(128,0)"><rect width="112" height="58" rx="2"/><text x="10" y="22" class="vc__h">CHAIN</text><text x="10" y="42" class="vc__t" data-vt>WAITING</text></g><path d="M240 29 h16" class="vc__w"/><g data-vn="2" data-state="wait" transform="translate(256,0)"><rect width="112" height="58" rx="2"/><text x="10" y="22" class="vc__h">STATUS</text><text x="10" y="42" class="vc__t" data-vt>WAITING</text></g><path d="M368 29 h16" class="vc__w"/><g data-vn="3" data-state="wait" transform="translate(384,0)"><rect width="112" height="58" rx="2"/><text x="10" y="22" class="vc__h">LOG</text><text x="10" y="42" class="vc__t" data-vt>WAITING</text></g><path d="M496 29 h16" class="vc__w"/><g data-vn="4" data-state="wait" transform="translate(512,0)"><rect width="112" height="58" rx="2"/><text x="10" y="22" class="vc__h">VERDICT</text><text x="10" y="42" class="vc__t" data-vt>WAITING</text></g></svg>
-            <p class="vc__lab src">STATUS LIST · <span data-vstrip-lab>bits 0–15 of the selected passport's registrar list</span></p>
+            <p class="vc__lab src">STATUS LIST · <span data-vstrip-lab>bits <span class="nw">0–15</span> of the selected passport's registrar list</span></p>
             <svg viewBox="0 0 256 14" class="vstrip" data-vstrip aria-hidden="true"><rect x="0" y="0" width="14" height="14" data-i="0"/><rect x="16" y="0" width="14" height="14" data-i="1"/><rect x="32" y="0" width="14" height="14" data-i="2"/><rect x="48" y="0" width="14" height="14" data-i="3"/><rect x="64" y="0" width="14" height="14" data-i="4"/><rect x="80" y="0" width="14" height="14" data-i="5"/><rect x="96" y="0" width="14" height="14" data-i="6"/><rect x="112" y="0" width="14" height="14" data-i="7"/><rect x="128" y="0" width="14" height="14" data-i="8"/><rect x="144" y="0" width="14" height="14" data-i="9"/><rect x="160" y="0" width="14" height="14" data-i="10"/><rect x="176" y="0" width="14" height="14" data-i="11"/><rect x="192" y="0" width="14" height="14" data-i="12"/><rect x="208" y="0" width="14" height="14" data-i="13"/><rect x="224" y="0" width="14" height="14" data-i="14"/><rect x="240" y="0" width="14" height="14" data-i="15"/></svg>
             <p class="src">source: <a href="net/registry.json">net/registry.json</a> · each box follows the checklist the verifier writes above; nothing here runs a check of its own</p>
           </div>
         </figure>
         <div class="tamper" role="group" aria-labelledby="forgeLead">
-          <span class="earmark" id="forgeLead">Forge it — flip one field, then re-verify</span>
+          <span class="earmark" id="forgeLead">Forge it — flip one field, then <span class="nw">re-verify</span></span>
           <div class="tbtns">
             <button class="tbtn" type="button" data-t="claims" aria-pressed="false">Escalate the tier<span>rewrite the signed body → sig_invalid</span></button>
             <button class="tbtn" type="button" data-t="sig" aria-pressed="false">Break the signature<span>corrupt one byte → sig_invalid</span></button>
@@ -381,7 +381,7 @@ setTimeout(function(){var h=document.documentElement;if(!h.dataset.rvReady)h.cla
         </div>
       </div>
     </div>
-    <div id="noscript-note" class="err" style="display:none" role="alert">This runs the verifier in your browser and needs JavaScript. The same verifier is also a downloadable CLI — <a href="ainra-cli-v0.3.3.zip">get it above</a>.</div>
+    <div id="noscript-note" class="err" style="display:none" role="alert">This runs the verifier in your browser and needs JavaScript. A separate reference CLI, which runs with just <code>node</code>, is also downloadable — <a href="ainra-cli-v0.3.4.zip">get it above</a>. It is a simpler implementation, not this verifier.</div>
   </div>
 </section>
 
@@ -399,13 +399,13 @@ setTimeout(function(){var h=document.documentElement;if(!h.dataset.rvReady)h.cla
         <div class="rail pick__rows" role="group" aria-label="Authority classes">
           <button type="button" data-a="0" aria-pressed="true">A1 HUMAN</button>
           <button type="button" data-a="1" aria-pressed="false">A2 ORGANIZATION</button>
-          <button type="button" data-a="2" aria-pressed="false">A3 AGENT-DELEGATED</button>
+          <button type="button" data-a="2" aria-pressed="false">A3 <span class="nw">AGENT-DELEGATED</span></button>
           <button type="button" data-a="3" aria-pressed="false">A4 AUTONOMOUS</button>
         </div>
       </div>
       <div class="split__r">
         <div class="rail-info" aria-live="polite">
-          <b id="authTier">A1 · HUMAN-DELEGATED</b>
+          <b id="authTier">A1 · <span class="nw">HUMAN-DELEGATED</span></b>
           <p id="authText">A verified person stands behind the agent — checked by the registrar, which keeps the evidence; the root and every verifier see only a digest, so accountability exists while the person stays private. A signed consent mandate sets scopes, time limits, and spend ceilings; the person can revoke it at any moment, everywhere at once.</p>
         </div>
       </div>
@@ -420,15 +420,15 @@ setTimeout(function(){var h=document.documentElement;if(!h.dataset.rvReady)h.cla
       <div class="sec-head__row"><span class="earmark"><b>/03</b> · A universal standard for current players</span></div>
       <div class="split">
         <h2 class="split__l">Keep what you built.<br>Gain everyone else.</h2>
-        <p class="lede split__r">The standard belongs to no vendor. Every existing layer keeps its product and its customers — and plugs in where it already looks things up.</p>
+        <p class="lede split__r">The standard belongs to no vendor. Every existing layer keeps its product and its customers — and plugs in where it already looks things&nbsp;up.</p>
       </div>
     </div>
     <div class="compare v-align">
       <div class="compare__row v-align__head" aria-hidden="true"><div></div><div>KEEP</div><div>PLUG IN</div><div>GAIN</div></div>
       <div class="compare__row"><h3>Payment networks</h3>
         <div><b>KEEP</b><span>Their agent programs, tokens, and checkout flows.</span></div>
-        <div><b>PLUG IN</b><span>Key-directory lookups resolve through the root.</span></div>
-        <div><b>GAIN</b><span>Cross-network recognition and an instant, shared switch.</span></div>
+        <div><b>PLUG IN</b><span><span class="nw">Key-directory</span> lookups resolve through the root.</span></div>
+        <div><b>GAIN</b><span><span class="nw">Cross-network</span> recognition and an instant, shared switch.</span></div>
       </div>
       <div class="compare__row"><h3>Edge &amp; bot defense</h3>
         <div><b>KEEP</b><span>Signature checks and traffic policy at the edge.</span></div>
@@ -454,7 +454,7 @@ setTimeout(function(){var h=document.documentElement;if(!h.dataset.rvReady)h.cla
     <div class="sec-head">
       <div class="sec-head__row"><span class="earmark"><b>/04</b> · Assurance tiers</span></div>
       <div class="split">
-        <h2 class="split__l">Five levels. You set the floor.</h2>
+        <h2 class="split__l">Five levels. You set the&nbsp;floor.</h2>
         <p class="lede split__r">The root grades how much verification stands behind a passport; every verifier picks its own floor. Existence at L0 is guaranteed by charter, and each level up earns more consequence.</p>
       </div>
     </div>
@@ -467,7 +467,7 @@ setTimeout(function(){var h=document.documentElement;if(!h.dataset.rvReady)h.cla
     </div>
     <div class="rail-info tier-info" aria-live="polite">
       <b id="railTier">L3 · BACKED</b>
-      <p id="railText">KYB-verified operator + a checked principal proof + liability insurance attestation. The floor for consumer-scale payments and contract execution.</p>
+      <p id="railText"><span class="nw">KYB-verified</span> operator + a checked principal proof + liability insurance attestation. The floor for <span class="nw">consumer-scale</span> payments and contract execution.</p>
     </div>
   </div>
 </section>
@@ -485,11 +485,12 @@ setTimeout(function(){var h=document.documentElement;if(!h.dataset.rvReady)h.cla
         <div class="code-panel__body">
           <span class="code-panel__cap">terminal</span><button class="code-panel__copy" id="cliCopy" type="button" aria-label="Copy the commands" aria-live="polite">COPY</button>
           <pre id="cliText">$ ainra init ./reg registrar-07
-$ ainra issue ./reg --operator acme --lineage invoicing --version 1.0.0 --tier L2
+$ ainra issue ./reg --operator acme --lineage invoicing --version 1.0.0 --tier L2 --cap read:data
 $ ainra verify ./reg ainra:registrar-07:acme:invoicing@1.0.0
 <span class="g">VALID</span></pre>
         </div>
       </div>
+      <p class="pnote">These commands are for the Rust <code>ainra</code>: in a checkout, <code>cargo build --release -p ainra-cli-rs</code> puts it at <code>./target/release/ainra</code>. The zip above is the Node reference CLI, and its commands differ.</p>
       <a class="link-hook" href="docs.html#cli">The CLI lifecycle</a>
     </div>
   </div>
@@ -498,7 +499,7 @@ $ ainra verify ./reg ainra:registrar-07:acme:invoicing@1.0.0
 <footer class="g-foot">
   <div class="g-foot__in">
     <div class="g-foot__l">
-      <p>© 2026 AINRA contributors.<br>Apache-2.0 OR MIT.</p>
+      <p>© 2026 AINRA contributors.<br><span class="nw">Apache-2.0</span> OR MIT.</p>
       <hr>
       <p class="g-foot__mean"><b>AINRA</b> — Agent Identity &amp; Naming Registry Authority. The neutral root of AI agent identity. Founding 2026.</p>
       <hr>
@@ -515,7 +516,7 @@ $ ainra verify ./reg ainra:registrar-07:acme:invoicing@1.0.0
         <h4>Protocol</h4>
         <ul>
           <li><a href="standard.html">The standard</a></li>
-          <li><a href="ainra-cli-v0.3.3.zip">Reference CLI v0.3.3</a></li>
+          <li><a href="ainra-cli-v0.3.4.zip">Reference CLI v0.3.4</a></li>
           <li><a href="https://github.com/JacobJandon/ainra" rel="noopener">Source — the full reference impl</a></li>
           <li><a href="index.html#passport">The passport</a></li>
           <li><a href="#authority">Authority model</a></li>
@@ -552,17 +553,17 @@ $ ainra verify ./reg ainra:registrar-07:acme:invoicing@1.0.0
           <li><a href="foundation.html#release-integrity">Release integrity</a></li>
           <li><a href="control.html">Control room</a></li>
           <li><a href="https://github.com/JacobJandon/ainra/blob/main/docs/DECISIONS.md" rel="noopener">Decision log</a></li>
-          <li><a href="https://github.com/JacobJandon/ainra/blob/main/docs/TRADEOFFS.md" rel="noopener">Trade-offs</a></li>
+          <li><a href="https://github.com/JacobJandon/ainra/blob/main/docs/TRADEOFFS.md" rel="noopener"><span class="nw">Trade-offs</span></a></li>
           <li><a href="https://github.com/JacobJandon/ainra/blob/main/SECURITY.md" rel="noopener">Security</a></li>
         </ul>
       </div>
     </div>
   </div>
   <div class="status g-foot__status">
-    <span class="live">ROOT STATUS: PRE-CEREMONY</span>
-    <span>LOGS SEALED: 0 · WITNESSES: 0 — SPLIT-VIEW GUARANTEE NOT IN FORCE · <a href="https://github.com/JacobJandon/ainra/blob/main/outreach/WITNESS-CALL.md">RECRUITING</a> · SPEC PUBLIC · CLI v0.3.3</span>
+    <span class="live">ROOT STATUS: <span class="nw">PRE-CEREMONY</span></span>
+    <span>LOGS SEALED: 0 · WITNESSES: 0 — <span class="nw">SPLIT-VIEW</span> GUARANTEE NOT IN FORCE · <a href="https://github.com/JacobJandon/ainra/blob/main/outreach/WITNESS-CALL.md">RECRUITING</a> · SPEC PUBLIC · CLI v0.3.4</span>
     <span>ISSUES NOTHING · SCORES NOTHING · SEES NO PII · FAVORS NO ONE</span>
-    <span class="rclock" data-record-clock><span class="rclock__l"><span class="rclock__k">PUBLISHED RECORD</span> <span data-stamp="published-iso">2026-11-04T18:19:51Z</span></span><span class="rclock__s"><span class="rclock__k">RECORD</span> <span data-stamp="published-date">2026-11-04</span></span><span data-rc-more hidden> · <span class="rclock__l"><span class="rclock__k">AGE</span> <span data-rc-age></span></span><span class="rclock__s" data-rc-days></span> · <b data-rc-state></b></span></span>
+    <span class="rclock" data-record-clock><span class="rclock__l"><span class="rclock__k">PUBLISHED RECORD</span> <span data-stamp="published-iso"><span class="nw">2026-11-04T18:19:51Z</span></span></span><span class="rclock__s"><span class="rclock__k">RECORD</span> <span data-stamp="published-date"><span class="nw">2026-11-04</span></span></span><span data-rc-more hidden> · <span class="rclock__l"><span class="rclock__k">AGE</span> <span data-rc-age></span></span><span class="rclock__s" data-rc-days></span> · <b data-rc-state></b></span></span>
     <span class="openbadge"><svg viewBox="0 0 160 160" aria-hidden="true" style="color:#8A93A0"><use href="#ainra-crest"/></svg>An open standard · held by no one</span>
   </div>
 </footer>
@@ -645,7 +646,7 @@ $ ainra verify ./reg ainra:registrar-07:acme:invoicing@1.0.0
 // it never quietly answers with a different implementation than the one it claims.
 let ENGINE = null;
 const $=(s)=>document.querySelector(s);
-function showLoadError(msg){ const d=$("#demo"); if(d) d.style.display="none"; const n=$("#noscript-note"); if(n){ n.style.display="block"; n.textContent=msg+" The same verifier is also a downloadable CLI — get it above."; } }
+function showLoadError(msg){ const d=$("#demo"); if(d) d.style.display="none"; const n=$("#noscript-note"); if(n){ n.style.display="block"; n.textContent=msg+" A separate reference CLI, which runs with just node, is also downloadable — get it above. It is a simpler implementation, not this verifier."; } }
 const REASONS={
   sig_invalid:"a required signature failed to verify", alg_downgrade:"a mandated hybrid signature (Ed25519 or ML-DSA-65) was absent or broken",
   expired:"the validity window has ended", not_yet_valid:"presented before its validity window opens",
@@ -655,6 +656,11 @@ const REASONS={
   stale_status:"the revocation material is not authentic or is too old — fails closed", name_malformed:"a name violated the namespace grammar",
   ceiling_exceeded:"a capability exceeds the scope ceiling", unknown_registrar:"the issuer is not in the accredited directory",
   schema_violation:"the passport violated the schema (missing MUST or forbidden field)",
+  registrar_distrusted:"the registrar is distrusted from this point in its log onward; what it logged before the cutoff still verifies",
+  instance_expired:"the running copy's credential is outside its window, or lives longer than the one-hour ceiling",
+  instance_scope_exceeds:"the running copy's credential asks for a capability its passport does not hold",
+  instance_sig_invalid:"the running copy's credential was not minted by this passport's key, or is bound to another passport",
+  instance_pop_invalid:"the presenter did not prove it holds the copy's key: wrong audience, a timestamp outside tolerance, or a bad proof",
 };
 const escapeHtml=(t)=>String(t).replace(/[&<>"']/g,(c)=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const enc=(u)=>btoa(String.fromCharCode(...u)).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
@@ -704,11 +710,18 @@ async function loadEngine(){
   }catch(e){ return null; }
 }
 
+// Seven rows for the nine checks of ainra-core's verify, in its order (crates/ainra-core/src/verify.rs): the fifth row
+// holds the scope ceiling and the delegation chain, the sixth the status and the mandate path. The third field is how
+// many checks a row holds, so the number this page prints is read off the rows (js/verify-live.mjs maps seven rows).
+// Step 10, the running copy's credential (ADR-019), runs only when the bundle carries one, and only after all nine
+// have passed. It has no row and no node in the figure, so the reason and provenance lines name it instead.
+const STEP10="the running copy's credential (step 10)";
 const STEP_LABELS=[
-  ["schema","schema + name grammar"],["issuer","issuer accredited in the directory"],["window","validity window (now within nbf…exp)"],
-  ["sig","hybrid signatures — Ed25519 + ML-DSA-65"],["chain","delegation chain narrows"],["status","revocation status is fresh &amp; authentic"],
-  ["log","logged-before-valid — Merkle proof to checkpoint"],
+  ["schema","schema + name grammar",1],["issuer","issuer accredited in the directory",1],["window","validity window (now within nbf…exp)",1],
+  ["sig","hybrid signatures — Ed25519 + ML-DSA-65",1],["chain","capabilities within the scope ceiling · delegation chain narrows",2],["status","revocation status is fresh &amp; authentic · no mandate revoked",2],
+  ["log","logged-before-valid — Merkle proof to checkpoint",1],
 ];
+const CHECKS=STEP_LABELS.reduce((n,s)=>n+s[2],0);
 const REASON_STEP={name_malformed:0,schema_violation:0,unknown_registrar:1,not_yet_valid:2,expired:2,sig_invalid:3,alg_downgrade:3,ceiling_exceeded:4,chain_widening:4,chain_expired:4,revoked:5,mandate_revoked:5,stale_status:5,not_logged:6,checkpoint_invalid:6};
 function renderFields(rec){
   const rows=[["name",rec.sub],["tier",rec.tier],["authority",rec.auth_class],["registrar",rec.registrar],
@@ -735,10 +748,12 @@ async function verify(){
     return;
   }
   const ok=v.verdict==="valid";
+  const inst=!!(wire.presentation&&wire.presentation.instance);       // a running copy's credential rides along
+  const at10=!ok&&String(v.reason||"").startsWith("instance_");      // refused at step 10: the nine above all passed
   $("#big").textContent=ok?"VALID":"INVALID"; $("#big").className="big "+(ok?"ok":"no");
-  $("#reason").innerHTML=ok?`all ${STEP_LABELS.length} checks passed — genuine, in-window, in-scope, logged, not revoked`:
-    `failed at <b>${v.reason}</b> — ${REASONS[v.reason]||""}`;
-  const failStep = ok?99:(REASON_STEP[v.reason]??6);
+  $("#reason").innerHTML=ok?`all ${CHECKS} checks passed — genuine, in-window, in-scope, logged, not revoked${inst?` — and so did ${STEP10}`:""}`:
+    `failed at <b>${v.reason}</b> — ${REASONS[v.reason]||""}${at10?` · ${STEP10}, after all ${CHECKS} checks passed`:""}`;
+  const failStep = ok||at10?99:(REASON_STEP[v.reason]??6);
   $("#steps").innerHTML=STEP_LABELS.map(([id,label],i)=>{
     const state = i<failStep?"ok":(i===failStep?"no":"pend");
     const icon = state==="ok"?"✓":state==="no"?"✗":"·";
@@ -746,7 +761,7 @@ async function verify(){
   }).join("");
   const provRoot = (pasted ? (wire.presentation.checkpoint&&wire.presentation.checkpoint.root) : rec.checkpoint_root)||"";
   const evLine = v.event ? `<div class="ev">${escapeHtml(JSON.stringify(v.event))}</div>` : "";
-  $("#prov").innerHTML = `verifier <b>${ENGINE.label}</b> · ${STEP_LABELS.length} checks · verdict computed in this tab · checkpoint root <b>${provRoot.slice(0,20)}…</b> · ${pasted?"your pasted bundle":tamper.size?`forgery applied: ${[...tamper].join(", ")}`:"unmodified passport"}`
+  $("#prov").innerHTML = `verifier <b>${ENGINE.label}</b> · ${CHECKS} checks in ${STEP_LABELS.length} rows${inst?` + ${STEP10}`:""} · verdict computed in this tab · checkpoint root <b>${provRoot.slice(0,20)}…</b> · ${pasted?"your pasted bundle":tamper.size?`forgery applied: ${[...tamper].join(", ")}`:"unmodified passport"}`
     + evLine + (ENGINE.note?`<div class="degraded">${ENGINE.note}</div>`:"");
   $("#resetBtn").hidden = tamper.size===0;
 }

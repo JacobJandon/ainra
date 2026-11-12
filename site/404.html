@@ -11,7 +11,7 @@
 <meta name="robots" content="noindex">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
-<link rel="stylesheet" href="/fonts/faces.css">
+<link rel="preload" href="/fonts/inter-latin-wght.woff2" as="font" type="font/woff2" crossorigin><link rel="preload" href="/fonts/noto-sans-mono-latin-400.woff2" as="font" type="font/woff2" crossorigin><link rel="stylesheet" href="/fonts/faces.css">
 <link rel="stylesheet" href="/css/ainra.css">
 <link rel="stylesheet" href="/css/living.css">
 <link rel="stylesheet" href="/css/g-shell.css">
@@ -140,7 +140,7 @@ main.nf{padding-top:clamp(104px,9vw,140px)}
     <div class="sec-head__row"><span class="earmark">404 · NOT IN THE RECORD</span></div>
     <div class="code" aria-hidden="true">/404</div>
     <h1>This page doesn't exist.</h1>
-    <p class="lede">Nothing was ever logged at this address — and unlike an agent passport, there's no proof to check.</p>
+    <p class="lede">Nothing was ever logged at this address — and unlike an agent passport, there's no proof to&nbsp;check.</p>
     <ul class="index index--compact">
       <li><a class="index-row" href="/verify.html"><span class="index-row__main"><span class="index-row__name">Verify</span></span><span class="index-row__idx">/01</span></a></li>
       <li><a class="index-row" href="/get.html"><span class="index-row__main"><span class="index-row__name">Network</span></span><span class="index-row__idx">/02</span></a></li>
@@ -154,13 +154,13 @@ main.nf{padding-top:clamp(104px,9vw,140px)}
         <div class="nf-ro"><span>SEED <b data-life-seed>—</b></span><span>GEN <b data-life-gen>0000</b> · POP <b data-life-pop>—</b> · <span data-life-state>—</span></span></div>
       </figure>
     </div>
-    <p class="earmark nf-status">ROOT STATUS: PRE-CEREMONY · LOGS SEALED: 0</p>
+    <p class="earmark nf-status">ROOT STATUS: <span class="nw">PRE-CEREMONY</span> · LOGS SEALED: 0</p>
   </div>
 </main>
 <footer class="g-foot">
   <div class="g-foot__in">
     <div class="g-foot__l">
-      <p>© 2026 AINRA contributors.<br>Apache-2.0 OR MIT.</p>
+      <p>© 2026 AINRA contributors.<br><span class="nw">Apache-2.0</span> OR MIT.</p>
       <hr>
       <p class="g-foot__mean"><b>AINRA</b> — Agent Identity &amp; Naming Registry Authority. The neutral root of AI agent identity. Founding 2026.</p>
       <hr>
@@ -177,7 +177,7 @@ main.nf{padding-top:clamp(104px,9vw,140px)}
         <h4>Protocol</h4>
         <ul>
           <li><a href="/docs.html#standard">The standard</a></li>
-          <li><a href="/ainra-cli-v0.3.3.zip">Reference CLI v0.3.3</a></li>
+          <li><a href="/ainra-cli-v0.3.4.zip">Reference CLI v0.3.4</a></li>
           <li><a href="https://github.com/JacobJandon/ainra" rel="noopener">Source — the full reference impl</a></li>
           <li><a href="/index.html#top">The passport</a></li>
           <li><a href="/verify.html#authority">Authority model</a></li>
@@ -214,17 +214,17 @@ main.nf{padding-top:clamp(104px,9vw,140px)}
           <li><a href="/foundation.html#release-integrity">Release integrity</a></li>
           <li><a href="/control.html">Control room</a></li>
           <li><a href="https://github.com/JacobJandon/ainra/blob/main/docs/DECISIONS.md" rel="noopener">Decision log</a></li>
-          <li><a href="https://github.com/JacobJandon/ainra/blob/main/docs/TRADEOFFS.md" rel="noopener">Trade-offs</a></li>
+          <li><a href="https://github.com/JacobJandon/ainra/blob/main/docs/TRADEOFFS.md" rel="noopener"><span class="nw">Trade-offs</span></a></li>
           <li><a href="https://github.com/JacobJandon/ainra/blob/main/SECURITY.md" rel="noopener">Security</a></li>
         </ul>
       </div>
     </div>
   </div>
   <div class="status g-foot__status">
-    <span class="live">ROOT STATUS: PRE-CEREMONY</span>
-    <span>LOGS SEALED: 0 · WITNESSES: 0 — SPLIT-VIEW GUARANTEE NOT IN FORCE · <a href="https://github.com/JacobJandon/ainra/blob/main/outreach/WITNESS-CALL.md">RECRUITING</a> · SPEC PUBLIC · CLI v0.3.3</span>
+    <span class="live">ROOT STATUS: <span class="nw">PRE-CEREMONY</span></span>
+    <span>LOGS SEALED: 0 · WITNESSES: 0 — <span class="nw">SPLIT-VIEW</span> GUARANTEE NOT IN FORCE · <a href="https://github.com/JacobJandon/ainra/blob/main/outreach/WITNESS-CALL.md">RECRUITING</a> · SPEC PUBLIC · CLI v0.3.4</span>
     <span>ISSUES NOTHING · SCORES NOTHING · SEES NO PII · FAVORS NO ONE</span>
-    <span class="rclock" data-record-clock><span class="rclock__l"><span class="rclock__k">PUBLISHED RECORD</span> <span data-stamp="published-iso">2026-11-04T18:19:51Z</span></span><span class="rclock__s"><span class="rclock__k">RECORD</span> <span data-stamp="published-date">2026-11-04</span></span><span data-rc-more hidden> · <span class="rclock__l"><span class="rclock__k">AGE</span> <span data-rc-age></span></span><span class="rclock__s" data-rc-days></span> · <b data-rc-state></b></span></span>
+    <span class="rclock" data-record-clock><span class="rclock__l"><span class="rclock__k">PUBLISHED RECORD</span> <span data-stamp="published-iso"><span class="nw">2026-11-04T18:19:51Z</span></span></span><span class="rclock__s"><span class="rclock__k">RECORD</span> <span data-stamp="published-date"><span class="nw">2026-11-04</span></span></span><span data-rc-more hidden> · <span class="rclock__l"><span class="rclock__k">AGE</span> <span data-rc-age></span></span><span class="rclock__s" data-rc-days></span> · <b data-rc-state></b></span></span>
     <span class="openbadge"><svg viewBox="0 0 160 160" aria-hidden="true" style="color:#8A93A0"><use href="#ainra-crest"/></svg>An open standard · held by no one</span>
   </div>
 </footer>

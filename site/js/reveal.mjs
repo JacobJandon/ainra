@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 // Reveal (concept F). Motion patterns measured on a large defense-software home page (research/MOTION.md P1–P7),
-// rebuilt here in our own code, faster, and without the parts AINRA refuses (glass, autoplay film, marquees, text
-// below 4.5:1):
+// rebuilt here in our own code, faster, and without the parts AINRA refuses (glass, marquees, text below 4.5:1).
+// The one film that plays by itself is the home page's hero (the owner's rule, 2026-11-12), with its Pause button:
 //   * headings roll in line by line out of a clip, 0.55 s, quint ease-out — the page reads as already loaded;
 //   * blocks lift 10px and fade in 0.4 s, and start before they reach the viewport;
 //   * one statement sharpens into place as you scroll (soft and low → ink and set), never below muted contrast;
@@ -151,13 +151,16 @@ for (const v of $$("[data-vid]")) {
   });
 }
 
-// the film: sources load only when it comes near; it plays muted and loops only with motion on and only while on
-// screen; the Pause button is always there and its choice sticks for the visit
+// the film: sources load only when it comes near; it plays muted and loops only while on screen; the Pause button is
+// always there and its choice sticks for the visit. Other films play only with motion on. The home hero ALWAYS starts by
+// itself (owner, 2026-11-12): reduced motion, a remembered "Motion: off" and a data-saving connection no longer hold it
+// on its poster. Switching Motion off during the visit still pauses it, and switching it back on plays it again.
 for (const v of $$("[data-film]")) {
   const btn = (v.closest(".film, .g-hero") || v.parentElement).querySelector("[data-film-toggle]"), lbl = btn?.querySelector(".film__lbl");
   // a connection that asks to save data, or a slow one, starts on the poster: the film is several megabytes
   const thrifty = (() => { const c = navigator.connection; return !!c && (c.saveData || /(^|-)(2g|3g)$/.test(c.effectiveType || "")); })();
-  let loaded = false, userPaused = html.dataset.motion === "off" || thrifty, onScreen = false;
+  const hero = !!v.closest(".g-hero");
+  let loaded = false, userPaused = hero ? false : (html.dataset.motion === "off" || thrifty), onScreen = false, lastMotion = html.dataset.motion;
   // the film waits for the page: its poster shows at once; the film itself starts downloading 1.2 s after load
   const afterLoad = new Promise((r) => (document.readyState === "complete" ? setTimeout(r, 1200) : addEventListener("load", () => setTimeout(r, 1200), { once: true })));
   // a phone (or a window taller than wide) gets the film's phone cut, where each drawing fills the frame
@@ -165,9 +168,14 @@ for (const v of $$("[data-film]")) {
   if (small && v.dataset.posterM) v.poster = v.dataset.posterM;
   const load = () => { if (loaded) return; loaded = true; afterLoad.then(() => { for (const s of v.querySelectorAll("source[data-src]")) s.src = (small && s.dataset.srcM) || s.dataset.src; v.load(); decide(); }); };
   const sync = () => { if (btn) { btn.setAttribute("aria-pressed", String(userPaused)); btn.setAttribute("aria-label", userPaused ? "Play the film" : "Pause the film"); if (lbl) lbl.textContent = userPaused ? "Play" : "Pause"; } };
-  const decide = () => { if (!userPaused && onScreen && html.dataset.motion !== "off") { load(); v.play().catch(() => {}); } else v.pause(); };
+  const decide = () => { if (!userPaused && onScreen && (hero || html.dataset.motion !== "off")) { load(); v.play().catch(() => {}); } else v.pause(); };
   btn?.addEventListener("click", () => { userPaused = !userPaused; if (!userPaused) load(); sync(); decide(); });
-  new MutationObserver(() => { if (html.dataset.motion === "off") userPaused = true; sync(); decide(); }).observe(html, { attributes: true, attributeFilter: ["data-motion"] });
+  new MutationObserver(() => {
+    const m = html.dataset.motion;
+    // the hero follows only a real change the visitor makes now (the switch re-announces the same value at start-up)
+    if (hero) { if (m !== lastMotion) userPaused = m === "off"; } else if (m === "off") userPaused = true;
+    lastMotion = m; sync(); decide();
+  }).observe(html, { attributes: true, attributeFilter: ["data-motion"] });
   // the film is fetched only when it is about to play (decide → load), never just because it is on screen
   if ("IntersectionObserver" in window) new IntersectionObserver((es) => { onScreen = es[0].isIntersecting; decide(); }, { rootMargin: "200px 0px" }).observe(v);
   else { onScreen = true; decide(); }

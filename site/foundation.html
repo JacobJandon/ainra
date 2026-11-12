@@ -21,7 +21,7 @@
 <meta name="twitter:description" content="Exactly what exists today — and what does not yet. Operator-run genesis root; public ceremony pending.">
 <meta name="twitter:image" content="https://ainra.org/og-cover.png?v=2">
 <meta name="description" content="Prove your agent, check theirs — and here is exactly what exists behind that today: the public Standard v5.1, a reference CLI, eleven signed releases, and zero sealed logs until the first public ceremony.">
-<link rel="stylesheet" href="fonts/faces.css">
+<link rel="preload" href="fonts/inter-latin-wght.woff2" as="font" type="font/woff2" crossorigin><link rel="preload" href="fonts/noto-sans-mono-latin-400.woff2" as="font" type="font/woff2" crossorigin><link rel="stylesheet" href="fonts/faces.css">
 <link rel="stylesheet" href="css/ainra.css">
 <link rel="stylesheet" href="css/living.css">
 <link rel="stylesheet" href="css/g-shell.css">
@@ -41,7 +41,7 @@
 .f-motto{font-family:var(--mono);font-size:var(--fs-data);line-height:1.55;letter-spacing:.04em;color:var(--ink);max-width:46ch}
 .f-hero .lede{margin-top:var(--s4)}
 .f-register{margin-top:var(--s8)}
-.register .state-chip{text-transform:none} /* the live states are already upper case; this keeps "v5.1" and "v0.3.3" as written */
+.register .state-chip{text-transform:none} /* the live states are already upper case; this keeps "v5.1" and "v0.3.4" as written */
 .f-body code{font-size:.86em}
 .f-live{margin-top:var(--s6)}
 .f-live__note{margin-top:var(--s3);color:var(--ink-soft);max-width:var(--measure)}
@@ -131,7 +131,7 @@ setTimeout(function(){var h=document.documentElement;if(!h.dataset.rvReady)h.cla
     </g>
   </defs>
 </svg>
-<div class="announce"><div class="wrap"><span class="announce__msg">Don't trust us — verify us: every claim runs from a cold clone. <a href="docs.html#install">Run it →</a></span><span class="announce__side"><span class="rclock" data-record-clock><span class="rclock__l"><span class="rclock__k">PUBLISHED RECORD</span> <span data-stamp="published-iso">2026-11-04T18:19:51Z</span></span><span class="rclock__s"><span class="rclock__k">RECORD</span> <span data-stamp="published-date">2026-11-04</span></span><span data-rc-more hidden> · <span class="rclock__l"><span class="rclock__k">AGE</span> <span data-rc-age></span></span><span class="rclock__s" data-rc-days></span> · <b data-rc-state></b></span></span><button class="motion-btn" type="button" data-motion-toggle aria-pressed="true" hidden><svg class="i-on" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 2h2v8H3zM7 2h2v8H7z" fill="currentColor"/></svg><svg class="i-off" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 2v8l7-4z" fill="currentColor"/></svg><span data-motion-label>Motion: on</span></button></span></div></div>
+<div class="announce"><div class="wrap"><span class="announce__msg">Don't trust us — verify us: every claim runs from a cold clone. <a href="docs.html#install">Run it →</a></span><span class="announce__side"><span class="rclock" data-record-clock><span class="rclock__l"><span class="rclock__k">PUBLISHED RECORD</span> <span data-stamp="published-iso"><span class="nw">2026-11-04T18:19:51Z</span></span></span><span class="rclock__s"><span class="rclock__k">RECORD</span> <span data-stamp="published-date"><span class="nw">2026-11-04</span></span></span><span data-rc-more hidden> · <span class="rclock__l"><span class="rclock__k">AGE</span> <span data-rc-age></span></span><span class="rclock__s" data-rc-days></span> · <b data-rc-state></b></span></span><button class="motion-btn" type="button" data-motion-toggle aria-pressed="true" hidden><svg class="i-on" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 2h2v8H3zM7 2h2v8H7z" fill="currentColor"/></svg><svg class="i-off" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 2v8l7-4z" fill="currentColor"/></svg><span data-motion-label>Motion: on</span></button></span></div></div>
 <nav><div class="wrap nav-in">
   <a class="brand" href="index.html" aria-label="AINRA — Agent Identity and Naming Registry Authority">
     <span class="sigil" aria-hidden="true"><svg viewBox="0 0 112 112"><use href="#ainra-sigil"/></svg></span>
@@ -196,7 +196,7 @@ setTimeout(function(){var h=document.documentElement;if(!h.dataset.rvReady)h.cla
   <ul>
     <li><a href="#plan"><span>Runs</span>Registrars, custodians and witnesses — no single company</a></li>
     <li><a href="docs.html#charter"><span>Rules</span>One published rulebook, the same for all</a></li>
-    <li><a href="#status"><span>Status</span>Pre-ceremony; witnesses: 0, recruiting</a></li>
+    <li><a href="#status"><span>Status</span><span class="nw">Pre-ceremony</span>; witnesses: 0, recruiting</a></li>
   </ul>
 </aside>
 <button class="g-side__tab" type="button" aria-controls="gSide" aria-expanded="false" data-side-open>Details</button>
@@ -228,26 +228,26 @@ setTimeout(function(){var h=document.documentElement;if(!h.dataset.rvReady)h.cla
           <li><span class="glyph" data-glyph="blinker"></span><span>PENDING · INVITED · NOT YET SETTLED</span></li>
           <li><span class="glyph" data-glyph="zero"></span><span>ZERO · NOTHING THERE YET</span></li>
         </ul>
-        <p class="src">Each mark is a Game-of-Life pattern running on a 5×5 grid (B3/S23): a still block, a travelling glider, an oscillating blinker, an empty grid.</p>
+        <p class="src">Each mark is a <span class="nw">Game-of-Life</span> pattern running on a 5×5 grid (B3/S23): a still block, a travelling glider, an oscillating blinker, an empty grid.</p>
       </div>
     </div>
     <div class="split__r">
       <p class="f-motto">NOTHING ON THIS SITE IS SIMULATED WITHOUT SAYING SO · NUMBERS ARE MEASURED OR THEY ARE ABSENT</p>
-      <p class="lede">This page states exactly what exists — nothing more. It changes only when reality does. If anything here ever disagrees with reality, that is a bug: tell us.</p>
+      <p class="lede">This page states exactly what exists — nothing more. It changes only when reality does. If anything here ever disagrees with reality, that is a bug: tell&nbsp;us.</p>
     </div>
   </div>
 
   <div class="f-register">
-    <p class="register__date">UPDATED 2026-11-04 · THE NUMBERS BELOW THE REGISTER COME FROM THE <span data-record-clock><span class="rclock__k">PUBLISHED RECORD</span> <span data-stamp="published-date">2026-11-04</span><span data-rc-more hidden> · AGE <span data-rc-days></span> · <b data-rc-state></b></span></span></p>
+    <p class="register__date">UPDATED <span class="nw">2026-11-04</span> · THE NUMBERS BELOW THE REGISTER COME FROM THE <span data-record-clock><span class="rclock__k">PUBLISHED RECORD</span> <span data-stamp="published-date"><span class="nw">2026-11-04</span></span><span data-rc-more hidden> · AGE <span data-rc-days></span> · <b data-rc-state></b></span></span></p>
     <div class="register">
 <div class="register__row"><h3><span class="glyph glyph--sm" data-glyph="block"></span>STANDARD <span class="state-chip state-chip--done">v5.1 — PUBLIC ✓</span></h3><p>The complete normative specification. <a href="standard.html">Read it</a> or take the <a href="AINRA_I_The_Standard.md">canonical file</a>.</p></div>
-<div class="register__row"><h3><span class="glyph glyph--sm" data-glyph="block"></span>REFERENCE CLI <span class="state-chip state-chip--done">v0.3.3 — WORKING ✓</span></h3><p>Zero-dependency, real signatures, hash-chained log; catches forged tiers and rewritten history live. <a href="ainra-cli-v0.3.3.zip">Download</a>.</p></div>
-<div class="register__row"><h3><span class="glyph glyph--sm" data-glyph="block"></span>REFERENCE IMPLEMENTATION <span class="state-chip state-chip--done">PUBLIC · ELEVEN SIGNED RELEASES</span></h3><p>The full stack — issuance, transparency log, witness quorum, revocation, verifier SDK — is public with eleven signed, board-proven releases — the current one is v0.8.0. A stranger's cold clone passes every gate: <a href="https://github.com/JacobJandon/ainra">the repository</a>.</p></div>
-<div class="register__row"><h3><span class="glyph glyph--sm" data-glyph="blinker"></span>GENESIS ROOT <span class="state-chip state-chip--pending">MINTED · OPERATOR-RUN</span></h3><p>A FROST 5-of-9 + SLH-DSA dual-root exists; the network runs under it and passports verify root-dark, trusting only the root (<code>make genesis-verify</code>). The distributed public ceremony across independent custodians — plus the external verifiers and soak — is the remaining real-world milestone.</p></div>
+<div class="register__row"><h3><span class="glyph glyph--sm" data-glyph="block"></span>REFERENCE CLI <span class="state-chip state-chip--done">v0.3.4 — WORKING ✓</span></h3><p><span class="nw">Zero-dependency</span>, real signatures, <span class="nw">hash-chained</span> log; catches forged tiers and rewritten history live. <a href="ainra-cli-v0.3.4.zip">Download</a>.</p></div>
+<div class="register__row"><h3><span class="glyph glyph--sm" data-glyph="block"></span>REFERENCE IMPLEMENTATION <span class="state-chip state-chip--done">PUBLIC · ELEVEN SIGNED RELEASES</span></h3><p>The full stack — issuance, transparency log, witness quorum, revocation, verifier SDK — is public with eleven signed, <span class="nw">board-proven</span> releases — the current one is v0.8.0. A stranger's cold clone passes every gate: <a href="https://github.com/JacobJandon/ainra">the repository</a>.</p></div>
+<div class="register__row"><h3><span class="glyph glyph--sm" data-glyph="blinker"></span>GENESIS ROOT <span class="state-chip state-chip--pending">MINTED · <span class="nw">OPERATOR-RUN</span></span></h3><p>A FROST <span class="nw">5-of-9</span> + <span class="nw">SLH-DSA</span> <span class="nw">dual-root</span> exists; the network runs under it and passports verify <span class="nw">root-dark</span>, trusting only the root (<span class="nw"><code>make genesis-verify</code></span>). The distributed public ceremony across independent custodians — plus the external verifiers and soak — is the remaining <span class="nw">real-world</span> milestone.</p></div>
 <div class="register__row"><h3><span class="glyph glyph--sm" data-glyph="zero"></span>WITNESSES <span class="state-chip state-chip--gap">0 OPERATORS — GAP</span></h3><p><b>This control has no operators, so the guarantee it provides is not in force today.</b> Witness cosignatures are what would stop the root showing one history to one party and a different one to another. The machinery is built, rehearsed and drilled on every board — an injected fork is refused by a quorum — but a quorum of zero certifies nothing, so for now you are trusting us not to equivocate rather than being able to check. Being the first takes one command: <code>bash kits/witness/be-a-witness.sh</code>. <a href="foundation.html#access">Take the seat</a>.</p></div>
-<div class="register__row"><h3><span class="glyph glyph--sm" data-glyph="blinker"></span>EXTERNAL VERIFIERS <span class="state-chip state-chip--gap">INVITED</span></h3><p>The drop-in verifier kit and the self-serve conformance programme are published; third parties verify — and attest — on their own infrastructure. Attestations so far: 0 of the 3 needed. Want a seat? <a href="foundation.html#access">Join the founding table</a>.</p></div>
-<div class="register__row"><h3><span class="glyph glyph--sm" data-glyph="block"></span>CONFORMANCE <span class="state-chip state-chip--done">1169/1169 ✓</span></h3><p>Three implementations — Rust, TypeScript and Python — agree on all 1169 CC0 conformance vectors, byte-for-byte, on verdict and reason; a fourth, the reference CLI, agrees on canonical encoding. Reproduced with one command (<code>make diff</code>) in the reference repository; the vector corpus is published alongside it.</p></div>
-<div class="register__row"><h3><span class="glyph glyph--sm" data-glyph="glider"></span>REVOCATION <span class="state-chip state-chip--done">&lt;60s [MEASURED]</span></h3><p>Revocation propagation measured under 60 seconds, fail-closed, in networked drills of the reference stack (<code>make soak-smoke</code>). The 14-day multi-region soak runs at genesis.</p></div>
+<div class="register__row"><h3><span class="glyph glyph--sm" data-glyph="blinker"></span>EXTERNAL VERIFIERS <span class="state-chip state-chip--gap">INVITED</span></h3><p>The <span class="nw">drop-in</span> verifier kit and the <span class="nw">self-serve</span> conformance programme are published; third parties verify — and attest — on their own infrastructure. Attestations so far: 0 of the 3 needed. Want a seat? <a href="foundation.html#access">Join the founding table</a>.</p></div>
+<div class="register__row"><h3><span class="glyph glyph--sm" data-glyph="block"></span>CONFORMANCE <span class="state-chip state-chip--done">1169/1169 ✓</span></h3><p>Three implementations — Rust, TypeScript and Python — agree on all 1169 CC0 conformance vectors, <span class="nw">byte-for-byte</span>, on verdict and reason; a fourth, the reference CLI, agrees on canonical encoding. Reproduced with one command (<code>make diff</code>) in the reference repository; the vector corpus is published alongside it.</p></div>
+<div class="register__row"><h3><span class="glyph glyph--sm" data-glyph="glider"></span>REVOCATION <span class="state-chip state-chip--done">&lt;60s [MEASURED]</span></h3><p>Revocation propagation measured under 60 seconds, <span class="nw">fail-closed</span>, in networked drills of the reference stack (<span class="nw"><code>make soak-smoke</code></span>). The <span class="nw">14-day</span> <span class="nw">multi-region</span> soak runs at genesis.</p></div>
     </div>
   </div>
 
@@ -259,14 +259,14 @@ setTimeout(function(){var h=document.documentElement;if(!h.dataset.rvReady)h.cla
       <div class="spec"><span class="spec__cap">checkpoint height</span><b class="spec__val" data-live="checkpoint-height">—</b></div>
       <div class="spec spec--gap"><span class="spec__cap">PRODUCTION LOGS SEALED</span><b class="spec__val" data-live="logs-sealed">—</b><span class="spec__why">UNTIL GENESIS</span></div>
     </div>
-    <p class="spec-staging"><b data-live="net">STAGING</b> NETWORK · <b data-live="root">TEST-ROOT</b> · <span data-live="mode">published record</span></p>
+    <p class="spec-staging"><b data-live="net">STAGING</b> NETWORK · <b data-live="root"><span class="nw">TEST-ROOT</span></b> · <span data-live="mode">published record</span></p>
     <p class="spec-asof" data-staleness>RECORD PUBLISHED <span data-live="as-of">—</span></p>
-    <p class="f-live__note small">The same read contract AINRAscan and any mirror use — a staging <b>TEST-ROOT</b>, not production. Point it at a network you run with <code>?net=&lt;url&gt;</code> and these numbers go live. Production logs sealed: <b data-live="logs-sealed">0</b> until genesis.</p>
+    <p class="f-live__note small">The same read contract AINRAscan and any mirror use — a staging <b><span class="nw">TEST-ROOT</span></b>, not production. Point it at a network you run with <code>?net=&lt;url&gt;</code> and these numbers go live. Production logs sealed: <b data-live="logs-sealed">0</b> until genesis.</p>
   </div>
   <p class="live-down" data-live-down hidden>The contract at <code data-live="endpoint">—</code> did not answer, so
   nothing above is live right now. Everything else on this site still proves what it proves — the verifier, the
   vectors and the signatures are checked on your machine, not on ours. To run the network yourself:
-  <code>make stage-install</code> (or <code>make genesis-local</code> for a one-shot local world).</p>
+  <span class="nw"><code>make stage-install</code></span> (or <span class="nw"><code>make genesis-local</code></span> for a <span class="nw">one-shot</span> local world).</p>
 </section>
 
 <section class="section" id="plan">
@@ -274,13 +274,13 @@ setTimeout(function(){var h=document.documentElement;if(!h.dataset.rvReady)h.cla
     <div class="sec-head__row"><span class="earmark"><b>/02</b></span></div>
     <div class="split">
       <h2 class="split__l">The organization.</h2>
-      <div class="split__r"><p class="lede">A member-governed, non-profit federation — neutral ground where competing issuers become one system without becoming one company. Legitimacy flows from members; the federation never competes with them.</p></div>
+      <div class="split__r"><p class="lede">A <span class="nw">member-governed</span>, <span class="nw">non-profit</span> federation — neutral ground where competing issuers become one system without becoming one company. Legitimacy flows from members; the federation never competes with&nbsp;them.</p></div>
     </div>
   </div>
   <div class="f-cols">
-    <div><span class="earmark">Members</span><h3>Every seat is a class.</h3><p>Issuers, attestors, verifiers, resolution &amp; data providers, witnesses, and public-interest members — each class a constituency in the assembly, which elects the board under charter constraints.</p></div>
+    <div><span class="earmark">Members</span><h3>Every seat is a&nbsp;class.</h3><p>Issuers, attestors, verifiers, resolution &amp; data providers, witnesses, and <span class="nw">public-interest</span> members — each class a constituency in the assembly, which elects the board under charter constraints.</p></div>
     <div><span class="earmark">Separation</span><h3>Keys and logs stand apart.</h3><p>Custodians (who hold key shares) and witnesses (who cosign the log) are structurally separate from board and assembly alike. No single person or institution can act alone.</p></div>
-    <div><span class="earmark">Transparency</span><h3>Everything material is public.</h3><p>Statutes, minutes, budgets, audits, fee schedules, and ceremonies. The root records facts — never money, personal data, reputation, or judgment.</p></div>
+    <div><span class="earmark">Transparency</span><h3>Everything material is&nbsp;public.</h3><p>Statutes, minutes, budgets, audits, fee schedules, and ceremonies. The root records facts — never money, personal data, reputation, or judgment.</p></div>
   </div>
   <p class="f-close">AINRA is a <b>proposal</b> for that neutral root — one open standard anyone can run, own, or fork. You are not asked to trust its founders; everything is public.</p>
 </section>
@@ -289,17 +289,17 @@ setTimeout(function(){var h=document.documentElement;if(!h.dataset.rvReady)h.cla
   <div class="sec-head">
     <div class="sec-head__row"><span class="earmark"><b>/03</b></span></div>
     <div class="split">
-      <h2 class="split__l">Genesis: how the root is born.</h2>
-      <div class="split__r"><p class="lede">The production root does not exist until it is born in public — on camera, across independent custodians, with no single point of trust. Until then, everything runs on a labeled TEST-ROOT and says so.</p></div>
+      <h2 class="split__l">Genesis: how the root is&nbsp;born.</h2>
+      <div class="split__r"><p class="lede">The production root does not exist until it is born in public — on camera, across independent custodians, with no single point of trust. Until then, everything runs on a labeled <span class="nw">TEST-ROOT</span> and says&nbsp;so.</p></div>
     </div>
   </div>
   <ol class="index f-genesis">
-    <li class="index-row"><div class="index-row__main"><h3 class="index-row__name">The ceremony, rehearsed</h3><p class="index-row__text">A FROST 5-of-9 threshold ceremony — any five of nine custodians can act together, no one alone, four compromised shares are useless. Rehearsed end-to-end across nine isolated processes with a reproducible transcript; an independent checker re-verifies every custodian.</p></div><div class="index-row__detail"><span class="state-chip state-chip--done">DONE · REPRODUCIBLE</span><p class="f-fine">make ceremony-rehearsal-multi · runbook: docs/genesis-day/RUNBOOK.md</p></div></li>
-    <li class="index-row"><div class="index-row__main"><h3 class="index-row__name">The recorded public ceremony</h3><p class="index-row__text">Ceremony day is scripted from T−30 days to T+14: sealed hardware shown on camera, air-gapped ephemeral machines, shares generated that never leave them, commitments cross-read aloud. Any failed check aborts the day — publicly.</p></div><div class="index-row__detail"><span class="state-chip state-chip--pending">PENDING · REAL-WORLD EVENT</span><p class="f-fine">go/no-go checklist · abort playbook · cutover plan — all published in the repo</p></div></li>
+    <li class="index-row"><div class="index-row__main"><h3 class="index-row__name">The ceremony, rehearsed</h3><p class="index-row__text">A FROST <span class="nw">5-of-9</span> threshold ceremony — any five of nine custodians can act together, no one alone, four compromised shares are useless. Rehearsed <span class="nw">end-to-end</span> across nine isolated processes with a reproducible transcript; an independent checker <span class="nw">re-verifies</span> every custodian.</p></div><div class="index-row__detail"><span class="state-chip state-chip--done">DONE · REPRODUCIBLE</span><p class="f-fine">make ceremony-rehearsal-multi · runbook: docs/genesis-day/RUNBOOK.md</p></div></li>
+    <li class="index-row"><div class="index-row__main"><h3 class="index-row__name">The recorded public ceremony</h3><p class="index-row__text">Ceremony day is scripted from T−30 days to T+14: sealed hardware shown on camera, <span class="nw">air-gapped</span> ephemeral machines, shares generated that never leave them, commitments <span class="nw">cross-read</span> aloud. Any failed check aborts the day — publicly.</p></div><div class="index-row__detail"><span class="state-chip state-chip--pending">PENDING · <span class="nw">REAL-WORLD</span> EVENT</span><p class="f-fine"><span class="nw">go/no-go</span> checklist · abort playbook · cutover plan — all published in the repo</p></div></li>
     <li class="index-row"><div class="index-row__main"><h3 class="index-row__name">Independent verifiers</h3><p class="index-row__text">Three or more unaffiliated people each receive a fresh challenge no one can precompute, verify it on their own machines with the published tooling, and sign what they saw. Their attestations become permanent public evidence.</p></div><div class="index-row__detail"><span class="state-chip state-chip--gap">RECRUITING · ≥3 STRANGERS</span><p class="f-fine">challenge kits minted · outreach ready · the ask is ~10 minutes</p></div></li>
-    <li class="index-row"><div class="index-row__main"><h3 class="index-row__name">The soak</h3><p class="index-row__text">Fourteen days of measured revocation propagation across three regions, each region writing signed reports. The founding declaration refuses to render unless every claim resolves to real evidence.</p></div><div class="index-row__detail"><span class="state-chip state-chip--pending">PENDING · 14 DAYS · 3 REGIONS</span><p class="f-fine">platform built and smoke-proven · the clock is the operator's button</p></div></li>
+    <li class="index-row"><div class="index-row__main"><h3 class="index-row__name">The soak</h3><p class="index-row__text">Fourteen days of measured revocation propagation across three regions, each region writing signed reports. The founding declaration refuses to render unless every claim resolves to real evidence.</p></div><div class="index-row__detail"><span class="state-chip state-chip--pending">PENDING · 14 DAYS · 3 REGIONS</span><p class="f-fine">platform built and <span class="nw">smoke-proven</span> · the clock is the operator's button</p></div></li>
   </ol>
-  <p class="f-note"><b>Honesty rule:</b> these three rows are real-world events, not code. Nothing on this site counts them done before they happen — production logs sealed today: <b>0</b>.</p>
+  <p class="f-note"><b>Honesty rule:</b> these three rows are <span class="nw">real-world</span> events, not code. Nothing on this site counts them done before they happen — production logs sealed today: <b>0</b>.</p>
 </section>
 
 <section class="section" id="economics">
@@ -307,7 +307,7 @@ setTimeout(function(){var h=document.documentElement;if(!h.dataset.rvReady)h.cla
     <div class="sec-head__row"><span class="earmark"><b>/04</b></span></div>
     <div class="split">
       <h2 class="split__l">Economics: position, not profit.</h2>
-      <div class="split__r"><p class="lede">Revenue is capped per-lineage-year fees at cents scale, flat accreditation, and grants. Verification is free forever — the design goal is a root cheap enough that removing it costs more than keeping it. At scale, the charter's falling cap <i>reduces</i> the fee toward archival cost.</p></div>
+      <div class="split__r"><p class="lede">Revenue is capped <span class="nw">per-lineage-year</span> fees at cents scale, flat accreditation, and grants. Verification is free forever — the design goal is a root cheap enough that removing it costs more than keeping it. At scale, the charter's falling cap <i>reduces</i> the fee toward archival cost.</p></div>
     </div>
   </div>
 </section>
@@ -316,14 +316,14 @@ setTimeout(function(){var h=document.documentElement;if(!h.dataset.rvReady)h.cla
   <div class="sec-head">
     <div class="sec-head__row"><span class="earmark"><b>/05</b></span></div>
     <div class="split">
-      <h2 class="split__l">The road, planned to the end.</h2>
+      <h2 class="split__l">The road, planned to the&nbsp;end.</h2>
     </div>
   </div>
   <ol class="steps-rail">
-    <li class="is-current"><span class="steps-rail__label">NOW</span><h3 class="steps-rail__name">Prove</h3><p class="steps-rail__text">External verifier trials against pre-registered gates; the standard filed in the open with the reference stack as its conformance suite. Three implementations already agree on all 1169 vectors on verdict and reason, and a fourth agrees on canonical encoding; a stranger can clone the repo and every gate passes.</p></li>
-    <li><span class="steps-rail__label">NEXT</span><h3 class="steps-rail__name">Anchor</h3><p class="steps-rail__text">Institutional co-conveners; charter ratification; the first public ceremony sealing log #1; two registrar classes issuing live; one revocation propagated worldwide, watchably.</p></li>
-    <li><span class="steps-rail__label">THE LONG MIDDLE</span><h3 class="steps-rail__name">Endure</h3><p class="steps-rail__text">Adoption plateaus and pressure met with pre-decided responses. Principles fixed, pace flexible.</p></li>
-    <li><span class="steps-rail__label">THE GOAL</span><h3 class="steps-rail__name">Disappear</h3><p class="steps-rail__text"><b>Disappear means become unnecessary, not vanish.</b> The goal isn't an ecosystem that depends on us; it's one that no longer needs us — a relay race, not a solo marathon. From outside it looks like verification as boring as the clock. Beyond that: generational key-succession ceremonies, fork-readiness drills, and a managed-migration clause — if a legitimately adopted successor emerges, the root's final duty is an orderly migration into it. The standard outlives whoever carries it; that is planned, not feared.</p></li>
+    <li class="is-current"><span class="steps-rail__label">NOW</span><h3 class="steps-rail__name">Prove</h3><p class="steps-rail__text">External verifier trials against <span class="nw">pre-registered</span> gates; the standard filed in the open with the reference stack as its conformance suite. Three implementations already agree on all 1169 vectors on verdict and reason, and a fourth agrees on canonical encoding; a stranger can clone the repo and every gate passes.</p></li>
+    <li><span class="steps-rail__label">NEXT</span><h3 class="steps-rail__name">Anchor</h3><p class="steps-rail__text">Institutional <span class="nw">co-conveners</span>; charter ratification; the first public ceremony sealing log #1; two registrar classes issuing live; one revocation propagated worldwide, watchably.</p></li>
+    <li><span class="steps-rail__label">THE LONG MIDDLE</span><h3 class="steps-rail__name">Endure</h3><p class="steps-rail__text">Adoption plateaus and pressure met with <span class="nw">pre-decided</span> responses. Principles fixed, pace flexible.</p></li>
+    <li><span class="steps-rail__label">THE GOAL</span><h3 class="steps-rail__name">Disappear</h3><p class="steps-rail__text"><b>Disappear means become unnecessary, not vanish.</b> The goal isn't an ecosystem that depends on us; it's one that no longer needs us — a relay race, not a solo marathon. From outside it looks like verification as boring as the clock. Beyond that: generational <span class="nw">key-succession</span> ceremonies, <span class="nw">fork-readiness</span> drills, and a <span class="nw">managed-migration</span> clause — if a legitimately adopted successor emerges, the root's final duty is an orderly migration into it. The standard outlives whoever carries it; that is planned, not feared.</p></li>
   </ol>
   <div class="cta-row f-road__cta">
     <a class="btn btn-ghost" href="#access">Take a founding seat →</a>
@@ -336,14 +336,14 @@ setTimeout(function(){var h=document.documentElement;if(!h.dataset.rvReady)h.cla
     <div class="sec-head__row"><span class="earmark"><b>/06</b> · INTERNET FREEDOM</span></div>
     <div class="split">
       <h2 class="split__l">Proof for the people under pressure — without being watched.</h2>
-      <div class="split__r"><p class="lede">Newsrooms, human-rights groups and activists face impersonation and surveillance first. AINRA gives them certainty about the software they deal with, and the check itself tells no one anything.</p></div>
+      <div class="split__r"><p class="lede">Newsrooms, <span class="nw">human-rights</span> groups and activists face impersonation and surveillance first. AINRA gives them certainty about the software they deal with, and the check itself tells no one anything.</p></div>
     </div>
   </div>
   <div class="g-civic__grid">
-      <article class="g-civic__item"><span class="g-civic__n">/01</span><h3>A real tool, not a decoy.</h3><p>Check that an agent belongs to the organisation it names, and not to an impersonator or a spoofed bot: the passport carries its operator, proven to an accredited registrar.</p></article>
-      <article class="g-civic__item"><span class="g-civic__n">/02</span><h3>A check that calls no one.</h3><p>Signatures and revocation are checked on the verifier’s own machine, from public files. No request goes to us or anyone during a check, so there is no log of who checked whom.</p></article>
-      <article class="g-civic__item"><span class="g-civic__n">/03</span><h3>A seized key, switched off.</h3><p>If a device or an agent’s key is taken, one bit set in the signed status list (an IETF Token Status List) makes every verifier that checks refuse it — within its freshness class: a status no older than 30 seconds at F1 (measured end to end, under 60 seconds, in <code>make soak-smoke</code>), five minutes by default.</p></article>
-      <article class="g-civic__item"><span class="g-civic__n">/04</span><h3>No single owner, two signatures.</h3><p>Every passport is signed twice, Ed25519 and ML-DSA-65, so it holds even if one scheme falls — including to a future quantum computer. The root is built to be held 5-of-9 by independent custodians; today it is pre-ceremony, with no witnesses yet.</p></article>
+      <article class="g-civic__item"><span class="g-civic__n">/01</span><h3>A real tool, not a&nbsp;decoy.</h3><p>Check that an agent belongs to the organisation it names, and not to an impersonator or a spoofed bot: the passport carries its operator, proven to an accredited registrar.</p></article>
+      <article class="g-civic__item"><span class="g-civic__n">/02</span><h3>A check that calls no&nbsp;one.</h3><p>Signatures and revocation are checked on the verifier’s own machine, from public files. No request goes to us or anyone during a check, so there is no log of who checked whom.</p></article>
+      <article class="g-civic__item"><span class="g-civic__n">/03</span><h3>A seized key, switched off.</h3><p>If a device or an agent’s key is taken, one bit set in the signed status list (an IETF Token Status List) makes every verifier that checks refuse it — within its freshness class: a status no older than 30 seconds at F1 (measured end to end, under 60 seconds, in <span class="nw"><code>make soak-smoke</code></span>), five minutes by default.</p></article>
+      <article class="g-civic__item"><span class="g-civic__n">/04</span><h3>No single owner, two signatures.</h3><p>Every passport is signed twice, Ed25519 and <span class="nw">ML-DSA-65</span>, so it holds even if one scheme falls — including to a future quantum computer. The root is built to be held <span class="nw">5-of-9</span> by independent custodians; today it is <span class="nw">pre-ceremony</span>, with no witnesses yet.</p></article>
     </div>
 </section>
 
@@ -378,15 +378,15 @@ setTimeout(function(){var h=document.documentElement;if(!h.dataset.rvReady)h.cla
     <div class="sec-head__row"><span class="earmark"><b>/08</b> · RELEASE INTEGRITY</span></div>
     <div class="split">
       <h2 class="split__l">Verify what you download.</h2>
-      <div class="split__r"><p class="lede">Every release is signed, and — the stronger check — reproducible: you rebuild the conformance corpus byte-for-byte from the tagged source and trust the bytes, not us.</p></div>
+      <div class="split__r"><p class="lede">Every release is signed, and — the stronger check — reproducible: you rebuild the conformance corpus <span class="nw">byte-for-byte</span> from the tagged source and trust the bytes, not&nbsp;us.</p></div>
     </div>
   </div>
   <div class="split">
     <div class="split__l">
-      <div class="code-panel"><div class="code-panel__body"><h3 class="code-panel__cap">Signing key</h3><pre>SHA256:V1ZbCNdPDEe5plpYq07dGCsoensF4Q+MPPQQkcj5pi4</pre><p>SSH Ed25519 · public key pinned in-repo (<code>release/ainra-release.pub</code>) · private key offline.</p></div></div>
+      <div class="code-panel"><div class="code-panel__body"><h3 class="code-panel__cap">Signing key</h3><pre>SHA256:V1ZbCNdPDEe5plpYq07dGCsoensF4Q+MPPQQkcj5pi4</pre><p>SSH Ed25519 · public key pinned <span class="nw">in-repo</span> (<code>release/ainra-release.pub</code>) · private key offline.</p></div></div>
     </div>
     <div class="split__r f-ri__how">
-      <h3>How to verify</h3><p>Check the signature, then rebuild from source (<code>make repro</code>) and diff the manifest — no key needed for the strong proof.</p><p><a class="link-hook" href="RELEASE-VERIFY.md">The full guide — RELEASE-VERIFY.md →</a></p>
+      <h3>How to&nbsp;verify</h3><p>Check the signature, then rebuild from source (<code>make repro</code>) and diff the manifest — no key needed for the strong proof.</p><p><a class="link-hook" href="RELEASE-VERIFY.md">The full guide — <span class="nw">RELEASE-VERIFY.md</span> →</a></p>
     </div>
   </div>
 </section>
@@ -395,7 +395,7 @@ setTimeout(function(){var h=document.documentElement;if(!h.dataset.rvReady)h.cla
 <footer class="g-foot">
   <div class="g-foot__in">
     <div class="g-foot__l">
-      <p>© 2026 AINRA contributors.<br>Apache-2.0 OR MIT.</p>
+      <p>© 2026 AINRA contributors.<br><span class="nw">Apache-2.0</span> OR MIT.</p>
       <hr>
       <p class="g-foot__mean"><b>AINRA</b> — Agent Identity &amp; Naming Registry Authority. The neutral root of AI agent identity. Founding 2026.</p>
       <hr>
@@ -412,7 +412,7 @@ setTimeout(function(){var h=document.documentElement;if(!h.dataset.rvReady)h.cla
         <h4>Protocol</h4>
         <ul>
           <li><a href="standard.html">The standard</a></li>
-          <li><a href="ainra-cli-v0.3.3.zip">Reference CLI v0.3.3</a></li>
+          <li><a href="ainra-cli-v0.3.4.zip">Reference CLI v0.3.4</a></li>
           <li><a href="https://github.com/JacobJandon/ainra" rel="noopener">Source — the full reference impl</a></li>
           <li><a href="index.html#passport">The passport</a></li>
           <li><a href="verify.html#authority">Authority model</a></li>
@@ -449,17 +449,17 @@ setTimeout(function(){var h=document.documentElement;if(!h.dataset.rvReady)h.cla
           <li><a href="#release-integrity">Release integrity</a></li>
           <li><a href="control.html">Control room</a></li>
           <li><a href="https://github.com/JacobJandon/ainra/blob/main/docs/DECISIONS.md" rel="noopener">Decision log</a></li>
-          <li><a href="https://github.com/JacobJandon/ainra/blob/main/docs/TRADEOFFS.md" rel="noopener">Trade-offs</a></li>
+          <li><a href="https://github.com/JacobJandon/ainra/blob/main/docs/TRADEOFFS.md" rel="noopener"><span class="nw">Trade-offs</span></a></li>
           <li><a href="https://github.com/JacobJandon/ainra/blob/main/SECURITY.md" rel="noopener">Security</a></li>
         </ul>
       </div>
     </div>
   </div>
   <div class="status g-foot__status">
-    <span class="live">ROOT STATUS: PRE-CEREMONY</span>
-    <span>LOGS SEALED: 0 · WITNESSES: 0 — SPLIT-VIEW GUARANTEE NOT IN FORCE · <a href="https://github.com/JacobJandon/ainra/blob/main/outreach/WITNESS-CALL.md">RECRUITING</a> · SPEC PUBLIC · CLI v0.3.3</span>
+    <span class="live">ROOT STATUS: <span class="nw">PRE-CEREMONY</span></span>
+    <span>LOGS SEALED: 0 · WITNESSES: 0 — <span class="nw">SPLIT-VIEW</span> GUARANTEE NOT IN FORCE · <a href="https://github.com/JacobJandon/ainra/blob/main/outreach/WITNESS-CALL.md">RECRUITING</a> · SPEC PUBLIC · CLI v0.3.4</span>
     <span>ISSUES NOTHING · SCORES NOTHING · SEES NO PII · FAVORS NO ONE</span>
-    <span class="rclock" data-record-clock><span class="rclock__l"><span class="rclock__k">PUBLISHED RECORD</span> <span data-stamp="published-iso">2026-11-04T18:19:51Z</span></span><span class="rclock__s"><span class="rclock__k">RECORD</span> <span data-stamp="published-date">2026-11-04</span></span><span data-rc-more hidden> · <span class="rclock__l"><span class="rclock__k">AGE</span> <span data-rc-age></span></span><span class="rclock__s" data-rc-days></span> · <b data-rc-state></b></span></span>
+    <span class="rclock" data-record-clock><span class="rclock__l"><span class="rclock__k">PUBLISHED RECORD</span> <span data-stamp="published-iso"><span class="nw">2026-11-04T18:19:51Z</span></span></span><span class="rclock__s"><span class="rclock__k">RECORD</span> <span data-stamp="published-date"><span class="nw">2026-11-04</span></span></span><span data-rc-more hidden> · <span class="rclock__l"><span class="rclock__k">AGE</span> <span data-rc-age></span></span><span class="rclock__s" data-rc-days></span> · <b data-rc-state></b></span></span>
     <span class="openbadge"><svg viewBox="0 0 160 160" aria-hidden="true" style="color:#8A93A0"><use href="#ainra-crest"/></svg>An open standard · held by no one</span>
   </div>
 </footer>

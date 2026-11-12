@@ -9,8 +9,8 @@
   --ink:#0B1220;--ink-2:#111B30;--ink-soft:#3A4250;--muted:#5A6372;--line:#E2E5DF;--rule-strong:#7D8580;
   --green:#1A6B4E;--green-deep:#14563F;--green-br:#57C08F;--mint:#E2EFE7;--amber:#8A6A14;--red:#A83A2C;
   --code-bg:#0B1220;--code-text:#E7EAF0;--code-muted:#98A1B3;--life-cell:#D3D6D1;
-  --sans:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
-  --mono:"Noto Sans Mono","B612 Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+  --sans:"Inter","Inter Fallback",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:"Noto Sans Mono","Noto Sans Mono Fallback","B612 Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
   --w-display:400; /* OD-2: 400 or 600; compare with ?w=400 / ?w=600 */
   --w-display-phone:max(var(--w-display),500);
   --fs-display:clamp(46px,6.517vw + 20.58px,104px);--fs-title:clamp(40px,5.393vw + 18.97px,88px);
@@ -408,3 +408,10 @@ footer{background:var(--paper);border-top:1px solid var(--ink);margin-top:var(--
   .vchain svg.vc{min-width:660px;max-width:none}
   .lfig .fig__body > svg{min-width:600px;max-width:none}
 }
+
+/* ── Line breaks (2026-11-12; owner: at some window sizes and display scales "some letters go down").
+   Headings balance their lines, so none ends on one lone word at any width; paragraphs and list items avoid a lone last
+   word where the browser supports it (older browsers ignore both and wrap as before). Measured with
+   ainra-private/design/2026-11-10-site-review/checks/textfit-audit.mjs across 34 window sizes at 100/125/150% and phones. */
+h1,h2,h3,h4,.title,.statement,.lede{text-wrap:balance}
+p,li,dd,figcaption,blockquote{text-wrap:pretty}

@@ -16,3 +16,20 @@
   src:url(b612-mono-latin-400.woff2) format('woff2')}
 @font-face{font-family:'B612 Mono';font-style:normal;font-weight:700;font-display:swap;
   src:url(b612-mono-latin-700.woff2) format('woff2')}
+
+/* Size-matched fallbacks (2026-11-12). While a web font is still loading, text is drawn in a local font. Without these,
+   that local font (Segoe UI on Windows, Helvetica or Arial elsewhere) is wider or taller than Inter, so lines wrap one
+   way and then jump when Inter arrives: words "drop" to the next line on a cold load, at some window sizes and scales.
+   Each fallback below is a common local font scaled to Inter's average advance (measured over the site's own text) and
+   given Inter's vertical metrics, so the first paint takes the same space and nothing re-wraps.
+   Inter 400-500 vs Arial Regular: size 105.83%; Inter 600-700 vs Arial Bold: size 101.88% (both from inter-latin-wght
+   instanced at each weight, fontTools). Noto Sans Mono vs Courier New: same 0.600 em advance. */
+@font-face{font-family:'Inter Fallback';font-style:normal;font-weight:100 550;
+  src:local('Arial'),local('ArialMT'),local('Arimo'),local('Liberation Sans');
+  size-adjust:105.83%;ascent-override:91.54%;descent-override:22.79%;line-gap-override:0%}
+@font-face{font-family:'Inter Fallback';font-style:normal;font-weight:551 900;
+  src:local('Arial Bold'),local('Arial-BoldMT'),local('Arimo Bold'),local('Liberation Sans Bold');
+  size-adjust:101.88%;ascent-override:95.09%;descent-override:23.67%;line-gap-override:0%}
+@font-face{font-family:'Noto Sans Mono Fallback';font-style:normal;font-weight:100 900;
+  src:local('Courier New'),local('CourierNewPSMT'),local('Cousine'),local('Liberation Mono');
+  size-adjust:100%;ascent-override:106.92%;descent-override:29.3%;line-gap-override:0%}

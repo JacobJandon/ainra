@@ -61,6 +61,7 @@ node tools/search-index.mjs   # the search box reads this one static file
 
 # M17: keep the content pages' shared header/footer in sync from site/_includes/ (one source of truth, no drift).
 node tools/site-includes.mjs
+node tools/nobreak.mjs        # after the includes: short hyphenated words stay whole across a line break
 
 # No version drift (Task 6): AFTER the include sync, every three-part vX.Y.Z printed in a page is one of exactly two
 # facts, each with one source: the downloadable CLI's version (apps/cli-node/package.json) and the newest board-proven

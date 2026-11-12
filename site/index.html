@@ -25,7 +25,7 @@
 
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="manifest" href="site.webmanifest">
-<link rel="stylesheet" href="fonts/faces.css">
+<link rel="preload" href="fonts/inter-latin-wght.woff2" as="font" type="font/woff2" crossorigin><link rel="preload" href="fonts/noto-sans-mono-latin-400.woff2" as="font" type="font/woff2" crossorigin><link rel="stylesheet" href="fonts/faces.css">
 <link rel="stylesheet" href="css/ainra.css">
 <link rel="stylesheet" href="css/living.css">
 <meta name="ainra-contract" content="/net">
@@ -97,7 +97,7 @@ setTimeout(function(){var h=document.documentElement;if(!h.dataset.rvReady)h.cla
   </defs>
 </svg>
 
-<div class="g-announce" data-announce><div class="wrap"><span class="g-announce__k">New</span><span class="g-announce__l">We checked a common summary of AINRA's trade-offs against the code — and corrected our own text where it overpromised.</span><span class="g-announce__s">Our trade-offs, checked.</span><a href="https://github.com/JacobJandon/ainra/blob/main/docs/TRADEOFFS.md">Read it →</a><button class="g-announce__x" type="button" aria-label="Dismiss this notice" data-announce-x>×</button></div></div>
+<div class="g-announce" data-announce><div class="wrap"><span class="g-announce__k">New</span><span class="g-announce__l">We checked a common summary of AINRA's <span class="nw">trade-offs</span> against the code — and corrected our own text where it overpromised.</span><span class="g-announce__s">Our <span class="nw">trade-offs</span>, checked.</span><a href="https://github.com/JacobJandon/ainra/blob/main/docs/TRADEOFFS.md">Read it →</a><button class="g-announce__x" type="button" aria-label="Dismiss this notice" data-announce-x>×</button></div></div>
 <nav><div class="wrap nav-in">
   <a class="brand" href="index.html" aria-label="AINRA — Agent Identity and Naming Registry Authority">
     <span class="sigil" aria-hidden="true"><svg viewBox="0 0 112 112"><use href="#ainra-sigil"/></svg></span>
@@ -157,11 +157,11 @@ setTimeout(function(){var h=document.documentElement;if(!h.dataset.rvReady)h.cla
 <main id="main">
 <header class="g-hero" id="hero">
   <div class="g-hero__film">
-    <video class="g-hero__v" muted playsinline loop preload="metadata" poster="media/ainra-film-hero-poster.jpg?v=9" data-poster-m="media/ainra-film-hero-m-poster.jpg?v=9" aria-describedby="g-film-shots" data-film data-stage-bottom="0.655" data-chapters="0,8.8,17,25.8,34.2,42.8,52,60.6,68.8,77,85.2">
-      <source data-src="media/ainra-film-hero.webm?v=9" data-src-m="media/ainra-film-hero-m.webm?v=10" type="video/webm">
-      <source data-src="media/ainra-film-hero.mp4?v=9" data-src-m="media/ainra-film-hero-m.mp4?v=10" type="video/mp4">
+    <video class="g-hero__v" muted playsinline loop preload="metadata" poster="media/ainra-film-hero-poster.jpg?v=12" data-poster-m="media/ainra-film-hero-m-poster.jpg?v=12" aria-describedby="g-film-shots" data-film data-stage-bottom="0.655" data-chapters="0,8.8,17.6,25.8,34.2,42.8,52,60.6,68.8,77,85.2">
+      <source data-src="media/ainra-film-hero.webm?v=11" data-src-m="media/ainra-film-hero-m.webm?v=11" type="video/webm">
+      <source data-src="media/ainra-film-hero.mp4?v=11" data-src-m="media/ainra-film-hero-m.mp4?v=11" type="video/mp4">
     </video>
-    <p class="vh" id="g-film-shots">A silent film in eleven pairs: a shot of the real world, then the drawing that explains it — hands on a phone, then an agent handed a task shows its passport; a city crossing, then agents each checked as they pass; a dish array, then the root with three rings and nine keys; a clean-room machine, then a passport valid only once logged; capsules on a line, then running copies with short-lived keys; a motorway interchange, then requests checked at a verifier; a warehouse aisle, then one revoked bit refused by every verifier; a drone in the sky, then a check with no signal; wind turbines, then agents presenting to verifiers peer to peer; hands at a keyboard, then one line that installs the skills; a field, then the closing words: every check runs on your machine.</p>
+    <p class="vh" id="g-film-shots">A silent film in eleven pairs: a shot of the real world, then the drawing that explains it — a dish array, then the root with three rings and nine keys; hands on a phone, then an agent handed a task shows its passport; a city crossing, then agents each checked as they pass; a <span class="nw">clean-room</span> machine, then a passport valid only once logged; capsules on a line, then running copies with <span class="nw">short-lived</span> keys; a motorway interchange, then requests checked at a verifier; a warehouse aisle, then one revoked bit refused by every verifier; a drone in the sky, then a check with no signal; wind turbines, then agents presenting to verifiers peer to peer; hands at a keyboard, then one line that installs the skills; a field, then the closing words: every check runs on your machine.</p>
   </div>
   <div class="g-hero__scrim" aria-hidden="true"></div>
   <div class="g-hero__plate">
@@ -173,8 +173,8 @@ setTimeout(function(){var h=document.documentElement;if(!h.dataset.rvReady)h.cla
   <div class="g-side__head"><span>Details</span><button class="g-side__x" type="button" aria-label="Close details" data-side-close>×</button></div>
   <ul>
     <li><a href="standard.html"><span>Explore</span>An open standard for the identity of AI agents</a></li>
-    <li><a href="verify.html#try"><span>Checks</span>Offline · fail-closed · nothing reported</a></li>
-    <li><a href="https://github.com/JacobJandon/ainra/blob/main/LICENSE-APACHE"><span>Licence</span>Apache-2.0 / MIT · the Standard is public</a></li>
+    <li><a href="verify.html#try"><span>Checks</span>Offline · <span class="nw">fail-closed</span> · nothing reported</a></li>
+    <li><a href="https://github.com/JacobJandon/ainra/blob/main/LICENSE-APACHE"><span>Licence</span><span class="nw">Apache-2.0</span> / MIT · the Standard is public</a></li>
   </ul>
 </aside>
 <button class="g-side__tab" type="button" aria-controls="gSide" aria-expanded="false" data-side-open>Details</button>
@@ -203,7 +203,7 @@ setTimeout(function(){var h=document.documentElement;if(!h.dataset.rvReady)h.cla
   <div class="wrap">
     <div class="g-tabs" data-tabs>
       <div class="g-tabs__bar">
-        <h2 class="vh" id="g-work">AINRA at work</h2>
+        <h2 class="vh" id="g-work">AINRA at&nbsp;work</h2>
         <div class="g-tabs__chips" role="tablist" aria-label="AINRA at work">
           <button role="tab" type="button" aria-selected="true" data-tab="0">Delegate</button>
           <button role="tab" type="button" aria-selected="false" data-tab="1">Issue</button>
@@ -236,13 +236,13 @@ setTimeout(function(){var h=document.documentElement;if(!h.dataset.rvReady)h.cla
 
 <section class="g-list" id="passport" aria-labelledby="g-parts">
   <div class="wrap">
-    <div class="g-list__head"><h2 class="g-list__label" id="g-parts">What AINRA is made of</h2></div>
+    <div class="g-list__head"><h2 class="g-list__label" id="g-parts">What AINRA is made&nbsp;of</h2></div>
     <ol class="g-rows">
       <li><a class="g-row" href="standard.html" data-preview="media/g/part-standard.jpg?v=3" data-preview-video="media/g/part-standard.mp4?v=3"><span class="g-row__name">The Standard</span><span class="g-row__d">Defines one passport, and how anyone checks it.</span><span class="g-row__i">/0.1</span></a></li>
-      <li><a class="g-row" href="verify.html#try" data-preview="media/g/part-verifier.jpg?v=3" data-preview-video="media/g/part-verifier.mp4?v=3"><span class="g-row__name">The verifier</span><span class="g-row__d">Checks a passport on your own machine — offline, fail-closed.</span><span class="g-row__i">/0.2</span></a></li>
+      <li><a class="g-row" href="verify.html#try" data-preview="media/g/part-verifier.jpg?v=3" data-preview-video="media/g/part-verifier.mp4?v=3"><span class="g-row__name">The verifier</span><span class="g-row__d">Checks a passport on your own machine — offline, <span class="nw">fail-closed</span>.</span><span class="g-row__i">/0.2</span></a></li>
       <li><a class="g-row" href="get.html" data-preview="media/g/part-registrars.jpg?v=3" data-preview-video="media/g/part-registrars.mp4?v=3"><span class="g-row__name">Registrars</span><span class="g-row__d">Issue passports under the same published rules, and log each one first.</span><span class="g-row__i">/0.3</span></a></li>
       <li><a class="g-row" href="docs.html#verify" data-preview="media/g/part-revocation.jpg?v=3" data-preview-video="media/g/part-revocation.mp4?v=3"><span class="g-row__name">Revocation</span><span class="g-row__d">Sets one bit in a signed list; every verifier that checks refuses.</span><span class="g-row__i">/0.4</span></a></li>
-      <li><a class="g-row" href="docs.html#install" data-preview="media/g/part-copies.jpg?v=3" data-preview-video="media/g/part-copies.mp4?v=3"><span class="g-row__name">Running copies</span><span class="g-row__d">Give every instance its own short-lived key.</span><span class="g-row__i">/0.5</span></a></li>
+      <li><a class="g-row" href="docs.html#install" data-preview="media/g/part-copies.jpg?v=3" data-preview-video="media/g/part-copies.mp4?v=3"><span class="g-row__name">Running copies</span><span class="g-row__d">Give every instance its own <span class="nw">short-lived</span> key.</span><span class="g-row__i">/0.5</span></a></li>
     </ol>
     <figure class="g-preview" aria-hidden="true"><img alt="" width="1280" height="720"><video muted playsinline loop preload="none"></video></figure>
   </div>
@@ -263,19 +263,19 @@ setTimeout(function(){var h=document.documentElement;if(!h.dataset.rvReady)h.cla
 
 <section class="g-asks" aria-labelledby="g-asks-h">
   <div class="wrap">
-    <div class="g-asks__head"><h2 class="g-asks__h" id="g-asks-h">What every check asks of an agent</h2><div class="g-asks__nav"><button type="button" class="g-sq" data-asks="-1" aria-label="Previous cards"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3L5 8l5 5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></button><button type="button" class="g-sq" data-asks="1" aria-label="Next cards"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></button></div></div>
+    <div class="g-asks__head"><h2 class="g-asks__h" id="g-asks-h">What every check asks of an&nbsp;agent</h2><div class="g-asks__nav"><button type="button" class="g-sq" data-asks="-1" aria-label="Previous cards"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3L5 8l5 5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></button><button type="button" class="g-sq" data-asks="1" aria-label="Next cards"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></button></div></div>
   </div>
   <div class="g-asks__track" tabindex="0" role="region" aria-labelledby="g-asks-h">
     <article class="g-ask"><div class="g-ask__top"><span class="g-ask__i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="1.5"/><circle cx="9" cy="11" r="2.4" class="acc"/><path d="M5.8 16.2c.6-1.6 1.8-2.4 3.2-2.4s2.6.8 3.2 2.4M14.5 10h4M14.5 13h3"/></svg></span><span class="g-ask__k">Who it is</span></div><p>A lineage and a version — the agent itself, separate from any person behind it.</p></article>
     <article class="g-ask"><div class="g-ask__top"><span class="g-ask__i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4 20V8l6-3v15M10 20V9l10 3v8M2.5 20h19"/><path d="M13 14h2M13 17h2M16.5 14h1M16.5 17h1M6.5 11h1M6.5 14h1M6.5 17h1"/><path d="M15 4.5l1.6 1.6L19.5 3" class="acc"/></svg></span><span class="g-ask__k">Who stands behind it</span></div><p>An operator, proven to an accredited registrar. The root never sees who.</p></article>
-    <article class="g-ask"><div class="g-ask__top"><span class="g-ask__i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="1"/><rect x="7" y="7" width="10" height="10" rx="1" stroke-dasharray="2 2"/><rect x="10" y="10" width="4" height="4" class="acc"/></svg></span><span class="g-ask__k">What it may do</span></div><p>An authority class and a scope ceiling, signed. Running copies get narrower, shorter-lived keys.</p></article>
-    <article class="g-ask"><div class="g-ask__top"><span class="g-ask__i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3 2"/><path d="M15.5 19.2l1.8 1.8 3.4-3.6" class="acc"/></svg></span><span class="g-ask__k">Whether it is still trusted</span></div><p>A registrar-signed status, checked fresh. No fresh status, no entry: it fails closed.</p></article>
+    <article class="g-ask"><div class="g-ask__top"><span class="g-ask__i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="1"/><rect x="7" y="7" width="10" height="10" rx="1" stroke-dasharray="2 2"/><rect x="10" y="10" width="4" height="4" class="acc"/></svg></span><span class="g-ask__k">What it may do</span></div><p>An authority class and a scope ceiling, signed. Running copies get narrower, <span class="nw">shorter-lived</span> keys.</p></article>
+    <article class="g-ask"><div class="g-ask__top"><span class="g-ask__i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3 2"/><path d="M15.5 19.2l1.8 1.8 3.4-3.6" class="acc"/></svg></span><span class="g-ask__k">Whether it is still trusted</span></div><p>A <span class="nw">registrar-signed</span> status, checked fresh. No fresh status, no entry: it fails closed.</p></article>
     <article class="g-ask"><div class="g-ask__top"><span class="g-ask__i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="4.5" r="1.8" class="acc"/><path d="M12 6.3v3M7 12.5V9.3h10v3.2"/><rect x="4.5" y="12.5" width="5" height="4"/><rect x="14.5" y="12.5" width="5" height="4"/><path d="M3 20.5h18"/></svg></span><span class="g-ask__k">Whether it was logged</span></div><p>Every passport is written to a public log before it is valid, so nothing is issued in secret.</p></article>
     <article class="g-ask"><div class="g-ask__top"><span class="g-ask__i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4 4h11l5 5v11H4z"/><path d="M15 4v5h5M7.5 12h6M7.5 15h4"/><path d="M12.5 18.5c1-1.4 1.8-1.4 2.2 0 .4 1.3 1.2 1.3 2.2-.2" class="acc"/></svg></span><span class="g-ask__k">Whether this request is its own</span></div><p>Each request is signed by the running copy's own key, bound to one method, host and path.</p></article>
     <article class="g-ask" aria-hidden="true" data-clone><div class="g-ask__top"><span class="g-ask__i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="1.5"/><circle cx="9" cy="11" r="2.4" class="acc"/><path d="M5.8 16.2c.6-1.6 1.8-2.4 3.2-2.4s2.6.8 3.2 2.4M14.5 10h4M14.5 13h3"/></svg></span><span class="g-ask__k">Who it is</span></div><p>A lineage and a version — the agent itself, separate from any person behind it.</p></article>
     <article class="g-ask" aria-hidden="true" data-clone><div class="g-ask__top"><span class="g-ask__i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4 20V8l6-3v15M10 20V9l10 3v8M2.5 20h19"/><path d="M13 14h2M13 17h2M16.5 14h1M16.5 17h1M6.5 11h1M6.5 14h1M6.5 17h1"/><path d="M15 4.5l1.6 1.6L19.5 3" class="acc"/></svg></span><span class="g-ask__k">Who stands behind it</span></div><p>An operator, proven to an accredited registrar. The root never sees who.</p></article>
-    <article class="g-ask" aria-hidden="true" data-clone><div class="g-ask__top"><span class="g-ask__i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="1"/><rect x="7" y="7" width="10" height="10" rx="1" stroke-dasharray="2 2"/><rect x="10" y="10" width="4" height="4" class="acc"/></svg></span><span class="g-ask__k">What it may do</span></div><p>An authority class and a scope ceiling, signed. Running copies get narrower, shorter-lived keys.</p></article>
-    <article class="g-ask" aria-hidden="true" data-clone><div class="g-ask__top"><span class="g-ask__i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3 2"/><path d="M15.5 19.2l1.8 1.8 3.4-3.6" class="acc"/></svg></span><span class="g-ask__k">Whether it is still trusted</span></div><p>A registrar-signed status, checked fresh. No fresh status, no entry: it fails closed.</p></article>
+    <article class="g-ask" aria-hidden="true" data-clone><div class="g-ask__top"><span class="g-ask__i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="1"/><rect x="7" y="7" width="10" height="10" rx="1" stroke-dasharray="2 2"/><rect x="10" y="10" width="4" height="4" class="acc"/></svg></span><span class="g-ask__k">What it may do</span></div><p>An authority class and a scope ceiling, signed. Running copies get narrower, <span class="nw">shorter-lived</span> keys.</p></article>
+    <article class="g-ask" aria-hidden="true" data-clone><div class="g-ask__top"><span class="g-ask__i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3 2"/><path d="M15.5 19.2l1.8 1.8 3.4-3.6" class="acc"/></svg></span><span class="g-ask__k">Whether it is still trusted</span></div><p>A <span class="nw">registrar-signed</span> status, checked fresh. No fresh status, no entry: it fails closed.</p></article>
     <article class="g-ask" aria-hidden="true" data-clone><div class="g-ask__top"><span class="g-ask__i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="4.5" r="1.8" class="acc"/><path d="M12 6.3v3M7 12.5V9.3h10v3.2"/><rect x="4.5" y="12.5" width="5" height="4"/><rect x="14.5" y="12.5" width="5" height="4"/><path d="M3 20.5h18"/></svg></span><span class="g-ask__k">Whether it was logged</span></div><p>Every passport is written to a public log before it is valid, so nothing is issued in secret.</p></article>
     <article class="g-ask" aria-hidden="true" data-clone><div class="g-ask__top"><span class="g-ask__i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4 4h11l5 5v11H4z"/><path d="M15 4v5h5M7.5 12h6M7.5 15h4"/><path d="M12.5 18.5c1-1.4 1.8-1.4 2.2 0 .4 1.3 1.2 1.3 2.2-.2" class="acc"/></svg></span><span class="g-ask__k">Whether this request is its own</span></div><p>Each request is signed by the running copy's own key, bound to one method, host and path.</p></article>
   </div>
@@ -290,7 +290,7 @@ setTimeout(function(){var h=document.documentElement;if(!h.dataset.rvReady)h.cla
 <footer class="g-foot">
   <div class="g-foot__in">
     <div class="g-foot__l">
-      <p>© 2026 AINRA contributors.<br>Apache-2.0 OR MIT.</p>
+      <p>© 2026 AINRA contributors.<br><span class="nw">Apache-2.0</span> OR MIT.</p>
       <hr>
       <p class="g-foot__mean"><b>AINRA</b> — Agent Identity &amp; Naming Registry Authority. The neutral root of AI agent identity. Founding 2026.</p>
       <hr>
@@ -307,7 +307,7 @@ setTimeout(function(){var h=document.documentElement;if(!h.dataset.rvReady)h.cla
         <h4>Protocol</h4>
         <ul>
           <li><a href="standard.html">The standard</a></li>
-          <li><a href="ainra-cli-v0.3.3.zip">Reference CLI v0.3.3</a></li>
+          <li><a href="ainra-cli-v0.3.4.zip">Reference CLI v0.3.4</a></li>
           <li><a href="https://github.com/JacobJandon/ainra" rel="noopener">Source — the full reference impl</a></li>
           <li><a href="#top">The passport</a></li>
           <li><a href="verify.html#authority">Authority model</a></li>
@@ -344,17 +344,17 @@ setTimeout(function(){var h=document.documentElement;if(!h.dataset.rvReady)h.cla
           <li><a href="foundation.html#release-integrity">Release integrity</a></li>
           <li><a href="control.html">Control room</a></li>
           <li><a href="https://github.com/JacobJandon/ainra/blob/main/docs/DECISIONS.md" rel="noopener">Decision log</a></li>
-          <li><a href="https://github.com/JacobJandon/ainra/blob/main/docs/TRADEOFFS.md" rel="noopener">Trade-offs</a></li>
+          <li><a href="https://github.com/JacobJandon/ainra/blob/main/docs/TRADEOFFS.md" rel="noopener"><span class="nw">Trade-offs</span></a></li>
           <li><a href="https://github.com/JacobJandon/ainra/blob/main/SECURITY.md" rel="noopener">Security</a></li>
         </ul>
       </div>
     </div>
   </div>
   <div class="status g-foot__status">
-    <span class="live">ROOT STATUS: PRE-CEREMONY</span>
-    <span>LOGS SEALED: 0 · WITNESSES: 0 — SPLIT-VIEW GUARANTEE NOT IN FORCE · <a href="https://github.com/JacobJandon/ainra/blob/main/outreach/WITNESS-CALL.md">RECRUITING</a> · SPEC PUBLIC · CLI v0.3.3</span>
+    <span class="live">ROOT STATUS: <span class="nw">PRE-CEREMONY</span></span>
+    <span>LOGS SEALED: 0 · WITNESSES: 0 — <span class="nw">SPLIT-VIEW</span> GUARANTEE NOT IN FORCE · <a href="https://github.com/JacobJandon/ainra/blob/main/outreach/WITNESS-CALL.md">RECRUITING</a> · SPEC PUBLIC · CLI v0.3.4</span>
     <span>ISSUES NOTHING · SCORES NOTHING · SEES NO PII · FAVORS NO ONE</span>
-    <span class="rclock" data-record-clock><span class="rclock__l"><span class="rclock__k">PUBLISHED RECORD</span> <span data-stamp="published-iso">2026-11-04T18:19:51Z</span></span><span class="rclock__s"><span class="rclock__k">RECORD</span> <span data-stamp="published-date">2026-11-04</span></span><span data-rc-more hidden> · <span class="rclock__l"><span class="rclock__k">AGE</span> <span data-rc-age></span></span><span class="rclock__s" data-rc-days></span> · <b data-rc-state></b></span></span>
+    <span class="rclock" data-record-clock><span class="rclock__l"><span class="rclock__k">PUBLISHED RECORD</span> <span data-stamp="published-iso"><span class="nw">2026-11-04T18:19:51Z</span></span></span><span class="rclock__s"><span class="rclock__k">RECORD</span> <span data-stamp="published-date"><span class="nw">2026-11-04</span></span></span><span data-rc-more hidden> · <span class="rclock__l"><span class="rclock__k">AGE</span> <span data-rc-age></span></span><span class="rclock__s" data-rc-days></span> · <b data-rc-state></b></span></span>
     <span class="openbadge"><svg viewBox="0 0 160 160" aria-hidden="true" style="color:#8A93A0"><use href="#ainra-crest"/></svg>An open standard · held by no one</span>
   </div>
 </footer>

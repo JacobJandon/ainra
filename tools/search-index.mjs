@@ -7,7 +7,7 @@ import { join } from "node:path";
 
 const SITE = new URL("../site/", import.meta.url).pathname;
 const PAGES = [["index.html", "Home"], ["verify.html", "Verify"], ["get.html", "Network"], ["landscape.html", "Landscape"],
-  ["foundation.html", "Foundation"], ["docs.html", "Docs"], ["standard.html", "Standard"], ["request-demo.html", "Demo"], ["control.html", "Control room"]];
+  ["foundation.html", "Foundation"], ["docs.html", "Docs"], ["standard.html", "Standard"], ["request-demo.html", "Demo"], ["control.html", "Control room"], ["news.html", "News"]];
 // the words of a part, for matching only (never shown): a search for "install", "npm", "python" or "contact" found
 // nothing while the index held just each heading and its first 220 characters
 // Sorted, so it is a bag of words and never a sentence: a phrase copied here would be a second, unregistered place

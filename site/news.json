@@ -1,0 +1,167 @@
+{
+  "about": "AINRA's news: releases, rules, security and the network. Written by hand, few on purpose; each entry links to its proof. This file is the only place an entry is written. tools/news.mjs draws news.html and news.xml from it, and holds it to the record: every release and every incident since the page began has an entry.",
+  "since": "2026-10-29",
+  "kinds": { "release": "Release", "rules": "Rules", "security": "Security", "network": "Network" },
+  "entries": [
+    {
+      "id": "cli-printed-a-strangers-text",
+      "date": "2026-11-13",
+      "kind": "security",
+      "major": true,
+      "title": "Our command-line tools printed a stranger's text as written",
+      "body": [
+        "A passport names itself, and both of our command-line tools printed that name exactly as it was sent. A name with a line break in it could write a line of its own on your screen, reading ALLOW or VALID, right beside the real answer.",
+        "The real answer was never wrong: the verdict, the exit code and the machine-readable line were correct every time. But a person reading the screen, or a log that keeps the first word of each line, could have been misled.",
+        "We did not find this with a test. We found it by reading another project's report of the same fault in its own verifier, and then trying ours. Both tools now print anything a presenter wrote with its unusual characters escaped. If you downloaded the reference CLI, replace 0.3.4 with 0.3.5."
+      ],
+      "proof": [
+        { "label": "The post-mortem", "href": "https://github.com/JacobJandon/ainra/blob/main/SECURITY.md" },
+        { "label": "Incident INC-2026-010", "href": "incidents.json" },
+        { "label": "Reference CLI 0.3.5", "href": "ainra-cli-v0.3.5.zip" }
+      ],
+      "covers": { "incidents": ["INC-2026-010"] }
+    },
+    {
+      "id": "an-advisory-nobody-saw-for-a-day",
+      "date": "2026-11-12",
+      "kind": "security",
+      "major": false,
+      "title": "An advisory in a test tool, and a red light nobody saw for a day",
+      "body": [
+        "A public advisory was filed against a small library our tests use. Nothing you run from us links it, and no published file changed when we updated it.",
+        "The part worth telling is our own slip. Our weekly check went red on 11 November and nobody looked until the next day, and by then we had pushed twice. Since then the same check runs before every push, and two more of our own records are checked on every change instead of only on our machines."
+      ],
+      "proof": [
+        { "label": "The advisory, scoped", "href": "https://github.com/JacobJandon/ainra/blob/main/SECURITY-ADVISORIES.md" },
+        { "label": "Incident INC-2026-009", "href": "incidents.json" }
+      ],
+      "covers": { "incidents": ["INC-2026-009"] }
+    },
+    {
+      "id": "a-name-could-stop-a-gate",
+      "date": "2026-11-12",
+      "kind": "security",
+      "major": true,
+      "title": "A crafted passport name could stop a gate",
+      "body": [
+        "The gate in @ainra/middleware writes its verdict into a response header. A passport name containing a character no header can carry made the server throw while writing it: a refusal turned into an error page, and a server that did not catch the error stopped.",
+        "Nothing was ever wrongly let in. This is about staying up, not about who gets through.",
+        "The fix is on the main branch with a test that fails on the old code, and it ships in the package's next release. Until you have that release, make sure the gate runs inside your framework's error handler, which most frameworks do by default."
+      ],
+      "proof": [
+        { "label": "What changed", "href": "https://github.com/JacobJandon/ainra/blob/main/CHANGELOG.md" }
+      ],
+      "covers": {}
+    },
+    {
+      "id": "another-project-launched",
+      "date": "2026-11-12",
+      "kind": "network",
+      "major": false,
+      "title": "Another agent-identity project launched with wide backing",
+      "body": [
+        "On 10 November a project with a public log, status tokens and an offline verifier launched under a large open-source foundation, with well-known companies behind it. That is good news for the idea we share: an agent should be able to prove who it is.",
+        "We read its published documents again on 12 November and brought our landscape page up to date. Where we differ, and where we do not yet do better, is written there with a source for every line."
+      ],
+      "proof": [
+        { "label": "The landscape, with sources", "href": "landscape.html" }
+      ],
+      "covers": {}
+    },
+    {
+      "id": "v0.8.0",
+      "date": "2026-11-07",
+      "kind": "release",
+      "major": true,
+      "title": "0.8.0: an outside review, and passports that can move",
+      "body": [
+        "The first independent adversarial review of the code found real faults in the reference registrar, and this release fixes all of them. The worst: a demonstration door that could revoke, renew or issue under a real passport's name, and a server that one idle connection could stop.",
+        "Two things are new. A passport's lineage can move to another registrar, and it can change owner. Each move is signed by the operator, stays public for five days, and can be stopped by the old key during that time.",
+        "A gate can also now refuse a registrar, a lineage or a single name by its own policy, without waiting for anyone else to act."
+      ],
+      "proof": [
+        { "label": "The signed release", "href": "https://github.com/JacobJandon/ainra/releases/tag/v0.8.0" },
+        { "label": "Everything in it", "href": "https://github.com/JacobJandon/ainra/blob/main/CHANGELOG.md" }
+      ],
+      "covers": { "releases": ["0.8.0"] }
+    },
+    {
+      "id": "how-fast-we-must-tell-you",
+      "date": "2026-11-06",
+      "kind": "rules",
+      "major": true,
+      "title": "How fast we must tell you when something goes wrong",
+      "body": [
+        "We wrote down deadlines for ourselves and made them public. The most serious kind of incident gets an entry in the public log within three days and a fix or a way around it within fourteen. A lesser one gets seven days and thirty.",
+        "A late entry has to say why it was late. The check that holds us to this turns red on the day a deadline passes, so it cannot be satisfied by not looking."
+      ],
+      "proof": [
+        { "label": "The rules", "href": "https://github.com/JacobJandon/ainra/blob/main/deploy/runbooks/root-incident.md" },
+        { "label": "The public incident log", "href": "incidents.json" }
+      ],
+      "covers": {}
+    },
+    {
+      "id": "the-standard-says-what-the-code-does",
+      "date": "2026-11-04",
+      "kind": "rules",
+      "major": true,
+      "title": "We corrected the Standard where it said more than the code does",
+      "body": [
+        "We read our own Standard against our own code and found places where the text promised more than was built. It described the passport as a format with selective disclosure; in fact every claim in a passport is shown. It said the person behind an agent was proven without revealing them; no such proof exists in the code, where a registrar checks evidence and the passport carries a fingerprint of it. It said the depth of delegation was capped; it is not.",
+        "We changed the text to match the code, not the code to match the text, and recorded each change in the amendment log. A standard that describes what was not built is a promise with nothing behind it."
+      ],
+      "proof": [
+        { "label": "The amendment record", "href": "https://github.com/JacobJandon/ainra/blob/main/docs/AMENDMENTS.md" },
+        { "label": "The Standard", "href": "standard.html" }
+      ],
+      "covers": {}
+    },
+    {
+      "id": "v0.7.0",
+      "date": "2026-11-04",
+      "kind": "release",
+      "major": false,
+      "title": "0.7.0: every check shows it can fail",
+      "body": [
+        "A check that cannot fail proves nothing. In this release each gate has a planted fault that it must catch, and that list runs on every change.",
+        "Also in it: a witness that someone outside the project can actually run, and a verifier that never goes back to an older list of registrars once it has seen a newer one."
+      ],
+      "proof": [
+        { "label": "The signed release", "href": "https://github.com/JacobJandon/ainra/releases/tag/v0.7.0" }
+      ],
+      "covers": { "releases": ["0.7.0"] }
+    },
+    {
+      "id": "v0.6.0",
+      "date": "2026-11-02",
+      "kind": "release",
+      "major": false,
+      "title": "0.6.0: links for a second kind of key",
+      "body": [
+        "A link gives an agent's existing key an accountable owner and a way to be revoked. This release adds links for the kind of key most wallets use, and makes a cut-off record of a gate's decisions visible once its latest entry is logged."
+      ],
+      "proof": [
+        { "label": "The signed release", "href": "https://github.com/JacobJandon/ainra/releases/tag/v0.6.0" }
+      ],
+      "covers": { "releases": ["0.6.0"] }
+    },
+    {
+      "id": "v0.5.0",
+      "date": "2026-10-29",
+      "kind": "release",
+      "major": true,
+      "title": "0.5.0: revocation for keys agents already hold",
+      "body": [
+        "Most agents already sign their requests with a key, and that key can only be revoked inside the system that issued it. A link is a registrar's signed, logged statement that such a key acts for one passport, with one bit in a status list that anyone can check offline.",
+        "The same release publishes that status list in the standard format other libraries already read, and lets a gate keep a signed, chained record of every decision it took.",
+        "It also owns two faults. Our reference registrar forgot revocations when it restarted, so a revoked passport verified again; no release carried it, and it is fixed with a test that kills and restarts the real program. And a library we depend on leaked timing while signing; no production key existed."
+      ],
+      "proof": [
+        { "label": "The signed release", "href": "https://github.com/JacobJandon/ainra/releases/tag/v0.5.0" },
+        { "label": "How links work", "href": "https://github.com/JacobJandon/ainra/blob/main/docs/LINKS.md" }
+      ],
+      "covers": { "releases": ["0.5.0"] }
+    }
+  ]
+}

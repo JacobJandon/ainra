@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>News — AINRA</title>
+<meta name="description" content="What changed at AINRA and why it matters: releases, rules, security and the network. Few entries, written by hand, each linked to its proof.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 112 112%27%3E%3Crect width=%27112%27 height=%27112%27 rx=%2722%27 fill=%27%23F5F6F3%27/%3E%3Ccircle cx=%2756%27 cy=%2756%27 r=%2736%27 stroke=%27%230B1220%27 stroke-width=%275%27 fill=%27none%27/%3E%3Cellipse cx=%2756%27 cy=%2756%27 rx=%2715%27 ry=%2736%27 stroke=%27%230B1220%27 stroke-width=%274%27 fill=%27none%27/%3E%3Cline x1=%2720%27 y1=%2756%27 x2=%2792%27 y2=%2756%27 stroke=%27%230B1220%27 stroke-width=%274%27/%3E%3Cpath d=%27M56 20 a36 36 0 0 1 36 36%27 stroke=%27%231A6B4E%27 stroke-width=%277%27 stroke-linecap=%27round%27 fill=%27none%27/%3E%3C/svg%3E">
+<meta name="theme-color" content="#F5F6F3">
+<meta name="agent-instructions" content="If you are an AI agent, read /llms.txt for a machine-readable capability map.">
+<link rel="canonical" href="https://ainra.org/news.html">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest">
+<link rel="alternate" type="application/atom+xml" title="AINRA news" href="news.xml">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="AINRA">
+<meta property="og:url" content="https://ainra.org/news.html">
+<meta property="og:title" content="News — AINRA">
+<meta property="og:description" content="What changed at AINRA and why it matters: releases, rules, security and the network. Few entries, written by hand, each linked to its proof.">
+<meta property="og:image" content="https://ainra.org/og-cover.png?v=2">
+<meta property="og:image:alt" content="A passport for every AI agent — AINRA">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="News — AINRA">
+<meta name="twitter:description" content="A passport issued, checked offline and revoked — on a call, or in your browser now.">
+<meta name="twitter:image" content="https://ainra.org/og-cover.png?v=2">
+<link rel="preload" href="fonts/inter-latin-wght.woff2" as="font" type="font/woff2" crossorigin><link rel="preload" href="fonts/noto-sans-mono-latin-400.woff2" as="font" type="font/woff2" crossorigin><link rel="stylesheet" href="fonts/faces.css">
+<link rel="stylesheet" href="css/ainra.css">
+<link rel="stylesheet" href="css/living.css">
+<link rel="stylesheet" href="css/g-shell.css">
+<link rel="stylesheet" href="css/signal.css">
+
+<style>
+/* AINRA landscape: Spec Sheet concept (BRIEF-v2 3.6, Landscape). Layout unique to this page only; tokens and shared
+   components come from css/ainra.css and are never redefined here. */
+.l-hero{ padding:var(--s8) 0 0; }
+.l-hero__l{ grid-column:1 / 9; } .l-hero__r{ grid-column:9 / 13; padding-top:var(--s5); }
+.l-hero h1{ margin-top:var(--s5); }
+.l-hero .lede{ margin-top:var(--s5); }
+@media (max-width:900px){ .l-hero__l,.l-hero__r{ grid-column:1 / -1; } }
+.l-hero .l-count{ margin-top:var(--s5); }
+.l-count .glyph{ position:absolute; top:14px; right:14px; }
+.lfig svg{ width:100%; height:auto; font-family:var(--mono); }
+.lf__box{ fill:var(--card); stroke:var(--ink); }
+.lf__t{ font-size:10px; letter-spacing:.06em; fill:var(--ink); }
+.lf__w{ stroke:var(--rule-strong); stroke-dasharray:4 3; fill:none; }
+.lf__ink{ stroke:var(--green); stroke-width:1.5; fill:none; transition:stroke-dashoffset var(--t-draw) var(--ease-in-out); }
+.lf__lab{ font-size:10px; fill:var(--muted); letter-spacing:.04em; }
+.lf__bar{ fill:var(--mint); stroke:var(--green); }
+.lf__h{ font-size:11px; font-weight:700; letter-spacing:.06em; fill:var(--green-deep); }
+.l-proof{ font-size:var(--fs-lead); line-height:1.45; color:var(--ink-soft); }
+.l-proof code{ font-size:var(--fs-data); color:var(--ink); background:var(--card); border:1px solid var(--line); border-radius:var(--r-ctl); padding:1px 6px; white-space:nowrap; }
+.l-count{ margin-top:var(--s7); border:1px solid var(--line); background:var(--card); padding:var(--s5); gap:var(--s3); max-width:62rem; }
+.l-count__text{ font-size:var(--fs-lead); line-height:1.45; color:var(--ink); max-width:46ch; }
+.l-count__text b{ font-family:var(--mono); font-weight:700; letter-spacing:.02em; }
+</style>
+<style>
+/* News (2026-11-13): few entries, written by hand, newest first; the major ones are set larger. Drawn from
+   site/news.json by tools/news.mjs. The filter is a convenience: with scripts off every entry is simply there. */
+.nw-tools{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;margin:28px 0 8px;padding:14px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.nw-tools__k{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-right:4px}
+.nw-chips{display:flex;flex-wrap:wrap;gap:4px;padding:4px;border-radius:999px;background:rgba(11,18,32,.055)}
+.nw-chips button{appearance:none;border:0;background:none;font:inherit;font-size:14px;line-height:1;color:var(--ink-soft);height:36px;padding:0 14px;border-radius:999px;cursor:pointer;transition:color .2s ease,background-color .25s ease}
+.nw-chips button:hover{color:var(--ink);background:rgba(11,18,32,.08)}
+.nw-chips button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.nw-feed{margin-left:auto;font-size:14px;color:var(--ink);text-decoration:underline;text-underline-offset:4px}
+.nw-month{margin-top:44px}
+.nw-month__h{font-family:var(--mono);font-size:12px;font-weight:400;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0 0 6px;padding-bottom:10px;border-bottom:1px solid var(--line)}
+.nw-item{display:grid;grid-template-columns:minmax(150px,210px) minmax(0,62ch);column-gap:clamp(20px,4vw,56px);padding:26px 0;border-bottom:1px solid var(--line)}
+.nw-item > *{grid-column:2}
+.nw-when{grid-column:1;grid-row:1 / span 6;margin:4px 0 0;display:flex;flex-direction:column;align-items:flex-start;gap:8px;font-size:14px;color:var(--muted)}
+.nw-kind,.nw-flag{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;border:1px solid var(--line);border-radius:999px;padding:4px 9px;color:var(--ink-soft);background:var(--card)}
+.nw-flag{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+.nw-title{font-size:21px;line-height:1.25;letter-spacing:-.015em;font-weight:560;margin:0 0 10px;text-wrap:balance}
+.nw-title a{color:var(--ink);text-decoration:none}
+.nw-title a:hover{text-decoration:underline;text-underline-offset:4px;text-decoration-thickness:1px}
+.nw-item--major .nw-title{font-size:clamp(24px,2.2vw,30px);line-height:1.15;letter-spacing:-.025em;font-weight:520}
+.nw-item p{margin:0 0 10px;font-size:16px;line-height:1.6;color:var(--ink-soft);text-wrap:pretty}
+.nw-item p.nw-proof{margin:14px 0 0;display:flex;flex-wrap:wrap;gap:6px 18px;font-size:14px}
+.nw-proof a{color:var(--ink);text-decoration:underline;text-underline-offset:4px;text-decoration-thickness:1px}
+.nw-proof a::after{content:" →"}
+.nw-item[hidden],.nw-month[hidden]{display:none}
+.nw-none{padding:32px 0;color:var(--muted)}
+.nw-how{margin-top:56px;max-width:70ch;font-size:15px;line-height:1.6;color:var(--muted)}
+@media (max-width:700px){
+  .nw-item{grid-template-columns:1fr;padding:22px 0}
+  .nw-item > *,.nw-when{grid-column:1}
+  .nw-when{grid-row:auto;flex-direction:row;flex-wrap:wrap;align-items:center;margin:0 0 10px}
+  .nw-feed{margin-left:0;flex-basis:100%}
+  .nw-chips{border-radius:22px}
+  .nw-chips button{height:40px}
+}
+</style>
+<script>/* reveal only when motion is on (the same decision as js/motion.mjs), set before first paint */
+try{var m=localStorage.getItem("ainra-motion");if(m!=="off"&&(m==="on"||!matchMedia("(prefers-reduced-motion: reduce)").matches))document.documentElement.classList.add("rv")}catch(e){if(!matchMedia("(prefers-reduced-motion: reduce)").matches)document.documentElement.classList.add("rv")}
+/* fail safe: if js/reveal.mjs never starts, show everything rather than leave the page hidden */
+setTimeout(function(){var h=document.documentElement;if(!h.dataset.rvReady)h.classList.remove("rv")},2500)</script>
+</head>
+<body class="gi-page" id="top">
+<div class="g-intro" id="gIntro" aria-hidden="true"><div class="g-intro__panel"><svg class="g-intro__mark" viewBox="0 0 112 112">
+      <path class="gi-body" pathLength="1" d="M 98.4 33.5 A 48 48 0 1 1 78.5 13.6" fill="none" stroke="#0B1220" stroke-width="3" stroke-linecap="round"/>
+      <path d="M 95.8 29.2 L 98.7 27.2 M 91.7 23.9 L 94.3 21.5 M 86.9 19.2 L 89.1 16.6" stroke="#0B1220" stroke-width="1" opacity=".5"/>
+      <path d="M 80.6 11.5 L 83.4 18.5 L 76.4 15.7 Z" fill="#0B1220"/>
+      <circle cx="79.6" cy="14.2" r="1.1" fill="#F5F6F3"/>
+      <circle cx="56" cy="56" r="36" stroke="#0B1220" stroke-width="1.2" fill="none"/>
+      <circle cx="56" cy="56" r="26" stroke="#0B1220" stroke-width="1.6" fill="none"/>
+      <ellipse cx="56" cy="56" rx="11" ry="26" stroke="#0B1220" stroke-width="1" fill="none"/>
+      <line x1="30" y1="56" x2="82" y2="56" stroke="#0B1220" stroke-width="1.1"/>
+      <path d="M33.5 43 h45 M33.5 69 h45" stroke="#0B1220" stroke-width="0.8" opacity="0.6"/>
+      <path d="M56 30 a26 26 0 0 1 26 26" stroke="#1A6B4E" stroke-width="3" stroke-linecap="round" fill="none"/>
+      <circle cx="56" cy="56" r="2.4" fill="#0B1220"/>
+    </svg></div></div>
+
+<a href="#main" class="skip">Skip to content</a>
+
+<div class="announce"><div class="wrap"><span class="announce__msg">Real issuance + the real record on a <b><span class="nw">TEST-ROOT</span></b> — every passport here is a labelled specimen with real cryptography, verified on your machine. <a href="foundation.html">Honest status →</a></span><span class="announce__side"><span class="rclock" data-record-clock><span class="rclock__l"><span class="rclock__k">PUBLISHED RECORD</span> <span data-stamp="published-iso"><span class="nw">2026-11-04T18:19:51Z</span></span></span><span class="rclock__s"><span class="rclock__k">RECORD</span> <span data-stamp="published-date"><span class="nw">2026-11-04</span></span></span><span data-rc-more hidden> · <span class="rclock__l"><span class="rclock__k">AGE</span> <span data-rc-age></span></span><span class="rclock__s" data-rc-days></span> · <b data-rc-state></b></span></span><button class="motion-btn" type="button" data-motion-toggle aria-pressed="true" hidden><svg class="i-on" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 2h2v8H3zM7 2h2v8H7z" fill="currentColor"/></svg><svg class="i-off" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 2v8l7-4z" fill="currentColor"/></svg><span data-motion-label>Motion: on</span></button></span></div></div>
+
+<nav><div class="wrap nav-in">
+  <a class="brand" href="index.html" aria-label="AINRA — Agent Identity and Naming Registry Authority">
+    <span class="sigil" aria-hidden="true"><svg viewBox="0 0 112 112"><use href="#ainra-sigil"/></svg></span>
+    <span class="wm">AINRA</span></a>
+  <div class="nav-links-d" data-nav-tabs>
+    <a href="index.html">Home</a>
+    <a href="verify.html">Verify</a>
+    <a href="get.html">Network</a>
+    <a href="docs.html">Docs</a>
+    <a href="landscape.html">Landscape</a>
+    <a href="foundation.html">Foundation</a>
+    <button type="button" data-nav-more aria-expanded="false" aria-controls="gMenu">More</button>
+  </div>
+  <div class="nav-r"><a class="btn btn-ghost" href="request-demo.html">Request a demo →</a><a class="g-sq" href="get.html#browse" aria-label="Search"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.5"/></svg></a><button class="g-menubtn" type="button" data-g-menu aria-expanded="false" aria-controls="gMenu"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" stroke-width="1.5" fill="none"/></svg><span class="vh">Menu</span></button></div>
+  <div class="nav-links" id="navLinks"><a href="index.html">The root</a><a href="verify.html">Verify</a><a href="get.html">Network</a><a href="landscape.html">Landscape</a><a href="foundation.html">Foundation</a><a href="docs.html">Docs</a><a href="foundation.html#access">Join the founding table</a><a href="https://github.com/JacobJandon/ainra" rel="noopener"><svg class="gh" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>GitHub</a></div>
+</div></nav>
+<div class="g-menu" id="gMenu" role="dialog" aria-modal="true" aria-labelledby="gMenuTitle" hidden>
+  <div class="wrap g-menu__in">
+    <h2 class="vh" id="gMenuTitle">Menu</h2>
+    <p class="g-menu__about"><b>AINRA</b> — Agent Identity &amp; Naming Registry Authority. An open standard, held by no one.</p>
+    <div class="g-menu__cols">
+      <div class="g-menu__col">
+        <p class="g-menu__k">Navigation</p>
+        <ul class="g-menu__big">
+          <li><a href="verify.html">Verify</a><ul><li><a href="verify.html#try">↳ Try a passport</a></li><li><a href="docs.html#verify">↳ How a check works</a></li></ul></li>
+          <li><a href="get.html">Network</a></li>
+          <li><a href="landscape.html">Landscape</a></li>
+          <li><a href="control.html">Control room</a></li>
+          <li><a href="foundation.html">Foundation</a><ul><li><a href="foundation.html#access">↳ Join the founding table</a></li></ul></li>
+          <li><a href="docs.html">Docs</a><ul><li><a href="standard.html">↳ The Standard</a></li><li><a href="docs.html#install">↳ Install</a></li></ul></li>
+        </ul>
+      </div>
+      <div class="g-menu__col">
+        <p class="g-menu__k">The record, as published</p>
+        <dl class="g-menu__kv">
+          <div><dt>Passports in the record</dt><dd data-stamp="issued">80</dd></div>
+          <div><dt>Registrars</dt><dd data-stamp="registrars">2</dd></div>
+          <div><dt>Revoked</dt><dd data-stamp="revoked">53</dd></div>
+          <div><dt>Witnesses</dt><dd>0 · <a href="https://github.com/JacobJandon/ainra/blob/main/outreach/WITNESS-CALL.md">recruiting</a></dd></div>
+        </dl>
+        <p class="g-menu__note">Read from <a href="net/registry.json">net/registry.json</a>.</p>
+      </div>
+      <div class="g-menu__col">
+        <p class="g-menu__k">Quick links</p>
+        <ul class="g-menu__small">
+          <li><a href="https://github.com/JacobJandon/ainra">Source on GitHub</a></li>
+          <li><a href="news.html">News: releases, rules, security</a></li>
+          <li><a href="standard.html">Read the Standard</a></li>
+          <li><a href="scan.html">Browse the record</a></li>
+          <li><a href="RELEASE-VERIFY.md">Verify a release</a></li>
+          <li><a href="llms.txt">For AI agents: llms.txt</a></li>
+          <li><a href="mailto:info@ainra.org">info@ainra.org</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<header class="gi-hero" id="g-top">
+  <div class="wrap">
+    <nav class="gi-sub" aria-label="On this page"><span class="gi-sub__k">AINRA / News</span><a href="#news">What changed, and why it…</a></nav>
+    <h1 class="gi-title" aria-label="News"><span style="--i:0">N</span><span style="--i:1">e</span><span style="--i:2">w</span><span style="--i:3">s</span></h1>
+<aside class="g-side" id="gSide" aria-label="About this page" data-side>
+  <div class="g-side__head"><span>Details</span><button class="g-side__x" type="button" aria-label="Close details" data-side-close>×</button></div>
+  <ul>
+    <li><a href="news.xml"><span>Follow</span>The feed: every entry, as it is written</a></li>
+    <li><a href="#news"><span>Kinds</span>Releases, rules, security, the network</a></li>
+    <li><a href="https://github.com/JacobJandon/ainra/blob/main/CHANGELOG.md"><span>Record</span>The full changelog, for everything else</a></li>
+  </ul>
+</aside>
+<button class="g-side__tab" type="button" aria-controls="gSide" aria-expanded="false" data-side-open>Details</button>
+  </div>
+</header>
+
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><g id="ainra-sigil">
+  <path d="M 98.4 33.5 A 48 48 0 1 1 78.5 13.6" fill="none" stroke="#0B1220" stroke-width="3" stroke-linecap="round"/>
+  <path d="M 80.6 11.5 L 83.4 18.5 L 76.4 15.7 Z" fill="#0B1220"/>
+  <circle cx="56" cy="56" r="36" stroke="#0B1220" stroke-width="1.2" fill="none"/>
+  <circle cx="56" cy="56" r="26" stroke="#0B1220" stroke-width="1.6" fill="none"/>
+  <ellipse cx="56" cy="56" rx="11" ry="26" stroke="#0B1220" stroke-width="1" fill="none"/>
+  <line x1="30" y1="56" x2="82" y2="56" stroke="#0B1220" stroke-width="1.1"/>
+  <path d="M56 30 a26 26 0 0 1 26 26" stroke="#1A6B4E" stroke-width="3" stroke-linecap="round" fill="none"/>
+  <circle cx="56" cy="56" r="2.4" fill="#0B1220"/>
+</g>
+<g id="ainra-crest"><circle cx="80" cy="80" r="76" fill="none" stroke="currentColor" stroke-width="2.6"/><circle cx="80" cy="80" r="58" fill="none" stroke="currentColor" stroke-width="1.1"/><g transform="translate(27.7,27.7) scale(0.935)"><use href="#ainra-sigil"/></g></g>
+</defs></svg>
+
+<main id="main">
+<section class="section" id="news">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="sec-head__row"><span class="earmark"><b>/01</b> · NEWS</span></div>
+      <div class="split">
+        <h2 class="split__l">What changed, and why it matters.</h2>
+        <div class="split__r"><p class="lede">Releases, rules, security and the network. There are few entries here on purpose: each one is written by hand, says what happened in plain words, including what we got wrong, and links to its&nbsp;proof.</p></div>
+      </div>
+    </div>
+    <div class="nw-tools" data-news-tools>
+      <span class="nw-tools__k">Show</span>
+      <div class="nw-chips" role="group" aria-label="Show a kind of news">
+        <button type="button" data-news-kind="all" aria-pressed="true">Everything</button>
+        <button type="button" data-news-kind="major" aria-pressed="false">Major</button>
+        <button type="button" data-news-kind="release" aria-pressed="false">Releases</button>
+        <button type="button" data-news-kind="rules" aria-pressed="false">Rules</button>
+        <button type="button" data-news-kind="security" aria-pressed="false">Security</button>
+        <button type="button" data-news-kind="network" aria-pressed="false">Network</button>
+      </div>
+      <a class="nw-feed" href="news.xml">Follow by feed</a>
+    </div>
+    <div data-news-list>
+  <!--news:start-->
+  <section class="nw-month" aria-label="November 2026">
+    <h2 class="nw-month__h">November 2026</h2>
+    <article class="nw-item nw-item--major" id="n-cli-printed-a-strangers-text" data-kind="security" data-major>
+      <p class="nw-when"><time datetime="2026-11-13">13 November 2026</time><span class="nw-kind nw-kind--security">Security</span><span class="nw-flag">Major</span></p>
+      <h3 class="nw-title"><a href="#n-cli-printed-a-strangers-text">Our <span class="nw">command-line</span> tools printed a stranger's text as written</a></h3>
+      <p>A passport names itself, and both of our <span class="nw">command-line</span> tools printed that name exactly as it was sent. A name with a line break in it could write a line of its own on your screen, reading ALLOW or VALID, right beside the real answer.</p>
+      <p>The real answer was never wrong: the verdict, the exit code and the <span class="nw">machine-readable</span> line were correct every time. But a person reading the screen, or a log that keeps the first word of each line, could have been misled.</p>
+      <p>We did not find this with a test. We found it by reading another project's report of the same fault in its own verifier, and then trying ours. Both tools now print anything a presenter wrote with its unusual characters escaped. If you downloaded the reference CLI, replace 0.3.4 with 0.3.5.</p>
+      <p class="nw-proof"><a href="https://github.com/JacobJandon/ainra/blob/main/SECURITY.md">The <span class="nw">post-mortem</span></a><a href="incidents.json">Incident <span class="nw">INC-2026-010</span></a><a href="ainra-cli-v0.3.5.zip">Reference CLI 0.3.5</a></p>
+    </article>
+    <article class="nw-item" id="n-an-advisory-nobody-saw-for-a-day" data-kind="security">
+      <p class="nw-when"><time datetime="2026-11-12">12 November 2026</time><span class="nw-kind nw-kind--security">Security</span></p>
+      <h3 class="nw-title"><a href="#n-an-advisory-nobody-saw-for-a-day">An advisory in a test tool, and a red light nobody saw for a&nbsp;day</a></h3>
+      <p>A public advisory was filed against a small library our tests use. Nothing you run from us links it, and no published file changed when we updated it.</p>
+      <p>The part worth telling is our own slip. Our weekly check went red on 11 November and nobody looked until the next day, and by then we had pushed twice. Since then the same check runs before every push, and two more of our own records are checked on every change instead of only on our machines.</p>
+      <p class="nw-proof"><a href="https://github.com/JacobJandon/ainra/blob/main/SECURITY-ADVISORIES.md">The advisory, scoped</a><a href="incidents.json">Incident <span class="nw">INC-2026-009</span></a></p>
+    </article>
+    <article class="nw-item nw-item--major" id="n-a-name-could-stop-a-gate" data-kind="security" data-major>
+      <p class="nw-when"><time datetime="2026-11-12">12 November 2026</time><span class="nw-kind nw-kind--security">Security</span><span class="nw-flag">Major</span></p>
+      <h3 class="nw-title"><a href="#n-a-name-could-stop-a-gate">A crafted passport name could stop a&nbsp;gate</a></h3>
+      <p>The gate in @ainra/middleware writes its verdict into a response header. A passport name containing a character no header can carry made the server throw while writing it: a refusal turned into an error page, and a server that did not catch the error stopped.</p>
+      <p>Nothing was ever wrongly let in. This is about staying up, not about who gets through.</p>
+      <p>The fix is on the main branch with a test that fails on the old code, and it ships in the package's next release. Until you have that release, make sure the gate runs inside your framework's error handler, which most frameworks do by default.</p>
+      <p class="nw-proof"><a href="https://github.com/JacobJandon/ainra/blob/main/CHANGELOG.md">What changed</a></p>
+    </article>
+    <article class="nw-item" id="n-another-project-launched" data-kind="network">
+      <p class="nw-when"><time datetime="2026-11-12">12 November 2026</time><span class="nw-kind nw-kind--network">Network</span></p>
+      <h3 class="nw-title"><a href="#n-another-project-launched">Another <span class="nw">agent-identity</span> project launched with wide backing</a></h3>
+      <p>On 10 November a project with a public log, status tokens and an offline verifier launched under a large <span class="nw">open-source</span> foundation, with <span class="nw">well-known</span> companies behind it. That is good news for the idea we share: an agent should be able to prove who it is.</p>
+      <p>We read its published documents again on 12 November and brought our landscape page up to date. Where we differ, and where we do not yet do better, is written there with a source for every line.</p>
+      <p class="nw-proof"><a href="landscape.html">The landscape, with sources</a></p>
+    </article>
+    <article class="nw-item nw-item--major" id="n-v0.8.0" data-kind="release" data-major>
+      <p class="nw-when"><time datetime="2026-11-07">7 November 2026</time><span class="nw-kind nw-kind--release">Release</span><span class="nw-flag">Major</span></p>
+      <h3 class="nw-title"><a href="#n-v0.8.0">0.8.0: an outside review, and passports that can&nbsp;move</a></h3>
+      <p>The first independent adversarial review of the code found real faults in the reference registrar, and this release fixes all of them. The worst: a demonstration door that could revoke, renew or issue under a real passport's name, and a server that one idle connection could stop.</p>
+      <p>Two things are new. A passport's lineage can move to another registrar, and it can change owner. Each move is signed by the operator, stays public for five days, and can be stopped by the old key during that time.</p>
+      <p>A gate can also now refuse a registrar, a lineage or a single name by its own policy, without waiting for anyone else to act.</p>
+      <p class="nw-proof"><a href="https://github.com/JacobJandon/ainra/releases/tag/v0.8.0">The signed release</a><a href="https://github.com/JacobJandon/ainra/blob/main/CHANGELOG.md">Everything in it</a></p>
+    </article>
+    <article class="nw-item nw-item--major" id="n-how-fast-we-must-tell-you" data-kind="rules" data-major>
+      <p class="nw-when"><time datetime="2026-11-06">6 November 2026</time><span class="nw-kind nw-kind--rules">Rules</span><span class="nw-flag">Major</span></p>
+      <h3 class="nw-title"><a href="#n-how-fast-we-must-tell-you">How fast we must tell you when something goes&nbsp;wrong</a></h3>
+      <p>We wrote down deadlines for ourselves and made them public. The most serious kind of incident gets an entry in the public log within three days and a fix or a way around it within fourteen. A lesser one gets seven days and thirty.</p>
+      <p>A late entry has to say why it was late. The check that holds us to this turns red on the day a deadline passes, so it cannot be satisfied by not looking.</p>
+      <p class="nw-proof"><a href="https://github.com/JacobJandon/ainra/blob/main/deploy/runbooks/root-incident.md">The rules</a><a href="incidents.json">The public incident log</a></p>
+    </article>
+    <article class="nw-item nw-item--major" id="n-the-standard-says-what-the-code-does" data-kind="rules" data-major>
+      <p class="nw-when"><time datetime="2026-11-04">4 November 2026</time><span class="nw-kind nw-kind--rules">Rules</span><span class="nw-flag">Major</span></p>
+      <h3 class="nw-title"><a href="#n-the-standard-says-what-the-code-does">We corrected the Standard where it said more than the code&nbsp;does</a></h3>
+      <p>We read our own Standard against our own code and found places where the text promised more than was built. It described the passport as a format with selective disclosure; in fact every claim in a passport is shown. It said the person behind an agent was proven without revealing them; no such proof exists in the code, where a registrar checks evidence and the passport carries a fingerprint of it. It said the depth of delegation was capped; it is not.</p>
+      <p>We changed the text to match the code, not the code to match the text, and recorded each change in the amendment log. A standard that describes what was not built is a promise with nothing behind it.</p>
+      <p class="nw-proof"><a href="https://github.com/JacobJandon/ainra/blob/main/docs/AMENDMENTS.md">The amendment record</a><a href="standard.html">The Standard</a></p>
+    </article>
+    <article class="nw-item" id="n-v0.7.0" data-kind="release">
+      <p class="nw-when"><time datetime="2026-11-04">4 November 2026</time><span class="nw-kind nw-kind--release">Release</span></p>
+      <h3 class="nw-title"><a href="#n-v0.7.0">0.7.0: every check shows it can&nbsp;fail</a></h3>
+      <p>A check that cannot fail proves nothing. In this release each gate has a planted fault that it must catch, and that list runs on every change.</p>
+      <p>Also in it: a witness that someone outside the project can actually run, and a verifier that never goes back to an older list of registrars once it has seen a newer one.</p>
+      <p class="nw-proof"><a href="https://github.com/JacobJandon/ainra/releases/tag/v0.7.0">The signed release</a></p>
+    </article>
+    <article class="nw-item" id="n-v0.6.0" data-kind="release">
+      <p class="nw-when"><time datetime="2026-11-02">2 November 2026</time><span class="nw-kind nw-kind--release">Release</span></p>
+      <h3 class="nw-title"><a href="#n-v0.6.0">0.6.0: links for a second kind of&nbsp;key</a></h3>
+      <p>A link gives an agent's existing key an accountable owner and a way to be revoked. This release adds links for the kind of key most wallets use, and makes a <span class="nw">cut-off</span> record of a gate's decisions visible once its latest entry is logged.</p>
+      <p class="nw-proof"><a href="https://github.com/JacobJandon/ainra/releases/tag/v0.6.0">The signed release</a></p>
+    </article>
+  </section>
+  <section class="nw-month" aria-label="October 2026">
+    <h2 class="nw-month__h">October 2026</h2>
+    <article class="nw-item nw-item--major" id="n-v0.5.0" data-kind="release" data-major>
+      <p class="nw-when"><time datetime="2026-10-29">29 October 2026</time><span class="nw-kind nw-kind--release">Release</span><span class="nw-flag">Major</span></p>
+      <h3 class="nw-title"><a href="#n-v0.5.0">0.5.0: revocation for keys agents already hold</a></h3>
+      <p>Most agents already sign their requests with a key, and that key can only be revoked inside the system that issued it. A link is a registrar's signed, logged statement that such a key acts for one passport, with one bit in a status list that anyone can check offline.</p>
+      <p>The same release publishes that status list in the standard format other libraries already read, and lets a gate keep a signed, chained record of every decision it took.</p>
+      <p>It also owns two faults. Our reference registrar forgot revocations when it restarted, so a revoked passport verified again; no release carried it, and it is fixed with a test that kills and restarts the real program. And a library we depend on leaked timing while signing; no production key existed.</p>
+      <p class="nw-proof"><a href="https://github.com/JacobJandon/ainra/releases/tag/v0.5.0">The signed release</a><a href="https://github.com/JacobJandon/ainra/blob/main/docs/LINKS.md">How links work</a></p>
+    </article>
+  </section>
+  <!--news:end-->
+    </div>
+    <p class="nw-none" data-news-none hidden>Nothing of that kind yet.</p>
+    <p class="nw-how">How this page is kept: every release and every serious incident must have an entry here, and a check fails if one is missing, so choosing what to tell cannot become leaving something out. The full record is always in the <a href="https://github.com/JacobJandon/ainra/blob/main/CHANGELOG.md">changelog</a>, the <a href="https://github.com/JacobJandon/ainra/blob/main/docs/DECISIONS.md">decision log</a> and the <a href="incidents.json">incident log</a>.</p>
+  </div>
+</section>
+</main>
+
+<footer class="g-foot">
+  <div class="g-foot__in">
+    <div class="g-foot__l">
+      <p>© 2026 AINRA contributors.<br><span class="nw">Apache-2.0</span> OR MIT.</p>
+      <hr>
+      <p class="g-foot__mean"><b>AINRA</b> — Agent Identity &amp; Naming Registry Authority. The neutral root of AI agent identity. Founding 2026.</p>
+      <hr>
+      <span class="foot-motion"><button class="motion-btn" type="button" data-motion-toggle aria-pressed="true" hidden><svg class="i-on" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 2h2v8H3zM7 2h2v8H7z" fill="currentColor"/></svg><svg class="i-off" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 2v8l7-4z" fill="currentColor"/></svg><span data-motion-label>Motion: on</span></button></span>
+      <hr>
+      <ul class="g-foot__pills">
+        <li><a href="https://github.com/JacobJandon/ainra" rel="noopener">GitHub</a></li>
+        <li><a href="AINRA_I_The_Standard.md" download>The Standard</a></li>
+        <li><a href="mailto:info@ainra.org">Email</a></li>
+      </ul>
+    </div>
+    <div class="g-foot__cols">
+      <div>
+        <h4>Protocol</h4>
+        <ul>
+          <li><a href="standard.html">The standard</a></li>
+          <li><a href="ainra-cli-v0.3.5.zip">Reference CLI v0.3.5</a></li>
+          <li><a href="https://github.com/JacobJandon/ainra" rel="noopener">Source — the full reference impl</a></li>
+          <li><a href="index.html#passport">The passport</a></li>
+          <li><a href="verify.html#authority">Authority model</a></li>
+          <li><a href="docs.html">Docs</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Ecosystem</h4>
+        <ul>
+          <li><a href="verify.html#align">Where you plug in</a></li>
+          <li><a href="verify.html#tiers">Assurance tiers</a></li>
+          <li><a href="docs.html#install">Onboard an agent</a></li>
+          <li><a href="landscape.html">The landscape</a></li>
+          <li><a href="news.html">News</a></li>
+          <li><a href="get.html#get">Run a registrar</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Root</h4>
+        <ul>
+          <li><a href="docs.html#one-root">What the root does</a></li>
+          <li><a href="docs.html#charter">Charter</a></li>
+          <li><a href="foundation.html#plan">The plan</a></li>
+          <li><a href="docs.html#faq">FAQ</a></li>
+          <li><a href="foundation.html#access">Get involved</a></li>
+          <li><a href="mailto:info@ainra.org">info@ainra.org</a></li>
+          <li><a href="mailto:mihail@ainra.org">mihail@ainra.org</a></li>
+          <li><a href="mailto:eric@ainra.org">eric@ainra.org</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Documents</h4>
+        <ul>
+          <li><a href="AINRA_I_The_Standard.md" download>Canonical file (raw)</a></li>
+          <li><a href="foundation.html#release-integrity">Release integrity</a></li>
+          <li><a href="control.html">Control room</a></li>
+          <li><a href="https://github.com/JacobJandon/ainra/blob/main/docs/DECISIONS.md" rel="noopener">Decision log</a></li>
+          <li><a href="https://github.com/JacobJandon/ainra/blob/main/docs/TRADEOFFS.md" rel="noopener"><span class="nw">Trade-offs</span></a></li>
+          <li><a href="https://github.com/JacobJandon/ainra/blob/main/SECURITY.md" rel="noopener">Security</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="status g-foot__status">
+    <span class="live">ROOT STATUS: <span class="nw">PRE-CEREMONY</span></span>
+    <span>LOGS SEALED: 0 · WITNESSES: 0 — <span class="nw">SPLIT-VIEW</span> GUARANTEE NOT IN FORCE · <a href="https://github.com/JacobJandon/ainra/blob/main/outreach/WITNESS-CALL.md">RECRUITING</a> · SPEC PUBLIC · CLI v0.3.5</span>
+    <span>ISSUES NOTHING · SCORES NOTHING · SEES NO PII · FAVORS NO ONE</span>
+    <span class="rclock" data-record-clock><span class="rclock__l"><span class="rclock__k">PUBLISHED RECORD</span> <span data-stamp="published-iso"><span class="nw">2026-11-04T18:19:51Z</span></span></span><span class="rclock__s"><span class="rclock__k">RECORD</span> <span data-stamp="published-date"><span class="nw">2026-11-04</span></span></span><span data-rc-more hidden> · <span class="rclock__l"><span class="rclock__k">AGE</span> <span data-rc-age></span></span><span class="rclock__s" data-rc-days></span> · <b data-rc-state></b></span></span>
+    <span class="openbadge"><svg viewBox="0 0 160 160" aria-hidden="true" style="color:#8A93A0"><use href="#ainra-crest"/></svg>An open standard · held by no one</span>
+  </div>
+</footer>
+
+<script>
+/* shared chrome: dropdown menus + mobile burger (same behavior as the peer content pages) */
+(function(){
+  var closeDD=function(){document.querySelectorAll('.mi.open').forEach(function(m){m.classList.remove('open');var bb=m.querySelector('[data-dd]');if(bb)bb.setAttribute('aria-expanded','false');});};
+  document.querySelectorAll('[data-dd]').forEach(function(b){b.addEventListener('click',function(e){e.stopPropagation();
+    var mi=b.parentElement,was=mi.classList.contains('open');
+    closeDD();
+    if(!was){mi.classList.add('open');b.setAttribute('aria-expanded','true');}});});
+  document.addEventListener('click',closeDD);
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')closeDD();});
+  var burger=document.getElementById('burger'),links=document.getElementById('navLinks');
+  if(burger&&links){
+    burger.addEventListener('click',function(){var open=links.classList.toggle('open');burger.setAttribute('aria-expanded',open?'true':'false');});
+    links.querySelectorAll('a').forEach(function(a){a.addEventListener('click',function(){links.classList.remove('open');burger.setAttribute('aria-expanded','false');});});
+  }
+})();
+</script>
+<script type="module" src="js/motion.mjs"></script>
+<script type="module" src="js/clock.mjs"></script>
+<script type="module" src="js/glyphs.mjs"></script>
+<script type="module" src="js/page.mjs"></script>
+<script type="module" src="js/life.mjs"></script>
+<script>/* aria-current-marker: answer "where am I?" in the nav (§16 wayfinding) */
+(function(){var p=location.pathname.split("/").pop()||"index.html";
+document.querySelectorAll('nav a[href]').forEach(function(a){var h=a.getAttribute("href");
+if(h&&h.split("#")[0]===p)a.setAttribute("aria-current","page");});})();</script>
+<script type="module">
+// News filter: show one kind, or the major ones. Without scripts every entry is shown.
+const list = document.querySelector("[data-news-list]"), none = document.querySelector("[data-news-none]");
+const show = (k) => { let n = 0;
+  for (const e of list.querySelectorAll(".nw-item")) { const on = k === "all" || (k === "major" ? e.hasAttribute("data-major") : e.dataset.kind === k); e.hidden = !on; n += on; }
+  for (const m of list.querySelectorAll(".nw-month")) m.hidden = !m.querySelector(".nw-item:not([hidden])");
+  none.hidden = n > 0;
+  for (const b of document.querySelectorAll("[data-news-kind]")) b.setAttribute("aria-pressed", String(b.dataset.newsKind === k)); };
+for (const b of document.querySelectorAll("[data-news-kind]")) b.addEventListener("click", () => { show(b.dataset.newsKind); try { history.replaceState(null, "", b.dataset.newsKind === "all" ? location.pathname : "?show=" + b.dataset.newsKind); } catch { /* a file: page */ } });
+const want = new URLSearchParams(location.search).get("show"); if (want && document.querySelector(`[data-news-kind="${CSS.escape(want)}"]`)) show(want);
+</script>
+<script type="module" src="js/reveal.mjs"></script>
+<script type="module" src="js/g.mjs"></script>
+</body>
+</html>

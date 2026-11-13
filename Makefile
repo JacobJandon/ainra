@@ -452,6 +452,8 @@ site-down:
 site-check:
 	node tools/site-includes.mjs --check
 	node tools/nobreak.mjs --check
+	node tools/news.mjs --check
+	node tools/news.mjs --drill
 	node tools/link-check.mjs
 
 # M17 — the full staging deploy profile: network (registrars + witness + artifacts + console) + site + explorer, one cmd.

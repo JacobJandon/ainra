@@ -57,6 +57,8 @@ echo "  the download CLI == apps/cli-node (canonical); the Standard == docs/AINR
 # same renderer the browser uses), so every number reads with JavaScript off. Before the include sync, so the synced
 # nav/footer carry the stamped values.
 node tools/record-stamp.mjs
+node tools/news.mjs           # the news page's entries and its feed, from site/news.json (hand-written, few);
+                              # before the search index, which reads the page as a visitor will
 node tools/search-index.mjs   # the search box reads this one static file
 
 # M17: keep the content pages' shared header/footer in sync from site/_includes/ (one source of truth, no drift).
@@ -69,7 +71,9 @@ node tools/nobreak.mjs        # after the includes: short hyphenated words stay 
 # the site call v0.3.3 "current" for three releases after it. The Standard is vN.N (two parts, unmatched) and passport
 # examples use @N.N.N (no `v`, unmatched), so this catches ONLY a stale label — in a page or a shared include.
 REL="$(ls docs/releases/ | sed -nE 's/^(v[0-9]+\.[0-9]+\.[0-9]+)-board\.md$/\1/p' | sort -V | tail -1)"
-BADVER="$(grep -rhoE 'v[0-9]+\.[0-9]+\.[0-9]+' "$SITE"/*.html 2>/dev/null | grep -vx -e "v${VER}" -e "${REL:-v${VER}}" | sort -u || true)"
+# The news page is the one page whose business is older releases: it names each by its tag, and tools/news.mjs holds
+# every release it names to CHANGELOG.md. Every other page is held here.
+BADVER="$(ls "$SITE"/*.html 2>/dev/null | grep -v '/news\.html$' | xargs grep -hoE 'v[0-9]+\.[0-9]+\.[0-9]+' 2>/dev/null | grep -vx -e "v${VER}" -e "${REL:-v${VER}}" | sort -u || true)"
 [ -z "$BADVER" ] || { echo "✗ site version drift: page(s) say $(echo "$BADVER" | tr '\n' ' ') but the CLI is v${VER} and the newest release is ${REL} — sources: apps/cli-node/package.json, docs/releases/"; exit 1; }
 
 # M17 Task 3 — the agent-first surface: markdown mirrors, OpenAPI specs, and the served copy of the onboarding file.

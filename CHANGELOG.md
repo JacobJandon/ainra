@@ -10,6 +10,19 @@ We **publicly own fixed security bugs** — hiding them would be the opposite of
 
 ## [Unreleased]
 
+## [0.8.1] — 2026-11-13
+
+The release commit; its board is `docs/releases/v0.8.1-board.md`. Published to npm and PyPI from the tag, by the
+release workflow, on the operator's instruction. A security release first, with what had gathered on main since 0.8.0:
+- **`@ainra/middleware`: a presenter's name could make the gate throw** while writing the verdict header (D-106,
+  INC-2026-011). Every published version before this one is affected. Upgrade.
+- both command-line tools print a stranger's text escaped (INC-2026-010);
+- a test-only dependency moves off an advisory (INC-2026-009);
+- the pilot can watch before it enforces (D-105); the registrar quickstart; what three first-time users ran into.
+
+The other packages carry no change of behaviour and move with the version: `@ainra/sdk`, `@ainra/mcp`, `@ainra/edge`
+and the Python `ainra`.
+
 ### Added — the pilot can watch before it enforces (D-105)
 
 - **`kits/pilot/pilot.mjs --watch`**, in link or passport mode, puts the gate beside a route instead of in front of
@@ -79,7 +92,7 @@ We **publicly own fixed security bugs** — hiding them would be the opposite of
 - **S7:** `tools/onboard-registrar.sh` named two domain-registrar brands as its foil, and neither denylist knew them.
   The script now says "a domain-name registrar", and both names are on both lists (`make s7`, `--negative`).
 
-### Security — a presenter's name could make the gate throw (fixed here, not yet released)
+### Security — a presenter's name could make the gate throw (D-106, INC-2026-011)
 
 - **`@ainra/middleware` wrote the verdict event into the `x-ainra-verdict` header as plain JSON.** The event names the
   passport the presenter sent, refused ones included, so a name with a character outside printable ASCII (for example
@@ -150,7 +163,7 @@ down every place they stuck. What changed because of it:
 - The site's landscape page dates its claim to 12 November 2026, adds a row for registry standards, and says the
   AINRA root is pre-ceremony today.
 
-### Site (local; ships with the next export)
+### Site
 
 - The home film opens on the real-life dish array, then the drawing of the root it explains; the other ten pairs keep
   their order. Its poster is the same dish-array frame. The film always starts by itself, also with reduced motion, a

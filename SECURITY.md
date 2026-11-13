@@ -216,6 +216,38 @@ themselves, so they prove the snapshot round-trips, not that the daemon writes o
 **What changed.** Both routes persist on success (D-080). `services/ainra-services/tests/registrar_restart.rs` runs the
 real binary through write, kill, start, read for a revocation and a renewal; with the fix removed, both fail.
 
+## Post-mortem: a presenter's name could make the gate throw (D-106, fixed in 0.8.1)
+
+**What was wrong.** `@ainra/middleware` writes its verdict into the response header `x-ainra-verdict`, for refused
+requests too, and the verdict names the passport that was presented. The name is the presenter's own text. It was
+written as plain JSON, and Node refuses a header value with a character outside printable Latin-1, so a name with
+`€` or U+007F in it made `setHeader` throw. In a framework that catches errors the refusal became a 500. In a server
+whose handler is asynchronous and does not catch, the process stopped. `ainraGate` has written that header since
+v0.2.0 and `ainraPrime` since v0.5.0; every version published to npm (0.4.0 to 0.8.0) is affected.
+
+**What was not wrong.** Nothing was let in. The request was refused in every case; what failed was the answer, and
+with it, in the worst case, the server. `@ainra/edge` puts no event in a header, the Python gate's JSON is already
+ASCII, and `@ainra/mcp` writes no response headers: none of them is affected.
+
+**How it was found.** By our own review on 12 November, while reading the pilot's new watch mode, which had been
+given its own guard for exactly this. The question that found it was why the guard was needed there and nowhere else.
+
+**The fix.** `verdictHeaderValue(event)` writes every character outside 0x20–0x7E as its JSON `\uXXXX` escape. It
+parses to the same event, and `serializeVerdictEvent` is unchanged, so the event's own bytes still match the Rust
+emitter. Both header writes use it, and so does `examples/gate-http-service.mjs`.
+`packages/middleware/test/header-escape.test.mjs` runs the gate and the prime handler against a real
+`http.ServerResponse`; it fails 2 of 3 on the previous code. Decision: [D-106](docs/DECISIONS.md).
+
+**What you should do.** Upgrade to `@ainra/middleware` 0.8.1. If you write `serializeVerdictEvent` into a header
+yourself, use `verdictHeaderValue` instead.
+
+**The order we did it in, and what we would do again.** The fix was on main on 12 November and the patched package
+on 13 November: for a day the public source described a fault the published package still had. A fix and its
+release belong in one step. What is still open: `kits/pilot` without `--watch` can be stopped by certain malformed
+requests (with `--watch` it cannot); it is a kit run from a checkout, not a published package, and a change is drafted.
+
+---
+
 ## Post-mortem: both command-line tools printed a stranger's text as written (fixed 13 November 2026)
 
 **What was wrong.** A passport names itself, and a refused one is named too. `ainra verify-request` (the Rust tool,

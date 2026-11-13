@@ -1,8 +1,40 @@
 {
   "about": "AINRA's news: releases, rules, security and the network. Written by hand, few on purpose; each entry links to its proof. This file is the only place an entry is written. tools/news.mjs draws news.html and news.xml from it, and holds it to the record: every release and every incident since the page began has an entry.",
   "since": "2026-10-29",
-  "kinds": { "release": "Release", "rules": "Rules", "security": "Security", "network": "Network" },
+  "kinds": {
+    "release": "Release",
+    "rules": "Rules",
+    "security": "Security",
+    "network": "Network"
+  },
   "entries": [
+    {
+      "id": "v0.8.1",
+      "date": "2026-11-13",
+      "kind": "release",
+      "major": true,
+      "title": "0.8.1: a security release. Please upgrade the gate",
+      "body": [
+        "If you use @ainra/middleware, upgrade to 0.8.1. A crafted passport name could make every earlier version throw while answering, and stop a server that did not catch the error. Nothing was ever let in that should have been refused.",
+        "The same release carries two smaller fixes of the same family, both told below, and one thing that is new: the pilot can now sit beside one of your routes and only watch. It refuses nothing, signs nothing, and tells you what share of your traffic carries a signature, what a gate would have decided, and how long the check takes on your own machine.",
+        "The other packages have no change in behaviour and move with the version."
+      ],
+      "proof": [
+        {
+          "label": "The signed release",
+          "href": "https://github.com/JacobJandon/ainra/releases/tag/v0.8.1"
+        },
+        {
+          "label": "Everything in it",
+          "href": "https://github.com/JacobJandon/ainra/blob/main/CHANGELOG.md"
+        }
+      ],
+      "covers": {
+        "releases": [
+          "0.8.1"
+        ]
+      }
+    },
     {
       "id": "cli-printed-a-strangers-text",
       "date": "2026-11-13",
@@ -15,11 +47,24 @@
         "We did not find this with a test. We found it by reading another project's report of the same fault in its own verifier, and then trying ours. Both tools now print anything a presenter wrote with its unusual characters escaped. If you downloaded the reference CLI, replace 0.3.4 with 0.3.5."
       ],
       "proof": [
-        { "label": "The post-mortem", "href": "https://github.com/JacobJandon/ainra/blob/main/SECURITY.md" },
-        { "label": "Incident INC-2026-010", "href": "incidents.json" },
-        { "label": "Reference CLI 0.3.5", "href": "ainra-cli-v0.3.5.zip" }
+        {
+          "label": "The post-mortem",
+          "href": "https://github.com/JacobJandon/ainra/blob/main/SECURITY.md"
+        },
+        {
+          "label": "Incident INC-2026-010",
+          "href": "incidents.json"
+        },
+        {
+          "label": "Reference CLI 0.3.5",
+          "href": "ainra-cli-v0.3.5.zip"
+        }
       ],
-      "covers": { "incidents": ["INC-2026-010"] }
+      "covers": {
+        "incidents": [
+          "INC-2026-010"
+        ]
+      }
     },
     {
       "id": "an-advisory-nobody-saw-for-a-day",
@@ -32,10 +77,20 @@
         "The part worth telling is our own slip. Our weekly check went red on 11 November and nobody looked until the next day, and by then we had pushed twice. Since then the same check runs before every push, and two more of our own records are checked on every change instead of only on our machines."
       ],
       "proof": [
-        { "label": "The advisory, scoped", "href": "https://github.com/JacobJandon/ainra/blob/main/SECURITY-ADVISORIES.md" },
-        { "label": "Incident INC-2026-009", "href": "incidents.json" }
+        {
+          "label": "The advisory, scoped",
+          "href": "https://github.com/JacobJandon/ainra/blob/main/SECURITY-ADVISORIES.md"
+        },
+        {
+          "label": "Incident INC-2026-009",
+          "href": "incidents.json"
+        }
       ],
-      "covers": { "incidents": ["INC-2026-009"] }
+      "covers": {
+        "incidents": [
+          "INC-2026-009"
+        ]
+      }
     },
     {
       "id": "a-name-could-stop-a-gate",
@@ -46,12 +101,27 @@
       "body": [
         "The gate in @ainra/middleware writes its verdict into a response header. A passport name containing a character no header can carry made the server throw while writing it: a refusal turned into an error page, and a server that did not catch the error stopped.",
         "Nothing was ever wrongly let in. This is about staying up, not about who gets through.",
-        "The fix is on the main branch with a test that fails on the old code, and it ships in the package's next release. Until you have that release, make sure the gate runs inside your framework's error handler, which most frameworks do by default."
+        "It is fixed in @ainra/middleware 0.8.1, with a test that fails on the old code. Every earlier version is affected, so please upgrade. For a day the fix was public and the patched package was not; a fix and its release belong in one step, and next time they will be."
       ],
       "proof": [
-        { "label": "What changed", "href": "https://github.com/JacobJandon/ainra/blob/main/CHANGELOG.md" }
+        {
+          "label": "The post-mortem",
+          "href": "https://github.com/JacobJandon/ainra/blob/main/SECURITY.md"
+        },
+        {
+          "label": "Incident INC-2026-011",
+          "href": "incidents.json"
+        },
+        {
+          "label": "The decision, D-106",
+          "href": "https://github.com/JacobJandon/ainra/blob/main/docs/DECISIONS.md"
+        }
       ],
-      "covers": {}
+      "covers": {
+        "incidents": [
+          "INC-2026-011"
+        ]
+      }
     },
     {
       "id": "another-project-launched",
@@ -64,7 +134,10 @@
         "We read its published documents again on 12 November and brought our landscape page up to date. Where we differ, and where we do not yet do better, is written there with a source for every line."
       ],
       "proof": [
-        { "label": "The landscape, with sources", "href": "landscape.html" }
+        {
+          "label": "The landscape, with sources",
+          "href": "landscape.html"
+        }
       ],
       "covers": {}
     },
@@ -80,10 +153,20 @@
         "A gate can also now refuse a registrar, a lineage or a single name by its own policy, without waiting for anyone else to act."
       ],
       "proof": [
-        { "label": "The signed release", "href": "https://github.com/JacobJandon/ainra/releases/tag/v0.8.0" },
-        { "label": "Everything in it", "href": "https://github.com/JacobJandon/ainra/blob/main/CHANGELOG.md" }
+        {
+          "label": "The signed release",
+          "href": "https://github.com/JacobJandon/ainra/releases/tag/v0.8.0"
+        },
+        {
+          "label": "Everything in it",
+          "href": "https://github.com/JacobJandon/ainra/blob/main/CHANGELOG.md"
+        }
       ],
-      "covers": { "releases": ["0.8.0"] }
+      "covers": {
+        "releases": [
+          "0.8.0"
+        ]
+      }
     },
     {
       "id": "how-fast-we-must-tell-you",
@@ -96,8 +179,14 @@
         "A late entry has to say why it was late. The check that holds us to this turns red on the day a deadline passes, so it cannot be satisfied by not looking."
       ],
       "proof": [
-        { "label": "The rules", "href": "https://github.com/JacobJandon/ainra/blob/main/deploy/runbooks/root-incident.md" },
-        { "label": "The public incident log", "href": "incidents.json" }
+        {
+          "label": "The rules",
+          "href": "https://github.com/JacobJandon/ainra/blob/main/deploy/runbooks/root-incident.md"
+        },
+        {
+          "label": "The public incident log",
+          "href": "incidents.json"
+        }
       ],
       "covers": {}
     },
@@ -112,8 +201,14 @@
         "We changed the text to match the code, not the code to match the text, and recorded each change in the amendment log. A standard that describes what was not built is a promise with nothing behind it."
       ],
       "proof": [
-        { "label": "The amendment record", "href": "https://github.com/JacobJandon/ainra/blob/main/docs/AMENDMENTS.md" },
-        { "label": "The Standard", "href": "standard.html" }
+        {
+          "label": "The amendment record",
+          "href": "https://github.com/JacobJandon/ainra/blob/main/docs/AMENDMENTS.md"
+        },
+        {
+          "label": "The Standard",
+          "href": "standard.html"
+        }
       ],
       "covers": {}
     },
@@ -128,9 +223,16 @@
         "Also in it: a witness that someone outside the project can actually run, and a verifier that never goes back to an older list of registrars once it has seen a newer one."
       ],
       "proof": [
-        { "label": "The signed release", "href": "https://github.com/JacobJandon/ainra/releases/tag/v0.7.0" }
+        {
+          "label": "The signed release",
+          "href": "https://github.com/JacobJandon/ainra/releases/tag/v0.7.0"
+        }
       ],
-      "covers": { "releases": ["0.7.0"] }
+      "covers": {
+        "releases": [
+          "0.7.0"
+        ]
+      }
     },
     {
       "id": "v0.6.0",
@@ -142,9 +244,16 @@
         "A link gives an agent's existing key an accountable owner and a way to be revoked. This release adds links for the kind of key most wallets use, and makes a cut-off record of a gate's decisions visible once its latest entry is logged."
       ],
       "proof": [
-        { "label": "The signed release", "href": "https://github.com/JacobJandon/ainra/releases/tag/v0.6.0" }
+        {
+          "label": "The signed release",
+          "href": "https://github.com/JacobJandon/ainra/releases/tag/v0.6.0"
+        }
       ],
-      "covers": { "releases": ["0.6.0"] }
+      "covers": {
+        "releases": [
+          "0.6.0"
+        ]
+      }
     },
     {
       "id": "v0.5.0",
@@ -158,10 +267,20 @@
         "It also owns two faults. Our reference registrar forgot revocations when it restarted, so a revoked passport verified again; no release carried it, and it is fixed with a test that kills and restarts the real program. And a library we depend on leaked timing while signing; no production key existed."
       ],
       "proof": [
-        { "label": "The signed release", "href": "https://github.com/JacobJandon/ainra/releases/tag/v0.5.0" },
-        { "label": "How links work", "href": "https://github.com/JacobJandon/ainra/blob/main/docs/LINKS.md" }
+        {
+          "label": "The signed release",
+          "href": "https://github.com/JacobJandon/ainra/releases/tag/v0.5.0"
+        },
+        {
+          "label": "How links work",
+          "href": "https://github.com/JacobJandon/ainra/blob/main/docs/LINKS.md"
+        }
       ],
-      "covers": { "releases": ["0.5.0"] }
+      "covers": {
+        "releases": [
+          "0.5.0"
+        ]
+      }
     }
   ]
 }

@@ -230,6 +230,14 @@ setTimeout(function(){var h=document.documentElement;if(!h.dataset.rvReady)h.cla
   <!--news:start-->
   <section class="nw-month" aria-label="November 2026">
     <h2 class="nw-month__h">November 2026</h2>
+    <article class="nw-item nw-item--major" id="n-v0.8.1" data-kind="release" data-major>
+      <p class="nw-when"><time datetime="2026-11-13">13 November 2026</time><span class="nw-kind nw-kind--release">Release</span><span class="nw-flag">Major</span></p>
+      <h3 class="nw-title"><a href="#n-v0.8.1">0.8.1: a security release. Please upgrade the&nbsp;gate</a></h3>
+      <p>If you use @ainra/middleware, upgrade to 0.8.1. A crafted passport name could make every earlier version throw while answering, and stop a server that did not catch the error. Nothing was ever let in that should have been refused.</p>
+      <p>The same release carries two smaller fixes of the same family, both told below, and one thing that is new: the pilot can now sit beside one of your routes and only watch. It refuses nothing, signs nothing, and tells you what share of your traffic carries a signature, what a gate would have decided, and how long the check takes on your own machine.</p>
+      <p>The other packages have no change in behaviour and move with the version.</p>
+      <p class="nw-proof"><a href="https://github.com/JacobJandon/ainra/releases/tag/v0.8.1">The signed release</a><a href="https://github.com/JacobJandon/ainra/blob/main/CHANGELOG.md">Everything in it</a></p>
+    </article>
     <article class="nw-item nw-item--major" id="n-cli-printed-a-strangers-text" data-kind="security" data-major>
       <p class="nw-when"><time datetime="2026-11-13">13 November 2026</time><span class="nw-kind nw-kind--security">Security</span><span class="nw-flag">Major</span></p>
       <h3 class="nw-title"><a href="#n-cli-printed-a-strangers-text">Our <span class="nw">command-line</span> tools printed a stranger's text as written</a></h3>
@@ -250,8 +258,8 @@ setTimeout(function(){var h=document.documentElement;if(!h.dataset.rvReady)h.cla
       <h3 class="nw-title"><a href="#n-a-name-could-stop-a-gate">A crafted passport name could stop a&nbsp;gate</a></h3>
       <p>The gate in @ainra/middleware writes its verdict into a response header. A passport name containing a character no header can carry made the server throw while writing it: a refusal turned into an error page, and a server that did not catch the error stopped.</p>
       <p>Nothing was ever wrongly let in. This is about staying up, not about who gets through.</p>
-      <p>The fix is on the main branch with a test that fails on the old code, and it ships in the package's next release. Until you have that release, make sure the gate runs inside your framework's error handler, which most frameworks do by default.</p>
-      <p class="nw-proof"><a href="https://github.com/JacobJandon/ainra/blob/main/CHANGELOG.md">What changed</a></p>
+      <p>It is fixed in @ainra/middleware 0.8.1, with a test that fails on the old code. Every earlier version is affected, so please upgrade. For a day the fix was public and the patched package was not; a fix and its release belong in one step, and next time they will be.</p>
+      <p class="nw-proof"><a href="https://github.com/JacobJandon/ainra/blob/main/SECURITY.md">The <span class="nw">post-mortem</span></a><a href="incidents.json">Incident <span class="nw">INC-2026-011</span></a><a href="https://github.com/JacobJandon/ainra/blob/main/docs/DECISIONS.md">The decision, <span class="nw">D-106</span></a></p>
     </article>
     <article class="nw-item" id="n-another-project-launched" data-kind="network">
       <p class="nw-when"><time datetime="2026-11-12">12 November 2026</time><span class="nw-kind nw-kind--network">Network</span></p>

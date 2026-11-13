@@ -139,7 +139,10 @@
       "opened": "2026-11-11",
       "disclosed": "2026-11-12",
       "fixed": "2026-11-12",
-      "released": null,
+      "released": {
+        "version": "0.8.1",
+        "date": "2026-11-13"
+      },
       "record": {
         "file": "SECURITY-ADVISORIES.md",
         "heading": "RUSTSEC-2026-0486"
@@ -153,10 +156,30 @@
       "opened": "2026-11-13",
       "disclosed": "2026-11-13",
       "fixed": "2026-11-13",
-      "released": null,
+      "released": {
+        "version": "0.8.1",
+        "date": "2026-11-13"
+      },
       "record": {
         "file": "SECURITY.md",
         "heading": "Post-mortem: both command-line tools printed a stranger's text as written"
+      }
+    },
+    {
+      "id": "INC-2026-011",
+      "class": "MEDIUM",
+      "surface": "published: npm @ainra/middleware 0.4.0 to 0.8.0 (ainraGate, and ainraPrime from 0.5.0); availability only, nothing was accepted that should have been refused",
+      "title": "D-106: a presenter's name in the verdict header could make the gate throw, and stop a server that did not catch it",
+      "opened": "2026-11-12",
+      "disclosed": "2026-11-12",
+      "fixed": "2026-11-12",
+      "released": {
+        "version": "0.8.1",
+        "date": "2026-11-13"
+      },
+      "record": {
+        "file": "SECURITY.md",
+        "heading": "Post-mortem: a presenter's name could make the gate throw"
       }
     }
   ],

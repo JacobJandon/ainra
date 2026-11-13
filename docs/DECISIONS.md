@@ -3200,3 +3200,41 @@ Every earlier step of `make pilot-e2e` still passes without `--watch`.
 pilot without `--watch`.
 
 *Status:* PROPOSED 2026-11-12. Built; `make pilot-e2e` passes.
+
+## D-106 — The verdict header carries only what a header can hold
+
+*Problem:* the verdict event is built for refused bundles too (D-053), so its `name` is the presenter's own text.
+`@ainra/middleware` wrote the event into `x-ainra-verdict` as plain JSON, which leaves characters outside ASCII as
+they are, and Node's `setHeader` throws on a value with a character outside printable Latin-1. A name with `€` or
+U+007F turned a refusal into a 500 in a framework that catches errors, and stopped the process in an asynchronous
+server that does not. `ainraGate` since v0.2.0 and `ainraPrime` since v0.5.0; every version on npm, 0.4.0 to 0.8.0.
+
+*Decision:* escape at the header write, and only there. `verdictHeaderValue(event)` writes every character outside
+0x20–0x7E as its JSON `\uXXXX` escape (a character beyond the basic plane as its two surrogates). The value parses
+to exactly the event, and for an ASCII name it is byte for byte what was written before. Both header writes in the
+middleware use it, and `examples/gate-http-service.mjs`. `serializeVerdictEvent` is unchanged: its bytes still match
+the Rust emitter, which the presentation-shape gate holds.
+
+*Rejected:*
+- **Escaping inside `serializeVerdictEvent`.** Every surface's bytes would change and the Rust emitter would have to
+  follow, for a fault that exists only where the event meets a header.
+- **Dropping the header on such a name.** The event would be lost exactly when a presenter misbehaves, which is when
+  an operator most wants it.
+- **Base64 or percent-encoding the value.** It would no longer be the JSON a reader of the header expects.
+- **Replacing the name with null.** It hides what was presented.
+- **Catching the throw around `setHeader`.** The request survives and the header is still lost.
+
+*Witnesses:* `packages/middleware/test/header-escape.test.mjs` runs the gate and the prime handler against a real
+`http.ServerResponse` with three such names; 2 of its 3 tests fail on the previous code. The Python gate was run with
+the same names on 12 November: 403 `name_malformed`, header printable (its JSON is ASCII-escaped by default).
+
+*Limits:* an integrator who writes `serializeVerdictEvent` into a header themselves stays exposed until they switch
+to `verdictHeaderValue`. The same rule (a presenter's text is escaped wherever it is shown) was applied to the two
+command-line tools a day later, when the same cause was found on their screens (INC-2026-010). `kits/pilot` without
+`--watch` can still be stopped by certain malformed requests; that is a kit run from a checkout, and is not decided
+here.
+
+*Not changed:* the event's fields, `serializeVerdictEvent`, the vectors, the verdicts.
+
+*Status:* ACCEPTED 2026-11-13, by the operator's instruction to release it. Built 2026-11-12; released in 0.8.1.
+Incident INC-2026-011 (MEDIUM); post-mortem in `SECURITY.md`.

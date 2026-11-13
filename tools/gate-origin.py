@@ -23,7 +23,7 @@ import urllib.request
 
 from ainra import AinraGate, PresentationStore, Verifier
 
-ART = os.environ.get("AINRA_ARTIFACTS", "http://127.0.0.1:8091")
+ART = os.environ.get("AINRA_ARTIFACTS", "http://127.0.0.1:8093")
 AUD = os.environ.get("AINRA_AUDIENCE", "https://shop.example")
 MAX_HEADER_BYTES = 16 * 1024
 
@@ -36,7 +36,7 @@ def _get(url: str):
 try:
     directory, roots = _get(f"{ART}/directory.json"), _get(f"{ART}/roots.json")
 except OSError:
-    print(f"gate-origin: no published directory at {ART} — run `make stage-up` first", file=sys.stderr)
+    print(f"gate-origin: no published directory at {ART} — run `make live-up` first", file=sys.stderr)
     sys.exit(2)
 # The default freshness class, F2 — the same policy the Node and edge origins run.
 verifier = Verifier.from_directory(directory, roots["root_ed25519"], roots["root_slh"], audience=AUD)

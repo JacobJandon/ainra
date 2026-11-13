@@ -141,16 +141,33 @@ impl Genesis {
     /// dual-signs, and returns `(directory, root_ed_public, root_slh_public)`. This composes the real ceremony with
     /// the real registrar daemon for the M5 testbed; a production ceremony would persist the custodian shares.
     pub fn accredit_external(
-        mut entries: Vec<DirectoryEntry>,
+        entries: Vec<DirectoryEntry>,
         revoked: Vec<[u8; 32]>,
         now: u64,
         rng: &mut impl CryptoRngCore,
     ) -> Result<(Directory, [u8; 32], Vec<u8>), FrostError> {
+        Self::accredit_external_at(entries, revoked, 1, now, rng)
+    }
+
+    /// [`Self::accredit_external`] at a stated epoch. A network whose registrars changed their keys does not get a
+    /// second directory at the epoch it already published: it gets the next epoch, and the earlier one stays in
+    /// its history (D-107). The roots are drawn from `rng` before anything is signed, so the same seed gives the
+    /// same roots at every epoch.
+    pub fn accredit_external_at(
+        mut entries: Vec<DirectoryEntry>,
+        revoked: Vec<[u8; 32]>,
+        epoch: u64,
+        now: u64,
+        rng: &mut impl CryptoRngCore,
+    ) -> Result<(Directory, [u8; 32], Vec<u8>), FrostError> {
+        if epoch == 0 {
+            return Err(FrostError("a directory's epoch starts at 1".to_string()));
+        }
         entries.sort_by(|a, b| a.registrar.cmp(&b.registrar));
         let root_ed = ThresholdRoot::dkg(9, 5, rng)?;
         let root_slh = TestRootSlh::generate(rng);
         let mut d = Directory {
-            epoch: 1,
+            epoch,
             issued_at: now,
             entries,
             revoked_delegates: revoked.iter().map(|f| b64::encode(f)).collect(),
@@ -219,6 +236,47 @@ mod tests {
     use rand_core::SeedableRng;
 
     const NOW: u64 = 1_775_865_600;
+
+    // D-107: a network that changed its registrars' keys signs the NEXT epoch under the SAME roots.
+    #[test]
+    fn a_later_epoch_is_signed_by_the_same_roots_and_epoch_zero_is_refused() {
+        let entries = Genesis::run(
+            &["registrar-07", "registrar-11"],
+            NOW,
+            vec![],
+            &mut ChaCha20Rng::seed_from_u64(7),
+        )
+        .expect("genesis")
+        .directory
+        .entries;
+        let at = |epoch| {
+            Genesis::accredit_external_at(
+                entries.clone(),
+                vec![],
+                epoch,
+                NOW,
+                &mut ChaCha20Rng::seed_from_u64(0x0ACC),
+            )
+        };
+        let (d1, ed1, slh1) = at(1).expect("epoch 1");
+        let (d2, ed2, slh2) = at(2).expect("epoch 2");
+        assert_eq!((d1.epoch, d2.epoch), (1, 2));
+        assert_eq!(
+            (ed1, &slh1),
+            (ed2, &slh2),
+            "the same seed gives the same roots at every epoch"
+        );
+        assert!(d1.accredit(&ed1, &slh1).is_ok() && d2.accredit(&ed2, &slh2).is_ok());
+        assert_ne!(
+            d1.sig_root_ed25519, d2.sig_root_ed25519,
+            "the epoch is under the signature"
+        );
+        // an epoch-2 directory relabelled as epoch 1 is not what the roots signed
+        let mut forged = d2.clone();
+        forged.epoch = 1;
+        assert!(forged.accredit(&ed2, &slh2).is_err());
+        assert!(at(0).is_err(), "there is no epoch 0");
+    }
 
     #[test]
     fn genesis_output_is_trust_anchored() {

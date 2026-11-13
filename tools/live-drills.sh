@@ -3,8 +3,9 @@
 # make live-drills — every drill that needs a running network, on a network this script brings up (D-073).
 #
 # Eight drills prove the identity end to end at the real clock: identity-e2e, edge-e2e, signature-agent-e2e,
-# python-agent-e2e, wimse-e2e (D-076), link-e2e (D-078), pilot-e2e and gate-parity. Each needs the wall-clock registrar (`make live-up`) and the
-# published directory (`make stage-up`), so none of them ran in CI — and gate-parity is the one that found the Rust
+# python-agent-e2e, wimse-e2e (D-076), link-e2e (D-078), pilot-e2e and gate-parity. Each needs the wall-clock registrar and a
+# directory that accredits it; `make live-up` brings up both since PLAN-M53 step R3 (before it, the directory was the
+# staging network's, which listed the same recomputable key). None of them ran in CI — and gate-parity is the one that found the Rust
 # gate path believing any status it was handed (D-072). A check that only runs when someone remembers to start two
 # daemons is a check that mostly does not run.
 #
@@ -13,25 +14,20 @@
 #   LIVE_DRILLS_KEEP=1   leave the networks up afterwards
 set -uo pipefail
 cd "$(dirname "$0")/.."
-ART="http://127.0.0.1:8091"
+ART="${AINRA_ARTIFACTS:-http://127.0.0.1:${LIVE_ART_PORT:-8093}}"
 REG="http://127.0.0.1:4970"
-started_stage=0; started_live=0
+export AINRA_ARTIFACTS="$ART"
+started_live=0
 up() { curl -sf -m 2 "$1" >/dev/null 2>&1; }
 
-if ! up "$ART/directory.json"; then
-  echo "── starting the staging network (publishes the directory) ──"
-  bash tools/stage.sh up >/tmp/ainra-live-drills-stage.log 2>&1 || { echo "stage-up failed:"; tail -20 /tmp/ainra-live-drills-stage.log; exit 2; }
-  started_stage=1
-fi
-if ! up "$REG/accreditation"; then
-  echo "── starting the wall-clock registrar ──"
+if ! up "$REG/accreditation" || ! up "$ART/directory.json"; then
+  echo "── starting the wall-clock registrar and its directory ──"
+  up "$REG/accreditation" || started_live=1
   bash tools/live.sh up || exit 2
-  started_live=1
 fi
 cleanup() {
   [ "${LIVE_DRILLS_KEEP:-0}" = 1 ] && return
   [ "$started_live" = 1 ] && bash tools/live.sh down >/dev/null 2>&1
-  [ "$started_stage" = 1 ] && bash tools/stage.sh down >/dev/null 2>&1
 }
 trap cleanup EXIT
 

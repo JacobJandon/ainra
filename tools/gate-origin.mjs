@@ -21,7 +21,7 @@ import { Verifier, PRIME_PATH } from "../packages/sdk-ts/dist/index.js";
 import { ainraGate, ainraPrime, createPresentationStore } from "../packages/middleware/dist/index.js";
 
 const EDGE = process.argv.includes("--edge");
-const ART = process.env.AINRA_ARTIFACTS ?? "http://127.0.0.1:8091";
+const ART = process.env.AINRA_ARTIFACTS ?? "http://127.0.0.1:8093";
 const AUD = process.env.AINRA_AUDIENCE ?? "https://shop.example";
 const now = () => Math.floor(Date.now() / 1000);
 

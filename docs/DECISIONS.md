@@ -3116,6 +3116,9 @@ keeps its recorded verdict under the stricter rules, checked before any vector w
 
 *Status:* ACCEPTED 2026-11-07. Fixes 1–16 are built; R1–R3 are planned.
 
+*Amended 2026-11-13:* R3 is done. The staging registrars run on keys from the OS and the record was republished
+at epoch 2 (D-107).
+
 ## D-105 — Watch mode: the pilot beside a route, refusing nothing and signing nothing
 
 *Problem:* the pilot (PLAN-M47 step 4) sits in front of a service and refuses by name from its first request. A
@@ -3238,3 +3241,88 @@ here.
 
 *Status:* ACCEPTED 2026-11-13, by the operator's instruction to release it. Built 2026-11-12; released in 0.8.1.
 Incident INC-2026-011 (MEDIUM); post-mortem in `SECURITY.md`.
+
+## D-107 — A published network's registrar keys come from the OS, and its record is held to its registrars (M53 R3)
+
+*Problem:* five things, found together.
+
+1. **Recomputable keys behind a published record.** D-104 item 5 moved a registrar on a real clock to keys from the
+   OS, and left the pinned-clock TEST staging registrars on keys derived from their public ids. Their record is the
+   one `ainra.org` publishes. Anyone could recompute both registrars' keys and sign as either.
+2. **The site and a registrar disagreed, and a visitor could see it.** registrar-07's TEST log had stopped being an
+   extension of the log four of its passports were issued into (we believe in a drill in August; the state that would
+   show when is gone). The registrar answered `INVALID · not_logged` for them and the published record stored that
+   verdict beside each. The record page verifies each stored passport again in the browser, from the checkpoint it
+   was issued under (size 2), and showed all four as VALID.
+3. **Both checks were green.** `make site-net-check` compared the published files with the artifact server and asked
+   one registrar for one subject. Nothing compared the record with the registrars passport by passport.
+4. **The wall-clock drills leaned on it.** `make live-up` ran its registrar-07 on the same id-derived key, so that
+   the staging directory would accredit it. Re-keying staging alone would have turned `make live-drills` red.
+5. **The seed did not look at its answers.** `tools/stage.sh` sent each issue, revoke and renew and read nothing
+   back. One passport had been refused since D-089 (it asked for class A1 and the network configures no principal
+   checker), so registrar-11's seeded revocation had nothing to revoke. The accreditation step ignored a failure too:
+   a registrar that did not answer left the previous directory in place and it was published as the record.
+
+The record had also grown to 80 passports, 53 of them revoked, nearly all left behind by drills.
+
+*Decision:*
+
+1. **`AINRA_FRESH_KEYS=1`.** A new registrar data directory takes its 32 bytes from the OS even on a pinned clock.
+   The staging network sets it (`tools/stage.sh`, and the unit environment `tools/stage-install.sh` writes). An
+   existing directory keeps the keys it has. Hermetic drills that do not set it still derive, and still say so.
+2. **The TEST staging network was re-keyed and reseeded on 13 November 2026.** Eight passports: two revoked, one
+   renewed. The state from before is kept on the operator's machine and is not published.
+3. **The directory naming the new keys is epoch 2, under the same TEST root. Epoch 1 stays in the history.** The
+   `accredit` tool signs the epoch it is told (`AINRA_DIRECTORY_EPOCH`, default 1). `tools/stage.sh` reads the epoch
+   from the network's own published history: the same registrars with the same keys give the same directory at the
+   same epoch, so a restart changes nothing; registrars whose keys changed give the next epoch.
+4. **The wall-clock registrar has its own directory.** `make live-up` accredits it and serves that directory on
+   port 8093. The live drills read it and no longer need the staging network; `tools/live.sh` no longer asks for
+   id-derived keys.
+5. **`tools/record-agrees.mjs` compares the record with the registrars, every passport.** The record's directory is
+   anchored in its roots; each stored passport verifies to the verdict stored beside it; its own registrar presents
+   the same passport (claims, issuer signature, leaf); a registrar whose log is the published size has the published
+   root; that presentation verifies to the same verdict; and neither side holds a passport the other lacks. It runs
+   in `make site-net-check`, and every morning in the operator's page against the record a visitor is reading
+   (`https://ainra.org/net`), where "could not check" is its own answer and never reads as green.
+6. **The seed is checked.** Every seed write must come back as a record; one that does not stops the run before
+   anything is accredited or published. The accreditation step is checked the same way.
+
+*Rejected:*
+- **Publishing the re-keyed directory as epoch 1 again**, with the old history moved aside. A mirror that kept
+  epoch 1 would hold two directories at one epoch, which is equivocation; our own archive step refuses it, and should.
+- **Keeping the 80 passports.** They were signed by keys anyone could recompute, so none can be told from a forgery,
+  and issuing them again under new keys would make new passports wearing old names.
+- **Repairing the forked log in place.** The log only grows, and under a recomputable key nothing separates a repair
+  from a forgery.
+- **Republishing to the site automatically when a registrar changes.** What the site says stays a person's act. The
+  check turns red instead.
+- **A hand-set epoch number.** A new machine with an empty history would begin at 2 with no epoch log.
+
+*Witnesses:*
+- `a_pinned_registrar_asked_for_fresh_keys_gets_keys_nobody_can_recompute` in
+  `services/ainra-services/tests/review_2026_11_07.rs`.
+- `a_later_epoch_is_signed_by_the_same_roots_and_epoch_zero_is_refused` in `crates/ainra-ceremony`.
+- `make record-agrees-drill`: nine planted disagreements, each refused by its own line, and two untouched worlds that
+  must pass. It is a row on the board.
+- The check was run against the record as published before this change and the old registrars restarted from a copy
+  of their state: five disagreements, the four passports above and one the registrar held that the record did not
+  list. Against the republished record: agreement on all 8.
+- `make live-drills` is green on the wall-clock registrar's own directory, with the staging network not involved.
+- A second directory at epoch 1 was offered to the archive step and refused as equivocation.
+
+*Limits:*
+- **The TEST root is still a fixed seed in the `accredit` tool.** Anyone can sign a TEST directory at any epoch. This
+  change does not touch that, and a TEST root is worth nothing by design: no trust moves from it to a production
+  root, which is born only at the recorded ceremony.
+- A verifier that holds only epoch 1 still accepts what the old keys signed. One that has seen epoch 2 does not go
+  back.
+- The daily comparison needs to reach the registrars, so it runs on the operator's machine. If that machine is off,
+  nobody is comparing, and the page for that day is not written.
+- The check compares roots only where the registrar's log is the size the record published. A log that forked and
+  then grew shows up as a verdict that disagrees, as it did here, not as a named fork.
+
+*Not changed:* the Standard, the vectors, the SDKs, any verdict, the sample artifacts, the TEST root.
+
+*Status:* ACCEPTED 2026-11-13, on the operator's instruction to go ahead with R3. Built, run and published the same
+day. Incident INC-2026-012 (MEDIUM); post-mortem in `SECURITY.md`.

@@ -10,6 +10,31 @@ We **publicly own fixed security bugs** — hiding them would be the opposite of
 
 ## [Unreleased]
 
+### Fixed — the test network's keys, and a record that disagreed with its registrar (D-107, INC-2026-012)
+
+- **The TEST staging registrars ran on keys derived from their public ids** (D-104 named it on 7 November), and the
+  record they sign is the one the site publishes. They were re-keyed with keys from the OS and reseeded on
+  13 November 2026. `AINRA_FRESH_KEYS=1` asks a new registrar data directory for OS keys even on a pinned clock.
+- **The site showed four test passports as VALID that their registrar refused** (`not_logged`). The record is
+  republished: eight passports, two revoked. The directory that names the new keys is **epoch 2**; epoch 1 stays in
+  the published history. Post-mortem in `SECURITY.md`.
+- The seed in `tools/stage.sh` now reads every answer. One seeded passport had been silently refused since D-089, and
+  a failed accreditation used to leave the previous directory in place to be published.
+
+### Added
+
+- **`make record-agrees`** (`tools/record-agrees.mjs`): the published record and every registrar, compared passport
+  by passport. Part of `make site-net-check`; run every morning against the record a visitor reads; its witness,
+  `make record-agrees-drill`, is a row on the board.
+- **`accredit` signs a stated epoch** (`AINRA_DIRECTORY_EPOCH`), and `tools/stage.sh` reads the next epoch from the
+  network's own history, so a re-key adds an epoch and never puts a second directory at one already published.
+  `tools/stage.sh accredit` signs and publishes again without restarting anything.
+
+### Changed
+
+- **`make live-up` brings its own directory** (port 8093) and `make live-drills` no longer needs the staging network.
+  The wall-clock registrar no longer runs on id-derived keys.
+
 ## [0.8.1] — 2026-11-13
 
 The release commit; its board is `docs/releases/v0.8.1-board.md`. Published to npm and PyPI from the tag, by the

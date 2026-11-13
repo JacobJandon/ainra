@@ -30,6 +30,11 @@ WIT_ADDR=127.0.0.1:4991
 ART_PORT=8091
 NBF=1775865600 ; RENEW_AT=$((NBF + 5*24*3600)) ; NOW=$((NBF + 10*24*3600)) ; AUDIT_EXP=1900000000
 export AINRA_STAGE=1
+# PLAN-M53 step R3 (D-107): a staging registrar's keys come from the OS. The pinned clock above used to decide that
+# too (pinned meant "a drill", and a drill's keys derive from its id), but this network's record is published, so
+# its keys must not be something anyone can recompute. Only a NEW data directory is affected; an existing one keeps
+# the keys it has.
+export AINRA_FRESH_KEYS=1
 
 # --- one HTTP client (curl) with the staging write token on write calls ---
 TOKEN_FILE="$STAGE/.issue-token"
@@ -47,8 +52,12 @@ issue(){ # addr operator lineage version tier auth 'cap,cap' 'ceil,ceil' [audit]
   ceil=$(echo "$8" | awk -F, '{for(i=1;i<=NF;i++)printf "%s\"%s\"",(i>1?",":""),$i}')
   audit=""; [ "${9:-}" = "audit" ] && audit=",\"audit\":{\"reference\":\"audit-$3\",\"expires\":$AUDIT_EXP}"
   hops="${10:-[]}"
-  post "$1/issue" "{\"operator\":\"$2\",\"lineage\":\"$3\",\"version\":\"$4\",\"tier\":\"$5\",\"auth_class\":\"$6\",\"principal_proof\":\"deadbeef$3\",\"capabilities\":[$caps],\"scope_ceiling\":[$ceil],\"hops\":$hops$audit}" >/dev/null
+  post "$1/issue" "{\"operator\":\"$2\",\"lineage\":\"$3\",\"version\":\"$4\",\"tier\":\"$5\",\"auth_class\":\"$6\",\"principal_proof\":\"deadbeef$3\",\"capabilities\":[$caps],\"scope_ceiling\":[$ceil],\"hops\":$hops$audit}" \
+    | grep -q '"sub"' || { echo "stage: the registrar at $1 did not issue $2:$3@$4 ($5 $6) — the seed is not what this script says it is"; SEED_BAD=1; }
 }
+# seeded <addr> <what> <json-body> <path> — a seed write that must be answered with a record, not just sent
+seeded(){ local r; r="$(post "$1/$4" "$3")"
+  if [ -z "$r" ] || echo "$r" | grep -q '"error"'; then echo "stage: $2 was not accepted by the registrar at $1"; SEED_BAD=1; fi; }
 
 publish(){ # fetch each daemon's public artifacts → static files with the contract path scheme
   # D-035: republish is idempotent — drop stale per-registrar artifacts first, so the published contract reflects
@@ -109,6 +118,36 @@ publish(){ # fetch each daemon's public artifacts → static files with the cont
   ' "$PUB"
 }
 
+# The epoch a directory is signed at is read from this network's own published history, never chosen by hand: the
+# first directory is epoch 1; the same registrars with the same keys give the same directory at the same epoch (a
+# restart changes nothing); registrars whose keys changed give the NEXT epoch, and the earlier one stays in the
+# history. Epoch 1 here named keys anyone could recompute; they were retired on 13 November 2026 and the directory
+# naming their replacements is epoch 2 (D-107). A re-key adds an epoch. It never puts a second directory at one
+# already published — the archive step in `publish` refuses that as equivocation, and so would any mirror.
+accredit_net(){ # ask each running registrar for its accreditation and sign the directory over them
+  mkdir -p "$STAGE/genesis"
+  # Checked, both steps. This used plain `get` and ignored `accredit`'s exit: when a registrar did not answer, the
+  # accreditation file was empty, `accredit` stopped, the PREVIOUS directory (naming the previous keys) stayed in
+  # place, and `publish` put it out as the record. A 0-byte acc file from 31 October shows it happened once.
+  fetch "$REG1_ADDR/accreditation" "$STAGE/genesis/acc-$REG1_ID.json" \
+    && fetch "$REG2_ADDR/accreditation" "$STAGE/genesis/acc-$REG2_ID.json" \
+    || { echo "stage: a registrar did not give its accreditation — nothing accredited, nothing published"; return 1; }
+  local last epoch
+  last=$(node -e 'try{const e=JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")).epochs||[];console.log(Math.max(0,...e.map(x=>x.epoch)))}catch{console.log(0)}' "$PUB/epochs.json")
+  epoch=$(( last >= 1 ? last : 1 ))
+  sign_at(){ rm -f "$STAGE/genesis/directory.json"
+    AINRA_DIRECTORY_EPOCH="$1" ./target/release/accredit "$STAGE/genesis" "$STAGE/genesis/acc-$REG1_ID.json" "$STAGE/genesis/acc-$REG2_ID.json" >/dev/null \
+      && [ -s "$STAGE/genesis/directory.json" ]; }
+  same_as_archived(){ node -e 'const fs=require("fs"),j=(p)=>JSON.stringify(JSON.parse(fs.readFileSync(p,"utf8")));process.exit(j(process.argv[1])===j(process.argv[2])?0:1)' "$STAGE/genesis/directory.json" "$PUB/epochs/$1.json" 2>/dev/null; }
+  sign_at "$epoch" || { echo "stage: accredit failed — there is no signed directory, and nothing is published"; return 1; }
+  if [ "$last" -ge 1 ] && ! same_as_archived "$epoch"; then
+    epoch=$((last + 1))
+    echo "stage: the registrars' keys are not the ones epoch $last names — signing epoch $epoch; epoch $last stays in the history"
+    sign_at "$epoch" || { echo "stage: accredit failed — there is no signed directory, and nothing is published"; return 1; }
+  fi
+  STAGE_EPOCH="$epoch"
+}
+
 case "${1:-up}" in
 up)
   mkdir -p "$STAGE" "$PUB"
@@ -130,15 +169,17 @@ up)
         '[{"from":"ainra:registrar-07:acme:owner@1.0.0","to":"ainra:registrar-07:acme:support-desk@1.0.0","granted":["read:tickets","reply:ticket"]},{"from":"ainra:registrar-07:acme:support-desk@1.0.0","to":"ainra:registrar-07:acme:support-bot@1.0.0","granted":["read:tickets"]}]'
   issue "$REG2_ADDR" operator-03 scheduler   2.2.0 L2 A2 "read:calendar,book:slot" "read:calendar,book:slot,cancel:slot"
   issue "$REG2_ADDR" operator-05 notifier    3.0.1 L1 A2 "send:notification" "send:notification"
-  issue "$REG2_ADDR" operator-03 crawler     0.9.0 L0 A1 "fetch:public" "fetch:public"
-  post "$REG1_ADDR/revoke" "{\"sub\":\"ainra:$REG1_ID:acme:data-export@2.0.0\",\"now\":$NOW}" >/dev/null
-  post "$REG2_ADDR/revoke" "{\"sub\":\"ainra:$REG2_ID:operator-03:crawler@0.9.0\",\"now\":$NOW}" >/dev/null
-  post "$REG2_ADDR/renew"  "{\"sub\":\"ainra:$REG2_ID:operator-03:scheduler@2.2.0\",\"new_version\":\"2.3.0\",\"now\":$RENEW_AT}" >/dev/null
+  # A2, not A1: since D-089 a registrar issues A1 only on evidence its principal checker accepts, and this network
+  # configures none. The seed asked for A1 until 13 November 2026 and never looked at the answer, so the crawler was
+  # silently missing, and with it registrar-11's one revoked passport.
+  issue "$REG2_ADDR" operator-03 crawler     0.9.0 L0 A2 "fetch:public" "fetch:public"
+  seeded "$REG1_ADDR" "the revocation of data-export" "{\"sub\":\"ainra:$REG1_ID:acme:data-export@2.0.0\",\"now\":$NOW}" revoke
+  seeded "$REG2_ADDR" "the revocation of crawler"     "{\"sub\":\"ainra:$REG2_ID:operator-03:crawler@0.9.0\",\"now\":$NOW}" revoke
+  seeded "$REG2_ADDR" "the renewal of scheduler"      "{\"sub\":\"ainra:$REG2_ID:operator-03:scheduler@2.2.0\",\"new_version\":\"2.3.0\",\"now\":$RENEW_AT}" renew
+  [ "${SEED_BAD:-0}" = 0 ] || { echo "stage: the seed was not accepted as written — nothing accredited, nothing published"; exit 1; }
   echo "== accredit the network under a REAL genesis dual-root (FROST 5-of-9 + SLH-DSA) =="
-  mkdir -p "$STAGE/genesis"
-  get "$REG1_ADDR/accreditation" > "$STAGE/genesis/acc-$REG1_ID.json"
-  get "$REG2_ADDR/accreditation" > "$STAGE/genesis/acc-$REG2_ID.json"
-  ./target/release/accredit "$STAGE/genesis" "$STAGE/genesis/acc-$REG1_ID.json" "$STAGE/genesis/acc-$REG2_ID.json"
+  accredit_net || exit 1
+  echo "   the directory is epoch $STAGE_EPOCH"
   ROOT_FP="$(node -e 'process.stdout.write(require("./"+process.argv[1]+"/genesis/roots.json").root_ed25519.slice(0,16))' "$STAGE")"
   export AINRA_ROOT="genesis:$ROOT_FP"
   echo "== publish the public artifacts (the contract read surface) =="
@@ -160,6 +201,10 @@ down)
   echo "staging network stopped."
   ;;
 publish) publish || exit 1; echo "republished."; ;;
+accredit) # sign the directory again over the registrars as they answer now, then publish it; restarts nothing
+  cargo build --release -q -p ainra-ceremony --bin accredit
+  accredit_net || exit 1
+  publish || exit 1; echo "accredited at epoch $STAGE_EPOCH and republished."; ;;
 status)
   echo "AINRA STAGING BOARD · TEST-ROOT  ($(date -u +%H:%M:%SZ))"
   echo "────────────────────────────────────────────────────────────"
@@ -173,5 +218,5 @@ status)
   echo "  labels: STAGING · TEST-ROOT · placeholder operators · zero telemetry"
   ;;
 smoke) exec bash tools/stage-smoke.sh ;;
-*) echo "usage: stage.sh {up|down|publish|status|smoke}"; exit 2 ;;
+*) echo "usage: stage.sh {up|down|publish|accredit|status|smoke}"; exit 2 ;;
 esac

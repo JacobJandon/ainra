@@ -36,7 +36,7 @@ import { Verifier, jwkThumbprintEd25519, linkPopSigningBytes, linkFromIndex } fr
 import { b64uDecode, b64uEncode } from "../../packages/sdk-ts/dist/crypto.js";
 
 const REG = process.env.AINRA_REGISTRAR ?? "http://127.0.0.1:4970";
-const ART = process.env.AINRA_ARTIFACTS ?? "http://127.0.0.1:8091";
+const ART = process.env.AINRA_ARTIFACTS ?? "http://127.0.0.1:8093";
 const now = () => Math.floor(Date.now() / 1000);
 
 let bad = 0;

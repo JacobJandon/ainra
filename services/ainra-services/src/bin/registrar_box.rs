@@ -343,7 +343,13 @@ fn main() {
         let test_derived_new = std::env::var("AINRA_TEST_DERIVED_KEYS").ok().as_deref()
             == Some("1")
             && std::env::var("AINRA_NETWORK").ok().as_deref() != Some("production");
-        if clock_pinned() || test_derived_new {
+        // `AINRA_FRESH_KEYS=1` asks for CSPRNG keys even on a pinned clock (PLAN-M53 step R3, D-107). A pinned
+        // clock used to mean "a hermetic drill", and a drill wants reproducible keys; the standing staging network
+        // is pinned too (its record is a reference world dated 2026-04-21), and its registrars are not a drill:
+        // their record is published, so their keys must not be something anyone can recompute. Off by default, so
+        // every hermetic drill keeps the keys it has always had.
+        let fresh_keys = std::env::var("AINRA_FRESH_KEYS").ok().as_deref() == Some("1");
+        if (clock_pinned() || test_derived_new) && !fresh_keys {
             RegistrarBox::create_seeded(data_dir, &id, 4096, seed, NBF - 3600, NBF, EXP)
                 .expect("create registrar-box")
         } else {

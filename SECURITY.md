@@ -249,6 +249,43 @@ requests (with `--watch` it cannot); it is a kit run from a checkout, not a publ
 
 ---
 
+## Post-mortem: the site showed four test passports as VALID that their registrar refused (D-107, fixed 13 November 2026)
+
+**What was wrong.** The record on `ainra.org` is a copy of what the TEST staging network serves. For four passports
+at registrar-07, the registrar itself answered `INVALID · not_logged`: its log had stopped being an extension of the
+log they were issued into. The published record stored that verdict beside each of them. The record page does not
+show the stored verdict; it verifies each stored passport again in your browser, from the checkpoint the passport was
+issued under, and that checkpoint and its proof were still in the file. So the page showed all four as VALID. The
+copy published on 4 November 2026 already had this; we do not know how much earlier it began.
+
+Behind it sat the thing D-104 had named on 7 November and not yet fixed: both staging registrars ran on keys derived
+from their public ids, so anyone could recompute them and sign as either registrar.
+
+**What was not wrong.** No verifier accepted bytes it should have refused: each of the four verifies as VALID from
+what the record held, and as `not_logged` from what the registrar presented, and both answers are correct for their
+input. This is a TEST network under a TEST root, with placeholder operators. No released package is involved and no
+production key exists.
+
+**How it was found.** Not by a gate. A review of the site on 12 November compared what the page showed with what the
+registrar answered. Our two checks of the published record were green that day: one compared files with the server
+that serves them, and the other asked one registrar about one passport.
+
+**The fix.** The staging network was re-keyed with keys from the OS and reseeded on 13 November: eight passports,
+two revoked. The directory that names the new keys is epoch 2 under the same TEST root, and epoch 1 stays in the
+published history. `tools/record-agrees.mjs` now compares the record with the registrars passport by passport; it is
+part of `make site-net-check`, it runs every morning against the record a visitor is reading, and its witness (nine
+planted disagreements) is a row on the board. Run against the old record and the old registrar state, it reports the
+four passports and one more the registrar held that the record did not list. Details and limits are in D-107.
+
+**What we changed in how we work.** A published copy is checked against the thing it is a copy of, item by item,
+not against the server that hands out the copy. And a network whose record we publish does not run on keys that
+anyone can recompute, test network or not: a page that says VALID is read as a claim, whatever the label beside it.
+
+**What is still true.** The TEST root is a fixed seed, so anyone can sign a TEST directory. A TEST root carries no
+trust by design, and D-107 says so in its limits.
+
+---
+
 ## Post-mortem: both command-line tools printed a stranger's text as written (fixed 13 November 2026)
 
 **What was wrong.** A passport names itself, and a refused one is named too. `ainra verify-request` (the Rust tool,

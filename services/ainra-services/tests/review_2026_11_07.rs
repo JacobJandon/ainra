@@ -44,6 +44,7 @@ fn command(addr: &str, data: &Path, pinned: bool, staging: bool) -> Command {
         .env("AINRA_OPEN_WRITES", "1")
         .env_remove("AINRA_STAGE_ISSUE_TOKEN")
         .env_remove("AINRA_TEST_DERIVED_KEYS")
+        .env_remove("AINRA_FRESH_KEYS")
         .env_remove("AINRA_ROOTS_FILE")
         .stdout(Stdio::null())
         .stderr(Stdio::null());
@@ -154,6 +155,82 @@ fn one_idle_connection_does_not_stop_the_registrar() {
         t.elapsed()
     );
     drop(held);
+}
+
+#[test]
+fn a_pinned_registrar_asked_for_fresh_keys_gets_keys_nobody_can_recompute() {
+    // PLAN-M53 step R3 (D-107). The staging network runs on a pinned clock, and a pinned clock alone used to mean
+    // id-derived keys. With AINRA_FRESH_KEYS=1 a new pinned registrar takes its keys from the OS instead.
+    let derived = {
+        let (d, a) = (dir("r3-derived"), format!("127.0.0.1:{}", free_port()));
+        let _r = up(&a, &mut command(&a, &d, true, false));
+        let k: Value = serde_json::from_str(&http_get(&a, "/accreditation").unwrap()).unwrap();
+        k["issuer_key"].clone()
+    };
+    let (d1, d2) = (dir("r3-fresh-1"), dir("r3-fresh-2"));
+    let (a1, a2) = (
+        format!("127.0.0.1:{}", free_port()),
+        format!("127.0.0.1:{}", free_port()),
+    );
+    let fresh = |a: &str, d: &std::path::Path| {
+        let mut c = command(a, d, true, false);
+        c.env("AINRA_FRESH_KEYS", "1");
+        c
+    };
+    let (k1, sub) = {
+        let _r1 = up(&a1, &mut fresh(&a1, &d1));
+        let _r2 = up(&a2, &mut fresh(&a2, &d2));
+        let k1: Value = serde_json::from_str(&http_get(&a1, "/accreditation").unwrap()).unwrap();
+        let k2: Value = serde_json::from_str(&http_get(&a2, "/accreditation").unwrap()).unwrap();
+        assert_ne!(
+            k1["issuer_key"], k2["issuer_key"],
+            "two fresh registrars, two keys"
+        );
+        assert_ne!(
+            k1["issuer_key"], derived,
+            "not the key anyone can derive from the id"
+        );
+        assert_ne!(k2["issuer_key"], derived);
+        let rec = post(
+            &a1,
+            "/issue",
+            &json!({
+                "operator": "acme", "lineage": "r3", "version": "1.0.0", "tier": "L1", "auth_class": "A2",
+                "principal_proof": "x", "capabilities": [], "scope_ceiling": [],
+            }),
+        );
+        (
+            k1["issuer_key"].clone(),
+            rec["sub"].as_str().expect("issued").to_string(),
+        )
+    };
+    let secret: Value =
+        serde_json::from_str(&std::fs::read_to_string(d1.join("registrar.secret")).unwrap())
+            .unwrap();
+    assert_eq!(secret["seed32"].as_str().map(str::len), Some(64));
+    // Restarted on the same pinned clock, with or without the switch, it is the same registrar and still presents
+    // what it issued: the switch decides how a registrar is born, never which one comes back.
+    for with_switch in [true, false] {
+        let mut c = command(&a1, &d1, true, false);
+        if with_switch {
+            c.env("AINRA_FRESH_KEYS", "1");
+        }
+        let _r = up(&a1, &mut c);
+        let k: Value = serde_json::from_str(&http_get(&a1, "/accreditation").unwrap()).unwrap();
+        assert_eq!(
+            k["issuer_key"], k1,
+            "reloaded with the keys it was born with"
+        );
+        let shown = http_get(
+            &a1,
+            &format!(
+                "/present?sub={}&now=1776729600",
+                sub.replace(':', "%3A").replace('@', "%40")
+            ),
+        )
+        .unwrap();
+        assert!(shown.contains("\"claims\""), "{shown}");
+    }
 }
 
 #[test]

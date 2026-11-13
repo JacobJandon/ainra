@@ -7,7 +7,7 @@
 // It READS only. It sends nothing to anyone, changes no state, and every section says what it could not check
 // rather than going quiet about it.
 import { readFileSync, writeFileSync, existsSync, readdirSync } from "node:fs";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -58,6 +58,15 @@ const live = sh("bash", ["tools/live.sh", "status"]);
 lines.push(`- Live network (wall clock, :4970): ${live ? live.split("\n").slice(-1)[0].trim() : "DOWN — `make live-up` to start it"}`);
 const stage = sh("systemctl", ["--user", "is-active", "ainra-stage.target"]);
 lines.push(`- Staging network (pinned): ${stage ?? "not running"}`);
+// PLAN-M53 R3 (D-107): the record a visitor reads, compared passport by passport with the registrars, every morning.
+// Three answers, and "could not check" is its own: a check that goes quiet when the site is unreachable reads as green.
+{
+  const r = spawnSync("node", ["tools/record-agrees.mjs"], { cwd: ROOT, encoding: "utf8", timeout: 60000, env: { ...process.env, AINRA_RECORD: process.env.AINRA_DIGEST_RECORD ?? "https://ainra.org/net" } });
+  const last = (t) => (t || "").trim().split("\n").slice(-1)[0];
+  if (r.status === 0) lines.push(`- Site record and registrars: ${last(r.stdout).replace(/^record-agrees OK: /, "")}`);
+  else if (r.status === 1) lines.push(`- Site record and registrars: **RED — ${last(r.stderr)}** Run \`make record-agrees\` for each one, then \`make site-net\` and deploy.`);
+  else lines.push(`- Site record and registrars: could not check (${last(r.stderr) || "the check did not finish"})`);
+}
 lines.push("");
 
 writeFileSync(OUT, lines.join("\n") + "\n");

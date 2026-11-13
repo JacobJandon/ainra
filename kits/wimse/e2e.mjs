@@ -30,7 +30,7 @@ import {
 } from "../../packages/sdk-ts/dist/index.js";
 import { wimseOnlyVerify } from "./independent.mjs";
 
-const ART = process.env.AINRA_ARTIFACTS ?? "http://127.0.0.1:8091";
+const ART = process.env.AINRA_ARTIFACTS ?? "http://127.0.0.1:8093";
 const AUD = "https://ledger.example/entries";
 const REF_HEADER = "x-ainra-passport";
 let bad = 0;

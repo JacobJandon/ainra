@@ -53,7 +53,7 @@ const { ml_dsa65 } = await load("@noble/post-quantum/ml-dsa");
 const { ed25519 } = await load("@noble/curves/ed25519");
 
 const REG = process.env.AINRA_REGISTRAR ?? "http://127.0.0.1:4970";   // the wall-clock live registrar (make live-up)
-const ART = process.env.AINRA_ARTIFACTS ?? "http://127.0.0.1:8091";
+const ART = process.env.AINRA_ARTIFACTS ?? "http://127.0.0.1:8093";
 const AUD = "https://shop.example";
 const now = () => Math.floor(Date.now() / 1000);
 
@@ -71,7 +71,7 @@ async function j(url, init) {
 
 // ── preflight: the live network must be there ────────────────────────────────────────────────────────────────────
 try { await fetch(`${ART}/directory.json`, { signal: AbortSignal.timeout(3000) }); }
-catch { console.error(`identity-e2e: no staging network at ${ART} — run \`make stage-up\` first`); process.exit(2); }
+catch { console.error(`identity-e2e: no directory at ${ART} — run \`make stage-up\` first`); process.exit(2); }
 
 // ── 1 · the agent's own key ──────────────────────────────────────────────────────────────────────────────────────
 step("1 · the agent generates its own hybrid key");

@@ -75,7 +75,7 @@ const { ml_dsa65 } = await lib("@noble/post-quantum/ml-dsa");
 const { ed25519 } = await lib("@noble/curves/ed25519");
 
 const REG = process.env.AINRA_REGISTRAR ?? "http://127.0.0.1:4970";
-const ART = process.env.AINRA_ARTIFACTS ?? "http://127.0.0.1:8091";
+const ART = process.env.AINRA_ARTIFACTS ?? "http://127.0.0.1:8093";
 const now = () => Math.floor(Date.now() / 1000);
 let bad = 0;
 const ok = (m) => console.log(`  ok    ${m}`);

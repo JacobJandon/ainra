@@ -101,6 +101,9 @@ This is a presentation format change. WITNESS: a chain signed by keys that are n
 
 **R3. Re-key the TEST staging registrars** (D-104, the operator's decision). Their keys derive from their public ids.
 Fresh keys from the OS CSPRNG, re-accredited in the TEST directory. This wipes the TEST network's state.
+**Done 13 November 2026 (D-107).** The directory naming the new keys is epoch 2 and epoch 1 stays in the history;
+the wall-clock registrar has its own directory; `make record-agrees` holds the published record to the registrars,
+passport by passport. Not covered: the TEST root is still a fixed seed.
 
 **9. Registrar key roll.** D-094 item 13 decided it: a two-key overlap in the entry, and a declared 2-of-3 offline
 approver set, disjoint from the online keys. The approver set becomes a published object. REGISTRAR_KEY_ROLL and

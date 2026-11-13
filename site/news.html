@@ -114,7 +114,7 @@ setTimeout(function(){var h=document.documentElement;if(!h.dataset.rvReady)h.cla
 
 <a href="#main" class="skip">Skip to content</a>
 
-<div class="announce"><div class="wrap"><span class="announce__msg">Real issuance + the real record on a <b><span class="nw">TEST-ROOT</span></b> — every passport here is a labelled specimen with real cryptography, verified on your machine. <a href="foundation.html">Honest status →</a></span><span class="announce__side"><span class="rclock" data-record-clock><span class="rclock__l"><span class="rclock__k">PUBLISHED RECORD</span> <span data-stamp="published-iso"><span class="nw">2026-11-04T18:19:51Z</span></span></span><span class="rclock__s"><span class="rclock__k">RECORD</span> <span data-stamp="published-date"><span class="nw">2026-11-04</span></span></span><span data-rc-more hidden> · <span class="rclock__l"><span class="rclock__k">AGE</span> <span data-rc-age></span></span><span class="rclock__s" data-rc-days></span> · <b data-rc-state></b></span></span><button class="motion-btn" type="button" data-motion-toggle aria-pressed="true" hidden><svg class="i-on" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 2h2v8H3zM7 2h2v8H7z" fill="currentColor"/></svg><svg class="i-off" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 2v8l7-4z" fill="currentColor"/></svg><span data-motion-label>Motion: on</span></button></span></div></div>
+<div class="announce"><div class="wrap"><span class="announce__msg">Real issuance + the real record on a <b><span class="nw">TEST-ROOT</span></b> — every passport here is a labelled specimen with real cryptography, verified on your machine. <a href="foundation.html">Honest status →</a></span><span class="announce__side"><span class="rclock" data-record-clock><span class="rclock__l"><span class="rclock__k">PUBLISHED RECORD</span> <span data-stamp="published-iso"><span class="nw">2026-11-13T16:23:50Z</span></span></span><span class="rclock__s"><span class="rclock__k">RECORD</span> <span data-stamp="published-date"><span class="nw">2026-11-13</span></span></span><span data-rc-more hidden> · <span class="rclock__l"><span class="rclock__k">AGE</span> <span data-rc-age></span></span><span class="rclock__s" data-rc-days></span> · <b data-rc-state></b></span></span><button class="motion-btn" type="button" data-motion-toggle aria-pressed="true" hidden><svg class="i-on" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 2h2v8H3zM7 2h2v8H7z" fill="currentColor"/></svg><svg class="i-off" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 2v8l7-4z" fill="currentColor"/></svg><span data-motion-label>Motion: on</span></button></span></div></div>
 
 <nav><div class="wrap nav-in">
   <a class="brand" href="index.html" aria-label="AINRA — Agent Identity and Naming Registry Authority">
@@ -151,9 +151,9 @@ setTimeout(function(){var h=document.documentElement;if(!h.dataset.rvReady)h.cla
       <div class="g-menu__col">
         <p class="g-menu__k">The record, as published</p>
         <dl class="g-menu__kv">
-          <div><dt>Passports in the record</dt><dd data-stamp="issued">80</dd></div>
+          <div><dt>Passports in the record</dt><dd data-stamp="issued">8</dd></div>
           <div><dt>Registrars</dt><dd data-stamp="registrars">2</dd></div>
-          <div><dt>Revoked</dt><dd data-stamp="revoked">53</dd></div>
+          <div><dt>Revoked</dt><dd data-stamp="revoked">2</dd></div>
           <div><dt>Witnesses</dt><dd>0 · <a href="https://github.com/JacobJandon/ainra/blob/main/outreach/WITNESS-CALL.md">recruiting</a></dd></div>
         </dl>
         <p class="g-menu__note">Read from <a href="net/registry.json">net/registry.json</a>.</p>
@@ -230,6 +230,15 @@ setTimeout(function(){var h=document.documentElement;if(!h.dataset.rvReady)h.cla
   <!--news:start-->
   <section class="nw-month" aria-label="November 2026">
     <h2 class="nw-month__h">November 2026</h2>
+    <article class="nw-item nw-item--major" id="n-the-test-network-has-new-keys" data-kind="network" data-major>
+      <p class="nw-when"><time datetime="2026-11-13">13 November 2026</time><span class="nw-kind nw-kind--network">Network</span><span class="nw-flag">Major</span></p>
+      <h3 class="nw-title"><a href="#n-the-test-network-has-new-keys">The test network has new keys, and a page here was wrong about four passports</a></h3>
+      <p>The record on this site is a copy of what our test network serves. For four passports the copy and the registrar disagreed: the registrar said they were no longer in its log, and the page here showed them as VALID. A review found it on 12 November. Our own checks were green that day, because they compared the copy with the server that hands it out, and never asked the registrars.</p>
+      <p>Behind it was something an outside review had already named on 7 November. The test registrars' keys were worked out from their public names, so anyone could work them out too.</p>
+      <p>On 13 November we replaced the keys with ones from the operating system and started the test network's passports again: eight of them, two revoked. The directory that names the new keys is epoch 2. Epoch 1 stays in the history, because a record that drops its own past is not a record. If you mirror the directory you will see the new epoch arrive under the same test root.</p>
+      <p>A new check now asks every registrar about every passport in the record, every morning. This is a test network under a test root, and no real key was involved. We are telling it anyway, because a page that says VALID is read as a claim.</p>
+      <p class="nw-proof"><a href="https://github.com/JacobJandon/ainra/blob/main/SECURITY.md">The <span class="nw">post-mortem</span></a><a href="https://github.com/JacobJandon/ainra/blob/main/docs/DECISIONS.md">Decision <span class="nw">D-107</span></a><a href="net/epochs.json">Both epochs</a><a href="incidents.json">Incident <span class="nw">INC-2026-012</span></a></p>
+    </article>
     <article class="nw-item nw-item--major" id="n-v0.8.1" data-kind="release" data-major>
       <p class="nw-when"><time datetime="2026-11-13">13 November 2026</time><span class="nw-kind nw-kind--release">Release</span><span class="nw-flag">Major</span></p>
       <h3 class="nw-title"><a href="#n-v0.8.1">0.8.1: a security release. Please upgrade the&nbsp;gate</a></h3>

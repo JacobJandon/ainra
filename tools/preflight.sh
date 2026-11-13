@@ -120,6 +120,7 @@ run "control page"       "the page shows each lie red"    make -s control-page-d
 run "leak ledger"        "what each party learns, held"   make -s leak-ledger
 run "operator report"    "every figure from an artifact"  make -s monthly-report-check
 run "incident log"       "every post-mortem logged, on time" make -s incident-check
+run "record agrees"      "site vs registrars: 9 lies caught" make -s record-agrees-drill
 # The weekly job was the only place this ran, and it went red on 11 November 2026 a day before anyone looked
 # (SECURITY-ADVISORIES.md, RUSTSEC-2026-0486): two pushes were made onto it. It needs the advisory database, so it
 # needs a network; a board that cannot reach it is red, which is the honest answer before a push.

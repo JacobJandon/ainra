@@ -1,13 +1,17 @@
 {
-  "checkpoint": "ainra-directory\n1\nx9ynBlBkyVeMH7v5jbwaxuTSq_-vH6TbmlV8Nq7aWKA\n",
+  "checkpoint": "ainra-directory\n2\n2yYoNKMsptFZa6nYeGQ2jYsoMS25kbZKHUZwsNSS4Uw\n",
   "leaf": "SHA-256(0x00 || \"ainra-directory/v1\\n\" || epoch || \"\\n\" || digest || \"\\n\") (RFC 6962)",
   "leaves": [
     {
       "digest": "549a8f6ccb1c72ce64a1b46213159be5e16ba9b7868db4fb36fd465e0519ff7d",
       "epoch": 1
+    },
+    {
+      "digest": "d5f2c7edcb532b47984542ec4ceb7e8f22598411541a71228c5862267b5a0237",
+      "epoch": 2
     }
   ],
   "origin": "ainra-directory",
-  "root": "x9ynBlBkyVeMH7v5jbwaxuTSq_-vH6TbmlV8Nq7aWKA",
-  "size": 1
+  "root": "2yYoNKMsptFZa6nYeGQ2jYsoMS25kbZKHUZwsNSS4Uw",
+  "size": 2
 }

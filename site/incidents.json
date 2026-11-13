@@ -181,6 +181,20 @@
         "file": "SECURITY.md",
         "heading": "Post-mortem: a presenter's name could make the gate throw"
       }
+    },
+    {
+      "id": "INC-2026-012",
+      "class": "MEDIUM",
+      "surface": "the TEST staging record published on ainra.org (site/net) and the two TEST staging registrars; no released package, no production key",
+      "title": "D-107: the site showed four test passports as VALID that their registrar refused, behind registrar keys anyone could recompute",
+      "opened": "2026-11-12",
+      "disclosed": "2026-11-13",
+      "fixed": "2026-11-13",
+      "released": null,
+      "record": {
+        "file": "SECURITY.md",
+        "heading": "Post-mortem: the site showed four test passports as VALID that their registrar refused"
+      }
     }
   ],
   "not_incidents": [

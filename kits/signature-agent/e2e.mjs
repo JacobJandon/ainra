@@ -41,7 +41,7 @@ import { ainraGate, ainraPrime, createPresentationStore } from "../../packages/m
 
 const EDGE = process.argv.includes("--edge");
 const REG = process.env.AINRA_REGISTRAR ?? "http://127.0.0.1:4970";
-const ART = process.env.AINRA_ARTIFACTS ?? "http://127.0.0.1:8091";
+const ART = process.env.AINRA_ARTIFACTS ?? "http://127.0.0.1:8093";
 const AUD = "https://shop.example";
 const now = () => Math.floor(Date.now() / 1000);
 

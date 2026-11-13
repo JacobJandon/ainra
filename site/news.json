@@ -9,6 +9,42 @@
   },
   "entries": [
     {
+      "id": "the-test-network-has-new-keys",
+      "date": "2026-11-13",
+      "kind": "network",
+      "major": true,
+      "title": "The test network has new keys, and a page here was wrong about four passports",
+      "body": [
+        "The record on this site is a copy of what our test network serves. For four passports the copy and the registrar disagreed: the registrar said they were no longer in its log, and the page here showed them as VALID. A review found it on 12 November. Our own checks were green that day, because they compared the copy with the server that hands it out, and never asked the registrars.",
+        "Behind it was something an outside review had already named on 7 November. The test registrars' keys were worked out from their public names, so anyone could work them out too.",
+        "On 13 November we replaced the keys with ones from the operating system and started the test network's passports again: eight of them, two revoked. The directory that names the new keys is epoch 2. Epoch 1 stays in the history, because a record that drops its own past is not a record. If you mirror the directory you will see the new epoch arrive under the same test root.",
+        "A new check now asks every registrar about every passport in the record, every morning. This is a test network under a test root, and no real key was involved. We are telling it anyway, because a page that says VALID is read as a claim."
+      ],
+      "proof": [
+        {
+          "label": "The post-mortem",
+          "href": "https://github.com/JacobJandon/ainra/blob/main/SECURITY.md"
+        },
+        {
+          "label": "Decision D-107",
+          "href": "https://github.com/JacobJandon/ainra/blob/main/docs/DECISIONS.md"
+        },
+        {
+          "label": "Both epochs",
+          "href": "net/epochs.json"
+        },
+        {
+          "label": "Incident INC-2026-012",
+          "href": "incidents.json"
+        }
+      ],
+      "covers": {
+        "incidents": [
+          "INC-2026-012"
+        ]
+      }
+    },
+    {
       "id": "v0.8.1",
       "date": "2026-11-13",
       "kind": "release",

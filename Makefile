@@ -2,7 +2,7 @@
 # and everything is green in under 10 minutes on a laptop.
 
 .PHONY: link-parity link-e2e tsl-check online-verifier-check pilot-e2e watch
-.PHONY: remote-ceremony-drill desk desk-drill epoch-log-drill probe-ladder incident-check monthly-report monthly-report-check outage-drill sign-epoch-rehearsal accreditation-checks leak-ledger control-page-drill ctl-drill negative-controls replay-imports witness-feed-drill release-state-check wimse-check wimse-e2e live-drills gate-parity py-test sign-diff python-agent-e2e signature-agent-check signature-agent-e2e edge-build edge-test edge-e2e edge-runtimes personhood-test personhood-live live-up live-down live-status identity-e2e root-dark-drill mirror-sufficiency legibility-drill cli-deps succession-drill staleness-drill amendment-check amendment-check-negative doctrine doctrine-negative number-syntax engine-parity one-decode-path bench-gate all test vectors vectors-check diff cli-check suite-migration-drill ceremony-rehearsal-multi witness-check push-advisory-check changelog-board-check fmt clippy fuzz-smoke bench sdk-build sdk-test ci clean status console samples drill explorer demo scale ceremony testbed wedge-build wedge-test repro mirror verify-mirror check-freeze freeze genesis-local verifier-kit-smoke ceremony-dry-run soak-smoke drill-networked preflight s7 license gitleaks audit verify-as-external verifier-triple-drill soak-verify genesis-status verify-transcript genesis-board-demo release doctor verifier-operator-drill site site-up site-down site-check stage-all stage-all-down explorer-up explorer-down ainrascan stage-up stage-down stage-status stage-smoke demo-walkthrough three-clients genesis-verify config-diff declaration genesis-rehearsal site-demo verify issue-first registrar-console mcp-test skills-replay presentation-diff conformance campaign-status campaign-init campaign-gates campaign-check publish-preflight stage-install stage-uninstall stage-health stranger probe-drill miri reasons-check corpus-check instance-gate claims-check claims claims-live policy-parity deploy-current site-net site-net-check lockfile-sync soak-ingest outreach-check names-check interop interop-negative
+.PHONY: record-agrees record-agrees-drill remote-ceremony-drill desk desk-drill epoch-log-drill probe-ladder incident-check monthly-report monthly-report-check outage-drill sign-epoch-rehearsal accreditation-checks leak-ledger control-page-drill ctl-drill negative-controls replay-imports witness-feed-drill release-state-check wimse-check wimse-e2e live-drills gate-parity py-test sign-diff python-agent-e2e signature-agent-check signature-agent-e2e edge-build edge-test edge-e2e edge-runtimes personhood-test personhood-live live-up live-down live-status identity-e2e root-dark-drill mirror-sufficiency legibility-drill cli-deps succession-drill staleness-drill amendment-check amendment-check-negative doctrine doctrine-negative number-syntax engine-parity one-decode-path bench-gate all test vectors vectors-check diff cli-check suite-migration-drill ceremony-rehearsal-multi witness-check push-advisory-check changelog-board-check fmt clippy fuzz-smoke bench sdk-build sdk-test ci clean status console samples drill explorer demo scale ceremony testbed wedge-build wedge-test repro mirror verify-mirror check-freeze freeze genesis-local verifier-kit-smoke ceremony-dry-run soak-smoke drill-networked preflight s7 license gitleaks audit verify-as-external verifier-triple-drill soak-verify genesis-status verify-transcript genesis-board-demo release doctor verifier-operator-drill site site-up site-down site-check stage-all stage-all-down explorer-up explorer-down ainrascan stage-up stage-down stage-status stage-smoke demo-walkthrough three-clients genesis-verify config-diff declaration genesis-rehearsal site-demo verify issue-first registrar-console mcp-test skills-replay presentation-diff conformance campaign-status campaign-init campaign-gates campaign-check publish-preflight stage-install stage-uninstall stage-health stranger probe-drill miri reasons-check corpus-check instance-gate claims-check claims claims-live policy-parity deploy-current site-net site-net-check lockfile-sync soak-ingest outreach-check names-check interop interop-negative
 
 all: fmt clippy test vectors diff
 
@@ -296,13 +296,16 @@ signature-agent-e2e: sdk-build edge-build
 pilot-e2e: sdk-build wedge-build
 	cd kits/pilot && { [ -d node_modules ] || npm ci --no-audit --no-fund --silent; } && node pilot-e2e.mjs
 
-# D-105, from a fresh clone, in one command: builds what the kit needs, reads the published test directory and roots
-# (site/net/), and puts the check beside one route; it refuses nothing. A registrar is asked only about a request whose
-# signature verifies; `make live-up` runs a local test one at the default REGISTRAR. Report: node kits/pilot/watch-report.mjs watch.jsonl
+# D-105, from a fresh clone, in one command: builds what the kit needs and puts the check beside one route; it refuses
+# nothing. A registrar is asked only about a request whose signature verifies; `make live-up` runs a local test one at
+# the default REGISTRAR, with a directory of its own in live/public/ (PLAN-M53 step R3), and that pair is used when it
+# is there. Otherwise the published test directory and roots (site/net/). DIRECTORY= and ROOTS= name any other.
+# Report: node kits/pilot/watch-report.mjs watch.jsonl
+WATCH_NET := $(if $(wildcard live/public/directory.json),live/public,site/net)
 watch: sdk-build wedge-build  ## the check beside one route: make watch UPSTREAM=http://127.0.0.1:3000 [LISTEN=127.0.0.1:8080] [MODE=link|passport] [REGISTRAR=url] [OBS=watch.jsonl]
 	@cd kits/pilot && { [ -d node_modules ] || npm ci --no-audit --no-fund --silent; }
 	node kits/pilot/pilot.mjs --watch $(if $(UPSTREAM),--upstream $(UPSTREAM),) --listen $(or $(LISTEN),127.0.0.1:8080) \
-	  --directory site/net/directory.json --roots site/net/roots.json --mode $(or $(MODE),link) \
+	  --directory $(or $(DIRECTORY),$(WATCH_NET)/directory.json) --roots $(or $(ROOTS),$(WATCH_NET)/roots.json) --mode $(or $(MODE),link) \
 	  --registrar $(or $(REGISTRAR),http://127.0.0.1:4970) --observations $(or $(OBS),watch.jsonl)
 
 # D-079 — online verification, both halves (hermetic): the hosted verifier's signed receipts, no lookup, aggregate
@@ -713,8 +716,15 @@ site-net:        ## publish the running network's read contract into site/net/ a
 	bash tools/site-net.sh publish
 	@node tools/monthly-report.mjs   # the operator report re-reads the record it was just given
 
-site-net-check:  ## is the committed site/net/ still byte-identical to what the network serves?
+site-net-check: sdk-build  ## is the committed site/net/ still what the network serves, and do the registrars agree with it?
 	bash tools/site-net.sh check
+	@node tools/record-agrees.mjs
+
+record-agrees: sdk-build   ## the published record and every registrar agree on every passport (needs the running network)
+	node tools/record-agrees.mjs
+
+record-agrees-drill: sdk-build  ## the witness for record-agrees: nine planted disagreements, each refused by name (offline)
+	node tools/record-agrees.mjs --drill
 
 # on — it binds 127.0.0.1, so it is not reachable from the internet.
 stage-install:   ## install the staging network as user services (survives logout + reboot)

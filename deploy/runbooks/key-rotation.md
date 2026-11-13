@@ -10,5 +10,10 @@
   registrar seed, and on a pinned network (`AINRA_CLOCK=pinned`, the reproducible staging world) the certs stay in
   their fixed 2026-04 window by design. `make live-status` reads the window from a real presentation. A revoked
   delegate's checkpoints go `checkpoint_invalid` (M4) — publish the revocation in the directory.
+- **A staging registrar's own keys:** they come from the OS and live in the registrar's data directory
+  (`AINRA_FRESH_KEYS=1`, D-107). Replacing them means a new data directory, so the registrar's passports go with
+  them. `make stage-install` then signs the directory at the NEXT epoch (`tools/stage.sh` reads the epoch from the
+  network's published history, and the earlier epochs stay in it). Afterwards: `make site-net`, `make site`,
+  `make site-net-check`, and deploy. `make record-agrees` is red until the site carries the new record.
 - **The TEST-ROOT itself:** not rotated in staging; the production root is a separate, ceremony-born key
   (docs/SECURITY-STAGING.md). Never reuse staging key material for production.

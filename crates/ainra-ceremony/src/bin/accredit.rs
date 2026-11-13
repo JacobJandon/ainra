@@ -66,8 +66,20 @@ fn main() {
     // Deterministic (seeded) so the testbed is reproducible; a real ceremony uses live custodian entropy.
     let mut rng = ChaCha20Rng::seed_from_u64(0x0ACC_ED17_E5ED);
     let n = entries.len();
+    // The epoch this directory is signed at. A network that changed its registrars' keys publishes the NEXT epoch;
+    // it does not put a second directory at one it already published (D-107). Stated by the caller, never guessed.
+    let epoch = match std::env::var("AINRA_DIRECTORY_EPOCH") {
+        Err(_) => 1,
+        Ok(v) => match v.parse::<u64>() {
+            Ok(e) if e >= 1 => e,
+            _ => {
+                eprintln!("AINRA_DIRECTORY_EPOCH must be a whole number from 1 up, not {v:?}");
+                std::process::exit(2);
+            }
+        },
+    };
     let (directory, root_ed, root_slh) =
-        Genesis::accredit_external(entries, vec![], NOW, &mut rng).expect("accredit");
+        Genesis::accredit_external_at(entries, vec![], epoch, NOW, &mut rng).expect("accredit");
 
     // Self-verify the way a stranger would, before writing anything.
     match directory.accredit(&root_ed, &root_slh) {
@@ -95,6 +107,6 @@ fn main() {
     )
     .expect("write roots");
     println!(
-        "accredited {n} registrar(s) → {out}/directory.json + roots.json (dual-root-signed, self-verified)"
+        "accredited {n} registrar(s) at epoch {epoch} → {out}/directory.json + roots.json (dual-root-signed, self-verified)"
     );
 }

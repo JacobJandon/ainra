@@ -1,8 +1,8 @@
 <!-- SPDX-License-Identifier: Apache-2.0 OR MIT -->
 # @ainra/sdk
 
-The verify-only TypeScript SDK for [AINRA](https://ainra.org/) — a neutral, non-profit root for AI-agent
-identity. An agent carries a passport it can prove; you check it here, locally, in about a millisecond.
+The verify-only TypeScript SDK for [AINRA](https://ainra.org/) — the identity layer of the internet for AI
+agents, an open standard with a neutral, non-profit root. An agent carries a passport it can prove; you check it here, locally, in about a millisecond.
 
 **Offline. Fail-closed. Zero telemetry.** No account, no API key, no call home — verification is a pure function of
 the bundle you were handed and the trust anchors you already hold. If anything is missing, stale, malformed, or

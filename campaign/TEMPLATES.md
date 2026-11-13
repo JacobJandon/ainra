@@ -30,8 +30,8 @@ message carries no attachment and asks only a question; the material travels onl
 
 > *<Two sentences: why them. Their conformance work, their log, their tooling, the paper.>*
 >
-> I've built AINRA — a non-profit root for AI-agent identity: passports an agent can prove, revocation that fails
-> closed, all verifiable offline with no call home. The code and the whole record are public:
+> I've built AINRA — an identity layer for AI agents: passports an agent can prove, revocation that fails
+> closed, all verifiable offline with no call home, on a neutral, non-profit root. The code and the whole record are public:
 > https://github.com/JacobJandon/ainra
 >
 > What it cannot give itself is independent verification. Would you be willing to run the verifier kit and tell me
@@ -117,7 +117,7 @@ One page, sent after the jurisdiction decision, to the office that runs the **hu
 framework in the jurisdiction you chose. This is strategy, not compliance: they have already solved, in law, the
 governance problem this project has in code.
 
-> **What it is.** A neutral, non-profit root for AI-agent identity: an agent carries a passport it can prove, a
+> **What it is.** The identity layer of the internet for AI agents, on a neutral, non-profit root: an agent carries a passport it can prove, a
 > relying party verifies it offline in milliseconds, and revocation fails closed. No account with us, no telemetry,
 > no per-verification fee — the verification path is public specification plus open-source code.
 >

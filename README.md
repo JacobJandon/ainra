@@ -1,5 +1,5 @@
 <!-- SPDX-License-Identifier: Apache-2.0 OR MIT -->
-# AINRA — the neutral root of AI-agent identity
+# AINRA — the identity layer of the internet for AI agents
 
 <!-- The org name appears ONLY here (both spots on the next line); `tools/org-rename.sh` moves it everywhere else.
      The repository is public and the badge resolves; the historical pre-publication audit is docs/_archive/PUBLISH-AUDIT.md. -->

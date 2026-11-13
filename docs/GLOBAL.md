@@ -6,6 +6,14 @@ forced to use them. AINRA studies them for one reason: to copy the habits that m
 ones that made them owned. This document names each habit, says what AINRA already does about it, and names the
 next step. The steps are tracked in [PLAN-M54](PLAN-M54.md).
 
+**What AINRA is, in that company.** The identity layer of the internet for AI agents, built as a global network in
+the way the card networks are global payment networks. There, banks issue and shops accept, and the network is the
+rulebook that lets a card from any bank work at any shop; the network itself issues no cards. Here, registrars issue
+passports and any service verifies them, and the root issues none: it accredits, anchors, revokes and logs. Where the
+comparison stops is the form, which is why the form is named last: no fee on a check, no shareholders, a non-profit
+home, so that no issuer has to join a competitor's network. Today it is a test network with no outside witness yet;
+the habits below are how it becomes the other kind.
+
 ## Five systems, five lessons
 
 **1. The most widely deployed open-source kernel: never break what already runs.**

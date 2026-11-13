@@ -120,6 +120,11 @@ run "control page"       "the page shows each lie red"    make -s control-page-d
 run "leak ledger"        "what each party learns, held"   make -s leak-ledger
 run "operator report"    "every figure from an artifact"  make -s monthly-report-check
 run "incident log"       "every post-mortem logged, on time" make -s incident-check
+# The weekly job was the only place this ran, and it went red on 11 November 2026 a day before anyone looked
+# (SECURITY-ADVISORIES.md, RUSTSEC-2026-0486): two pushes were made onto it. It needs the advisory database, so it
+# needs a network; a board that cannot reach it is red, which is the honest answer before a push.
+advisories() { command -v cargo-audit >/dev/null 2>&1 || { echo "cargo-audit is not installed: cargo install cargo-audit --locked"; return 1; }; cargo audit --deny warnings; }
+run "advisories"         "no advisory against Cargo.lock" advisories
 run "compliance ladder"  "probe unfindable, rungs wait"    make -s probe-ladder
 run "epoch log"          "witness refuses a split view"    make -s epoch-log-drill
 run "steward's desk"     "drafts the stop, holds no key"   make -s desk-drill

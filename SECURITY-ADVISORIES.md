@@ -145,8 +145,9 @@ and the workspace tests pass on the new lock.
 
 **What we got wrong.** The weekly run went red on 11 November and nobody saw it until the next push, a day later:
 a scheduled run that fails tells no one. Two commits were then pushed onto a red check, because the gate that was
-run before pushing (`make preflight`) does not run `cargo audit`. Both are open: the weekly run should reach a
-person, and the advisory check belongs in what is run before a push.
+run before pushing (`make preflight`) did not run `cargo audit`. Since 13 November it does (the "advisories" row),
+and CI now holds the incident log and the month's report on every push, which until then only that board did. Still
+open: a weekly run that fails should reach a person.
 
 ---
 

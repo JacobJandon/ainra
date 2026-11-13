@@ -202,6 +202,13 @@ jobs:
         run: node tools/reasons-check.mjs
       - name: no names in git (D-036)
         run: node tools/names-check.mjs
+      # Both were held only by the board run before a push, and twice (12 November 2026) a push went out with one of
+      # them red while this workflow stayed green: the month's report did not list a new decision, and an advisory
+      # had no entry in the incident log.
+      - name: the public incident log is complete, in order and on time (PLAN-M52 step 13)
+        run: make incident-check
+      - name: the month's operator report still matches the record (PLAN-M52 step 13)
+        run: make monthly-report-check
       - name: honest decay (the record states its own staleness)
         run: node tools/staleness-drill.mjs
       - name: format legibility (the primer alone parses the corpus)

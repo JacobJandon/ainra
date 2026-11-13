@@ -94,6 +94,11 @@ const save = (p, o, mode) => { fs.mkdirSync(path.dirname(p), { recursive: true }
 const load = p => JSON.parse(fs.readFileSync(p, 'utf8'));
 const exists = p => fs.existsSync(p);
 const die = m => { console.error('✗ ' + m); process.exit(1); };
+// Text out of a passport file, as it may be printed. A passport can come from anyone (`ainra verify some.json`), and
+// before 0.3.5 its name, operator and other fields were printed as written: a newline could put a line of its own under
+// the checks ("✓ VALID"), and a terminal escape could recolour or move what was shown. Every character outside
+// printable ASCII is printed as its \uXXXX escape. The verdict and the exit code never depended on this.
+const shown = v => String(v).replace(/[^\x20-\x7e]/gu, c => c.split('').map(h => '\\u' + h.charCodeAt(0).toString(16).padStart(4, '0')).join(''));
 
 /* ---------- name grammar: ainra:registrar:operator:lineage@version ---------- */
 function parseName(n) {
@@ -279,7 +284,7 @@ function cmdVerify(ref, opts) {
   const reason = ok ? null : (revoked ? 'revoked' : (!passOk || !certOk ? suiteReason : (!dateOk ? 'expired' : (!inLog ? 'not_logged' : 'invalid'))));
   if (opts.json) { console.log(JSON.stringify({ ok, name: doc.name, serial: doc.serial, suite: doc.registrar_cert.alg || 'legacy-Ed25519', reason, revoked, legacy_credential: legacyCred, checks: { chain: certOk && passOk, dates: dateOk, status: slSigned && !revoked, log: inLog }, ms: +ms.toFixed(1) }, null, 2)); process.exit(ok ? 0 : 1); }
   const g = s => '\x1b[32m' + s + '\x1b[0m', r = s => '\x1b[31m' + s + '\x1b[0m', d = s => '\x1b[2m' + s + '\x1b[0m';
-  console.log(d('$ ainra verify ') + doc.name);
+  console.log(d('$ ainra verify ') + shown(doc.name));
   // Each line claims only what this command checked. The suite is named from the signatures that verified, not from
   // the alg string the registrar's cert declares: that string printed "Ed25519 + ML-DSA-65 ✓" for an Ed25519-only
   // credential under --accept-legacy, and for a tampered one. Operator, authority and tier are fields the registrar
@@ -292,14 +297,14 @@ function cmdVerify(ref, opts) {
   const signed = s => chainOk ? `${s}, not checked by this tool` : r('not authenticated: the chain failed');
   console.log(`→ suite      ${hybridOk ? g('Ed25519 + ML-DSA-65 ✓') : legacyCred ? r('legacy Ed25519-only') : r('Ed25519 + ML-DSA-65 ✗')} ${legacyCred && !acceptLegacy ? r('· alg_downgrade (fail closed)') : ''}`);
   console.log(`→ chain      root ${certOk ? g('✓') : r('✗')} · registrar ${passOk ? g('✓') : r('✗')}`);
-  console.log(`→ operator   ${doc.operator.name} (${doc.operator.jurisdiction}) — ${signed(doc.operator.kyb ? 'KYB claimed by the registrar' : 'self-declared')}`);
-  console.log(`→ authority  ${doc.authority.class}${doc.authority.class === 'A1' ? ' human-delegated' : ''} — ${signed(doc.authority.proof ? 'proof present' : 'no proof')}`);
+  console.log(`→ operator   ${shown(doc.operator.name)} (${shown(doc.operator.jurisdiction)}) — ${signed(doc.operator.kyb ? 'KYB claimed by the registrar' : 'self-declared')}`);
+  console.log(`→ authority  ${shown(doc.authority.class)}${doc.authority.class === 'A1' ? ' human-delegated' : ''} — ${signed(doc.authority.proof ? 'proof present' : 'no proof')}`);
   // Only the end of the window is checked here (check 3 above); a start date in the future is not refused.
-  console.log(`→ validity   ${doc.validity.issued.slice(0,10)} → ${doc.validity.expires.slice(0,10)} ${dateOk ? g('not expired ✓') : r('EXPIRED')} · start not checked by this tool${doc.prev_leaf ? d(' · prev_leaf #' + doc.prev_leaf) : ''}`);
+  console.log(`→ validity   ${shown(String(doc.validity.issued).slice(0,10))} → ${shown(String(doc.validity.expires).slice(0,10))} ${dateOk ? g('not expired ✓') : r('EXPIRED')} · start not checked by this tool${doc.prev_leaf ? d(' · prev_leaf #' + shown(doc.prev_leaf)) : ''}`);
   // A status list that is missing or fails its signature cannot show the passport ACTIVE, so revocation reads unknown.
   const revocation = !slSigned ? r(`unknown: no validly signed status list ✗${revoked ? ' (the list names this passport)' : ''}`) : revoked ? r('REVOKED ✗') : g('ACTIVE ✓');
-  console.log(`→ status     tier ${chainOk ? g(doc.tier) : r(doc.tier + ' (not authenticated)')} · revocation ${revocation}`);
-  console.log(`→ log        entry #${String(doc.log.seq).padStart(6,'0')} ${inLog ? g('✓ included') : r('✗ absent')} · chain of ${lv.entries} intact · witnesses ${lv.witnessesOk}/${lv.witnesses} ${d('(local)')}`);
+  console.log(`→ status     tier ${chainOk ? g(shown(doc.tier)) : r(shown(doc.tier) + ' (not authenticated)')} · revocation ${revocation}`);
+  console.log(`→ log        entry #${shown(String(doc.log.seq).padStart(6,'0'))} ${inLog ? g('✓ included') : r('✗ absent')} · chain of ${lv.entries} intact · witnesses ${lv.witnessesOk}/${lv.witnesses} ${d('(local)')}`);
   console.log(ok ? g(`✓ VALID`) + d(` · verified in ${ms.toFixed(1)} ms`) : r(`✗ INVALID`) + d(` · ${reason} · verified in ${ms.toFixed(1)} ms`));
   process.exit(ok ? 0 : 1);
 }

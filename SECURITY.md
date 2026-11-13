@@ -216,6 +216,36 @@ themselves, so they prove the snapshot round-trips, not that the daemon writes o
 **What changed.** Both routes persist on success (D-080). `services/ainra-services/tests/registrar_restart.rs` runs the
 real binary through write, kill, start, read for a revocation and a renewal; with the fix removed, both fail.
 
+## Post-mortem: both command-line tools printed a stranger's text as written (fixed 13 November 2026)
+
+**What was wrong.** A passport names itself, and a refused one is named too. `ainra verify-request` (the Rust tool,
+in every tag that has the command) printed that name, and the request's nonce, on its human-readable line exactly as
+sent. The reference CLI offered on the site (`ainra verify some.json`, up to 0.3.4) did the same with a passport
+file's name, operator, jurisdiction, tier and dates. A name with a newline in it could write a line of its own under
+the checks, reading `ALLOW …` or `✓ VALID`; a terminal escape could recolour or clear the screen, or land in a log.
+
+**What was not wrong.** The verdict, the exit code and the JSON line. Every forged line appeared beside a correct
+`DENY` or `✗ INVALID` and a non-zero exit. Nothing that reads the machine output was misled; a person reading the
+screen, or a log that keeps the first word of a line, could be.
+
+**How it was found.** Not by a gate. On 12 November the gate's own header was fixed for the same cause (a
+presenter's name reaching a place that takes text literally), and no one then asked where else that name goes. The
+next day, reading another project's public report of this same fault in its own verifier, we tried ours: one crafted
+bundle, and the forged line was on the screen.
+
+**The fix.** One rule, the one the header fix already used: text a presenter wrote is shown with every character
+outside printable ASCII as its `\uXXXX` escape. `shown()` in `crates/ainra-cli-rs/src/main.rs` (the name and the
+nonce in `verify-request`; the operator, passport and registrar in `verify-link`) and in
+`apps/cli-node/bin/ainra.js` (0.3.5). Two unit tests hold the Rust side. `make cli-check` now verifies a hostile
+passport file and fails if a forged line or a raw escape reaches the output; with the fix taken out it fails 2 of 3.
+
+**What we changed in how we work.** A fix for "this text reached a place that obeys it" is not finished until every
+place that text reaches has been listed. The list for a passport's own words is now: the verdict header, the two
+tools' screens, and the JSON event (always escaped). Other projects' bug reports are read as a list of tests to run
+against our own code.
+
+---
+
 ## Post-mortem: the published MCP tool believed the bundle (D-074, fixed in 0.5.0)
 
 **What it was.** `ainra_verify` in `@ainra/mcp` 0.4.1 ran the conformance corpus's runner (`runVector`) over

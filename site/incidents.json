@@ -144,6 +144,20 @@
         "file": "SECURITY-ADVISORIES.md",
         "heading": "RUSTSEC-2026-0486"
       }
+    },
+    {
+      "id": "INC-2026-010",
+      "class": "MEDIUM",
+      "surface": "the two command-line tools' human-readable output: `ainra verify-request` (Rust, on main and in tags) and the reference CLI offered on the site up to 0.3.4; the verdict, the exit code and the JSON line were always correct",
+      "title": "A passport's own text was printed as written: a name could write a line of its own or drive the terminal",
+      "opened": "2026-11-13",
+      "disclosed": "2026-11-13",
+      "fixed": "2026-11-13",
+      "released": null,
+      "record": {
+        "file": "SECURITY.md",
+        "heading": "Post-mortem: both command-line tools printed a stranger's text as written"
+      }
     }
   ],
   "not_incidents": [

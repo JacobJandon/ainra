@@ -779,6 +779,26 @@ fn cmd_demo() -> i32 {
 
 // ── output helpers ──────────────────────────────────────────────────────────────────────────────────────────────
 
+/// Text that a presenter wrote (a name in a bundle, a nonce in a request) as it may be shown on a terminal or
+/// written to a log: every character outside printable ASCII becomes its JSON `\uXXXX` escape. A refused passport's
+/// name is printed too, and before 13 November 2026 it was printed as sent: a name carrying a newline or a terminal
+/// escape could write its own line under the verdict ("ALLOW …") or recolour the screen. The JSON line was always
+/// escaped; this is the human line. Same rule as `verdictHeaderValue` in @ainra/middleware.
+fn shown(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    for c in s.chars() {
+        if (' '..='~').contains(&c) {
+            out.push(c);
+        } else {
+            let mut units = [0u16; 2];
+            for u in c.encode_utf16(&mut units) {
+                out.push_str(&format!("\\u{:04x}", u));
+            }
+        }
+    }
+    out
+}
+
 fn print_json<T: serde::Serialize>(v: &T) {
     println!("{}", serde_json::to_string_pretty(v).unwrap());
 }
@@ -1041,9 +1061,9 @@ fn cmd_verify_link(a: &[String]) -> i32 {
     if out["verdict"] == serde_json::json!("valid") {
         println!(
             "ACCEPT — key acts for operator {} under {} (registrar {})",
-            out["operator"].as_str().unwrap_or("?"),
-            out["passport"].as_str().unwrap_or("?"),
-            out["registrar"].as_str().unwrap_or("?")
+            shown(out["operator"].as_str().unwrap_or("?")),
+            shown(out["passport"].as_str().unwrap_or("?")),
+            shown(out["registrar"].as_str().unwrap_or("?"))
         );
         0
     } else {
@@ -1270,11 +1290,12 @@ fn cmd_verify_request(a: &[String]) -> i32 {
             out["event"]["reason"] = serde_json::json!("denied_by_policy");
         }
     }
-    let name = out["event"]["name"].as_str().unwrap_or("?");
+    // the name and the nonce are the presenter's own text: shown escaped (see `shown`)
+    let name = shown(out["event"]["name"].as_str().unwrap_or("?"));
     if out["allow"] == serde_json::json!(true) {
         println!(
             "ALLOW {name} · nonce {} (single use is the gate's to enforce)",
-            out["nonce"].as_str().unwrap_or("?")
+            shown(out["nonce"].as_str().unwrap_or("?"))
         );
         println!("{out}");
         0
@@ -1287,5 +1308,30 @@ fn cmd_verify_request(a: &[String]) -> i32 {
         );
         println!("{out}");
         1
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::shown;
+
+    #[test]
+    fn printable_ascii_is_shown_as_it_is() {
+        let name = "ainra:registrar-07:acme-corp:invoicing@4.2.1";
+        assert_eq!(shown(name), name);
+    }
+
+    #[test]
+    fn nothing_a_presenter_writes_can_start_a_line_or_drive_the_terminal() {
+        // a newline (a forged second line), ESC and the one-byte CSI (colours, cursor moves), DEL, a right-to-left
+        // override (reorders what is read), and a character beyond the basic plane (two UTF-16 units)
+        let hostile = "a\nALLOW b\u{1b}[31m\u{9b}31m\u{7f}\u{202e}\u{1F600}";
+        let out = shown(hostile);
+        assert!(out.chars().all(|c| (' '..='~').contains(&c)), "{out}");
+        assert_eq!(
+            out,
+            "a\\u000aALLOW b\\u001b[31m\\u009b31m\\u007f\\u202e\\ud83d\\ude00"
+        );
+        assert_eq!(out.lines().count(), 1);
     }
 }

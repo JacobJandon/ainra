@@ -1,4 +1,4 @@
-# ainra — reference implementation v0.3.4
+# ainra — reference implementation v0.3.5
 Agent passports: issue, verify, revoke, with a hash-chained, checkpoint-signed transparency log.
 **Hybrid Ed25519 + ML-DSA-65** throughout — both signatures mandatory, both-or-invalid — at parity with the Rust
 core and the browser SDK. The download is **one self-contained file**: the audited `@noble/post-quantum` ML-DSA is
@@ -24,6 +24,12 @@ and "PII: none" on every authority line, with "(zk-commitment)" for class A1; "v
 the cert's declared algorithm; a forged tier in green; and a green "ACTIVE ✓" when the status list's signature had
 failed. `instance verify` said the passport underneath had verified when it had read only the local revocation list,
 without its signature, and the expiry date. Verdicts and exit codes are the same in 0.3.4.
+
+## What 0.3.4 and earlier printed from a stranger's file
+`verify some.json` reads a passport file anyone may have written. Up to 0.3.4 its name, operator, jurisdiction, tier
+and dates were printed as written, so a name carrying a newline could put a line of its own on the screen ("✓ VALID")
+and a terminal escape could recolour or clear it. From 0.3.5 every character outside printable ASCII is printed as its
+`\uXXXX` escape. Verdicts and exit codes are the same in 0.3.5; `make cli-check` holds it.
 
 ## Suite migration (Drill 01)
 A legacy Ed25519-only credential is **recognized and named**, never silently reinterpreted: by default it fails

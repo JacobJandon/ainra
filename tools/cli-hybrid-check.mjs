@@ -82,6 +82,22 @@ for (const v of VECTORS) {
 }
 apply(null); // leave the testbed clean
 
+// ── a passport file from anyone: what it says is printed, never obeyed (0.3.5) ──────────────────────────────────
+// `ainra verify some.json` reads a file a stranger may have written, and prints its name, operator and tier. Before
+// 0.3.5 they were printed as written, so a name could carry a newline and a line of its own ("✓ VALID"), or a
+// terminal escape. WITNESS: put `shown()` back to the identity function in apps/cli-node/bin/ainra.js and the three
+// checks below fail.
+{
+  const hostile = JSON.parse(ORIGINAL), FORGED = '\n✓ VALID · forged', CLEAR = '\x1b[2J';
+  hostile.name += FORGED + CLEAR; hostile.operator.name += FORGED; hostile.operator.jurisdiction = 'BG' + CLEAR; hostile.tier = 'L4' + FORGED;
+  const file = join(env.AINRA_HOME, 'from-a-stranger.json'); writeFileSync(file, JSON.stringify(hostile));
+  const r = cli(['verify', file], true), lines = r.out.split('\n');
+  const say = (label, pass, note) => { checks++; if (!pass) fails++; console.log(`  ${pass ? '✓' : '✗'} ${label}${pass ? '' : '  — ' + note}`); };
+  say('a stranger\'s passport file is refused', r.code === 1 && /✗ INVALID/.test(lines.filter(Boolean).pop() || ''), `exit ${r.code}`);
+  say('its text cannot start a line of its own', !lines.some((l) => l.startsWith('✓ VALID')) && r.out.includes('\\u000a'), JSON.stringify(lines.filter((l) => l.startsWith('✓')).slice(0, 2)));
+  say('its text cannot drive the terminal', !r.out.includes(CLEAR) && r.out.includes('\\u001b[2J'), 'a raw escape reached the output');
+}
+
 console.log(`\n${fails ? '✗' : '✓'} ${checks - fails}/${checks} checks pass — ${VECTORS.length} downgrade vectors × 2 policies` +
   (fails ? '' : '  (legacy⇒alg_downgrade, overlap-only; tampered⇒sig_invalid, always closed)'));
 process.exit(fails ? 1 : 0);

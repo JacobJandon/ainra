@@ -93,6 +93,16 @@ We **publicly own fixed security bugs** — hiding them would be the opposite of
 - **Not yet fixed:** `kits/pilot` without `--watch` can still be stopped by certain malformed requests; with `--watch`
   it cannot. A change is drafted and waits on the owner's decision.
 
+### Security — both command-line tools printed a stranger's text as written
+
+- **`ainra verify-request` and the reference CLI's `verify some.json` printed a passport's name (and, in the
+  reference CLI, its operator, jurisdiction, tier and dates) exactly as sent.** A newline in a name could write a line
+  of its own under the checks (`ALLOW …`, `✓ VALID`), and a terminal escape could recolour or clear the screen. The
+  verdict, the exit code and the JSON line were always right. Both tools now print every character outside printable
+  ASCII as its `\uXXXX` escape, the rule the verdict header already follows. Reference CLI **0.3.5**; two unit tests
+  in the Rust tool; `make cli-check` verifies a hostile file and fails without the fix. Post-mortem in
+  [SECURITY.md](SECURITY.md); INC-2026-010 in the incident log.
+
 ### Security — RUSTSEC-2026-0486 in a test-only dependency
 
 - **`rustix` 1.1.4 → 1.1.6** (lockfile only). The advisory is an unsoundness in its xattr functions. AINRA reaches

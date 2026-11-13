@@ -69,9 +69,18 @@ async function j(url, init) {
   return { status: r.status, body };
 }
 
+// ── preflight: the CLI step 5b runs is built HERE, before any connection exists ──────────────────────────────────
+// It used to be built in step 5b with a blocking call. That is harmless while the binary is already there, and
+// until 13 November 2026 it always was: the staging start had built it. When the drills stopped needing staging
+// (D-107), CI built it cold, in the middle of the drill: forty seconds with this process frozen, while its own gate
+// server's idle connection passed its five-second limit. The next request went out on a socket the server was
+// closing, and the drill died on ECONNRESET in step 6 — only in CI, only in the first drill.
+execFileSync("cargo", ["build", "--release", "-q", "-p", "ainra-cli-rs"], { cwd: new URL("../", import.meta.url) });
+const CLI = new URL("../target/release/ainra", import.meta.url).pathname;
+
 // ── preflight: the live network must be there ────────────────────────────────────────────────────────────────────
 try { await fetch(`${ART}/directory.json`, { signal: AbortSignal.timeout(3000) }); }
-catch { console.error(`identity-e2e: no directory at ${ART} — run \`make stage-up\` first`); process.exit(2); }
+catch { console.error(`identity-e2e: no directory at ${ART} — run \`make live-up\` first`); process.exit(2); }
 
 // ── 1 · the agent's own key ──────────────────────────────────────────────────────────────────────────────────────
 step("1 · the agent generates its own hybrid key");
@@ -248,8 +257,7 @@ step("5b · an operator asks the CLI why: `ainra verify-request` on the exact re
 {
   // The same decision, offline, from files — what an operator runs when a gate refused something and they need to
   // know why. It must agree with the gate on the request it allowed, and name the reason on a moved copy.
-  execFileSync("cargo", ["build", "--release", "-q", "-p", "ainra-cli-rs"], { cwd: new URL("../", import.meta.url) });
-  const cli = new URL("../target/release/ainra", import.meta.url).pathname;
+  const cli = CLI;   // built before the first connection was opened (see the preflight)
   const dir = mkdtempSync(pathMod.join(os.tmpdir(), "ainra-verify-request-"));
   const full = await presentationFor();
   const { pop } = splitPresentation(full);

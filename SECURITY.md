@@ -238,7 +238,8 @@ emitter. Both header writes use it, and so does `examples/gate-http-service.mjs`
 `packages/middleware/test/header-escape.test.mjs` runs the gate and the prime handler against a real
 `http.ServerResponse`; it fails 2 of 3 on the previous code. Decision: [D-106](docs/DECISIONS.md).
 
-**What you should do.** Upgrade to `@ainra/middleware` 0.8.1. If you write `serializeVerdictEvent` into a header
+**What you should do.** Upgrade to `@ainra/middleware` 0.8.1 (advisory
+[GHSA-mqg2-c2cv-g8fx](https://github.com/JacobJandon/ainra/security/advisories/GHSA-mqg2-c2cv-g8fx)). If you write `serializeVerdictEvent` into a header
 yourself, use `verdictHeaderValue` instead.
 
 **The order we did it in, and what we would do again.** The fix was on main on 12 November and the patched package

@@ -105,6 +105,10 @@
       ],
       "proof": [
         {
+          "label": "The advisory",
+          "href": "https://github.com/JacobJandon/ainra/security/advisories/GHSA-mqg2-c2cv-g8fx"
+        },
+        {
           "label": "The post-mortem",
           "href": "https://github.com/JacobJandon/ainra/blob/main/SECURITY.md"
         },

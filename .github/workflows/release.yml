@@ -50,6 +50,12 @@ jobs:
           mkdir -p /opt/pw && npm i --no-save --prefix /opt/pw playwright-core@1
           /opt/pw/node_modules/.bin/playwright-core install --with-deps chromium --only-shell
           echo "PLAYWRIGHT_DRIVER_PATH=/opt/pw/node_modules" >> "$GITHUB_ENV"
+      # The board's "advisories" row (since 13 November 2026) runs cargo audit, and reports the tool's absence as a
+      # red row rather than skipping it. security.yml installs the tool; release.yml did not, so v0.8.1's release
+      # run went red on that one row while the same 61-row board was green from a fresh clone and every other row
+      # passed here. The release page for v0.8.1 was built from that fresh-clone board's signed artifacts.
+      - name: cargo-audit for the board's advisories row (mirrors security.yml)
+        run: cargo install cargo-audit --locked
       - name: derive version from the tag
         id: v
         run: echo "version=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"

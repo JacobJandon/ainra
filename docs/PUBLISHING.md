@@ -2,14 +2,14 @@
 # Publishing to npm and PyPI
 
 **Status: PUBLISHED — npm and PyPI. v0.4.0 on 2026-09-15, v0.4.1 on 2026-09-19, v0.5.0 on 2026-10-31 (`@ainra/mcp` on
-2026-11-01, below), v0.6.0 on 2026-11-03, v0.7.0 on 2026-11-04 (and `@ainra/edge` for the first time), v0.8.0 on 2026-11-07 — by trusted publishing, all five packages.** All five are live on
+2026-11-01, below), v0.6.0 on 2026-11-03, v0.7.0 on 2026-11-04 (and `@ainra/edge` for the first time), v0.8.0 on 2026-11-07, v0.8.1 on 2026-11-13 (a security release) — by trusted publishing, all five packages.** All five are live on
 the public registries **with Sigstore provenance** — built on a GitHub-hosted runner via
 `.github/workflows/publish.yml`, which is the only publish path because provenance cannot be retrofitted onto a
 version that is already public. v0.4.1 added `@ainra/mcp`, published for the first time once it could be installed
 rather than cloned, and superseded a PyPI wheel that reported its own version wrongly.
 
 ```
-packages            0.8.0 · sdk + middleware + mcp + edge LIVE on npm — trusted publishing, attestations YES
+packages            0.8.1 · sdk + middleware + mcp + edge LIVE on npm — trusted publishing, attestations YES
                            (@ainra/edge's first version, 0.7.0, was published by token; its trusted publisher was
                            configured 2026-11-07, and 0.8.0 is its first token-free publish)
                            PyPI `ainra` LIVE — trusted publishing, PEP 740 attestations, no token

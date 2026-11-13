@@ -44,6 +44,9 @@ run() { # run <name> <command...>
   else
     printf '\r  [FAIL] %-22s\n' "$name"
     grep -E '✗|FAIL|Error|error' "$log" | head -12 | sed 's/^/           /'
+    # and where it was when it stopped: on 13 November 2026 a drill failed once in CI with only "fetch failed ·
+    # ECONNRESET" on the board, and nothing said which of its steps had been running.
+    echo "           ── the last lines of its output ──"; tail -25 "$log" | cut -c1-200 | sed 's/^/           /'
     NAMES+=("$name"); RESULTS+=("FAIL"); FAIL=1
   fi
   rm -f "$log"

@@ -7,6 +7,7 @@
 
 import { ed25519 } from "@noble/curves/ed25519";
 import { secp256k1 } from "@noble/curves/secp256k1";
+import { p256 } from "@noble/curves/p256";
 import { ml_dsa65 } from "@noble/post-quantum/ml-dsa";
 import { slh_dsa_sha2_128s } from "@noble/post-quantum/slh-dsa";
 import { sha256 } from "@noble/hashes/sha256";
@@ -161,6 +162,31 @@ export function secp256k1Affine(pk: Uint8Array): { x: Uint8Array; y: Uint8Array 
   if (pk.length !== 33 || (pk[0] !== 0x02 && pk[0] !== 0x03)) return null;
   try {
     const u = secp256k1.ProjectivePoint.fromHex(pk).toRawBytes(false);
+    return { x: u.slice(1, 33), y: u.slice(33, 65) };
+  } catch {
+    return null;
+  }
+}
+
+/** ES256 (RFC 7518, D-108): ECDSA over NIST P-256 with SHA-256 of `msg`. `pk` is a 65-byte UNCOMPRESSED point
+ *  (`0x04 || x || y`), `sig` a 64-byte `r || s`. A high-S signature is refused, as for ES256K: RFC 7518 accepts both
+ *  twins, Link takes the low-S one, so a consent has exactly one valid encoding. */
+export function es256Verify(pk: Uint8Array, msg: Uint8Array, sig: Uint8Array): boolean {
+  if (pk.length !== 65 || pk[0] !== 0x04 || sig.length !== 64) return false;
+  try {
+    const s = p256.Signature.fromCompact(sig);
+    if (s.hasHighS()) return false;
+    return p256.verify(sig, sha256(msg), pk, { lowS: true, prehash: false, format: "compact" });
+  } catch {
+    return false;
+  }
+}
+
+/** The affine `x` and `y` of an uncompressed P-256 point, or `null` when the bytes are not one. */
+export function p256Affine(pk: Uint8Array): { x: Uint8Array; y: Uint8Array } | null {
+  if (pk.length !== 65 || pk[0] !== 0x04) return null;
+  try {
+    const u = p256.ProjectivePoint.fromHex(pk).toRawBytes(false);
     return { x: u.slice(1, 33), y: u.slice(33, 65) };
   } catch {
     return null;

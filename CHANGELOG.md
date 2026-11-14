@@ -21,6 +21,17 @@ We **publicly own fixed security bugs** — hiding them would be the opposite of
 - The seed in `tools/stage.sh` now reads every answer. One seeded passport had been silently refused since D-089, and
   a failed accreditation used to leave the previous directory in place to be published.
 
+### Added — links for P-256 keys (D-108, PLAN-M55 step 1)
+
+- **A link can attach a NIST P-256 key** (`alg: "ES256"`, RFC 7518): the kind of key certificates, signed agent
+  cards, token issuers and platform keystores hold. The key is the 65-byte uncompressed point; the consent is 64-byte
+  `r || s`, low-S (a signer that returns the high twin sends `n - s`). Rust core, `@ainra/sdk`, the Python package,
+  the three gates, the registrar's `/link` and `/demo/link`, `ainra link --alg ES256`, the MCP tool, OpenAPI.
+- `vectors/v1-link` grows from 43 to 53 (l44–l53); the 43 are byte-identical. `make diff` and `make link-parity` hold
+  all 53 in three implementations and three gates.
+- New dependency: RustCrypto `p256` 0.14. The edge engine's ceiling moves from 768 to 832 KiB for it.
+- [PLAN-M55](docs/PLAN-M55.md): the order in which AINRA becomes the root beneath other identity systems.
+
 ### Added
 
 - **`make record-agrees`** (`tools/record-agrees.mjs`): the published record and every registrar, compared passport

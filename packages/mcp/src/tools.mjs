@@ -185,12 +185,12 @@ export const TOOLS = [
   {
     name: "ainra_verify_link",
     title: "Who stands behind this agent key?",
-    description: "AINRA Link (D-078): after you have verified a signature with an agent's key — Ed25519, or secp256k1 as ES256K (D-082) — ask which accountable operator stands behind that key and whether the link is still good. Pass the key (`key`, base64url), and either the `link` as a gate receives it, or the registrar's link `index` (GET /links) and its signed `status` publication (GET /status-list), from which the link for your key is found. Trust is YOURS: the signed `directory` and the two `roots` (omit both to use AINRA_TARGET's). The status list is authenticated before it is read; the clock, freshness class and capability are yours. Returns `decision` (accept or refuse), the operator and passport on accept, or the named reason. Read-only. A key with no link at all is refused as not_linked.",
+    description: "AINRA Link (D-078): after you have verified a signature with an agent's key — Ed25519, secp256k1 as ES256K (D-082), or P-256 as ES256 (D-108) — ask which accountable operator stands behind that key and whether the link is still good. Pass the key (`key`, base64url), and either the `link` as a gate receives it, or the registrar's link `index` (GET /links) and its signed `status` publication (GET /status-list), from which the link for your key is found. Trust is YOURS: the signed `directory` and the two `roots` (omit both to use AINRA_TARGET's). The status list is authenticated before it is read; the clock, freshness class and capability are yours. Returns `decision` (accept or refuse), the operator and passport on accept, or the named reason. Read-only. A key with no link at all is refused as not_linked.",
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     inputSchema: {
       type: "object",
       properties: {
-        key: { type: "string", description: "The public key (base64url) you ALREADY verified the signature with: 32 bytes for Ed25519, the 33-byte compressed point for ES256K (secp256k1)." },
+        key: { type: "string", description: "The public key (base64url) you ALREADY verified the signature with: 32 bytes for Ed25519, the 33-byte compressed point for ES256K (secp256k1), the 65-byte uncompressed point (0x04 || x || y) for ES256 (P-256)." },
         link: { type: "object", description: "The link as a gate receives it (an index entry with the checkpoint and the signed status publication)." },
         index: { type: "object", description: "Instead of `link`: the registrar's whole link index (GET /links)." },
         status: { type: "object", description: "With `index`: the registrar's signed status publication (GET /status-list)." },
@@ -205,9 +205,9 @@ export const TOOLS = [
     async handler(input) {
       const keyBytes = typeof input.key === "string" ? strictB64u(input.key) : null;
       if (!keyBytes) throw new Error("`key` must be base64url. Nothing was verified.");
-      // By length, as every verifier: 32 bytes Ed25519, 33 a compressed secp256k1 point (D-082). Any other key is
-      // refused by name, as the core refuses it — not an input error, a decision.
-      if (keyBytes.length !== 32 && keyBytes.length !== 33)
+      // By length, as every verifier: 32 bytes Ed25519, 33 a compressed secp256k1 point (D-082), 65 an uncompressed
+      // P-256 point (D-108). Any other key is refused by name, as the core refuses it — not an input error, a decision.
+      if (keyBytes.length !== 32 && keyBytes.length !== 33 && !(keyBytes.length === 65 && presentedKeyThumbprint(keyBytes) !== null))
         return { decision: "refuse", verdict: "invalid", reason: "schema_violation" };
       let link = input.link;
       if (link === undefined) {

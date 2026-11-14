@@ -1890,7 +1890,8 @@ pub fn link_check_json(
     }
 }
 
-/// A presented key from base64url, by length: 32 bytes Ed25519, 33 a compressed secp256k1 point (D-082).
+/// A presented key from base64url, by length: 32 bytes Ed25519, 33 a compressed secp256k1 point (D-082), 65 an
+/// uncompressed P-256 point (D-108). `None` for anything else, a 65-byte string that is not a P-256 point included.
 pub fn presented_key_of(b64u: &str) -> Option<link::PresentedKey> {
     link::PresentedKey::from_bytes(&b64::decode(b64u).ok()?)
 }

@@ -14,6 +14,8 @@ import {
   b64uEncode,
   ed25519Verify,
   es256kVerify,
+  es256Verify,
+  p256Affine,
   hashLeaf,
   secp256k1Affine,
   sha256,
@@ -1357,8 +1359,8 @@ export class Verifier {
     }
   }
 
-  /** AINRA Link (D-078): who stands behind `presentedKey` — a 32-byte Ed25519 key, or a 33-byte compressed secp256k1
-   *  point (ES256K, D-082) — a key this gate has ALREADY verified the
+  /** AINRA Link (D-078): who stands behind `presentedKey` — a 32-byte Ed25519 key, a 33-byte compressed secp256k1
+   *  point (ES256K, D-082), or a 65-byte uncompressed P-256 point (ES256, D-108) — a key this gate has ALREADY verified the
    *  request's signature with. Uses the directory's anchors and revoked delegates, this verifier's freshness class,
    *  and authenticates the status publication before reading a bit. `capability` is what the request exercises.
    *  A key with no link is the caller's outcome ("not linked") — this checks the link it is given. Never throws. */
@@ -1861,7 +1863,7 @@ export type LinkVerdict = ({ verdict: "valid" } & LinkAttribution) | { verdict: 
 interface LinkClaims {
   registrar: string;
   passport: string;
-  alg: "Ed25519" | "ES256K";
+  alg: "Ed25519" | "ES256K" | "ES256";
   thumbprint: string;
   scope: string[];
   nbf: number;
@@ -1919,7 +1921,7 @@ function parseLinkChecked(raw: Uint8Array): LinkClaims {
     throw new Reject("schema_violation");
   }
   if (!eqBytes(new TextEncoder().encode(again), raw)) throw new Reject("schema_violation");
-  if (v !== LINK_V || kind !== "jwk" || (alg !== "Ed25519" && alg !== "ES256K")) throw new Reject("schema_violation");
+  if (v !== LINK_V || kind !== "jwk" || (alg !== "Ed25519" && alg !== "ES256K" && alg !== "ES256")) throw new Reject("schema_violation");
   const tp = strictB64u(thumbprint);
   const pop = strictB64u(popB64);
   const leaf = strictB64u(leafB64);
@@ -1947,15 +1949,33 @@ export function jwkThumbprintEs256k(pk: Uint8Array): string | null {
   return b64uEncode(sha256(new TextEncoder().encode(canonicalize({ crv: "secp256k1", kty: "EC", x: b64uEncode(p.x), y: b64uEncode(p.y) }))));
 }
 
-/** The RFC 7638 thumbprint of a key a gate has verified, by length: 32 bytes is Ed25519, 33 a compressed secp256k1
- *  point (ES256K, D-082). `null` for anything else — a gate refuses that key (`sig_invalid`). This is how a gate finds
- *  the key's entry in a link index. */
+/** RFC 7638 thumbprint of a P-256 key given as a 65-byte uncompressed point (D-108): base64url(SHA-256(
+ *  `{"crv":"P-256","kty":"EC","x":"…","y":"…"}`)), the names RFC 7518 registers. `null` for anything else. */
+export function jwkThumbprintEs256(pk: Uint8Array): string | null {
+  const p = p256Affine(pk);
+  if (!p) return null;
+  return b64uEncode(sha256(new TextEncoder().encode(canonicalize({ crv: "P-256", kty: "EC", x: b64uEncode(p.x), y: b64uEncode(p.y) }))));
+}
+
+/** Which Link algorithm a presented key belongs to, by length: 32 bytes is Ed25519, 33 a compressed secp256k1 point
+ *  (ES256K, D-082), 65 an uncompressed P-256 point (ES256, D-108). `null` for anything else, and for 65 bytes that are
+ *  not a point on P-256: no other 65-byte string is a key (an uncompressed secp256k1 point is malformed, vector l42). */
+export function presentedKeyAlg(pk: Uint8Array): "Ed25519" | "ES256K" | "ES256" | null {
+  if (pk.length === 32) return "Ed25519";
+  if (pk.length === 33) return "ES256K";
+  if (pk.length === 65 && p256Affine(pk) !== null) return "ES256";
+  return null;
+}
+
+/** The RFC 7638 thumbprint of a key a gate has verified, in the algorithm its length names (see
+ *  {@link presentedKeyAlg}). `null` for anything else — a gate refuses that key (`sig_invalid`). This is how a gate
+ *  finds the key's entry in a link index. */
 export function presentedKeyThumbprint(pk: Uint8Array): string | null {
   return jwkThumbprintOf(pk);
 }
 
 function jwkThumbprintOf(pk: Uint8Array): string | null {
-  return pk.length === 32 ? jwkThumbprintEd25519(pk) : pk.length === 33 ? jwkThumbprintEs256k(pk) : null;
+  return pk.length === 32 ? jwkThumbprintEd25519(pk) : pk.length === 33 ? jwkThumbprintEs256k(pk) : pk.length === 65 ? jwkThumbprintEs256(pk) : null;
 }
 
 /** RFC 7638 thumbprint of an Ed25519 public key: base64url(SHA-256(`{"crv":"Ed25519","kty":"OKP","x":"…"}`)). */
@@ -2009,12 +2029,15 @@ function verifyLinkInner(
   const r = verifyHybrid(reg.issuerKey, raw, sig);
   if (r) throw new Reject(r);
   // the key the gate verified is the linked key, and that key consented to this link
-  // — same algorithm (by length: 32 bytes Ed25519, 33 a compressed secp256k1 point, D-082), same thumbprint
-  const presentedAlg = presentedKey.length === 32 ? "Ed25519" : presentedKey.length === 33 ? "ES256K" : null;
-  if (presentedAlg !== c.alg || jwkThumbprintOf(presentedKey) !== c.thumbprint) throw new Reject("sig_invalid");
+  // — same algorithm (by length: 32 bytes Ed25519, 33 a compressed secp256k1 point, D-082; 65 an uncompressed
+  // P-256 point, D-108), same thumbprint
+  const presentedAlg = presentedKeyAlg(presentedKey);
+  if (presentedAlg === null || presentedAlg !== c.alg || jwkThumbprintOf(presentedKey) !== c.thumbprint) throw new Reject("sig_invalid");
   const consent = linkPopSigningBytes(c.registrar, c.passport, c.thumbprint, c.nbf);
-  if (!(presentedAlg === "Ed25519" ? ed25519Verify(presentedKey, consent, c.pop) : es256kVerify(presentedKey, consent, c.pop)))
-    throw new Reject("sig_invalid");
+  const consented = presentedAlg === "Ed25519" ? ed25519Verify(presentedKey, consent, c.pop)
+    : presentedAlg === "ES256K" ? es256kVerify(presentedKey, consent, c.pop)
+    : es256Verify(presentedKey, consent, c.pop);
+  if (!consented) throw new Reject("sig_invalid");
   // scope
   if (capability !== undefined && c.scope.length > 0 && !c.scope.includes(capability)) throw new Reject("ceiling_exceeded");
   // status: fresh, then the link's own bit, then the operator's lineage
@@ -2130,7 +2153,7 @@ export function runLinkVector(v: {
   const gate = Verifier.fromDirectoryB64(v.directory, v.roots.root_ed25519, v.roots.root_slh, v.freshness);
   if (!gate) return { verdict: "no_gate" };
   const key = strictB64u(v.presented_key);
-  if (key === null || (key.length !== 32 && key.length !== 33)) return { verdict: "invalid", reason: "schema_violation" };
+  if (key === null || presentedKeyAlg(key) === null) return { verdict: "invalid", reason: "schema_violation" };
   return gate.verifyLink(v.link, key, v.now, v.capability ?? undefined);
 }
 

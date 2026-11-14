@@ -17,7 +17,7 @@ still true?*
   "v": "ainra-link-1",
   "registrar": "registrar-07",
   "passport": "ainra:registrar-07:acme:invoicing@1.0.0",
-  "subject": { "kind": "jwk", "alg": "Ed25519 | ES256K", "thumbprint": "<RFC 7638 thumbprint, base64url>" },
+  "subject": { "kind": "jwk", "alg": "Ed25519 | ES256K | ES256", "thumbprint": "<RFC 7638 thumbprint, base64url>" },
   "scope": [],
   "nbf": 1775865600,
   "exp": 1778457600,
@@ -32,13 +32,22 @@ still true?*
 - `pop` is the linked key's own consent, signed in its own algorithm over the canonical
   `{"nbf", "passport", "purpose": "ainra-link-pop-1", "registrar", "thumbprint"}`. Nobody can link a key they do not
   hold.
-- **Two key types (D-082).** `Ed25519`: the 32-byte key, thumbprint over `{"crv":"Ed25519","kty":"OKP","x"}`.
+- **Three key types (D-082, D-108).** `Ed25519`: the 32-byte key, thumbprint over `{"crv":"Ed25519","kty":"OKP","x"}`.
   `ES256K` (RFC 8812), for agents on ledgers: the 33-byte compressed secp256k1 point, thumbprint over
   `{"crv":"secp256k1","kty":"EC","x","y"}`, consent by ECDSA with SHA-256 as 64-byte `r || s`, **low-S only** — the
-  high-S twin of a valid signature is refused, so a consent has exactly one valid encoding. A verifier tells them
-  apart by the key it holds: 32 bytes is Ed25519, 33 is ES256K. secp256k1 comes from RustCrypto `k256` 0.14 (the
-  successor of the 0.13 line NCC Group reviewed in 2023, chosen because 0.13 carries RUSTSEC-2026-0387 through
-  `crypto-bigint`; the crate still says "use at your own risk"), `@noble/curves` and Python `cryptography`.
+  high-S twin of a valid signature is refused, so a consent has exactly one valid encoding. secp256k1 comes from
+  RustCrypto `k256` 0.14 (the successor of the 0.13 line NCC Group reviewed in 2023, chosen because 0.13 carries
+  RUSTSEC-2026-0387 through `crypto-bigint`; the crate still says "use at your own risk"), `@noble/curves` and Python
+  `cryptography`.
+  `ES256` (RFC 7518), for keys other identity systems already issue — certificates, signed agent cards, token
+  issuers, hardware and platform keystores: the 65-byte **uncompressed** P-256 point (`0x04 || x || y`, the form the
+  key has in a JWK and in a certificate), thumbprint over `{"crv":"P-256","kty":"EC","x","y"}`, consent by ECDSA with
+  SHA-256 as 64-byte `r || s`, **low-S only**, the same rule. RFC 7518 accepts both twins and many P-256 signers
+  return either: if yours returns the high one, send `n - s` in its place (the same statement by the same key; our
+  own tools do this for you). P-256 comes from RustCrypto `p256` 0.14 (the same maintainers and the same `ecdsa` code
+  as `k256`; no advisory names it; it too says "use at your own risk"), `@noble/curves` and Python `cryptography`.
+  A verifier tells the three apart by the key it holds: 32 bytes is Ed25519, 33 is ES256K, 65 is ES256. No length
+  means two things, and 65 bytes that are not a point on P-256 are not a key at all.
 - `scope` empty means "whatever the passport allows"; otherwise the link refuses any capability it does not name.
 - Two bits: the link's own, and the passport's. Revoking the operator refuses every link it has.
 
@@ -46,7 +55,7 @@ still true?*
 
 | Route | What it does |
 |---|---|
-| `POST /link` | Body `{passport, alg?, key, pop, scope?, nbf, exp}` (`alg` is `Ed25519`, the default, or `ES256K`; `key` the base64url public key in that algorithm's form). Refused unless the key signed its consent, the passport is this registrar's and not revoked, and the link fits inside it: window inside the passport's, scope inside its capabilities. Bearer token, rate limited. |
+| `POST /link` | Body `{passport, alg?, key, pop, scope?, nbf, exp}` (`alg` is `Ed25519`, the default, `ES256K` or `ES256`; `key` the base64url public key in that algorithm's form). Refused unless the key signed its consent, the passport is this registrar's and not revoked, and the link fits inside it: window inside the passport's, scope inside its capabilities. Bearer token, rate limited. |
 | `GET /links` | The whole index. Each entry is registrar-signed and proven under one delegate-signed checkpoint. There is no lookup by key: you download the index, so nobody learns which key you asked about. |
 | `POST /link/revoke` | Body `{thumbprint, kind, suspect_since?}`. `kind` is `link` (this key is retired), `operator` (the passport's lineage is suspended, so every link flips) or `compromise` (the key was stolen; `suspect_since` marks when its actions stopped being the operator's). Bearer token, rate limited. |
 | `POST /demo/link`, `POST /demo/link/revoke` | The public demo door, for trying Link without a token: the same bodies, the same proof of control, but staging only, on the demo door's own rate limit, and only for demo specimens (passports from `POST /demo/issue`). A key cannot be linked to, and a link cannot be revoked from, any other passport through it. |
@@ -120,6 +129,12 @@ each implementation to confirm a vector goes red; the leaf-binding attack (`l22`
 showed its first version could not tell a verifier with the check from one without it.
 
 ## Live
+
+`make link-p256-e2e` (also in `make live-drills`) is the same path for a **P-256 key made and used by the platform's
+own signer**, the way a keystore or a certificate's key behaves: the private key cannot be exported, and its
+signatures come back as either twin. The registrar refuses the high-S twin, the compressed form of the key and a
+consent by another key, then links the low-S consent; a gate attributes the key to its operator; an unlinked P-256
+key is "not linked"; after a revocation the same gate refuses the same key.
 
 `make link-e2e` (in `make live-drills`, which CI runs) does it at the real clock against a running registrar. An
 operator's agents sign as signature agents with keys in its published directory. Two of three keys are linked, each

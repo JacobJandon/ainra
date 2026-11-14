@@ -15,7 +15,11 @@ OUT=packages/edge/wasm
 # will — took it to 719. The platforms' script limits are megabytes: the ceiling is ours, so that growth is a decision,
 # and this one was. The alternatives were a vulnerable dependency, or a gate that answers ES256K links unlike the
 # other two.
-CEILING_KB=${CEILING_KB:-768}
+# 768 KiB until 2026-11-14. Raised that day for D-108: NIST P-256 (p256 0.14, ES256 links) took the engine past it, to
+# 788 KiB (270 KiB compressed). The same choice as before, made the same way: a gate that answers ES256 links
+# like the other two, or one that does not. The curves share the `ecdsa` and `elliptic-curve` code; what is added is
+# P-256's own field arithmetic.
+CEILING_KB=${CEILING_KB:-832}
 command -v wasm-bindgen >/dev/null 2>&1 || { echo "wasm-bindgen not found — see tools/build-wasm.sh" >&2; exit 1; }
 cargo build -p ainra-wasm --features edge --target wasm32-unknown-unknown --profile wasm-release \
   --target-dir target/wasm-edge

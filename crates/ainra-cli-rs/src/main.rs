@@ -847,10 +847,11 @@ GATE (D-062 / D-068)
         why did a gate refuse this request? The same check @ainra/edge makes: the directory must verify
         against both roots; the credential under the GATE's policy; then the RFC 9421 request signature.
         Q is {{method, authority, path, headers: [[name, value], …], body_b64u}}. Prints ALLOW or the reason.
-  link <dir> --passport P --key K --pop S --nbf T --exp T [--alg Ed25519|ES256K] [--scope C ...]
+  link <dir> --passport P --key K --pop S --nbf T --exp T [--alg Ed25519|ES256K|ES256] [--scope C ...]
         AINRA Link (D-078): link a key an agent already uses (K, base64url) to passport P of this registrar: a
-        32-byte Ed25519 key, or with --alg ES256K a 33-byte compressed secp256k1 point (D-082). S is the key's own
-        64-byte signature over the consent bytes (ES256K: r || s, low-S) — nobody can link a key they do not hold.
+        32-byte Ed25519 key, with --alg ES256K a 33-byte compressed secp256k1 point (D-082), or with --alg ES256 a
+        65-byte uncompressed P-256 point (D-108). S is the key's own 64-byte signature over the consent bytes
+        (ES256K and ES256: r || s, low-S) — nobody can link a key they do not hold.
   link-revoke <dir> --thumbprint T --kind link|operator|compromise [--suspect-since T] [--now T]
   links <dir> [--now T]                        print the registrar's whole link index (what GET /links serves)
   verify-link --link L --directory D --roots R --key K [--now T] [--freshness F2] [--capability C]
@@ -902,7 +903,7 @@ Time is explicit (the core has no clock): pass --now <unix-seconds>; the default
 
 fn cmd_link(a: &[String]) -> i32 {
     let usage =
-        "usage: ainra link <dir> --passport P --key K --pop S --nbf T --exp T [--alg Ed25519|ES256K] [--scope C ...]";
+        "usage: ainra link <dir> --passport P --key K --pop S --nbf T --exp T [--alg Ed25519|ES256K|ES256] [--scope C ...]";
     let (Some(dir), Some(passport), Some(key), Some(pop), Some(nbf), Some(exp)) = (
         pos(a, 0),
         opt(a, "passport"),

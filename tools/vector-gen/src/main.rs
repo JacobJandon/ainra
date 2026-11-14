@@ -5791,6 +5791,156 @@ fn link_vectors() -> Vec<Value> {
         );
     }
 
+    // ── D-108 ES256: a NIST P-256 key, as certificates, signed agent cards and token issuers hold one ────────────
+    // Their own seed again, so the 43 vectors above stay byte-identical. The key is an UNCOMPRESSED SEC1 point
+    // (65 bytes); the consent is ECDSA-SHA256, `r || s`, low-S.
+    {
+        use p256::ecdsa::signature::Signer as _;
+        let mut prng = ChaCha20Rng::seed_from_u64(0x4553_3235_3600_0108); // "ES256" · D-108 — a public TEST seed
+        let r1 = |seed: u8| {
+            let sk = p256::ecdsa::SigningKey::from_bytes(&[seed; 32].into()).expect("p256 key");
+            let pk: [u8; 65] = sk
+                .verifying_key()
+                .to_sec1_point(false)
+                .as_bytes()
+                .try_into()
+                .expect("65 bytes");
+            (sk, pk)
+        };
+        let (r1_sk, r1_pk) = r1(0x52);
+        let (r1_other, _) = r1(0x53);
+        let r1_tp = ainra_core::link::jwk_thumbprint_es256(&r1_pk).expect("on curve");
+        let consent = |tp: &str| {
+            ainra_core::link::pop_signing_bytes(&base.registrar, &base.passport, tp, base.nbf)
+        };
+        // The low-S form, whichever twin the signer returned (RFC 7518 allows both; Link takes one).
+        let sign_r1 = |sk: &p256::ecdsa::SigningKey, msg: &[u8]| -> [u8; 64] {
+            let sig: p256::ecdsa::Signature = sk.sign(msg);
+            sig.normalize_s().to_bytes().into()
+        };
+        let low = sign_r1(&r1_sk, &consent(&r1_tp));
+        let high: [u8; 64] = {
+            let s = p256::ecdsa::Signature::from_slice(&low).expect("sig");
+            let (r, s_) = s.split_scalars();
+            p256::ecdsa::Signature::from_scalars(r, -*s_)
+                .expect("high-s")
+                .to_bytes()
+                .into()
+        };
+        let mut r1_link = |alg: &str, tp: &str, pop: &[u8]| {
+            let (claims, sig, logged) = link_record_alg(&base, alg, tp, pop, &w.issuer);
+            with_status(
+                assemble(&claims, &sig, &logged, &mut prng).0,
+                clear(now - 10),
+            )
+        };
+        let valid = r1_link("ES256", &r1_tp, &low);
+        let high_s = r1_link("ES256", &r1_tp, &high);
+        let other = r1_link("ES256", &r1_tp, &sign_r1(&r1_other, &consent(&r1_tp)));
+        // The thumbprint of an Ed25519 key with the same 32 bytes as the point's x: the right bytes, the wrong curve.
+        let ed_tp = ainra_core::link::jwk_thumbprint_ed25519(&r1_pk[1..33].try_into().expect("32"));
+        let wrong_curve = r1_link("ES256", &ed_tp, &sign_r1(&r1_sk, &consent(&ed_tp)));
+        // A secp256k1 link and key of this suite's own, for the two cross-curve cases.
+        let (k1_sk, k1_pk) = {
+            let sk = k256::ecdsa::SigningKey::from_bytes(&[0x4D; 32].into()).expect("k1 key");
+            let pk: [u8; 33] = sk
+                .verifying_key()
+                .to_sec1_point(true)
+                .as_bytes()
+                .try_into()
+                .expect("33 bytes");
+            (sk, pk)
+        };
+        let k1_tp = ainra_core::link::jwk_thumbprint_es256k(&k1_pk).expect("on curve");
+        let k1_valid = {
+            use k256::ecdsa::signature::Signer as _;
+            let sig: k256::ecdsa::Signature = k1_sk.sign(&consent(&k1_tp));
+            let pop: [u8; 64] = sig.to_bytes().into();
+            r1_link("ES256K", &k1_tp, &pop)
+        };
+        let r1_key = b64::encode(&r1_pk);
+        let compressed = b64::encode(r1_sk.verifying_key().to_sec1_point(true).as_bytes());
+        let off_curve = {
+            let mut k = r1_pk;
+            k[64] ^= 1;
+            b64::encode(&k)
+        };
+        add!("l44-es256", "an ES256 (P-256) key, linked with its own low-S consent, presented as an uncompressed point", valid.clone(), r1_key.clone(), now, None, "valid");
+        add!("l45-es256-high-s-consent", "the same consent with s replaced by n - s: RFC 7518 accepts it, Link takes only the low-S twin", high_s, r1_key.clone(), now, None, "sig_invalid");
+        add!(
+            "l46-es256-consent-by-another-key",
+            "the link names this key, but another P-256 key signed the consent",
+            other,
+            r1_key.clone(),
+            now,
+            None,
+            "sig_invalid"
+        );
+        add!(
+            "l47-es256-link-ed25519-key",
+            "an ES256 link, and the gate presents an Ed25519 key",
+            valid.clone(),
+            key(&agent),
+            now,
+            None,
+            "sig_invalid"
+        );
+        add!(
+            "l48-ed25519-link-es256-key",
+            "an Ed25519 link, and the gate presents a P-256 key",
+            with_status(good.clone(), clear(now - 10)),
+            r1_key.clone(),
+            now,
+            None,
+            "sig_invalid"
+        );
+        add!(
+            "l49-es256-compressed-key",
+            "the P-256 key presented as a compressed point: 33 bytes names secp256k1, so it is not this link's key",
+            valid.clone(),
+            compressed,
+            now,
+            None,
+            "sig_invalid"
+        );
+        add!(
+            "l50-es256-thumbprint-of-another-curve",
+            "alg ES256 with the thumbprint of an Ed25519 key made of the point's x bytes",
+            wrong_curve,
+            r1_key.clone(),
+            now,
+            None,
+            "sig_invalid"
+        );
+        add!(
+            "l51-es256k-link-es256-key",
+            "an ES256K link, and the gate presents a P-256 key",
+            k1_valid,
+            r1_key,
+            now,
+            None,
+            "sig_invalid"
+        );
+        add!(
+            "l52-es256-link-es256k-key",
+            "an ES256 link, and the gate presents a secp256k1 key",
+            valid.clone(),
+            b64::encode(&k1_pk),
+            now,
+            None,
+            "sig_invalid"
+        );
+        add!(
+            "l53-es256-key-off-the-curve",
+            "65 bytes that begin 0x04 and are not a point on P-256: not a key at all",
+            valid,
+            off_curve,
+            now,
+            None,
+            "schema_violation"
+        );
+    }
+
     cases.sort_by(|a, b| a.name.cmp(b.name));
     let mut out = Vec::new();
     for c in cases {
@@ -5842,7 +5992,7 @@ fn emit_link(dir: &str) {
         "count": vectors.len(),
         "accept": accept,
         "reject": vectors.len() - accept,
-        "note": "CC0 AINRA Link conformance vectors (D-078, D-082): a dual-root-signed directory, one link as a gate receives it (record, registrar signature, inclusion proof, checkpoint, signed status publication), the key the gate already verified the request with — 32 bytes is Ed25519, 33 a compressed secp256k1 point (ES256K, RFC 8812; l37-l43) — and the gate's own clock, freshness class and capability. A valid answer names the registrar, operator, passport and scope. Real signing throughout; expect computed by ainra-adapter::link_vector_result after accredit, each checked against the case it exists to test. Regenerate with `make vectors`.",
+        "note": "CC0 AINRA Link conformance vectors (D-078, D-082, D-108): a dual-root-signed directory, one link as a gate receives it (record, registrar signature, inclusion proof, checkpoint, signed status publication), the key the gate already verified the request with — 32 bytes is Ed25519, 33 a compressed secp256k1 point (ES256K, RFC 8812; l37-l43), 65 an uncompressed P-256 point (ES256, RFC 7518; l44-l53) — and the gate's own clock, freshness class and capability. A valid answer names the registrar, operator, passport and scope. Real signing throughout; expect computed by ainra-adapter::link_vector_result after accredit, each checked against the case it exists to test. Regenerate with `make vectors`.",
     });
     std::fs::write(
         Path::new(dir).join("manifest.json"),

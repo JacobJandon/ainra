@@ -48,6 +48,7 @@ The pure verify/issue library — the only code a relying party's verifier links
 | `slh-dsa` | SLH-DSA (FIPS 205) root suite | Apache-2.0 OR MIT |
 | `sha2` | SHA-256 (FIPS 180-4) | MIT OR Apache-2.0 |
 | `k256` | secp256k1 ECDSA verification for ES256K link keys (RFC 8812, D-082) — 0.14, the successor of the 0.13 line NCC Group reviewed in 2023; 0.13 carries RUSTSEC-2026-0387 | Apache-2.0 OR MIT |
+| `p256` | NIST P-256 ECDSA verification for ES256 link keys (RFC 7518, D-108) — 0.14, the same maintainers and `ecdsa` line as `k256`; no advisory names it (checked 14 November 2026) | Apache-2.0 OR MIT |
 | `base64ct` | constant-time Base64 | Apache-2.0 OR MIT |
 | `flate2` | DEFLATE (status-list codec) | MIT OR Apache-2.0 |
 | `signature` | signature traits | MIT OR Apache-2.0 |

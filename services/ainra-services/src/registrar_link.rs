@@ -32,14 +32,15 @@ pub const LINK_REVOCATION_V: &str = "ainra-link-revocation-1";
 pub struct LinkSpec {
     /// The passport the key acts under (its `sub`), issued by this registrar.
     pub passport: String,
-    /// The key's algorithm: `Ed25519` (the default, so every existing caller is unchanged) or `ES256K` (D-082).
+    /// The key's algorithm: `Ed25519` (the default, so every existing caller is unchanged), `ES256K` (D-082) or
+    /// `ES256` (D-108).
     #[serde(default = "default_alg")]
     pub alg: String,
     /// The public key, base64url: 32 bytes for Ed25519 (the JWK `x` member), the 33-byte compressed SEC1 point for
-    /// ES256K.
+    /// ES256K, the 65-byte uncompressed SEC1 point (`0x04 || x || y`) for ES256.
     pub key: String,
-    /// base64url 64-byte signature by that key, in its own algorithm, over [`pop_signing_bytes`]. ES256K signatures
-    /// are `r || s`, low-S.
+    /// base64url 64-byte signature by that key, in its own algorithm, over [`pop_signing_bytes`]. ES256K and ES256
+    /// signatures are `r || s`, low-S.
     pub pop: String,
     /// Narrower than the passport's capabilities, or empty for "whatever the passport allows".
     #[serde(default)]
@@ -125,8 +126,8 @@ impl RegistrarBox {
             .filter(|k| k.alg() == spec.alg)
             .ok_or_else(|| {
                 IssueError::Malformed(
-                    "key must be base64url: a 32-byte Ed25519 key with alg Ed25519, or a 33-byte compressed \
-                     secp256k1 point with alg ES256K"
+                    "key must be base64url: a 32-byte Ed25519 key with alg Ed25519, a 33-byte compressed \
+                     secp256k1 point with alg ES256K, or a 65-byte uncompressed P-256 point with alg ES256"
                         .into(),
                 )
             })?;
@@ -135,7 +136,7 @@ impl RegistrarBox {
         })?;
         let thumbprint = key
             .thumbprint()
-            .ok_or_else(|| IssueError::Malformed("key is not a point on secp256k1".into()))?;
+            .ok_or_else(|| IssueError::Malformed("key is not a point on its curve".into()))?;
         if self.links.contains_key(&thumbprint) {
             return Err(IssueError::Duplicate(format!(
                 "key {thumbprint} is already linked (one link per key, ever: link a new key instead)"
@@ -783,6 +784,74 @@ mod tests {
         let a = rb
             .verify_link_for(
                 &PresentedKey::Es256k(pk),
+                VERIFY_NOW,
+                status::Freshness::F3,
+                None,
+            )
+            .expect("linked")
+            .expect("valid");
+        assert_eq!(a.operator, "acme");
+    }
+
+    // ── D-108: a P-256 key, linked and attributed through the same path ───────────────────────────────────────────
+
+    #[test]
+    fn an_es256_key_links_and_is_attributed() {
+        use p256::ecdsa::signature::Signer as _;
+        let (mut rb, passport) = setup("es256");
+        let sk = p256::ecdsa::SigningKey::from_bytes(&[0x52; 32].into()).unwrap();
+        let pk: [u8; 65] = sk
+            .verifying_key()
+            .to_sec1_point(false)
+            .as_bytes()
+            .try_into()
+            .unwrap();
+        let tp = ainra_core::link::jwk_thumbprint_es256(&pk).unwrap();
+        // The low-S form of the key's signature, whichever twin the signer returned.
+        let sign = |msg: &[u8]| -> [u8; 64] {
+            let s: p256::ecdsa::Signature = sk.sign(msg);
+            s.normalize_s().to_bytes().into()
+        };
+        let consent = pop_signing_bytes(rb.id(), &passport, &tp, NBF);
+        let spec = |alg: &str, key: &[u8], pop: &[u8]| LinkSpec {
+            passport: passport.clone(),
+            alg: alg.into(),
+            key: b64::encode(key),
+            pop: b64::encode(pop),
+            scope: vec![],
+            nbf: NBF,
+            exp: NBF + 30 * 24 * 60 * 60,
+        };
+        let low = sign(&consent);
+        // A 65-byte key claimed as another algorithm is refused before anything else.
+        for alg in ["Ed25519", "ES256K"] {
+            assert!(matches!(
+                rb.link(&spec(alg, &pk, &low)),
+                Err(IssueError::Malformed(_))
+            ));
+        }
+        // The compressed form of the same key is 33 bytes: that length names secp256k1, never ES256.
+        let compressed = sk.verifying_key().to_sec1_point(true);
+        assert!(matches!(
+            rb.link(&spec("ES256", compressed.as_bytes(), &low)),
+            Err(IssueError::Malformed(_))
+        ));
+        // The high-S twin of the key's own consent is refused, like a signature by another key.
+        let s = p256::ecdsa::Signature::from_slice(&low).unwrap();
+        let (r, s_) = s.split_scalars();
+        let high: [u8; 64] = p256::ecdsa::Signature::from_scalars(r, -*s_)
+            .unwrap()
+            .to_bytes()
+            .into();
+        assert!(matches!(
+            rb.link(&spec("ES256", &pk, &high)),
+            Err(IssueError::HolderProof(_))
+        ));
+        let rec = rb.link(&spec("ES256", &pk, &low)).unwrap();
+        assert_eq!(rec.thumbprint, tp);
+        let a = rb
+            .verify_link_for(
+                &PresentedKey::Es256(pk),
                 VERIFY_NOW,
                 status::Freshness::F3,
                 None,

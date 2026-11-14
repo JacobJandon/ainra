@@ -37,6 +37,10 @@ sha2 = { version = "0.10", default-features = false }
 # The crate still says "use at your own risk". ECDSA verify + SHA-256 only; default features off so nothing pulls an RNG
 # onto the verify path or into wasm32.
 k256 = { version = "0.14", default-features = false, features = ["ecdsa", "sha256"] }
+# NIST P-256 for ES256 link keys (D-108): RustCrypto p256, the same maintainers and the same `ecdsa` and
+# `elliptic-curve` lines as k256 above, so one arithmetic stack serves both curves. No advisory names it (checked
+# 14 November 2026); like k256 it says "use at your own risk". ECDSA verify + SHA-256 only, default features off.
+p256 = { version = "0.14", default-features = false, features = ["ecdsa", "sha256"] }
 signature = { version = "2", default-features = false }
 rand_core = { version = "0.6", default-features = false }
 # Encoding

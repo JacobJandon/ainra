@@ -391,8 +391,8 @@ export function ainraLinkGate(verifier: Verifier, opts: LinkGateOptions) {
     try { key = await opts.verifiedKey(req); } catch { key = null; }
     let r: LinkVerdict | { verdict: "invalid"; reason: string };
     let tp: string | null = null;
-    // A key of either Link algorithm (D-082): 32 bytes Ed25519, 33 a compressed secp256k1 point. Anything else, or
-    // bytes that are no point on the curve, is not a key this gate verified.
+    // A key of any Link algorithm: 32 bytes Ed25519, 33 a compressed secp256k1 point (D-082), 65 an uncompressed
+    // P-256 point (D-108). Anything else, or bytes that are no point on the curve, is not a key this gate verified.
     tp = key ? presentedKeyThumbprint(key) : null;
     if (!key || tp === null) {
       r = { verdict: "invalid", reason: "sig_invalid" };

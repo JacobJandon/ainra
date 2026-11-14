@@ -92,6 +92,41 @@ def es256k_verify(pub: bytes, sig: bytes, msg: bytes) -> bool:
         return False
 
 
+# The order of the NIST P-256 group: a signature's s must be at most half of it (low-S, D-108).
+_P256_N = 0xFFFFFFFF00000000FFFFFFFFFFFFFFFFBCE6FAADA7179E84F3B9CAC2FC632551
+
+
+def p256_point(pub: bytes) -> tuple[bytes, bytes] | None:
+    """The affine x and y (32 bytes each) of a 65-byte UNCOMPRESSED P-256 point (``0x04 || x || y``), or None if it
+    is not one."""
+    if len(pub) != 65 or pub[0] != 4:
+        return None
+    try:
+        n = ec.EllipticCurvePublicKey.from_encoded_point(ec.SECP256R1(), pub).public_numbers()
+    except Exception:
+        return None
+    return n.x.to_bytes(32, "big"), n.y.to_bytes(32, "big")
+
+
+def es256_verify(pub: bytes, sig: bytes, msg: bytes) -> bool:
+    """ES256 (RFC 7518): ECDSA over NIST P-256 with SHA-256 of ``msg``; ``sig`` is 64-byte ``r || s``. A high-S
+    signature is refused, as for ES256K — RFC 7518 accepts both twins, Link takes the low-S one — and so is anything
+    that is not an uncompressed point on the curve. Fail closed on any anomaly."""
+    if len(pub) != 65 or pub[0] != 4 or len(sig) != 64:
+        return False
+    r, s = int.from_bytes(sig[:32], "big"), int.from_bytes(sig[32:], "big")
+    if not (0 < r < _P256_N and 0 < s <= _P256_N // 2):
+        return False
+    try:
+        key = ec.EllipticCurvePublicKey.from_encoded_point(ec.SECP256R1(), pub)
+        key.verify(encode_dss_signature(r, s), msg, ec.ECDSA(hashes.SHA256()))
+        return True
+    except (InvalidSignature, ValueError):
+        return False
+    except Exception:
+        return False
+
+
 def mldsa65_verify(pub: bytes, sig: bytes, msg: bytes) -> bool:
     """Verify an ML-DSA-65 (FIPS 204) signature; fail closed on any anomaly."""
     if len(pub) != MLDSA65_PUB_LEN or len(sig) != MLDSA65_SIG_LEN:

@@ -9,7 +9,8 @@ repository, specification, or its entry in a funder's public directory. Every ro
 Where a claim could not be traced to a primary source it was dropped rather than softened; where a first pass
 overstated a capability, an adversarial second pass corrected it and the correction stands. The file was re-checked
 for changes on **12 November 2026**: a sweep for items dated 28 October to 12 November, with closer checks of the
-Agent Name Service and the Personal Agent Protocol. The August rows were not each re-read. The counts table stays the
+Agent Name Service and the Personal Agent Protocol. Three items found on 13 November outside any sweep have their
+own section. The August rows were not each re-read. The counts table stays the
 August floor, the file's convention; items found later, and corrections to the August rows, are listed in the dated
 sections below the tables.
 
@@ -294,7 +295,7 @@ question across providers today.
   negotiate and transact. It names no revocation or reputation mechanism; one freight company reports a pilot. No
   independent evidence of large-scale production use was found. **Relation:** a network whose agent keys could be
   linked to accountable operators across networks. AINRA Link takes Ed25519 and, since D-082, ES256K (secp256k1)
-  keys — the key type such networks sign with. <https://arxiv.org/abs/2510.18699>
+  keys — the key type such networks sign with — and, since D-108, ES256 (P-256) keys. <https://arxiv.org/abs/2510.18699>
 - **Attestix.** Open documentation tooling that produces Ed25519-signed, machine-readable EU AI Act evidence for
   agents (data governance, lineage, conformity records, verifiable presentations checkable "without contacting
   Attestix"). It says plainly it is not a conformity determination. No revocation or audit-log mechanism is
@@ -594,6 +595,41 @@ were missed by earlier checks; each carries its own date.
   links, such as the two DNSid rows. Reproduce the first two figures from the repository root with
   `python3 -c 'r=[l for l in open("docs/LANDSCAPE.md") if l.startswith("| [")];print(len(r),len({l.split("](",1)[1].split(")",1)[0] for l in r}))'`,
   which prints `130 120`.
+
+## Found on 13 November 2026 (not a sweep)
+
+Three items an earlier pass missed, found when a search assistant was asked for "agent IDs" and named them. Each was
+read at its own source on 13 November 2026. They are not in the counts above, and this was not a re-check of the
+field: the last sweep is the one dated 12 November. One limit is stated per entry.
+
+- **The Agent Transfer Protocol (AGTP) and its "canonical Agent-ID".** A protocol family by Chris Hood, described by
+  its author as "being developed as an IETF Internet Draft". An agent's identifier is the hash of its signed
+  "genesis document", which records its owner, the scope of authority it was issued, a governance zone and its keys,
+  and is signed by "the issuing governance authority"; the article says "Change anything about that record, and the
+  identifier changes." The identifier travels in an `Agent-ID` header on every request of a transport meant to carry
+  agent traffic in place of HTTP. It is verified "against the governance platform's public key"; the article names no
+  authority shared between platforms and does not say how an identifier is revoked. A companion "Merchant Genesis"
+  gives the receiving side the same kind of identity. *Read from the author's article of 23 April 2026 only; the
+  draft itself was not read, so absence here is absence in the article.* **Relation:** the same instinct as a
+  passport's log leaf — an identity that is the hash of its signed birth record — without a root that different
+  platforms share, which is the part the Standard's first section says nobody can build alone.
+  <https://chrishood.com/the-canonical-agent-id-the-most-important-number-an-agent-will-have/>
+- **A third-party map: "Seven Lanes, 38 Players, One Question"** (the same author, 23 June 2026). It sorts 38
+  products, protocols and bodies into enterprise identity, cloud and workload identity, developer auth, non-human
+  identity security, decentralised identifiers, protocols, and governance bodies, and concludes that verifying an
+  identifier "is rapidly becoming table stakes" while authority, delegation and conduct are open ground. AINRA is
+  not on it. It is recorded here because maps like this are what search assistants repeat, and because its lanes are
+  a fair cross-check of this file's own sections. *It is one author's list and names his own protocol among the
+  protocols.* <https://chrishood.com/the-ai-agent-identity-landscape-seven-lanes-38-players-one-question/>
+- **Alien Agent ID.** Part of Alien, a proof-of-human network on its own ledger with its own coin, labelled alpha;
+  its site says it raised $7.1M. "Alien ID" is "anonymous proof of human uniqueness"; "Alien Agent ID" is headed
+  "Identity layer for AI agents" and links an agent to one verified human: the agent registers with a command, the
+  human scans a code in the Alien app, and a service checks incoming agent requests with the project's SDK. The page
+  also offers verified commits on a code host. *The page read does not say how a link between a human and an agent
+  is withdrawn, or whether a check works without reaching the network.* **Relation:** evidence that a particular
+  human stands behind an agent is one fact about a principal. It is the kind of evidence a registrar's principal
+  check takes in (see the personhood kit), not a registry of organisations' agents; an agent could carry both.
+  <https://alien.org/agent-id>
 
 ## Corrections applied before publishing
 

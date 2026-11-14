@@ -49,21 +49,34 @@ pub const SUBJECT_ALG_ED25519: &str = "Ed25519";
 /// ES256K (RFC 8812): ECDSA over secp256k1 with SHA-256 — the keys agents that live on ledgers already hold (D-082).
 /// Signatures are 64-byte `r || s` and must be low-S, so no signature can be re-encoded into a second valid one.
 pub const SUBJECT_ALG_ES256K: &str = "ES256K";
+/// ES256 (RFC 7518): ECDSA over NIST P-256 with SHA-256 — the keys most other identity systems issue: certificates,
+/// signed agent cards, token issuers, hardware and platform keystores (D-108). Signatures are 64-byte `r || s` and
+/// must be low-S, the one rule for both ECDSA algorithms here; a signer that returns the high-S twin sends `n - s`.
+pub const SUBJECT_ALG_ES256: &str = "ES256";
 
 /// A key a caller has already verified a signature with, as Link names it. By length: 32 bytes is an Ed25519 key,
-/// 33 a compressed SEC1 secp256k1 point — so every caller that passes a 32-byte key keeps meaning Ed25519.
+/// 33 a compressed SEC1 secp256k1 point, 65 an UNCOMPRESSED SEC1 P-256 point (`0x04 || x || y`, the form that key
+/// has in a JWK, a COSE key and a certificate) — so every caller that passes a 32-byte key keeps meaning Ed25519,
+/// and no length means two things.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PresentedKey {
     Ed25519([u8; 32]),
     Es256k([u8; 33]),
+    Es256([u8; 65]),
 }
 
 impl PresentedKey {
-    /// `None` for any other length.
+    /// `None` for any other length, and for 65 bytes that are not an uncompressed point on P-256: before D-108 no
+    /// 65-byte key was a key at all (an uncompressed secp256k1 point is refused as malformed, vector l42), and that
+    /// stays true of every 65-byte string except a P-256 key.
     pub fn from_bytes(b: &[u8]) -> Option<Self> {
         match b.len() {
             32 => b.try_into().ok().map(PresentedKey::Ed25519),
             33 => b.try_into().ok().map(PresentedKey::Es256k),
+            65 => {
+                let k: [u8; 65] = b.try_into().ok()?;
+                p256_affine(&k).map(|_| PresentedKey::Es256(k))
+            }
             _ => None,
         }
     }
@@ -71,13 +84,15 @@ impl PresentedKey {
         match self {
             PresentedKey::Ed25519(_) => SUBJECT_ALG_ED25519,
             PresentedKey::Es256k(_) => SUBJECT_ALG_ES256K,
+            PresentedKey::Es256(_) => SUBJECT_ALG_ES256,
         }
     }
-    /// The RFC 7638 thumbprint; `None` for bytes that are not a point on secp256k1.
+    /// The RFC 7638 thumbprint; `None` for bytes that are not a point on the key's curve.
     pub fn thumbprint(&self) -> Option<String> {
         match self {
             PresentedKey::Ed25519(k) => Some(jwk_thumbprint_ed25519(k)),
             PresentedKey::Es256k(k) => jwk_thumbprint_es256k(k),
+            PresentedKey::Es256(k) => jwk_thumbprint_es256(k),
         }
     }
     /// Verify a 64-byte signature by this key over `msg`, in the key's own algorithm.
@@ -85,6 +100,7 @@ impl PresentedKey {
         match self {
             PresentedKey::Ed25519(k) => crypto::ed25519_verify(k, msg, sig),
             PresentedKey::Es256k(k) => es256k_verify(k, msg, sig),
+            PresentedKey::Es256(k) => es256_verify(k, msg, sig),
         }
     }
 }
@@ -153,7 +169,9 @@ impl LinkClaims {
         }
         if c.v != LINK_V
             || c.subject.kind != SUBJECT_KIND_JWK
-            || !(c.subject.alg == SUBJECT_ALG_ED25519 || c.subject.alg == SUBJECT_ALG_ES256K)
+            || !(c.subject.alg == SUBJECT_ALG_ED25519
+                || c.subject.alg == SUBJECT_ALG_ES256K
+                || c.subject.alg == SUBJECT_ALG_ES256)
         {
             return Err(Reason::SchemaViolation);
         }
@@ -244,6 +262,65 @@ pub fn es256k_verify(sec1: &[u8; 33], msg: &[u8], sig: &[u8; 64]) -> bool {
     };
     // High-S when normalising changes it: the same test on every k256 line (0.13 returned an Option here, 0.14 the
     // signature itself).
+    if s.normalize_s() != s {
+        return false;
+    }
+    vk.verify(msg, &s).is_ok()
+}
+
+/// The affine `x` and `y` of an uncompressed SEC1 P-256 point (`0x04 || x || y`); `None` when the bytes are not one.
+fn p256_affine(sec1: &[u8; 65]) -> Option<([u8; 32], [u8; 32])> {
+    use p256::elliptic_curve::sec1::ToSec1Point;
+    if sec1[0] != 0x04 {
+        return None;
+    }
+    let pk = p256::PublicKey::from_sec1_bytes(sec1).ok()?;
+    let p = pk.to_sec1_point(false);
+    Some((
+        p.x()?.as_slice().try_into().ok()?,
+        p.y()?.as_slice().try_into().ok()?,
+    ))
+}
+
+/// RFC 7638 thumbprint of a P-256 key given as an uncompressed SEC1 point: base64url(SHA-256(
+/// `{"crv":"P-256","kty":"EC","x":"…","y":"…"}`)), the member names and curve name RFC 7518 registers. `None` when
+/// the bytes are not an uncompressed point on the curve.
+pub fn jwk_thumbprint_es256(sec1: &[u8; 65]) -> Option<String> {
+    #[derive(Serialize)]
+    struct Jwk<'a> {
+        crv: &'a str,
+        kty: &'a str,
+        x: String,
+        y: String,
+    }
+    use sha2::{Digest, Sha256};
+    let (x, y) = p256_affine(sec1)?;
+    let j = Jwk {
+        crv: "P-256",
+        kty: "EC",
+        x: b64::encode(&x),
+        y: b64::encode(&y),
+    };
+    let s = canon::canonicalize(&j).ok()?;
+    Some(b64::encode(&Sha256::digest(s.as_bytes())))
+}
+
+/// ES256 verification (RFC 7518): ECDSA over P-256 with SHA-256 of `msg`, the signature as 64-byte `r || s`.
+/// A high-S signature is refused, as for ES256K and for the same reason: its low-S twin is the canonical form, and
+/// accepting both would give every consent two valid encodings. (RFC 7518 itself accepts both; a P-256 signer that
+/// returns high-S replaces `s` with `n - s`, which anyone can do and which is the same statement by the same key.)
+pub fn es256_verify(sec1: &[u8; 65], msg: &[u8], sig: &[u8; 64]) -> bool {
+    use p256::ecdsa::signature::Verifier as _;
+    use p256::ecdsa::{Signature, VerifyingKey};
+    if sec1[0] != 0x04 {
+        return false;
+    }
+    let (Ok(vk), Ok(s)) = (
+        VerifyingKey::from_sec1_bytes(sec1),
+        Signature::from_slice(sig),
+    ) else {
+        return false;
+    };
     if s.normalize_s() != s {
         return false;
     }
@@ -783,6 +860,111 @@ mod tests {
                 claims: &f.claims,
                 registrar_sig: f.sig.clone(),
                 presented_key: PresentedKey::Es256k(k1pk),
+                now: 1_500,
+                status_list: &f.list,
+                status_issued_at: 1_495,
+                freshness: status::Freshness::F1,
+                checkpoint: &f.cp,
+                checkpoint_sig: &f.cp_sig,
+                leaf_index: f.leaf_index,
+                inclusion_proof: &f.proof,
+                revoked_delegates: &none,
+                capability: None,
+            },
+            &f.anchors,
+        );
+        assert_eq!(r, Err(Reason::SigInvalid));
+    }
+
+    // ── D-108 ES256 (P-256) ────────────────────────────────────────────────────────────────────────────────────────
+
+    fn r1(seed: u8) -> (p256::ecdsa::SigningKey, [u8; 65]) {
+        let sk = p256::ecdsa::SigningKey::from_bytes(&[seed; 32].into()).unwrap();
+        let pk: [u8; 65] = sk
+            .verifying_key()
+            .to_sec1_point(false)
+            .as_bytes()
+            .try_into()
+            .unwrap();
+        (sk, pk)
+    }
+
+    fn r1_sign(sk: &p256::ecdsa::SigningKey, msg: &[u8]) -> [u8; 64] {
+        use p256::ecdsa::signature::Signer as _;
+        let s: p256::ecdsa::Signature = sk.sign(msg);
+        let s = s.normalize_s();
+        s.to_bytes().into()
+    }
+
+    #[test]
+    fn an_es256_signature_verifies_and_its_high_s_twin_does_not() {
+        let (sk, pk) = r1(7);
+        let msg = b"consent";
+        let sig = r1_sign(&sk, msg);
+        assert!(es256_verify(&pk, msg, &sig));
+        assert!(!es256_verify(&pk, b"something else", &sig));
+        // The same (r, s) with s replaced by n - s: RFC 7518 accepts it, Link does not — one consent, one encoding.
+        let parsed = p256::ecdsa::Signature::from_slice(&sig).unwrap();
+        let (r, s_) = parsed.split_scalars();
+        let high = p256::ecdsa::Signature::from_scalars(r, -*s_).unwrap();
+        let high: [u8; 64] = high.to_bytes().into();
+        assert_ne!(high, sig);
+        assert!(!es256_verify(&pk, msg, &high));
+        let (_, other) = r1(8);
+        assert!(!es256_verify(&other, msg, &sig));
+    }
+
+    #[test]
+    fn an_es256_key_is_an_uncompressed_point_on_p256_and_nothing_else_is_65_bytes() {
+        let (sk, pk) = r1(7);
+        let tp = jwk_thumbprint_es256(&pk).unwrap();
+        assert_eq!(b64::decode_array::<32>(&tp).unwrap().len(), 32);
+        let held = PresentedKey::from_bytes(&pk).unwrap();
+        assert_eq!(
+            (held.alg(), held.thumbprint()),
+            (SUBJECT_ALG_ES256, Some(tp.clone()))
+        );
+        // The compressed form of the same key is 33 bytes, which names secp256k1: never this key.
+        let compressed: [u8; 33] = sk
+            .verifying_key()
+            .to_sec1_point(true)
+            .as_bytes()
+            .try_into()
+            .unwrap();
+        let as_k1 = PresentedKey::from_bytes(&compressed).unwrap();
+        assert_eq!(as_k1.alg(), SUBJECT_ALG_ES256K);
+        assert_ne!(as_k1.thumbprint(), Some(tp.clone()));
+        // 65 bytes that are not a P-256 point are not a key at all: a wrong prefix, an off-curve point, and an
+        // uncompressed secp256k1 point (what vector l42 presents).
+        let mut wrong_prefix = pk;
+        wrong_prefix[0] = 0x02;
+        assert_eq!(PresentedKey::from_bytes(&wrong_prefix), None);
+        assert_eq!(jwk_thumbprint_es256(&wrong_prefix), None);
+        let mut off_curve = pk;
+        off_curve[64] ^= 1;
+        assert_eq!(PresentedKey::from_bytes(&off_curve), None);
+        let (k1sk, _) = k1(7);
+        let k1_uncompressed: [u8; 65] = k1sk
+            .verifying_key()
+            .to_sec1_point(false)
+            .as_bytes()
+            .try_into()
+            .unwrap();
+        assert_eq!(PresentedKey::from_bytes(&k1_uncompressed), None);
+        // The thumbprint names the curve: the same x and y under "secp256k1" would hash differently.
+        assert_ne!(Some(tp), jwk_thumbprint_es256k(&compressed));
+    }
+
+    #[test]
+    fn a_p256_key_never_answers_for_an_ed25519_link() {
+        let f = build();
+        let (_, r1pk) = r1(7);
+        let none = BTreeSet::new();
+        let r = verify_link(
+            &LinkCheck {
+                claims: &f.claims,
+                registrar_sig: f.sig.clone(),
+                presented_key: PresentedKey::Es256(r1pk),
                 now: 1_500,
                 status_list: &f.list,
                 status_issued_at: 1_495,

@@ -22,4 +22,5 @@ rand_core = { workspace = true }
 base64ct = { workspace = true, features = ["alloc"] }
 sha2 = { workspace = true }
 k256 = { workspace = true }
+p256 = { workspace = true }
 rand_chacha = { version = "0.3", default-features = false }

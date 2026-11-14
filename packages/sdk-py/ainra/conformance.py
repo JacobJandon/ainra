@@ -15,6 +15,7 @@ from .decision import run_decision_vector
 from .delta import verify_delta_vector as run_delta_vector
 from .directory import verify_directory as run_directory_vector
 from .directory import run_directory_epoch_vector
+from .link import presented_key_alg
 from .presentation import run_presentation_vector
 from .verifier import Verifier
 from .verify import verify as _verify_fixture
@@ -56,7 +57,7 @@ def run_link_vector(v: dict) -> dict:
     key = _b64d(v.get("presented_key"))
     if gate is None:
         return {"verdict": "no_gate"}
-    if key is None or len(key) not in (32, 33):
+    if key is None or presented_key_alg(key) is None:
         return {"verdict": "invalid", "reason": "schema_violation"}
     return gate.verify_link(v["link"], key, v["now"], v.get("capability"))
 

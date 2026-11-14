@@ -3326,3 +3326,57 @@ The record had also grown to 80 passports, 53 of them revoked, nearly all left b
 
 *Status:* ACCEPTED 2026-11-13, on the operator's instruction to go ahead with R3. Built, run and published the same
 day. Incident INC-2026-012 (MEDIUM); post-mortem in `SECURITY.md`.
+
+## D-108 — Link accepts P-256 keys, as ES256 (M55 step 1)
+
+*Problem:* the operator's instruction of 13 November 2026 is that AINRA be the root for the agent identities other
+systems issue. A link (D-078) is how a key another system issued gets an accountable owner and a status bit under
+AINRA's directory, and it took only Ed25519 and secp256k1 keys. Most other systems sign with NIST P-256:
+certificates, signed agent cards, token issuers, hardware and platform keystores. None of their keys could be linked.
+
+*Decision:* `subject.alg` is `Ed25519`, `ES256K` or `ES256` — ECDSA over P-256 with SHA-256, as JOSE registers it
+(RFC 7518). The key is the 65-byte **uncompressed** SEC1 point (`0x04 || x || y`); its RFC 7638 thumbprint is over
+`{crv: "P-256", kty: "EC", x, y}`; the consent is 64-byte `r || s` and must be **low-S**. Additive on the wire, as
+D-082 was: `LinkSpec.alg` still defaults to `Ed25519`, and every existing record, call and vector is unchanged.
+
+- **Why uncompressed.** Verifiers tell algorithms apart by the key they hold, and a compressed P-256 point is 33
+  bytes, the length that already means secp256k1. Uncompressed is also the form a P-256 key has where it already
+  lives (a JWK's `x` and `y`, a certificate). So: 32 bytes Ed25519, 33 ES256K, 65 ES256, and no length means two
+  things.
+- **Sixty-five bytes that are not a P-256 point are not a key.** Before this decision no 65-byte string was (an
+  uncompressed secp256k1 point is malformed, vector l42), and that stays true of all of them but one kind. So the
+  parsers check the point for this length before calling it a key, which they do not do for 33 bytes; l42 keeps its
+  recorded answer.
+- **Why low-S, when RFC 7518 accepts both.** One rule for both ECDSA algorithms, and one valid encoding per consent.
+  Many P-256 signers return either twin. A signer that returns the high one sends `n - s` in its place: the same
+  statement by the same key, which anyone can compute. The registrar does not do this for the sender, because the
+  registrar does not edit what a key holder sends.
+
+*Libraries:* RustCrypto `p256` 0.14, from the maintainers of `k256` and on the same `ecdsa` and `elliptic-curve`
+lines already in the tree. No advisory names it (checked 14 November 2026); it says "use at your own risk", as `k256`
+does. `@noble/curves` and Python `cryptography`, both already dependencies.
+
+*Rejected:*
+- **A stated algorithm beside every presented key**, replacing the rule by length. Cleaner, and a change to every
+  gate's call in three languages for a problem that length still solves. RSA keys (PLAN-M55 step 3) have no fixed
+  length and will need it; that step is where it is decided.
+- **Accepting high-S for ES256 only.** Two rules where one will do, and two encodings of one consent in a log.
+- **Normalising at the registrar.** See above.
+- **The compressed form with an algorithm byte in front.** A new key encoding that exists nowhere else.
+
+*Held to:* `vectors/v1-link` l44–l53 (their own seed; the 43 earlier vectors are byte-identical) in the three
+implementations (`make diff`) and the three gates (`make link-parity`, 53 of 53): a valid ES256 link, its high-S
+consent, consent by another key, each algorithm's key presented to another's link in four directions, the key in
+compressed form, the thumbprint of the wrong curve, and 65 bytes off the curve. Removing the low-S rule turns l45 red
+(run on 14 November). Unit tests in `ainra-core` and the registrar hold the key forms and the intake.
+
+*Cost:* the edge engine grew to 788 KiB (270 KiB compressed) and its ceiling moved from 768 to 832 KiB, with the
+reason where it is set. The browser verifier did not grow (399 KiB).
+
+*Limits:* this links one key at a time. A system that issues identities to many agents needs one link for the key it
+issues with (PLAN-M55 step 2), and the large identity providers sign with RSA (step 3). Everything runs under a TEST
+root (step 5). Linking a key says who answers for it; it does not say the system that issued it checked anything.
+
+*Not changed:* the Standard, the passport, every earlier vector and verdict, the link record's fields.
+
+*Status:* ACCEPTED 2026-11-14, on the operator's instruction to continue. Plan: PLAN-M55.

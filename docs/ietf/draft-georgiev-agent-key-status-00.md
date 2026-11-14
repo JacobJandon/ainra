@@ -18,6 +18,7 @@ author:
 normative:
   RFC2119:
   RFC8174:
+  RFC7518:
   RFC7638:
   RFC8032:
   RFC8037:
@@ -47,7 +48,7 @@ Software agents increasingly sign their requests with keys issued inside one sys
 workload identity domain, a platform's own key store. A relying party in another organisation can verify such a
 signature, but cannot learn who is accountable for the key or whether it has since been revoked, because revocation
 exists only inside the system that issued it. This document specifies a link record: a signed, logged statement by an
-accountable registrar that one existing key — Ed25519, or secp256k1 as ES256K — acts for one operator, carrying a status entry in a list any relying
+accountable registrar that one existing key — Ed25519, secp256k1 as ES256K, or P-256 as ES256 — acts for one operator, carrying a status entry in a list any relying
 party can check offline. It defines proof of control by the linked key, three kinds of revocation, a fixed verification
 procedure, and reuse of the Token Status List format for the status itself.
 
@@ -121,11 +122,16 @@ MUST be rejected. The `passport` identifier MUST name the same registrar as `reg
 |---|---|---|---|
 | `Ed25519` | the 32-byte public key {{RFC8032}} | `{crv: "Ed25519", kty: "OKP", x}` {{RFC8037}} | Ed25519, 64 bytes |
 | `ES256K` | the 33-byte compressed point {{SEC1}} on secp256k1 | `{crv: "secp256k1", kty: "EC", x, y}` {{RFC8812}} | ECDSA with SHA-256, 64-byte `r || s` with `s` at most half the group order |
+| `ES256` | the 65-byte uncompressed point {{SEC1}} on P-256 | `{crv: "P-256", kty: "EC", x, y}` {{RFC7518}} | ECDSA with SHA-256, 64-byte `r || s` with `s` at most half the group order |
 
-A verifier MUST refuse an ES256K signature whose `s` is greater than half the group order, even though the curve
-equation accepts it: each consent then has exactly one valid encoding. A key presented in one algorithm never
-verifies a link that names another. ES256K is the standard, ledger-neutral form; message formats specific to one
-ledger would be further `alg` values.
+A verifier MUST refuse an ES256K or ES256 signature whose `s` is greater than half the group order, even though the
+curve equation accepts it: each consent then has exactly one valid encoding. {{RFC7518}} itself accepts both; a P-256
+signer that returns the larger `s` replaces it with the group order minus `s` before sending, which is the same
+statement by the same key. A key presented in one algorithm never verifies a link that names another, and the three
+presented forms have three different lengths, so a verifier never has to guess. ES256K is the standard,
+ledger-neutral form; message formats specific to one ledger would be further `alg` values. ES256 is the algorithm of
+most certificates, signed agent cards and token issuers, so a key one of those systems already issued can be linked
+as it is.
 
 ## Proof of control {#pop}
 
@@ -193,7 +199,7 @@ draft.
 (This section is to be removed before publication, per {{RFC7942}}.)
 
 A reference implementation with three independently written verifiers (Rust, TypeScript, Python) and a shared corpus of
-43 conformance vectors for link verification, covering both key algorithms, is available under open-source licences. It includes a registrar, gates
+53 conformance vectors for link verification, covering all three key algorithms, is available under open-source licences. It includes a registrar, gates
 for HTTP servers and edge runtimes, and an interoperability test in which independent Token Status List and JOSE
 libraries read the status list. It runs on a test network; no production deployment exists.
 

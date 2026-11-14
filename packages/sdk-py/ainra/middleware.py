@@ -366,7 +366,8 @@ class AinraLinkGate:
             key = self.verified_key(scope, headers)
         except Exception:
             key = None
-        # A key of either Link algorithm (D-082): 32 bytes Ed25519, 33 a compressed secp256k1 point.
+        # A key of any Link algorithm: 32 bytes Ed25519, 33 a compressed secp256k1 point (D-082), 65 an
+        # uncompressed P-256 point (D-108).
         tp = presented_key_thumbprint(bytes(key)) if isinstance(key, (bytes, bytearray)) else None
         if tp is None:
             result = {"verdict": "invalid", "reason": "sig_invalid"}

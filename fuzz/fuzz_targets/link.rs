@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
-// AINRA Link (D-078, ES256K since D-082) must never panic on arbitrary bytes: the claim parser, the presented-key
-// parser (32-byte Ed25519 or 33-byte compressed secp256k1) and the whole vector path through the one decode path.
+// AINRA Link (D-078, ES256K since D-082, ES256 since D-108) must never panic on arbitrary bytes: the claim parser,
+// the presented-key parser (32-byte Ed25519, 33-byte compressed secp256k1 or 65-byte uncompressed P-256) and the
+// whole vector path through the one decode path.
 // Seeded from vectors/v1-link by tools/fuzz-smoke.sh.
 #![no_main]
 use libfuzzer_sys::fuzz_target;

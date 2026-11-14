@@ -57,3 +57,4 @@ drill-sabotage = []
 
 [dev-dependencies]
 k256 = { workspace = true }   # ES256K test keys (D-082); the registrar itself verifies through ainra-core
+p256 = { workspace = true }   # ES256 test keys (D-108)
